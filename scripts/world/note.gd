@@ -8,6 +8,7 @@ const INK := Color("e6d6b0")
 const REWRITE_DISTANCE := 110.0
 
 var text := ""
+var title := "NOTE"
 var player: Node2D
 
 var _label: Label
@@ -46,8 +47,8 @@ func interact_prompt() -> String:
 	return "read note"
 
 
-func interact() -> String:
-	return text.replace("\n", " ")
+func interact() -> Dictionary:
+	return {"speaker": title, "color": INK, "lines": [text.replace("\n", " ")]}
 
 
 func _process(delta: float) -> void:

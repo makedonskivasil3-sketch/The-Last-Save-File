@@ -1,6 +1,6 @@
 [gd_scene load_steps=9 format=3]
 
-[ext_resource type="Script" path="res://scripts/world/room.gd" id="1_room"]
+[ext_resource type="Script" path="res://scripts/world/world.gd" id="1_world"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2_player"]
 [ext_resource type="Script" path="res://scripts/owner/owner_director.gd" id="3_director"]
 [ext_resource type="Script" path="res://scripts/ui/hud.gd" id="4_hud"]
@@ -14,8 +14,8 @@ shader_parameter/glitch = 0.0
 shader_parameter/vignette = 1.1
 shader_parameter/grain = 1.0
 
-[node name="Room" type="Node2D"]
-script = ExtResource("1_room")
+[node name="World" type="Node2D"]
+script = ExtResource("1_world")
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 position = Vector2(320, 270)

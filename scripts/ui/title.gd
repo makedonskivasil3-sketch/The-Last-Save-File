@@ -74,6 +74,13 @@ func _build_slot_card() -> void:
 	line.add_theme_font_size_override("font_size", 10)
 	v.add_child(line)
 
+	if OwnerMemory.wins > 0:
+		var two := Label.new()
+		two.text = "SLOT 2   ·   ???   ·   LV 1   ·   00:00:%02d" % mini(OwnerMemory.wins, 59)
+		two.add_theme_font_size_override("font_size", 10)
+		two.add_theme_color_override("font_color", UiStyle.INTRUDER)
+		v.add_child(two)
+
 	var status := _slot_status()
 	if status != "":
 		var s := Label.new()
@@ -94,8 +101,8 @@ func _slot_status() -> String:
 			parts.append("the owner is waiting.")
 		"crash":
 			parts.append("this save was not closed properly.")
-		"escape":
-			parts.append("a gap was patched since you left.")
+		"escape", "win":
+			parts.append("something was written to slot 2.")
 	if OwnerMemory.purge > 0:
 		parts.append("[!] purge %d/%d" % [OwnerMemory.purge, OwnerMemory.MAX_PURGE])
 	return "   ·   ".join(parts)

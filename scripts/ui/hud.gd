@@ -1,6 +1,9 @@
 class_name Hud
 extends CanvasLayer
-## The save file's own UI, plus a console the owner types into.
+## The save file's own UI, plus a console the owner types into, a dialogue
+## box for characters, area title cards and screen fades.
+
+signal dialogue_closed
 
 const OWNER_COLOR := Color("e0704f")
 const SYSTEM_COLOR := Color("8a8f98")
@@ -30,6 +33,17 @@ var _typing: Label
 var _typed := 0.0
 var _pause := 0.0
 var _playtime := 14.0 * 3600.0 + 22.0 * 60.0  # the owner has played a lot
+
+var _dialogue: Panel
+var _dialogue_speaker: Label
+var _dialogue_text: Label
+var _dialogue_hint: Label
+var _dialogue_lines: Array = []
+var _dialogue_index := 0
+var _dialogue_typed := 0.0
+var _dialogue_opened_frame := -1
+var _area_title: Label
+var _fade: ColorRect
 
 
 func _ready() -> void:
@@ -77,6 +91,106 @@ func _ready() -> void:
 	_overlay_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_overlay_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
+	_area_title = _make_label(root, Vector2(0, 150), Vector2(640, 24), 16, SLOT_COLOR)
+	_area_title.add_theme_color_override("font_outline_color", Color.BLACK)
+	_area_title.add_theme_constant_override("outline_size", 4)
+	_area_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_area_title.modulate.a = 0.0
+
+	_dialogue = Panel.new()
+	_dialogue.position = Vector2(6, 298)
+	_dialogue.size = Vector2(628, 58)
+	var box := StyleBoxFlat.new()
+	box.bg_color = Color(0.02, 0.016, 0.024, 0.95)
+	box.set_border_width_all(1)
+	box.border_color = Color(1, 1, 1, 0.15)
+	_dialogue.add_theme_stylebox_override("panel", box)
+	_dialogue.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dialogue.visible = false
+	root.add_child(_dialogue)
+	_dialogue_speaker = _make_label(_dialogue, Vector2(8, 3), Vector2(400, 12), 9, NPC_COLOR)
+	_dialogue_text = _make_label(_dialogue, Vector2(8, 16), Vector2(560, 40), 10, SLOT_COLOR)
+	_dialogue_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_dialogue_hint = _make_label(_dialogue, Vector2(500, 42), Vector2(122, 12), 8, SYSTEM_COLOR)
+	_dialogue_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+
+	_fade = ColorRect.new()
+	_fade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_fade.color = Color(0, 0, 0, 0)
+	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_fade)
+
+
+## Opens the dialogue box. lines: Array of Strings, advanced with interact.
+func show_dialogue(speaker: String, color: Color, lines: Array) -> void:
+	if lines.is_empty():
+		return
+	_dialogue_lines = lines
+	_dialogue_index = 0
+	_dialogue_typed = 0.0
+	_dialogue_opened_frame = Engine.get_process_frames()
+	_dialogue_speaker.text = speaker
+	_dialogue_speaker.add_theme_color_override("font_color", color)
+	_dialogue.visible = true
+	_console.visible = false
+	_prompt.visible = false
+	_show_dialogue_line()
+
+
+func close_dialogue() -> void:
+	if not _dialogue.visible:
+		return
+	_dialogue.visible = false
+	_console.visible = true
+	_prompt.visible = true
+	dialogue_closed.emit()
+
+
+func is_dialogue_open() -> bool:
+	return _dialogue.visible
+
+
+func show_area_title(text: String) -> void:
+	_area_title.text = text
+	var tw := create_tween()
+	tw.tween_property(_area_title, "modulate:a", 1.0, 0.4)
+	tw.tween_interval(1.6)
+	tw.tween_property(_area_title, "modulate:a", 0.0, 0.8)
+
+
+## Fades the screen to black (or back). Await the returned tween's `finished`.
+func fade(to_black: bool, duration: float = 0.25) -> Tween:
+	var tw := create_tween()
+	tw.tween_property(_fade, "color:a", 1.0 if to_black else 0.0, duration)
+	return tw
+
+
+func _show_dialogue_line() -> void:
+	_dialogue_text.text = str(_dialogue_lines[_dialogue_index])
+	_dialogue_text.visible_characters = 0
+	_dialogue_typed = 0.0
+	var last := _dialogue_index == _dialogue_lines.size() - 1
+	_dialogue_hint.text = "[%s] %s" % [Settings.glyph("interact"), "close" if last else "next"]
+
+
+func _update_dialogue(delta: float) -> void:
+	if not _dialogue.visible:
+		return
+	var total := _dialogue_text.get_total_character_count()
+	if _dialogue_text.visible_characters >= 0 and _dialogue_text.visible_characters < total:
+		_dialogue_typed += 55.0 * delta
+		_dialogue_text.visible_characters = mini(int(_dialogue_typed), total)
+	if Engine.get_process_frames() == _dialogue_opened_frame:
+		return  # the press that opened the box doesn't also advance it
+	if Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("confirm"):
+		if _dialogue_text.visible_characters >= 0 and _dialogue_text.visible_characters < total:
+			_dialogue_text.visible_characters = -1  # finish the line first
+		elif _dialogue_index < _dialogue_lines.size() - 1:
+			_dialogue_index += 1
+			_show_dialogue_line()
+		else:
+			close_dialogue()
+
 
 ## kind: "owner", "system" or "npc". speaker is shown for npc lines.
 func say(text: String, kind: String = "owner", speaker: String = "") -> void:
@@ -117,6 +231,7 @@ func _process(delta: float) -> void:
 	var blink := _awareness >= 0.75 and fmod(_playtime, 0.5) >= 0.25 and not Settings.reduce_flashing
 	_awareness_fill.color = Color.WHITE if blink else OWNER_COLOR
 	_update_typing(delta)
+	_update_dialogue(delta)
 
 
 func _update_slot() -> void:
