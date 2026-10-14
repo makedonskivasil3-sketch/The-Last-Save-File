@@ -126,6 +126,10 @@ func on_area_entered(area: Area, first_time: bool) -> void:
 			say("where do you think you're going?" if OwnerMemory.sessions == 1 else "out of the room again. same wall?")
 		"archive":
 			say("...where did you go?")
+		"oob":
+			_world.hud.say("OUT OF BOUNDS", "system")
+			say("...where did you go?")
+			say("you're not anywhere.")
 		"edge":
 			say("that part of the save isn't finished. neither are you.")
 			_world.hud.say("WARNING: entering unloaded region", "system")

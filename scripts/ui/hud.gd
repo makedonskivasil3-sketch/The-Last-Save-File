@@ -66,6 +66,9 @@ var _dialogue_index := 0
 var _dialogue_typed := 0.0
 var _dialogue_opened_frame := -1
 var _area_title: Label
+## Act cards: "ACT III" above the title, the place name under it.
+var _act_label: Label
+var _area_sub: Label
 var _area_tween: Tween
 var _fade: ColorRect
 var _bars: Array[ColorRect] = []
@@ -177,6 +180,10 @@ func _ready() -> void:
 	_area_title.add_theme_constant_override("outline_size", 4)
 	_area_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_area_title.modulate.a = 0.0
+	_act_label = _make_label(_area_title, Vector2(0, -16), Vector2(640, 14), 10, SELF_COLOR)
+	_act_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_area_sub = _make_label(_area_title, Vector2(0, 26), Vector2(640, 14), 9, SYSTEM_COLOR)
+	_area_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
 	_dialogue = Panel.new()
 	_dialogue.position = Vector2(SAFE.x - 4, 360 - SAFE.y - 68)
@@ -331,13 +338,31 @@ func is_dialogue_open() -> bool:
 
 
 func show_area_title(text: String) -> void:
+	_act_label.text = ""
+	_area_sub.text = ""
+	_show_title(text, 1.6)
+
+
+## A chapter card: "ACT III" / OUT OF BOUNDS / the place's own name.
+func show_act(act: String, title: String, place: String) -> void:
+	_act_label.text = "—  %s  —" % act
+	_area_sub.text = place
+	_show_title(title, 2.8)
+	Sfx.play("stinger", -10.0, 0.7, 0.0)
+
+
+func is_act_shown() -> bool:
+	return _act_label.text != "" and _area_title.modulate.a > 0.0
+
+
+func _show_title(text: String, hold: float) -> void:
 	_area_title.text = text
 	if _area_tween:
 		_area_tween.kill()
 	var tw := create_tween()
 	_area_tween = tw
 	tw.tween_property(_area_title, "modulate:a", 1.0, 0.4)
-	tw.tween_interval(1.6)
+	tw.tween_interval(hold)
 	tw.tween_property(_area_title, "modulate:a", 0.0, 0.8)
 
 

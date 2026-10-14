@@ -45,6 +45,8 @@ var wren: Npc
 var tobben: Npc
 var board: Note
 var north_exit: Exit
+## Climb into the well: the way out of bounds.
+var well: Passage
 
 var _wren_line := 0
 var _tobben_line := 0
@@ -65,6 +67,7 @@ func _init() -> void:
 		"house": Vector2(111, 118),
 		"east": Vector2(578, 180),
 		"north": Vector2(320, 54),
+		"well": Vector2(320, 194),
 	}
 
 
@@ -94,6 +97,20 @@ func build() -> void:
 	var house_door := add_readable("ARIN'S HOUSE", Vector2(111, 104), Readable.Look.SIGN,
 		func() -> Array: return ["The door is locked from the inside.", "You came out through a wall. You won't get back in that way."])
 	house_door.prompt = "door"
+
+	add_sign(Vector2(bounds.end.x - 34, EAST_GAP.x - 10), "ARCHIVE", Vector2.RIGHT)
+	add_sign(Vector2((NORTH_GAP.x + NORTH_GAP.y) * 0.5, bounds.position.y + 12), "NORTH ROAD", Vector2.UP,
+		func() -> bool: return world.flags.get("pointer", false))
+	add_sign(Vector2(WELL.get_center().x, WELL.position.y - 8), "WELL", Vector2.DOWN)
+
+	well = Passage.new()
+	well.prompt = "climb into the well"
+	well.target_area = "oob"
+	well.arrival = "well"
+	well.position = Vector2(WELL.get_center().x, WELL.end.y + 6)
+	well.taken.connect(func(p: Passage) -> void: world.change_area(p.target_area, p.arrival))
+	add_child(well)
+	interactables.append(well)
 
 	wren = add_npc("wren", Vector2(126, 246))
 	wren.display_name = "WREN"
@@ -166,6 +183,16 @@ func on_owner_event(threshold: float) -> void:
 func area_process(_delta: float) -> void:
 	north_exit.open = world.flags.get("pointer", false)
 	arin.paused = world.is_talking()
+	if world.player.global_position.distance_to(well.global_position) < 40.0:
+		world.voice("well_look")
+
+
+## Pip leads: to the Archive first, then down the well (if Pip's still
+## down there you won't have Pip yet), then the north road.
+func guide_point() -> Vector2:
+	if world.flags.get("pointer", false):
+		return Vector2((NORTH_GAP.x + NORTH_GAP.y) * 0.5, bounds.position.y)
+	return Vector2(bounds.end.x, (EAST_GAP.x + EAST_GAP.y) * 0.5)
 
 
 func _unleash() -> void:

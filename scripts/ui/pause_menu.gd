@@ -10,12 +10,18 @@ var _main: VBoxContainer
 var _confirm: VBoxContainer
 var _settings_box: VBoxContainer
 var _settings: SettingsPanel
+var _map_box: VBoxContainer
+var _map: MapView
+var _map_back: Button
 var _resume: Button
 var _pending_to_title := false
 var _confirm_label: Label
 var _goal_label: Label
 ## Shown under the title: what to do next (set by World before open()).
 var goal := ""
+## For the map (set by World before open()): current area id, areas visited.
+var current_area := ""
+var visited_areas: Dictionary = {}
 
 
 func _ready() -> void:
@@ -37,6 +43,7 @@ func _ready() -> void:
 	UiStyle.note(_main, "the owner is still here.", UiStyle.OWNER)
 	_goal_label = UiStyle.note(_main, "", UiStyle.TEXT)
 	_resume = UiStyle.button(_main, "Resume", close, "ui_back")
+	UiStyle.button(_main, "Map", _show_map)
 	UiStyle.button(_main, "Settings", _show_settings)
 	UiStyle.button(_main, "Quit to title", _ask_quit.bind(true))
 	UiStyle.button(_main, "Quit game", _ask_quit.bind(false))
@@ -46,6 +53,13 @@ func _ready() -> void:
 	_confirm_label = UiStyle.note(_confirm, "", UiStyle.TEXT)
 	UiStyle.button(_confirm, "Stay", _show_main, "ui_back")
 	UiStyle.button(_confirm, "Quit anyway", _do_quit)
+
+	_map_box = UiStyle.centered_panel(_root, 420)
+	UiStyle.heading(_map_box, "MAP", UiStyle.TEXT, 14)
+	_map = MapView.new()
+	_map.custom_minimum_size = Vector2(400, 170)
+	_map_box.add_child(_map)
+	_map_back = UiStyle.button(_map_box, "Back", _show_main, "ui_back")
 
 	_settings_box = UiStyle.centered_panel(_root, 480)
 	_settings = SettingsPanel.new()
@@ -76,20 +90,27 @@ func _unhandled_input(event: InputEvent) -> void:
 		return  # the settings panel handles its own back
 	if event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
-		if _panel_of(_confirm).visible:
+		if _panel_of(_confirm).visible or _panel_of(_map_box).visible:
 			_show_main()
 		else:
 			close()
 
 
 func _show_only(box: VBoxContainer) -> void:
-	for b in [_main, _confirm, _settings_box]:
+	for b in [_main, _confirm, _settings_box, _map_box]:
 		_panel_of(b).visible = b == box
 
 
 func _show_main() -> void:
 	_show_only(_main)
 	_resume.grab_focus()
+
+
+func _show_map() -> void:
+	_map.current = current_area
+	_map.visited = visited_areas
+	_show_only(_map_box)
+	_map_back.grab_focus()
 
 
 func _show_settings() -> void:

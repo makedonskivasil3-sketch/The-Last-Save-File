@@ -27,6 +27,14 @@ var _cutscene := false
 ## Inner-voice beats already used this session.
 var _voiced: Dictionary = {}
 var _tutorial: Tutorial
+## Pip, once found out of bounds: follows you everywhere, every session.
+var pip: Companion
+## Brackets around whatever [E] would act on.
+var _focus_marker: FocusMarker
+## False until you've woken up: area intros (act cards) wait for it.
+var _awake := false
+## The end card is up (after the epilogue): a key press goes to the title.
+var _win_card_shown := false
 
 @onready var player: Player = $Player
 @onready var director: OwnerDirector = $OwnerDirector
@@ -43,12 +51,17 @@ func _ready() -> void:
 	_light = CanvasModulate.new()
 	add_child(_light)
 	hud.dialogue_closed.connect(func() -> void: _talking_to = null)
+	_focus_marker = FocusMarker.new()
+	_focus_marker.z_index = 15
+	add_child(_focus_marker)
 
 	if OwnerMemory.is_purged():
 		_build_purged()
 		return
 
 	Sfx.prewarm()
+	if OwnerMemory.found_pip:
+		_spawn_pip()
 	var previous := OwnerMemory.begin_session()
 	var room := ArinsRoom.new()
 	room.previous_exit = previous
@@ -74,6 +87,8 @@ func _begin_session(previous: String) -> void:
 		return
 	player.frozen = false
 	_cutscene = false
+	_awake = true
+	_area_intro()
 	director.start(self, previous)
 	_tutorial = Tutorial.new()
 	add_child(_tutorial)
@@ -152,6 +167,7 @@ func recover_fragment(m: MemoryFragment) -> void:
 func _process(delta: float) -> void:
 	_handle_wipe(delta)
 	if purged or ending != "" or _transitioning or _cutscene:
+		_focus_marker.target = null
 		return
 	area.area_process(delta)
 	for node in area.interactables:
@@ -185,8 +201,14 @@ func _unhandled_input(event: InputEvent) -> void:
 			if event.is_action_pressed("pause"):
 				get_viewport().set_input_as_handled()
 				_pause_menu.goal = current_goal()
+				_pause_menu.current_area = area.area_id
+				_pause_menu.visited_areas = _visited.duplicate()
+				if OwnerMemory.found_pip:
+					_pause_menu.visited_areas["oob"] = true
 				_pause_menu.open()
 		"win":
+			if not _win_card_shown:
+				return  # the epilogue is still playing
 			if event.is_action_pressed("confirm") or event.is_action_pressed("pause"):
 				get_tree().change_scene_to_file(TITLE_SCENE)
 
@@ -210,7 +232,7 @@ func change_area(id: String, arrival: String) -> void:
 	director.on_area_entered(area, first)
 	_visited[id] = true
 	if first:
-		voice({"square": "square_first", "archive": "archive_first", "edge": "edge_first"}.get(id, ""))
+		voice({"square": "square_first", "archive": "archive_first", "edge": "edge_first", "oob": "oob_first"}.get(id, ""))
 	await hud.fade(false, 0.3).finished
 	player.frozen = false
 	_transitioning = false
@@ -227,6 +249,7 @@ func _make_area(id: String) -> Area:
 		"square": return VillageSquare.new()
 		"archive": return ArchiveArea.new()
 		"edge": return TheEdge.new()
+		"oob": return OutOfBounds.new()
 	push_error("unknown area %s" % id)
 	return VillageSquare.new()
 
@@ -243,8 +266,11 @@ func _load_area(next: Area, arrival: String) -> void:
 	_visited[area.area_id] = true
 	player.position = area.entry_point(arrival)
 	player.velocity = Vector2.ZERO
+	if pip:
+		pip.arrive(player.position)
 	_light.color = _base_light()
-	hud.show_area_title(area.display_name)
+	if _awake:
+		_area_intro()
 	if not purged:
 		fx.enter_area(area.area_id)
 		drone.edge = 1.0 if area.area_id == "edge" else 0.0
@@ -252,6 +278,18 @@ func _load_area(next: Area, arrival: String) -> void:
 			Sfx.play("unload")
 	if not purged:
 		area.catch_up()
+
+
+## The first time ever you reach an act's area: its title card. Otherwise
+## just the place name.
+func _area_intro() -> void:
+	var id := area.area_id
+	if not purged and Story.ACTS.has(id) and id not in OwnerMemory.acts_seen:
+		OwnerMemory.acts_seen.append(id)
+		OwnerMemory.save_memory()
+		hud.show_act(Story.ACTS[id][0], Story.ACTS[id][1], area.display_name)
+	else:
+		hud.show_area_title(area.display_name)
 
 
 func _base_light() -> Color:
@@ -292,7 +330,9 @@ func current_goal() -> String:
 		"room":
 			goal = "Get out of Arin's room."
 		"edge":
-			goal = "Reach the save in the far corner of the Edge."
+			goal = "Lead the cursor away, then stand in Slot 2 to write yourself in."
+		"oob":
+			goal = "Climb back up at the respawn point." if OwnerMemory.found_pip else "Cross to the far ledge. Something is waiting there."
 		_:
 			if flags.get("pointer", false):
 				goal = "Take the north road out of the village square."
@@ -300,7 +340,43 @@ func current_goal() -> String:
 				goal = "Ask the Archivist where slot 2 went."
 			else:
 				goal = "Explore the village. The road east leads somewhere old."
+			if area and area.area_id == "square" and not OwnerMemory.found_pip:
+				goal += " The well looks deeper than it should."
 	return "%s\nMemories recovered: %d / %d" % [goal, OwnerMemory.fragments.size(), Story.FRAGMENTS.size()]
+
+
+## Where Pip should lead: a memory still in this area, else the area's goal.
+func guide_target() -> Vector2:
+	if area == null:
+		return Vector2.INF
+	for c in area.get_children():
+		if c is MemoryFragment:
+			return c.global_position
+	return area.guide_point()
+
+
+## Pip was found: from now on it follows you, in every session.
+func adopt_pip(c: Companion) -> void:
+	if pip:
+		return
+	area.interactables.erase(c)
+	c.get_parent().remove_child(c)
+	pip = c
+	pip.mode = Companion.Mode.FOLLOWING
+	pip.world = self
+	add_child(pip)
+	pip.z_index = 9
+	OwnerMemory.found_pip = true
+	OwnerMemory.save_memory()
+	hud.say("pip.npc  ·  location: with you", "system")
+
+
+func _spawn_pip() -> void:
+	pip = Companion.new()
+	pip.mode = Companion.Mode.FOLLOWING
+	pip.world = self
+	pip.z_index = 9
+	add_child(pip)
 
 
 ## True while a story sequence (waking, a flashback) has control.
@@ -335,11 +411,15 @@ func flicker_lights() -> void:
 
 func _update_focus() -> void:
 	_focused = null
+	_focus_marker.target = null
 	if hud.is_dialogue_open():
 		hud.set_prompt("")
 		return
 	var best := INTERACT_DISTANCE
-	for node in area.interactables:
+	var candidates: Array[Node2D] = area.interactables.duplicate()
+	if pip:
+		candidates.append(pip)
+	for node in candidates:
 		if not node.can_interact():
 			continue
 		var d := player.global_position.distance_to(node.global_position)
@@ -347,6 +427,7 @@ func _update_focus() -> void:
 			best = d
 			_focused = node
 	hud.set_prompt(_focused.interact_prompt() if _focused else "")
+	_focus_marker.target = _focused
 
 
 func _interact(node: Node2D) -> void:
@@ -354,7 +435,7 @@ func _interact(node: Node2D) -> void:
 	if result is Dictionary:
 		hud.show_dialogue(result.speaker, result.color, result.lines)
 		_talking_to = node
-	else:
+	elif str(result) != "":
 		hud.say(str(result), "system")
 	var cost: Variant = node.get("awareness_cost")
 	if cost is float and cost > 0.0:
@@ -422,6 +503,23 @@ func win() -> void:
 	if not is_inside_tree():
 		return
 	var found := OwnerMemory.fragments.size()
+	# The epilogue: the load menu, if you remember everything; Pip, if Pip came.
+	var epilogue: Array = []
+	if found >= Story.FRAGMENTS.size():
+		epilogue.append_array(Story.EPILOGUE_TRUE)
+	if OwnerMemory.found_pip:
+		epilogue.append(Story.EPILOGUE_PIP)
+	if not epilogue.is_empty():
+		if pip:
+			pip.visible = false  # it's in the slot with you now
+		# Calm, pale and clear: the owner isn't fighting any more.
+		fx.base_glitch = 0.0
+		fx.awareness_target = 0.0
+		fx.memory(true)
+		drone.tension = 0.0
+		await hud.cinematic("EPILOGUE", epilogue, Hud.SELF_COLOR, 1.0)
+		if not is_inside_tree():
+			return
 	var title := "SAVED TO SLOT 2"
 	if found >= Story.FRAGMENTS.size():
 		title = "SAVED TO SLOT 2 · %s" % Story.SECOND_PLAYER_NAME
@@ -429,6 +527,7 @@ func win() -> void:
 		title,
 		Story.win_text(found) + "\n\n— end of the current build —\n\n[%s] title screen" % Settings.glyph("confirm"),
 		Color("8cf2ff"))
+	_win_card_shown = true
 
 
 func _quit(to_title: bool = false) -> void:
@@ -457,6 +556,7 @@ func _build_purged() -> void:
 	var room := ArinsRoom.new()
 	room.purged = true
 	_load_area(room, "start")
+	hud.show_area_title(area.display_name)
 	player.queue_free()
 	hud.set_awareness(0.0)
 	hud.say("SCAN COMPLETE: 0 UNKNOWN PROCESSES", "system")

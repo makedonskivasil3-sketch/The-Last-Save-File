@@ -37,6 +37,7 @@ func build() -> void:
 	add_solid(DESK)
 	add_exit(Rect2(bounds.position.x - 8, WEST_GAP.x, 8, WEST_GAP.y - WEST_GAP.x), "square", "east")
 
+	add_sign(Vector2(bounds.position.x + 32, WEST_GAP.x - 10), "ASHVALE", Vector2.LEFT)
 	archivist = add_npc("archivist", Vector2(320, 192))
 	archivist.display_name = "THE ARCHIVIST"
 	archivist.name_color = Color("8cf2ff")
@@ -52,6 +53,12 @@ func build() -> void:
 	add_readable("DELETED ASSETS", Vector2(440, 138), Readable.Look.BOOK, _deleted_assets)
 	add_readable("CUT CONTENT", Vector2(200, 84), Readable.Look.BOOK, _cut_content)
 	add_readable("THE OWNER", Vector2(440, 84), Readable.Look.BOOK, _owner_notes)
+
+
+func guide_point() -> Vector2:
+	if not world.flags.get("pointer", false):
+		return archivist.global_position + Vector2(0, -14)
+	return Vector2(bounds.position.x, (WEST_GAP.x + WEST_GAP.y) * 0.5)
 
 
 func catch_up() -> void:

@@ -47,6 +47,11 @@ func area_process(_delta: float) -> void:
 	pass
 
 
+## Where to go next in this area (Pip trots toward it), or Vector2.INF.
+func guide_point() -> Vector2:
+	return Vector2.INF
+
+
 func entry_point(arrival: String) -> Vector2:
 	return entries.get(arrival, bounds.get_center())
 
@@ -141,6 +146,19 @@ func add_exit(rect: Rect2, target: String, arrival: String, open := true, blocke
 		beyond.position.y += rect.size.y * (1.0 if rect.position.y > bounds.get_center().y else -1.0)
 	add_solid(beyond)
 	return e
+
+
+## A label at a way out: where it goes, with an arrow. `is_open` (optional)
+## returns whether the way is open right now.
+func add_sign(pos: Vector2, text: String, direction: Vector2, is_open := Callable()) -> ExitSign:
+	var s := ExitSign.new()
+	s.position = pos
+	s.text = text
+	s.direction = direction
+	s.is_open = is_open
+	s.z_index = 5
+	add_child(s)
+	return s
 
 
 func add_npc(id: String, pos: Vector2, initial := Npc.State.NORMAL) -> Npc:

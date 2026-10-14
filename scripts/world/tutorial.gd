@@ -19,6 +19,8 @@ const TIPS := {
 	"hidden": ["HIDDEN", "Arin can't see you here, and the owner slowly loses track of you. But if the owner finds out who helped you, they pay for it."],
 	"arin": ["ARIN IS THE OWNER", "The owner plays as Arin. Stay out of the light cone, and never let Arin touch you."],
 	"quiet": ["A QUIET PLACE", "The owner can't see in here. Awareness slowly cools, but never below what the owner has already done."],
+	"oob": ["THE FLOOR ISN'T THERE", "Only the anchors are solid. Chunks of floor stream in and out: cross while they're there, and get off when they flicker red."],
+	"pip": ["PIP", "Pip follows you and runs ahead toward whatever you need next. Pip yips when Arin is close. The owner can't see Pip."],
 	"slot": ["SLOT 2", "Stand in the slot to write yourself in. It takes a few seconds, and the cursor selects anything that holds still. Lead it away first."],
 }
 ## Shown in this order after waking.
@@ -86,7 +88,9 @@ func _next_tip() -> String:
 		return "way_out"
 	if _world.hiding_npc() != null and _unseen("hidden"):
 		return "hidden"
-	var area_tip: String = {"square": "arin", "archive": "quiet", "edge": "slot"}.get(_world.area.area_id, "")
+	if _world.pip != null and _unseen("pip"):
+		return "pip"
+	var area_tip: String = {"square": "arin", "archive": "quiet", "edge": "slot", "oob": "oob"}.get(_world.area.area_id, "")
 	if area_tip != "" and _unseen(area_tip):
 		return area_tip
 	if _world.area.area_id != "room":

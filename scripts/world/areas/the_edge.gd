@@ -43,6 +43,7 @@ func build() -> void:
 		add_solid(m)
 	add_exit(Rect2(SOUTH_GAP.x, bounds.end.y, SOUTH_GAP.y - SOUTH_GAP.x, 8), "square", "north")
 
+	add_sign(Vector2((SOUTH_GAP.x + SOUTH_GAP.y) * 0.5, bounds.end.y - 12), "ASHVALE", Vector2.DOWN)
 	slot = SlotTwo.new()
 	slot.position = SLOT_POS
 	slot.reached.connect(world.win)
@@ -57,6 +58,10 @@ func build() -> void:
 	cursor.selected_player.connect(func() -> void: world.kill("selected"))
 	cursor.z_index = 20
 	add_child(cursor)
+
+
+func guide_point() -> Vector2:
+	return SLOT_POS
 
 
 func catch_up() -> void:

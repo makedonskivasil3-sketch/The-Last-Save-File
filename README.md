@@ -37,7 +37,8 @@ Built with **Godot 4.3+** and **GDScript**.
 
 ## The current build
 
-Four areas, five characters, one owner who's getting impatient, and one way out.
+Five areas in five acts, six characters and a fox, one owner who's getting impatient, and one way
+out. The whole story, as a readable script, is in **[docs/STORY_SCRIPT.md](docs/STORY_SCRIPT.md)**.
 
 **Controls**
 
@@ -69,7 +70,13 @@ shown once ever; turn *Tutorial tips* off to skip them, or back on to see them a
 - *Bottom left:* the console, on a dark backing so it reads over anything: the owner in orange
   `> like this`, system text in grey, your thoughts in cyan `(like this)`.
 - *Bottom right:* what you can do right now (`[E] talk`).
-- *Pause menu:* your current goal and how many memories you've recovered.
+- *Pause menu:* your current goal, how many memories you've recovered, and a **Map** of the
+  places you've found (where you are, and which memories each place still holds).
+- *In the world:* **signs** at every way out (crossed out while it's closed), **corner brackets**
+  around whatever `[E]` would act on, and, once you've found him, **Pip** running ahead toward
+  what's next.
+- *Act cards:* the first time you reach each act's area, its title card shows
+  (*ACT III · OUT OF BOUNDS*).
 - All HUD text has a dark outline and stays clear of the CRT's curved corners; **Large text**
   makes the HUD and menus 25% bigger (the console keeps one line fewer so it still fits).
 
@@ -79,6 +86,7 @@ shown once ever; turn *Tutorial tips* off to skip them, or back on to see them a
 | --- | --- |
 | **Arin's Room** | Where you wake up. The owner watches it closely, so awareness rises fast. The door locks; Mira is deleted for talking to you. A **seam** tears open in the wall once the owner gets suspicious (40%): that's your way out, and agitating the owner on purpose opens it sooner. |
 | **Ashvale · Village Square** | The owner's hub. **Arin** (the owner's character, driven by the owner) patrols around the well with a view cone: if Arin sees you, awareness climbs fast, and if Arin walks into you, you're overwritten. **Wren**, a child, hides you while you stand next to her, and while she does the owner loses track of you (awareness cools). **Tobben** the shopkeeper reports anything you say to him. A notice board, Arin's locked house, and a road north that isn't loaded. |
+| **Out of Bounds · Below Ashvale** | Down the village well (*"they fell in the well once. it was funny."*). The underside of the map: the square hangs upside down overhead, collision boxes glow, debug labels float in the dark. The owner can't see here at all. There's no floor: only a few **anchor** platforms are solid, and chunks of floor stream in and out between them (they flicker red before they go). Step into the void and you drop back to where you came in. **Pip**, Rue's fox, is curled up on the far ledge next to a memory. A respawn pillar takes you back up. |
 | **The Archive · Cut Content** | East of the square. The owner can't see in here: awareness slowly cools. **The Archivist** was cut before the game shipped, so the owner can't delete them; they give you a pointer to Slot 2 that opens the north road. The books are live logs of *your* history: every death (where and when), every deleted character, every patched seam. |
 | **The Edge · Not Loaded** | North of the square. Missing textures, wireframe, debug labels, an eraser already running, and the owner's **cursor** reaching in. Hold still under it and you get selected and deleted. Somewhere out here is **Slot 2**: the last save file, with the cursor waiting beside it. Stand in it for 2.4 seconds to write yourself in and win, but the cursor selects anything that holds still for 1.1, so lead it away first. The eraser never touches the slot: the owner doesn't know it exists. |
 
@@ -129,8 +137,13 @@ The owner's memory is stored at `user://owner_memory.json`:
 the console in cyan `(like this)`, reacting to waking up, to the town, to Arin, to the characters
 the owner deletes because of you.
 
-**Memory fragments.** Five cyan shards float where something happened: under Arin's bed, by the
-well, between the Archive's shelves, and two at the Edge. Touching one stops the world for a short
+**Five acts.** *I · Someone Else's Save* (Arin's room), *II · Ashvale* (the square), *III · Out of
+Bounds* (under the well), *IV · Cut Content* (the Archive), *V · The Last Save File* (the Edge),
+then an **epilogue**: with all five memories, the load menu, and the owner's cursor hovering over
+`SLOT 2 · RUE`... and pressing LOAD. If Pip came, Pip comes too.
+
+**Memory fragments.** Five cyan shards float where something happened: under Arin's bed, out of
+bounds beneath the well, between the Archive's shelves, and two at the Edge. Touching one stops the world for a short
 letterboxed flashback, with the screen going pale and cyan like an old photo of a screen. Fragments
 are *your* memories, not the owner's: they survive deaths and purges (only a full reset clears
 them). Together they tell what happened: two people shared one console; one always played Arin in
@@ -172,6 +185,7 @@ in motion:
 | Wren | Child, pigtails, green dress | Hops in place, `!` |
 | Tobben | Bald, moustache, apron | Waves you over, `?` |
 | The Archivist | Tall, white beard, robe | Reads a book and turns the pages, `...` |
+| Pip | A small orange fox with a white-tipped tail | Asleep out of bounds until found. Then follows you everywhere, every session, through walls; trots ahead toward the next memory or the way on; yips `!` when Arin is close. The owner can't see Pip. |
 
 ## Visual effects
 
@@ -397,6 +411,7 @@ Tests run with `--test-mode`, which points the owner's memory and the settings a
 | `test_story.gd` | Boot sequence, flashbacks, fragments persisting, endings |
 | `test_effects.gd` | Every death style, owner events, the win sequence, reduce flashing |
 | `test_performance.gd` | Worst-case frame budget (fully hunted square) and leak checks across area changes |
+| `test_expansion.gd` | The well, Out of Bounds (cooling, falling back, anchors and streaming floor), finding Pip and Pip staying, Pip leading the way, act cards, focus brackets, the map, the epilogue |
 | `test_onboarding.gd` | Tips appear in order and only once, can be turned off and replayed; the HIDDEN status; large text; the pause menu's goal |
 | `test_character.gd` | Rue starts as missing texture, each fragment restores the right part, Rue startles at thresholds |
 | `test_audio.gd` | Every sound renders, is audible and builds fast; loops loop; buses follow the volume sliders; accessibility softens harsh sounds; the drone follows awareness; gameplay events make their sounds |
@@ -411,6 +426,7 @@ Writing a test: add `tests/test_<thing>.gd` extending `res://tests/test_case.gd`
 project.godot                  Engine config (640x360 viewport, GL Compatibility renderer)
 export_presets.cfg             Windows / Linux / Web export presets
 .github/workflows/build.yml    CI: runs the tests, exports all three on every push, releases on tags
+docs/STORY_SCRIPT.md           The whole story as a script
 tests/                         Automated test suite (run.sh, run_tests.gd, test_*.gd)
 scenes/
   title.tscn                   Title screen (main scene)
@@ -434,6 +450,11 @@ scripts/
   world/slot_two.gd            The last save file
   world/door.gd, note.gd, save_point.gd, seam.gd, ghost_marker.gd
   world/tutorial.gd            First-session tips (once each; Settings > Tutorial tips)
+  world/areas/out_of_bounds.gd Act III: under the well, anchors and streaming floor, Pip's ledge
+  world/companion.gd           Pip: follows you, leads the way, warns about Arin
+  world/passage.gd             Ways you take on purpose: into the well, back up the respawn pillar
+  world/exit_sign.gd, focus_marker.gd   Signs at exits; brackets on what [E] acts on
+  ui/map_view.gd               The pause menu's map
   owner/owner_director.gd      Awareness, thresholds, the owner's voice; areas react to thresholds
   owner/owner_avatar.gd        Arin, driven by the owner: patrol route and view cone
   owner/owner_cursor.gd        The owner's mouse pointer: hunts and selects
@@ -463,6 +484,7 @@ crossed → deaths, quits, helpers and wins flow back into `OwnerMemory`.
 
 ## Where this could go next
 
+- **More out-of-bounds places**: under the Archive, behind the Edge's missing textures.
 - **Life after Slot 2**: playing *from* Slot 2, a save the owner is now hunting for.
 - **The owner's habits**: they learn your *routes* as well as your death spots, and pre-place
   erasure, locked doors and watchers along the paths you favor.

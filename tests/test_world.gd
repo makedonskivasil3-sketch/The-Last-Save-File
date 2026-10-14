@@ -13,6 +13,7 @@ func test_session_starts_in_arins_room() -> void:
 func test_seam_opens_when_suspicious_and_leads_to_square() -> void:
 	var w := await start_session()
 	var seam: Seam = w.area.seam
+	var seam_id := seam.id  # the room (and the seam) is freed once you leave it
 	check(not seam.open, "seam closed while the owner is calm")
 	w.player.global_position = seam.global_position + Vector2(10, 0)
 	await wait(0.3)
@@ -21,7 +22,7 @@ func test_seam_opens_when_suspicious_and_leads_to_square() -> void:
 	await frames(3)
 	check(seam.open, "seam opens once the owner gets suspicious")
 	await wait_until(func() -> bool: return w.area.area_id == "square", 3.0, "slipping into the square")
-	check_eq(memory().session_seam, seam.id, "the seam used is remembered")
+	check_eq(memory().session_seam, seam_id, "the seam used is remembered")
 
 
 func test_door_locks_when_approached() -> void:

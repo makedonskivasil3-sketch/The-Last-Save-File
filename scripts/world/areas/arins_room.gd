@@ -134,6 +134,12 @@ func area_process(_delta: float) -> void:
 		seam.reveal = 0.25 + world.director.awareness / 100.0 * 0.6 if seam.open else 0.0
 
 
+func guide_point() -> Vector2:
+	if seam and seam.open:
+		return seam.global_position
+	return Vector2.INF
+
+
 func on_owner_event(event: float) -> void:
 	match event:
 		OwnerDirector.NOTICE:

@@ -11,6 +11,11 @@ extends RefCounted
 ## You are what's left of that deleted save, waking up inside the slot that
 ## survived. The owner thinks you're a bug. The fragments tell you otherwise.
 ## Find all five and you remember your name: RUE.
+## Rue's player also made a fox, Pip. Pip fell out of the map with Rue the day
+## Rue walked into the well, and was never saved back in, so the deletion
+## never reached it. Pip waits out of bounds, under the well.
+##
+## The readable version of all of this is docs/STORY_SCRIPT.md.
 
 const SECOND_PLAYER_NAME := "RUE"
 
@@ -39,6 +44,9 @@ const VOICE := {
 	"mira_deleted": ["she talked to me. now she's gone. that's on me."],
 	"wren_deleted": ["wren's corner is empty. she hid me, and they found out."],
 	"fragment_hint": ["something cyan, in the corner of my eye. it feels like mine."],
+	"well_look": ["i've been down there before. i know i have."],
+	"oob_first": ["the owner can't see me down here. nobody's ever looked."],
+	"oob_fell": ["fell out of the world. again."],
 	"hidden_first": ["she's warm. like a real person.", "stay still. stay small."],
 	"idle_long": ["don't just stand here. it notices stillness."],
 }
@@ -70,7 +78,7 @@ const FRAGMENTS := [
 	{
 		"id": "well",
 		"title": "MEMORY · THE WELL",
-		"area": "square", "pos": Vector2(320, 202),
+		"area": "oob", "pos": Vector2(540, 112),
 		"lines": [
 			"my character walked into the well by accident.",
 			"it clipped through the stone and fell out of the map.",
@@ -119,6 +127,43 @@ const OWNER_RECOGNITION := {
 	3: "...you move like someone i used to know.",
 	5: "no. you can't be. i deleted you.",
 }
+
+
+## The five acts. Each title card shows the first time you reach its area.
+const ACTS := {
+	"room": ["ACT I", "SOMEONE ELSE'S SAVE"],
+	"square": ["ACT II", "ASHVALE"],
+	"oob": ["ACT III", "OUT OF BOUNDS"],
+	"archive": ["ACT IV", "CUT CONTENT"],
+	"edge": ["ACT V", "THE LAST SAVE FILE"],
+}
+
+## Pip, the first time you find them out of bounds.
+const PIP_MEETING := [
+	"...rue?",
+	"rue! you fell back in! i waited by the wall. i'm good at waiting.",
+	"you're the wrong colour. that's okay. i'm the wrong place.",
+	"nobody saves out here. so nobody could delete out here.",
+	"i'll come with you. i can smell where your pieces are. they smell like you.",
+]
+## Pip, any time after.
+const PIP_LINES := [
+	"the owner can't see me. i checked. i stood right on arin's foot.",
+	"they used to give me treats with the shoulder button.",
+	"your pieces. we have %d. i can smell the rest.",
+	"don't stand still near the hand. i don't like the hand.",
+]
+
+## After winning, shown as a letterboxed sequence before the end card.
+const EPILOGUE_TRUE := [
+	"LOAD GAME\nSLOT 1  ·  ARIN  ·  LV 7  ·  14:22\nSLOT 2  ·  RUE  ·  LV 1  ·  00:00",
+	"somewhere outside the screen, the cursor hovers over slot 2 for a long time.",
+	"it doesn't press delete.",
+	"> ...rue?",
+	"> i kept your controller. it's still under the couch.",
+	"it presses LOAD.",
+]
+const EPILOGUE_PIP := "a small orange fox curls up at the bottom of the screen. nobody saved it. it came anyway."
 
 
 static func fragment(id: String) -> Dictionary:

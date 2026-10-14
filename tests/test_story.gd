@@ -59,7 +59,7 @@ func test_full_memory_changes_the_ending() -> void:
 
 
 func test_every_fragment_is_placed_in_a_real_area() -> void:
-	var areas := ["room", "square", "archive", "edge"]
+	var areas := ["room", "square", "oob", "archive", "edge"]
 	var ids := {}
 	for f in Story.FRAGMENTS:
 		check(f.area in areas, "fragment %s is in a real area" % f.id)

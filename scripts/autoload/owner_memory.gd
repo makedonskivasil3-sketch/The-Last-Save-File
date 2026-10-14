@@ -26,6 +26,11 @@ var patched_seams: Array[int] = []
 ## Characters the owner has dealt with for helping you: name -> "deleted".
 var npc_fates: Dictionary = {}
 var met_archivist := false
+## Pip, Rue's fox, found out of bounds. Pip was never in the save, so the
+## owner can't take it away: once found, Pip stays with you.
+var found_pip := false
+## Story acts whose title card has been shown (Story.ACTS ids).
+var acts_seen: Array[String] = []
 ## Memory fragments the intruder has recovered (Story.FRAGMENTS ids). These
 ## are YOUR memories, not the owner's: they survive deaths and purges, and
 ## only a full reset clears them.
@@ -152,6 +157,8 @@ func wipe() -> void:
 	patched_seams.clear()
 	npc_fates.clear()
 	met_archivist = false
+	found_pip = false
+	acts_seen.clear()
 	fragments.clear()
 	last_exit = "none"
 	session_helpers.clear()
@@ -171,6 +178,8 @@ func save_memory() -> void:
 		"patched_seams": patched_seams,
 		"npc_fates": npc_fates,
 		"met_archivist": met_archivist,
+		"found_pip": found_pip,
+		"acts_seen": acts_seen,
 		"fragments": fragments,
 		"last_exit": last_exit,
 	}
@@ -196,6 +205,10 @@ func load_memory() -> void:
 	purge = int(data.get("purge", 0))
 	last_exit = str(data.get("last_exit", "none"))
 	met_archivist = bool(data.get("met_archivist", false))
+	found_pip = bool(data.get("found_pip", false))
+	acts_seen.clear()
+	for a in data.get("acts_seen", []):
+		acts_seen.append(str(a))
 	fragments.clear()
 	for f in data.get("fragments", []):
 		fragments.append(str(f))
