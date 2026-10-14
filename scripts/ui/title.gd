@@ -37,7 +37,7 @@ func _ready() -> void:
 	UiStyle.note(_menu, "Contains flashing and glitch effects. Both can be reduced in Settings.")
 	UiStyle.note(_menu, "Move: WASD / arrows / stick   ·   Interact: E / A   ·   Pause: Esc / Start")
 
-	_settings_box = UiStyle.centered_panel(self, 300)
+	_settings_box = UiStyle.centered_panel(self, 480)
 	_settings = SettingsPanel.new()
 	_settings.show_reset = true
 	_settings.closed.connect(_show_menu)

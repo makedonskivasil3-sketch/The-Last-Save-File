@@ -12,7 +12,14 @@ const LOW := Color("a85a3a")
 const MID := Color("e0503a")
 const HIGH := Color("ff2a6a")
 const PEAK := Color("ff3dd0")
-const LABEL_COL := Color("8a8f98")
+const LABEL_COL := Color("a8adb6")
+## Where the owner's reactions start (fractions of the bar).
+const THRESHOLDS := [OwnerDirector.NOTICE / 100.0, OwnerDirector.CONTAIN / 100.0, OwnerDirector.HUNT / 100.0]
+## [from, name]: the owner's current behaviour, shown next to the label.
+const STAGES := [[0.0, "CALM"], [OwnerDirector.NOTICE / 100.0, "NOTICED"],
+	[OwnerDirector.SUSPECT / 100.0, "SUSPICIOUS"], [OwnerDirector.CONTAIN / 100.0, "CONTAINING"],
+	[OwnerDirector.SILENCE / 100.0, "SILENCING"], [OwnerDirector.HUNT / 100.0, "HUNTING"],
+	[OwnerDirector.PURGE / 100.0, "PURGING"]]
 
 ## 0..1, eased toward by the meter itself.
 var value := 0.0
@@ -48,7 +55,8 @@ func _draw() -> void:
 	var thump := maxf(_pulse(_beat, 0.0), _pulse(_beat, 0.18) * 0.6)
 	var col := _colour(_shown)
 
-	# Label: polite at first, then not.
+	# Label: polite at first, then not. The stage on the right says what the
+	# owner is doing now, so the bar is readable at a glance.
 	var text := "OWNER AWARENESS"
 	if _shown >= 0.95:
 		text = "OWNER IS HERE"
@@ -58,13 +66,15 @@ func _draw() -> void:
 		var i := randi() % text.length()
 		text = text.substr(0, i) + ["#", "_", "!", "?"].pick_random() + text.substr(i + 1)
 	var label_col := LABEL_COL.lerp(col, clampf(_shown * 1.4 - 0.3, 0.0, 1.0))
-	draw_string(ThemeDB.fallback_font, Vector2(0, 9) + shake, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, label_col)
+	var font := ThemeDB.fallback_font
+	var fs := roundi(9 * Settings.text_scale())
+	_text(font, Vector2(0, fs) + shake, text, HORIZONTAL_ALIGNMENT_LEFT, fs, label_col)
 	if _shown > 0.5 and glitch > 0.0:
 		# Colour-split ghost of the label.
-		draw_string(ThemeDB.fallback_font, Vector2(-1, 9) + shake, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.3, 0.9, 1.0, 0.25 * glitch))
+		draw_string(font, Vector2(-1, fs) + shake, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.3, 0.9, 1.0, 0.25 * glitch))
 
 	# Segmented bar.
-	var bar := Rect2(Vector2(0, 13) + shake, Vector2(size.x, 5))
+	var bar := Rect2(Vector2(0, fs + 4) + shake, Vector2(size.x, 6))
 	var seg_w := bar.size.x / SEGMENTS
 	var lit := _shown * SEGMENTS
 	for i in SEGMENTS:
@@ -78,7 +88,13 @@ func _draw() -> void:
 		elif i == floori(lit):
 			draw_rect(r, Color(col, fmod(lit, 1.0)))
 		else:
-			draw_rect(r, Color(1, 1, 1, 0.06))
+			draw_rect(r, Color(1, 1, 1, 0.12))
+	# Under the bar: what the owner is doing right now.
+	_text(font, Vector2(0, bar.end.y + fs + 3), stage_name(value), HORIZONTAL_ALIGNMENT_RIGHT, fs, col.lightened(0.25))
+	# Ticks where the owner's next reactions kick in.
+	for t in THRESHOLDS:
+		var x: float = bar.position.x + bar.size.x * t
+		draw_rect(Rect2(Vector2(x - 1, bar.position.y - 2), Vector2(1, bar.size.y + 4)), Color(1, 1, 1, 0.45 if value < t else 0.15))
 	# Glow under the bar that breathes with the beat.
 	draw_rect(Rect2(bar.position + Vector2(0, bar.size.y + 1), Vector2(bar.size.x * _shown, 1)), Color(col, 0.25 + 0.5 * thump))
 	# Jolt: a bright flash over the bar.
@@ -87,6 +103,20 @@ func _draw() -> void:
 	# Near the top, the bar strobes white (unless reduce flashing is on).
 	if _shown >= 0.75 and fmod(_t, 0.5) < 0.12 and not Settings.reduce_flashing:
 		draw_rect(Rect2(bar.position, Vector2(bar.size.x * _shown, bar.size.y)), Color(1, 1, 1, 0.35))
+
+
+## What the owner is doing at this awareness (0..1).
+static func stage_name(v: float) -> String:
+	for i in range(STAGES.size() - 1, -1, -1):
+		if v >= STAGES[i][0]:
+			return STAGES[i][1]
+	return "CALM"
+
+
+func _text(font: Font, pos: Vector2, text: String, align: HorizontalAlignment, fs: int, c: Color) -> void:
+	var w := size.x if align == HORIZONTAL_ALIGNMENT_RIGHT else -1.0
+	draw_string_outline(font, pos, text, align, w, fs, 3, Color(0, 0, 0, 0.85))
+	draw_string(font, pos, text, align, w, fs, c)
 
 
 func _colour(v: float) -> Color:

@@ -40,6 +40,7 @@ func test_fragment_plays_flashback_and_is_kept() -> void:
 	await wait_until(func() -> bool: return not w._cutscene, 10.0, "flashback to end")
 	check(memory().has_fragment("controller"), "memory kept")
 	check(w.area.process_mode == Node.PROCESS_MODE_INHERIT, "the world resumes")
+	check_eq(w.player.restored_parts(), 1, "a piece of Rue comes back with it")
 
 
 func test_collected_fragments_dont_respawn() -> void:

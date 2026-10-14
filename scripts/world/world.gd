@@ -26,6 +26,7 @@ var _visited: Dictionary = {}
 var _cutscene := false
 ## Inner-voice beats already used this session.
 var _voiced: Dictionary = {}
+var _tutorial: Tutorial
 
 @onready var player: Player = $Player
 @onready var director: OwnerDirector = $OwnerDirector
@@ -74,6 +75,9 @@ func _begin_session(previous: String) -> void:
 	player.frozen = false
 	_cutscene = false
 	director.start(self, previous)
+	_tutorial = Tutorial.new()
+	add_child(_tutorial)
+	_tutorial.start(self)
 	voice("wake_first" if OwnerMemory.sessions == 1 else "wake_again")
 	if OwnerMemory.fragments.is_empty():
 		get_tree().create_timer(7.0).timeout.connect(func() -> void:
@@ -105,6 +109,7 @@ func recover_fragment(m: MemoryFragment) -> void:
 	director.paused = true
 	hud.close_dialogue()
 	hud.set_prompt("")
+	hud.set_status("")
 	# Everything in the area holds still, except the shard flowing into you.
 	m.process_mode = Node.PROCESS_MODE_ALWAYS
 	area.process_mode = Node.PROCESS_MODE_DISABLED
@@ -135,6 +140,11 @@ func recover_fragment(m: MemoryFragment) -> void:
 	_cutscene = false
 	hud.say("MEMORY RECOVERED  %d / %d" % [OwnerMemory.fragments.size(), Story.FRAGMENTS.size()], "system")
 	hud.say(f.after, "self")
+	# A piece of Rue comes back with it.
+	player.refresh_look()
+	var restored: String = Story.RESTORED.get(player.restored_parts(), "")
+	if restored != "":
+		hud.say(restored, "self")
 	# The owner notices something flicker.
 	director.add_awareness(6.0)
 
@@ -148,6 +158,13 @@ func _process(delta: float) -> void:
 		if node is Npc:
 			node.talking = node == _talking_to and hud.is_dialogue_open()
 	player.instability = director.awareness / 100.0
+	var helper := hiding_npc()
+	player.sheltered = helper != null
+	hud.set_status("HIDDEN  ·  %s covers you" % helper.display_name if helper else "")
+	if helper:
+		voice("hidden_first")
+	if player.idle_time > 6.0 and director.awareness > OwnerDirector.NOTICE:
+		voice("idle_long")
 	if _talking_to and (not is_instance_valid(_talking_to) or player.global_position.distance_to(_talking_to.global_position) > TALK_BREAK_DISTANCE):
 		hud.close_dialogue()
 	_update_focus()
@@ -167,6 +184,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		"":
 			if event.is_action_pressed("pause"):
 				get_viewport().set_input_as_handled()
+				_pause_menu.goal = current_goal()
 				_pause_menu.open()
 		"win":
 			if event.is_action_pressed("confirm") or event.is_action_pressed("pause"):
@@ -183,6 +201,7 @@ func change_area(id: String, arrival: String) -> void:
 	Sfx.play("transition")
 	hud.close_dialogue()
 	hud.set_prompt("")
+	hud.set_status("")
 	await hud.fade(true, 0.25).finished
 	if not is_inside_tree() or ending != "":
 		return
@@ -247,11 +266,51 @@ func _base_light() -> Color:
 ## True if something in the area hides this position from the owner.
 ## Whoever hides you is noted: the owner finds out if this session ends badly.
 func is_player_hidden(pos: Vector2) -> bool:
+	var helper := _hider_at(pos)
+	if helper:
+		OwnerMemory.note_helper(helper.npc_id)
+	return helper != null
+
+
+## Who is hiding the player right now (null if nobody). No side effects:
+## safe for the HUD and tutorial to ask every frame.
+func hiding_npc() -> Npc:
+	return _hider_at(player.global_position) if area else null
+
+
+func _hider_at(pos: Vector2) -> Npc:
 	for node in area.interactables:
 		if node is Npc and node.hides(pos):
-			OwnerMemory.note_helper(node.npc_id)
-			return true
-	return false
+			return node
+	return null
+
+
+## One line for the pause menu: what to do next, plus memories found.
+func current_goal() -> String:
+	var goal := ""
+	match area.area_id if area else "":
+		"room":
+			goal = "Get out of Arin's room."
+		"edge":
+			goal = "Reach the save in the far corner of the Edge."
+		_:
+			if flags.get("pointer", false):
+				goal = "Take the north road out of the village square."
+			elif _visited.has("archive"):
+				goal = "Ask the Archivist where slot 2 went."
+			else:
+				goal = "Explore the village. The road east leads somewhere old."
+	return "%s\nMemories recovered: %d / %d" % [goal, OwnerMemory.fragments.size(), Story.FRAGMENTS.size()]
+
+
+## True while a story sequence (waking, a flashback) has control.
+func in_cutscene() -> bool:
+	return _cutscene
+
+
+## True while something is close enough to interact with.
+func has_focus() -> bool:
+	return _focused != null
 
 
 func is_talking() -> bool:
@@ -315,6 +374,7 @@ func kill(cause: String) -> void:
 	hud.close_dialogue()
 	hud.clear_queue()
 	hud.set_prompt("")
+	hud.set_status("")
 	fx.play_death(cause)
 	player.dissolve(cause)
 	Sfx.play("death_" + cause, 0.0, 1.0, 0.0)
@@ -352,6 +412,7 @@ func win() -> void:
 	hud.close_dialogue()
 	hud.clear_queue()
 	hud.set_prompt("")
+	hud.set_status("")
 	area.erasure.active = false
 	fx.play_win()
 	player.dissolve("rescued")
@@ -377,6 +438,7 @@ func _quit(to_title: bool = false) -> void:
 	hud.close_dialogue()
 	hud.clear_queue()
 	hud.set_prompt("")
+	hud.set_status("")
 	OwnerMemory.record_quit()
 	hud.show_overlay("QUITTING", "leaving? i'll still be here.")
 	fx.power_off(1.4)

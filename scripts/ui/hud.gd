@@ -11,7 +11,12 @@ const NPC_COLOR := Color("e8c48a")
 ## The intruder's own thoughts.
 const SELF_COLOR := Color("8cf2ff")
 const SLOT_COLOR := Color("c8b8a0")
+## Lines kept in the console (one fewer with large text, so it still fits).
 const MAX_LINES := 4
+## Keep text this far from the screen edges: the curved CRT glass and its
+## bezel eat the corners.
+const SAFE := Vector2(14, 10)
+const STATUS_COLOR := Color("8cf2ff")
 const TYPE_SPEED := 36.0  # characters per second
 const LINE_PAUSE := 0.5
 
@@ -31,6 +36,15 @@ var _death_title := ""
 var _death_ghosts: Array[Label] = []
 var _awareness := 0.0
 var _console: VBoxContainer
+## Dark backing behind the console, so it reads over any floor or effect.
+var _console_box: PanelContainer
+## One short line under the awareness meter ("HIDDEN", ...).
+var _status: Label
+## Tutorial tip card.
+var _tip: PanelContainer
+var _tip_title: Label
+var _tip_body: Label
+var _tip_tween: Tween
 var _prompt: Label
 var _overlay: ColorRect
 var _overlay_title: Label
@@ -67,25 +81,77 @@ func _ready() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
 
-	_slot = _make_label(root, Vector2(8, 6), Vector2(400, 14), 10, SLOT_COLOR)
+	_slot = _make_label(root, SAFE, Vector2(380, 14), 10, SLOT_COLOR)
 
 	_meter = AwarenessMeter.new()
-	_meter.position = Vector2(472, 3)
-	_meter.size = Vector2(160, 22)
+	_meter.position = Vector2(640 - SAFE.x - 180, SAFE.y - 2)
+	_meter.size = Vector2(180, 36)
 	_meter.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_meter)
 
-	_console = VBoxContainer.new()
-	_console.position = Vector2(10, 302)
-	_console.size = Vector2(450, 56)
-	_console.add_theme_constant_override("separation", 0)
-	root.add_child(_console)
+	_status = _make_label(root, Vector2(640 - SAFE.x - 220, SAFE.y + 36), Vector2(220, 12), 9, STATUS_COLOR)
+	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 
-	_prompt = _make_label(root, Vector2(470, 302), Vector2(160, 14), 9, SYSTEM_COLOR)
+	# The console grows upward from the bottom edge, with a dark backing
+	# exactly as tall as its lines.
+	_console_box = PanelContainer.new()
+	var console_bg := _backing(0.55)
+	console_bg.content_margin_left = 6
+	console_bg.content_margin_right = 6
+	console_bg.content_margin_top = 2
+	console_bg.content_margin_bottom = 2
+	_console_box.add_theme_stylebox_override("panel", console_bg)
+	_console_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_console_box.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	_console_box.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_console_box.offset_left = SAFE.x - 4
+	_console_box.offset_top = -SAFE.y
+	_console_box.offset_bottom = -SAFE.y
+	_console_box.visible = false
+	root.add_child(_console_box)
+	_console = VBoxContainer.new()
+	_console.add_theme_constant_override("separation", 0)
+	_console_box.add_child(_console)
+
+	_prompt = _make_label(root, Vector2(640 - SAFE.x - 176, 360 - SAFE.y - 62), Vector2(176, 16), 11, SLOT_COLOR)
 	_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 
-	_hint = _make_label(root, Vector2(470, 344), Vector2(160, 12), 8, Color(SYSTEM_COLOR, 0.6))
+	_hint = _make_label(root, Vector2(640 - SAFE.x - 176, 360 - SAFE.y - 14), Vector2(176, 12), 9, Color(SYSTEM_COLOR, 0.8))
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+
+	# Tutorial tips: a small card, centred under the top bar.
+	var tip_row := VBoxContainer.new()
+	tip_row.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	tip_row.position.y = SAFE.y + 34
+	tip_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(tip_row)
+	_tip = PanelContainer.new()
+	_tip.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_tip.custom_minimum_size.x = 300
+	var tip_box := _backing(0.85)
+	tip_box.border_color = Color(STATUS_COLOR, 0.5)
+	tip_box.set_border_width_all(1)
+	tip_box.set_content_margin_all(6)
+	_tip.add_theme_stylebox_override("panel", tip_box)
+	_tip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tip.modulate.a = 0.0
+	_tip.visible = false
+	tip_row.add_child(_tip)
+	var tip_lines := VBoxContainer.new()
+	tip_lines.add_theme_constant_override("separation", 1)
+	_tip.add_child(tip_lines)
+	_tip_title = Label.new()
+	UiStyle.sized(_tip_title, 10)
+	_tip_title.add_theme_color_override("font_color", STATUS_COLOR)
+	_tip_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tip_lines.add_child(_tip_title)
+	_tip_body = Label.new()
+	UiStyle.sized(_tip_body, 10)
+	_tip_body.add_theme_color_override("font_color", SLOT_COLOR)
+	_tip_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_tip_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_tip_body.custom_minimum_size.x = 288
+	tip_lines.add_child(_tip_body)
 
 	_overlay = ColorRect.new()
 	_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -97,6 +163,7 @@ func _ready() -> void:
 	for c in [Color(1.0, 0.1, 0.35, 0.6), Color(0.3, 0.9, 1.0, 0.6)]:
 		var ghost := _make_label(_overlay, Vector2(0, 120), Vector2(640, 40), 28, c)
 		ghost.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		ghost.add_theme_constant_override("outline_size", 0)  # pure colour fringes
 		ghost.visible = false
 		_death_ghosts.append(ghost)
 	_overlay_title = _make_label(_overlay, Vector2(0, 120), Vector2(640, 40), 28, OWNER_COLOR)
@@ -112,8 +179,8 @@ func _ready() -> void:
 	_area_title.modulate.a = 0.0
 
 	_dialogue = Panel.new()
-	_dialogue.position = Vector2(6, 298)
-	_dialogue.size = Vector2(628, 58)
+	_dialogue.position = Vector2(SAFE.x - 4, 360 - SAFE.y - 68)
+	_dialogue.size = Vector2(640 - SAFE.x * 2 + 8, 68)
 	var box := StyleBoxFlat.new()
 	box.bg_color = Color(0.02, 0.016, 0.024, 0.95)
 	box.set_border_width_all(1)
@@ -122,10 +189,10 @@ func _ready() -> void:
 	_dialogue.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_dialogue.visible = false
 	root.add_child(_dialogue)
-	_dialogue_speaker = _make_label(_dialogue, Vector2(8, 3), Vector2(400, 12), 9, NPC_COLOR)
-	_dialogue_text = _make_label(_dialogue, Vector2(8, 16), Vector2(560, 40), 10, SLOT_COLOR)
+	_dialogue_speaker = _make_label(_dialogue, Vector2(8, 3), Vector2(400, 14), 10, NPC_COLOR)
+	_dialogue_text = _make_label(_dialogue, Vector2(8, 18), Vector2(560, 34), 11, SLOT_COLOR)
 	_dialogue_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_dialogue_hint = _make_label(_dialogue, Vector2(500, 42), Vector2(122, 12), 8, SYSTEM_COLOR)
+	_dialogue_hint = _make_label(_dialogue, Vector2(_dialogue.size.x - 130, 52), Vector2(122, 12), 9, SYSTEM_COLOR)
 	_dialogue_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 
 	_fade = ColorRect.new()
@@ -151,7 +218,7 @@ func _ready() -> void:
 	_cine_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_cine_text.add_theme_color_override("font_outline_color", Color.BLACK)
 	_cine_text.add_theme_constant_override("outline_size", 4)
-	_cine_hint = _make_label(root, Vector2(0, 330), Vector2(630, 12), 8, Color(SYSTEM_COLOR, 0.7))
+	_cine_hint = _make_label(root, Vector2(0, 326), Vector2(640 - SAFE.x, 12), 9, Color(SYSTEM_COLOR, 0.8))
 	_cine_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	for l in [_cine_title, _cine_text, _cine_hint]:
 		l.visible = false
@@ -163,7 +230,7 @@ func _ready() -> void:
 ## `dim` darkens the world behind the text (0 = see-through, 1 = black).
 func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: float = 0.55) -> void:
 	_cinematic = true
-	_console.visible = false
+	_console_box.visible = false
 	_prompt.visible = false
 	_cine_title.text = title
 	_cine_text.add_theme_color_override("font_color", color)
@@ -186,7 +253,7 @@ func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: floa
 	await out.finished
 	for l in [_cine_title, _cine_text, _cine_hint]:
 		l.visible = false
-	_console.visible = true
+	_console_box.visible = _console.get_child_count() > 0
 	_prompt.visible = true
 	_cinematic = false
 
@@ -239,7 +306,7 @@ func show_dialogue(speaker: String, color: Color, lines: Array) -> void:
 	_dialogue_speaker.text = speaker
 	_dialogue_speaker.add_theme_color_override("font_color", color)
 	_dialogue.visible = true
-	_console.visible = false
+	_console_box.visible = false
 	_prompt.visible = false
 	_show_dialogue_line()
 
@@ -248,7 +315,7 @@ func close_dialogue() -> void:
 	if not _dialogue.visible:
 		return
 	_dialogue.visible = false
-	_console.visible = true
+	_console_box.visible = _console.get_child_count() > 0
 	_prompt.visible = true
 	dialogue_closed.emit()
 
@@ -331,6 +398,37 @@ func set_hint(text: String) -> void:
 	_hint.text = text
 
 
+## One short status line under the meter (e.g. "HIDDEN"), "" to clear.
+func set_status(text: String) -> void:
+	if _status.text != text:
+		_status.text = text
+
+
+## Shows a tutorial tip card (replacing any current one).
+func show_tip(title: String, body: String) -> void:
+	_tip_title.text = title
+	_tip_body.text = body
+	_tip.visible = true
+	if _tip_tween:
+		_tip_tween.kill()
+	_tip_tween = create_tween()
+	_tip_tween.tween_property(_tip, "modulate:a", 1.0, 0.3)
+
+
+func hide_tip() -> void:
+	if not _tip.visible:
+		return
+	if _tip_tween:
+		_tip_tween.kill()
+	_tip_tween = create_tween()
+	_tip_tween.tween_property(_tip, "modulate:a", 0.0, 0.3)
+	_tip_tween.tween_callback(func() -> void: _tip.visible = false)
+
+
+func is_tip_shown() -> bool:
+	return _tip.visible and _tip.modulate.a > 0.0
+
+
 ## A threshold was crossed: the awareness meter flinches.
 func awareness_jolt() -> void:
 	_meter.jolt()
@@ -367,6 +465,7 @@ func _process(delta: float) -> void:
 	_playtime += delta
 	_update_slot()
 	_meter.value = _awareness
+	_trim_console()  # text size may have changed
 	_update_typing(delta)
 	_update_corruption(delta)
 	_update_death_title()
@@ -416,7 +515,10 @@ func _update_typing(delta: float) -> void:
 		return
 	var msg: Dictionary = _queue.pop_front()
 	var line := Label.new()
-	line.add_theme_font_size_override("font_size", 10)
+	UiStyle.sized(line, 10)
+	UiStyle.outline(line, 2)
+	line.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	line.custom_minimum_size.x = 420
 	match msg.kind:
 		"owner":
 			line.text = "> " + msg.text
@@ -440,7 +542,20 @@ func _update_typing(delta: float) -> void:
 	line.set_meta("kind", msg.kind)
 	line.visible_characters = 0
 	_console.add_child(line)
-	while _console.get_child_count() > MAX_LINES:
+	if not (_cinematic or _dialogue.visible):
+		_console_box.visible = true
+	_trim_console(true)
+	_typing = line
+	_typed = 0.0
+
+
+## Drop the oldest lines beyond what fits (one fewer with large text), and
+## fade the older ones.
+func _trim_console(force := false) -> void:
+	var keep := MAX_LINES - 1 if Settings.large_text else MAX_LINES
+	if _console.get_child_count() <= keep and not force:
+		return
+	while _console.get_child_count() > keep:
 		var old := _console.get_child(0) as Label
 		_console.remove_child(old)
 		_owner_lines.erase(old)
@@ -449,9 +564,7 @@ func _update_typing(delta: float) -> void:
 		old.queue_free()
 	for i in _console.get_child_count():
 		var l := _console.get_child(i) as Label
-		l.modulate.a = 0.35 + 0.65 * float(i + 1) / _console.get_child_count()
-	_typing = line
-	_typed = 0.0
+		l.modulate.a = 0.45 + 0.55 * float(i + 1) / _console.get_child_count()
 
 
 ## Every so often a finished owner line corrupts for a moment, more often the
@@ -522,7 +635,14 @@ func _make_label(parent: Control, pos: Vector2, size: Vector2, font_size: int, c
 	l.position = pos
 	l.size = size
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	l.add_theme_font_size_override("font_size", font_size)
+	UiStyle.sized(l, font_size)
+	UiStyle.outline(l, 2 if font_size < 14 else 4)
 	l.add_theme_color_override("font_color", color)
 	parent.add_child(l)
 	return l
+
+
+func _backing(alpha: float) -> StyleBoxFlat:
+	var box := StyleBoxFlat.new()
+	box.bg_color = Color(0.0, 0.0, 0.01, alpha)
+	return box

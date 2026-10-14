@@ -48,9 +48,30 @@ Four areas, five characters, one owner who's getting impatient, and one way out.
 | Esc | Start | Pause menu (Resume · Settings · Quit). Quitting counts, and the menu warns you first. |
 | Hold F9 | | Wipe the owner's memory (debug / "new game") |
 
-Menus work with mouse, keyboard or gamepad. **Settings** (title screen or pause menu) has volume,
-fullscreen, **CRT curvature**, **glitch intensity** and **reduce flashing**, plus *Reset owner memory* on
-the title screen. See [Visual effects](#visual-effects) for exactly what each one controls.
+Menus work with mouse, keyboard or gamepad. **Settings** (title screen or pause menu) is in two
+columns: *Sound* (master, music, effects), *Picture* (fullscreen, CRT curvature, screen effects),
+*Comfort* (glitch intensity, reduce flashing, **large text**) and *Help* (**tutorial tips**), plus
+*Reset owner memory* on the title screen. See [Visual effects](#visual-effects) and [Sound](#sound)
+for exactly what each one controls.
+
+**Getting started.** The first time you play, short tips appear one at a time under the top bar:
+how to move, that the owner is watching (and what the bar means), that dying *and* quitting both
+count, and that Wren will hide you in the village. Others appear the first time they matter: the
+first thing you can interact with, the locked door, and the first time you're hidden. Each tip is
+shown once ever; turn *Tutorial tips* off to skip them, or back on to see them all again
+(`scripts/world/tutorial.gd`).
+
+**Reading the screen.**
+- *Top left:* the owner's save slot. *Top right:* **OWNER AWARENESS**, with ticks where the owner's
+  next reactions start and, under the bar, what the owner is doing now (CALM, NOTICED, SUSPICIOUS,
+  CONTAINING, SILENCING, HUNTING, PURGING). Under that, `HIDDEN · WREN covers you` while someone
+  shelters you.
+- *Bottom left:* the console, on a dark backing so it reads over anything: the owner in orange
+  `> like this`, system text in grey, your thoughts in cyan `(like this)`.
+- *Bottom right:* what you can do right now (`[E] talk`).
+- *Pause menu:* your current goal and how many memories you've recovered.
+- All HUD text has a dark outline and stays clear of the CRT's curved corners; **Large text**
+  makes the HUD and menus 25% bigger (the console keeps one line fewer so it still fits).
 
 **The world**
 
@@ -101,8 +122,8 @@ The owner's memory is stored at `user://owner_memory.json`:
 ## Characters & story
 
 **Who are you?** The game opens on the save booting: `[!] 1 UNRECOGNISED ENTITY · ENTITY SLOT: 02
-· slot 02 does not exist.` Then you assemble out of pixels in Arin's room, a hooded figure with a
-void for a face and two points of light, with no idea why you're here. Your own thoughts appear in
+· slot 02 does not exist.` Then you assemble out of pixels in Arin's room: a small figure in
+"missing texture" cyan, with a void for a face and two points of light, and no idea why you're here. Your own thoughts appear in
 the console in cyan `(like this)`, reacting to waking up, to the town, to Arin, to the characters
 the owner deletes because of you.
 
@@ -120,6 +141,20 @@ The world reacts to how much you remember:
 - the owner starts to recognise you (*"...you move like someone i used to know."*);
 - the ending changes, and with all five the title screen shows `SLOT 2 · RUE`.
 
+**Rue, coming back.** You are a real character: **Rue**, the one slot 2's player made (messy hair
+with a cowlick, a red scarf that trails behind you, a yellow raincoat). Deleted, Rue loads with no
+texture. Every memory you recover restores part of them, in order: the scarf, the hair, the coat,
+the shoes, and last of all their face, each with a line of their own (*"a scarf. red. i picked that
+colour myself."*). Restored colours aren't stable yet: when the owner's awareness is high they
+flicker back to cyan for a frame.
+
+Rue also has body language (`scripts/player/player.gd`):
+- glances around and looks over their shoulder when standing still;
+- hugs themself and shivers if left idle while the owner is on edge;
+- ducks down while someone hides them;
+- jumps with wide eyes and a `!` whenever the owner reacts (each awareness threshold);
+- thinks out loud at new moments: being hidden for the first time, standing still too long.
+
 All narrative text lives in `scripts/story/story.gd`, with the full story in its header comment.
 
 **Characters.** Everyone is code-drawn pixel art (`scripts/world/pixel_character.gd`): 8-pixel
@@ -129,7 +164,7 @@ in motion:
 
 | Character | Look | Moves |
 | --- | --- | --- |
-| You | Hood, void face, glowing eyes, cyan | Walk cycle plus trail, tearing slices, dropped frames |
+| Rue (you) | Messy hair, red scarf, yellow raincoat, restored part by part from missing-texture cyan | Walk cycle, a scarf that streams behind, glances, hugging, ducking, startles, plus trail, tearing slices, dropped frames |
 | Mira | Long hair, orange dress | Sways, turns to watch you, `!` when she notices you |
 | Arin | Blue tunic, red scarf | Patrols with a walk cycle, points at you when they see you |
 | Wren | Child, pigtails, green dress | Hops in place, `!` |
@@ -337,6 +372,8 @@ Tests run with `--test-mode`, which points the owner's memory and the settings a
 | `test_story.gd` | Boot sequence, flashbacks, fragments persisting, endings |
 | `test_effects.gd` | Every death style, owner events, the win sequence, reduce flashing |
 | `test_performance.gd` | Worst-case frame budget (fully hunted square) and leak checks across area changes |
+| `test_onboarding.gd` | Tips appear in order and only once, can be turned off and replayed; the HIDDEN status; large text; the pause menu's goal |
+| `test_character.gd` | Rue starts as missing texture, each fragment restores the right part, Rue startles at thresholds |
 | `test_audio.gd` | Every sound renders, is audible and builds fast; loops loop; buses follow the volume sliders; accessibility softens harsh sounds; the drone follows awareness; gameplay events make their sounds |
 
 Writing a test: add `tests/test_<thing>.gd` extending `res://tests/test_case.gd` and give it
@@ -371,12 +408,13 @@ scripts/
   world/exit.gd                Area-to-area exits (open or blocked with a reason)
   world/slot_two.gd            The last save file
   world/door.gd, note.gd, save_point.gd, seam.gd, ghost_marker.gd
+  world/tutorial.gd            First-session tips (once each; Settings > Tutorial tips)
   owner/owner_director.gd      Awareness, thresholds, the owner's voice; areas react to thresholds
   owner/owner_avatar.gd        Arin, driven by the owner: patrol route and view cone
   owner/owner_cursor.gd        The owner's mouse pointer: hunts and selects
   owner/erasure.gd             The eraser: a grid of overwritten cells that hunts you
-  player/player.gd             Movement plus a body the renderer can't quite agree on
-  ui/hud.gd                    Save-slot header, awareness meter, console, dialogue box, fades
+  player/player.gd             Rue: movement, restored colours, body language, glitches
+  ui/hud.gd                    Save-slot header, awareness meter, status line, console, tips, dialogue, fades
   ui/title.gd, pause_menu.gd, settings_panel.gd, ui_style.gd
   fx/screen_fx.gd              The screen: awareness look, event effects, world shake, settings
   ui/awareness_meter.gd        The living OWNER AWARENESS bar

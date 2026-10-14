@@ -24,6 +24,13 @@ var crt_curvature := true
 var screen_effects := 2
 ## Softens flashes: no strobing lights, gentler spikes, slower blinking.
 var reduce_flashing := false
+## Bigger HUD and menu text (x1.25), for small screens and tired eyes.
+var large_text := false
+## First-session tips (moving, the owner watching, hiding, quitting).
+## Turning them back on shows every tip again.
+var tutorial_tips := true
+## Tip ids already shown, so each one only ever appears once.
+var tips_seen: Array = []
 ## Whether the last input came from a gamepad (for button prompts).
 var using_gamepad := false
 
@@ -45,9 +52,21 @@ func _input(event: InputEvent) -> void:
 		using_gamepad = false
 
 
+## Marks a tutorial tip as shown (and saves, so it never comes back).
+func mark_tip_seen(id: String) -> void:
+	if id not in tips_seen:
+		tips_seen.append(id)
+		save()
+
+
 ## Scale for anything that flashes (screen spikes, blinking, light strobes).
 func flash_scale() -> float:
 	return 0.3 if reduce_flashing else 1.0
+
+
+## Multiplier for every font size in the HUD and menus.
+func text_scale() -> float:
+	return 1.25 if large_text else 1.0
 
 
 ## Glyph for an action's button, matching the last-used device.
@@ -59,10 +78,14 @@ func glyph(action: String) -> String:
 			return "A" if using_gamepad else "ENTER"
 		"pause":
 			return "START" if using_gamepad else "ESC"
+		"move":
+			return "LEFT STICK" if using_gamepad else "WASD / ARROWS"
 	return action.to_upper()
 
 
 func set_value(key: String, value: Variant) -> void:
+	if key == "tutorial_tips" and value:
+		tips_seen.clear()  # switching tips back on replays them
 	set(key, value)
 	apply()
 	save()
@@ -76,6 +99,7 @@ func apply() -> void:
 		_set_bus(bus, music_volume)
 	for bus in ["SFX", "UI"]:
 		_set_bus(bus, sfx_volume)
+	UiStyle.rescale_text(get_tree())
 	if DisplayServer.get_name() == "headless":
 		return
 	var mode := DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED
@@ -101,6 +125,9 @@ func save() -> void:
 	cfg.set_value("accessibility", "reduce_flashing", reduce_flashing)
 	cfg.set_value("video", "crt_curvature", crt_curvature)
 	cfg.set_value("video", "screen_effects", screen_effects)
+	cfg.set_value("accessibility", "large_text", large_text)
+	cfg.set_value("help", "tutorial_tips", tutorial_tips)
+	cfg.set_value("help", "tips_seen", tips_seen)
 	cfg.save(_path)
 
 
@@ -119,3 +146,7 @@ func _load() -> void:
 	reduce_flashing = bool(cfg.get_value("accessibility", "reduce_flashing", reduce_flashing))
 	crt_curvature = bool(cfg.get_value("video", "crt_curvature", crt_curvature))
 	screen_effects = clampi(int(cfg.get_value("video", "screen_effects", screen_effects)), 0, 2)
+	large_text = bool(cfg.get_value("accessibility", "large_text", large_text))
+	tutorial_tips = bool(cfg.get_value("help", "tutorial_tips", tutorial_tips))
+	var seen: Variant = cfg.get_value("help", "tips_seen", [])
+	tips_seen = seen if seen is Array else []

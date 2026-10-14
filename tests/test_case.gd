@@ -22,6 +22,11 @@ func before_each() -> void:
 	s.glitch_intensity = 1.0
 	s.reduce_flashing = false
 	s.screen_effects = 2
+	s.large_text = false
+	# Tips off by default so they never get in a test's way; test_tutorial
+	# turns them on.
+	s.tutorial_tips = false
+	s.tips_seen.clear()
 	tree.paused = false
 
 

@@ -1,0 +1,133 @@
+class_name Tutorial
+extends Node
+## First-session tips: how to move, that the owner is watching, how to hide,
+## and that quitting counts. Shown one at a time in the HUD's tip card.
+##
+## The room tips play in order as soon as you wake; the contextual ones
+## (interacting, the locked door, being hidden) jump in the first time their
+## moment comes. Each tip is shown once ever (Settings.tips_seen), and none
+## at all with Settings > Tutorial tips off. Turning tips back on replays them.
+
+## id -> [title, body]. {move} / {interact} / {pause} become button glyphs.
+const TIPS := {
+	"move": ["MOVE", "{move} to walk. You're not supposed to be here. Don't stand still for long."],
+	"watched": ["THE OWNER IS WATCHING", "The bar at the top right fills while you're here, faster when you're seen or idle. Each tick is a new reaction. When it's full, they come for you."],
+	"quit": ["QUITTING COUNTS", "Dying and quitting both count against you. Close the game and the owner remembers you tried to leave."],
+	"wren": ["HIDE WITH WREN", "Some people here will protect you. In the village square, stand right beside Wren and the owner's eyes slide past you."],
+	"interact": ["LOOK CLOSER", "Press {interact} to talk, read and touch things."],
+	"way_out": ["LOCKED OUT", "The door is the owner's, not yours. Rooms change when the owner panics: watch the walls."],
+	"hidden": ["HIDDEN", "Arin can't see you here. But if the owner finds out who helped you, they pay for it."],
+}
+## Shown in this order after waking.
+const SEQUENCE := ["move", "watched", "quit", "wren"]
+## A tip stays up at least this long, and at most this long.
+const MIN_TIME := 3.5
+const MAX_TIME := 8.0
+## Breathing room between tips.
+const GAP := 1.2
+
+var _world: World
+var _current := ""
+var _shown_for := 0.0
+var _gap := 1.0
+var _moved := 0.0
+var _last_pos := Vector2.ZERO
+
+
+## Starts the tips for this session (does nothing if tips are off or seen).
+func start(world: World) -> void:
+	_world = world
+	_last_pos = world.player.global_position
+
+
+static func _unseen(id: String) -> bool:
+	return Settings.tutorial_tips and id not in Settings.tips_seen
+
+
+func _process(delta: float) -> void:
+	if _world == null or not Settings.tutorial_tips:
+		_dismiss()
+		return
+	var hud := _world.hud
+	# Tips wait while you talk, remember, or the session is ending.
+	if _world.ending != "" or _world.in_cutscene() or hud.is_dialogue_open() or hud.is_cinematic():
+		if _current != "":
+			hud.hide_tip()
+		return
+	var p := _world.player.global_position
+	_moved += p.distance_to(_last_pos)
+	_last_pos = p
+
+	if _current != "":
+		if not hud.is_tip_shown():
+			hud.show_tip(_title(_current), _body(_current))  # back after a pause
+		_shown_for += delta
+		if _shown_for >= MAX_TIME or (_shown_for >= MIN_TIME and _done(_current)):
+			_dismiss()
+		return
+	_gap -= delta
+	if _gap > 0.0:
+		return
+	var next := _next_tip()
+	if next != "":
+		_show(next)
+
+
+## Which tip should come up now: a contextual one if its moment is here,
+## otherwise the next of the waking sequence (first room only).
+func _next_tip() -> String:
+	if _world.has_focus() and _unseen("interact"):
+		return "interact"
+	var door: Variant = _world.area.get("door")
+	if door is Door and door.state == Door.State.LOCKED and _unseen("way_out"):
+		return "way_out"
+	if _world.hiding_npc() != null and _unseen("hidden"):
+		return "hidden"
+	if _world.area.area_id != "room":
+		return ""
+	for id in SEQUENCE:
+		if _unseen(id):
+			return id
+	return ""
+
+
+func _show(id: String) -> void:
+	_current = id
+	_shown_for = 0.0
+	if id == "move":
+		_moved = 0.0
+	Settings.mark_tip_seen(id)
+	_world.hud.show_tip(_title(id), _body(id))
+	Sfx.ui("ui_move")
+
+
+func _dismiss() -> void:
+	if _current == "":
+		return
+	_current = ""
+	_gap = GAP
+	if _world:
+		_world.hud.hide_tip()
+
+
+## Has the player done what this tip asks?
+func _done(id: String) -> bool:
+	match id:
+		"move":
+			return _moved > 48.0
+		"interact":
+			return not _world.has_focus()
+		"hidden":
+			return _world.hiding_npc() == null
+	return false  # the rest just need reading time
+
+
+func _title(id: String) -> String:
+	return TIPS[id][0]
+
+
+func _body(id: String) -> String:
+	var text: String = TIPS[id][1]
+	for action in ["move", "interact", "pause"]:
+		text = text.replace("{%s}" % action, Settings.glyph(action))
+	return text

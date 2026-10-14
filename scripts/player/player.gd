@@ -2,15 +2,35 @@ class_name Player
 extends CharacterBody2D
 ## You. The thing that isn't supposed to be in this save.
 ##
-## Drawn in colours the world's palette doesn't use, and the renderer never
-## quite agrees on where you are: a pink ghost runs out of sync, a trail of
-## stale frames follows you, and your body tears into slices. All of it gets
-## worse as `instability` (the owner's awareness, 0..1) rises, and all of it
-## scales with Settings.glitch_intensity.
+## You are RUE, the character slot 2's player made: messy hair, a red scarf,
+## a yellow raincoat. Deleted, you load in "missing texture" cyan with a void
+## where your face was; every memory fragment you recover restores part of
+## your real palette (scarf, hair, coat, shoes, and last of all your face).
+##
+## The renderer never quite agrees on where you are: a pink ghost runs out of
+## sync, a trail of stale frames follows you, and your body tears into slices.
+## All of it gets worse as `instability` (the owner's awareness, 0..1) rises,
+## and all of it scales with Settings.glitch_intensity.
+##
+## Rue also reacts: glances around when standing still, hugs themself and
+## shivers when left idle under pressure, ducks when someone hides them, and
+## startles when the owner reacts.
 
 const BODY := Color("8cf2ff")
 const HEAD := Color("d8ffff")
 const GHOST := Color(1.0, 0.2, 0.4, 0.22)
+## Rue's real colours (palette keys as in PixelCharacter; l legs, f shoes, e eyes).
+const RUE := {
+	"h": Color("8a4f2c"), "s": Color("f0c49c"), "c": Color("e9b44c"), "d": Color("a9772a"),
+	"a": Color("d8463a"), "l": Color("3d4e78"), "f": Color("3a2226"), "e": Color("2a1612"),
+}
+## The deleted version: no texture, no face, two points of light.
+const MISSING := {
+	"h": Color("3fa6b8"), "s": Color("05070a"), "c": BODY, "d": Color("5fc8d8"),
+	"a": Color("d8ffff"), "l": Color("2f8a9a"), "f": Color("1c4e58"), "e": Color("e8ffff"),
+}
+## Which keys each recovered fragment restores, in order.
+const RESTORE_ORDER := [["a"], ["h"], ["c", "d"], ["l", "f"], ["s", "e"]]
 const TRAIL_LENGTH := 6
 const TRAIL_INTERVAL := 0.05
 
@@ -19,6 +39,8 @@ const TRAIL_INTERVAL := 0.05
 var frozen := false
 ## Seconds since the player last moved; the owner watches this.
 var idle_time := 0.0
+## True while someone hides you (set by World): you duck down.
+var sheltered := false
 ## 0..1, set by World from the owner's awareness.
 var instability := 0.0
 
@@ -32,11 +54,48 @@ var _t := 0.0
 var _last_step := 0
 var _dissolve := ""
 var _dissolve_t := 0.0
-## A hood around nothing, two points of light.
-var _sprite := PixelCharacter.new("intruder", {
-	"g": Color("3fa6b8"), "v": Color("05070a"), "c": BODY, "e": Color("e8ffff"),
-	"l": Color("2f8a9a"), "f": Color("1c4e58"),
-})
+var _sprite := PixelCharacter.new("rue", MISSING)
+## The palette for how much of you is restored, and the fully-missing one
+## the restored parts flicker back to under pressure.
+var _palette: Dictionary = MISSING
+var _restored := 0
+## Seconds left of the "colour coming back" shimmer.
+var _restore_flash := 0.0
+var _glance_timer := 1.0
+var _startle_mark := 0.0
+
+
+func _ready() -> void:
+	refresh_look(false)
+
+
+## Rebuild the palette from how many memory fragments you have. With
+## `animate`, the restored colours flash in.
+func refresh_look(animate := true) -> void:
+	var count := mini(OwnerMemory.fragments.size(), RESTORE_ORDER.size())
+	_palette = MISSING.duplicate()
+	for i in count:
+		for key in RESTORE_ORDER[i]:
+			_palette[key] = RUE[key]
+	_sprite.palette = _palette
+	_sprite.leg_color = _palette["l"]
+	_sprite.shoe_color = _palette["f"]
+	_sprite.eye_color = _palette["e"]
+	if animate and count > _restored:
+		_restore_flash = 1.2
+	_restored = count
+
+
+## How much of Rue is back (0..5).
+func restored_parts() -> int:
+	return _restored
+
+
+## The owner just reacted: jump, eyes wide, a "!" over your head.
+func startle() -> void:
+	_sprite.startled = 0.9
+	_sprite.hop(0.3)
+	_startle_mark = 0.9
 
 
 func _physics_process(delta: float) -> void:
@@ -78,12 +137,37 @@ func _process(delta: float) -> void:
 		if _dissolve == "materialize" and _dissolve_t > 1.4:
 			_dissolve = ""
 	_sprite.update(delta, velocity if not frozen else Vector2.ZERO)
+	_update_mood(delta)
 	# Footsteps on the walk cycle's contact frames.
 	var step := _sprite.step_frame()
 	if step != _last_step and step % 2 == 1:
 		Sfx.play("step_%d" % (step >> 1), 0.0, 1.0, 0.1)
 	_last_step = step
 	queue_redraw()
+
+
+## Body language: glancing around, hugging yourself, ducking, flickering
+## back to missing-texture cyan when the owner is close.
+func _update_mood(delta: float) -> void:
+	_restore_flash = maxf(0.0, _restore_flash - delta)
+	_startle_mark = maxf(0.0, _startle_mark - delta)
+	var still := velocity.length() < 2.0
+	_sprite.crouch = sheltered
+	_sprite.hug = still and idle_time > 7.0 and instability > 0.3
+	_sprite.shiver = _sprite.hug and instability > 0.5
+	# Nervous glances once you've stood still for a moment.
+	if still and idle_time > 2.0:
+		_glance_timer -= delta
+		if _glance_timer <= 0.0:
+			_glance_timer = randf_range(0.6, 1.8) / (1.0 + instability)
+			_sprite.glance = [-1, 0, 1].pick_random()
+			if randf() < 0.25 and _sprite.facing.y == 0.0:
+				_sprite.facing = -_sprite.facing  # look over your shoulder
+	else:
+		_sprite.glance = 0
+	# Restored colours aren't stable yet: under pressure they drop out.
+	var flicker := _restored > 0 and randf() < instability * 0.04 * Settings.glitch_intensity
+	_sprite.palette = MISSING if flicker else _palette
 
 
 func _draw() -> void:
@@ -97,14 +181,23 @@ func _draw() -> void:
 	var ghost_off := Vector2(1, 0) - _jitter + Vector2(sin(_t * 7.0), 0) * instability
 	_sprite.draw(self, {"offset": ghost_off, "solid": GHOST})
 	_draw_body(Vector2.ZERO, 1.0)
+	var top := float(PixelCharacter.FEET_Y - _sprite.height())
+	if _restore_flash > 0.0:
+		# Your colours flood back in: a white silhouette fading out.
+		_sprite.draw(self, {"solid": Color(1, 1, 1, _restore_flash / 1.2 * 0.8)})
+	if _startle_mark > 0.0:
+		# "!" over your head.
+		var c := Color(1.0, 0.85, 0.45, minf(1.0, _startle_mark * 3.0))
+		draw_rect(Rect2(-1, top - 11, 2, 5), c)
+		draw_rect(Rect2(-1, top - 5, 2, 2), c)
 
 
 func _draw_body(offset: Vector2, alpha: float) -> void:
 	var o := offset + _jitter
 	# Head, torso, legs: three slices that can tear apart independently.
 	_sprite.draw(self, {"offset": o, "alpha": alpha, "slices": [_tear_rows[0], _tear_rows[1], _tear_rows[2]]})
-	# Your eyes glow a little into the dark.
-	if _sprite.facing != Vector2.UP:
+	# Until your face comes back, your eyes glow a little into the dark.
+	if _sprite.facing != Vector2.UP and _restored < RESTORE_ORDER.size():
 		draw_circle(o + _sprite.eye_position(), 5.0, Color(0.8, 1.0, 1.0, 0.08 * alpha))
 	# Torn slice edges flash the other colour.
 	var top := float(PixelCharacter.FEET_Y - _sprite.height())

@@ -13,6 +13,9 @@ var _settings: SettingsPanel
 var _resume: Button
 var _pending_to_title := false
 var _confirm_label: Label
+var _goal_label: Label
+## Shown under the title: what to do next (set by World before open()).
+var goal := ""
 
 
 func _ready() -> void:
@@ -29,9 +32,10 @@ func _ready() -> void:
 	dim.color = Color(0, 0, 0, 0.6)
 	_root.add_child(dim)
 
-	_main = UiStyle.centered_panel(_root, 220)
+	_main = UiStyle.centered_panel(_root, 260)
 	UiStyle.heading(_main, "PAUSED", UiStyle.TEXT)
 	UiStyle.note(_main, "the owner is still here.", UiStyle.OWNER)
+	_goal_label = UiStyle.note(_main, "", UiStyle.TEXT)
 	_resume = UiStyle.button(_main, "Resume", close, "ui_back")
 	UiStyle.button(_main, "Settings", _show_settings)
 	UiStyle.button(_main, "Quit to title", _ask_quit.bind(true))
@@ -43,7 +47,7 @@ func _ready() -> void:
 	UiStyle.button(_confirm, "Stay", _show_main, "ui_back")
 	UiStyle.button(_confirm, "Quit anyway", _do_quit)
 
-	_settings_box = UiStyle.centered_panel(_root, 300)
+	_settings_box = UiStyle.centered_panel(_root, 480)
 	_settings = SettingsPanel.new()
 	_settings.closed.connect(_show_main)
 	_settings_box.add_child(_settings)
@@ -54,6 +58,8 @@ func open() -> void:
 		return
 	visible = true
 	get_tree().paused = true
+	_goal_label.text = goal
+	_goal_label.visible = goal != ""
 	Sfx.ui("pause")
 	Sfx.muffle(true)
 	_show_main()

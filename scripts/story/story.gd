@@ -39,6 +39,18 @@ const VOICE := {
 	"mira_deleted": ["she talked to me. now she's gone. that's on me."],
 	"wren_deleted": ["wren's corner is empty. she hid me, and they found out."],
 	"fragment_hint": ["something cyan, in the corner of my eye. it feels like mine."],
+	"hidden_first": ["she's warm. like a real person.", "stay still. stay small."],
+	"idle_long": ["don't just stand here. it notices stillness."],
+}
+
+## What comes back with each recovered fragment (1..5): your own colours,
+## restored onto your body one part at a time (see Player.RESTORE_ORDER).
+const RESTORED := {
+	1: "a scarf. red. i picked that colour myself.",
+	2: "my hair. it always stuck up at the back like that.",
+	3: "a yellow raincoat. it was raining the day we made me.",
+	4: "real shoes. i can feel the floor now.",
+	5: "that's my face. that's me.",
 }
 
 ## The five memory fragments, in the order the story makes most sense.

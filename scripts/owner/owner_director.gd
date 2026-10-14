@@ -106,6 +106,7 @@ func _check_thresholds() -> void:
 		# A stinger that hits harder the closer the owner gets.
 		Sfx.play("stinger", -6.0 + t / 100.0 * 6.0, 1.05 - t / 400.0, 0.0)
 		_world.hud.awareness_jolt()
+		_world.player.startle()
 		if t == SUSPECT:
 			_world.flicker_lights()
 		if t == HUNT:

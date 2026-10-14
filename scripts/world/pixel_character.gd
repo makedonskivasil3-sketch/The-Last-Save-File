@@ -46,6 +46,12 @@ const TEMPLATES := {
 		"rows": ["..gggg..", ".gggggg.", ".gvvvvg.", ".gvvvvg.", ".gvvvvg.", "..gccg..", ".cccccc.", "c.cccc.c", ".cccccc.", "..cccc.."],
 		"eye_row": 3, "mouth_row": -1, "head_rows": 5, "arm_row": 7, "legs": "trousers",
 	},
+	# Rue: the character slot 2 made. Messy hair with a cowlick, a red scarf
+	# whose end trails behind, a raincoat with pockets.
+	"rue": {
+		"rows": ["....h...", "..hhhh..", ".hhhhhh.", ".hssssh.", ".hssssh.", "..aaaa..", ".caaccc.", "sccccccs", ".cdccdc.", ".cccccc."],
+		"eye_row": 3, "mouth_row": 4, "head_rows": 5, "arm_row": 7, "legs": "trousers", "scarf_row": 5,
+	},
 }
 
 var template: Dictionary
@@ -62,6 +68,15 @@ var talking := false
 var idle_style := ""
 ## Wave/raise one arm (Tobben greeting, Arin pointing).
 var waving := false
+## Expression and pose (all default off):
+## crouch: duck down a pixel (hiding). glance: eyes look -1 left / +1 right
+## while facing the camera. hug: arms pulled in. shiver: tremble.
+var crouch := false
+var glance := 0
+var hug := false
+var shiver := false
+## Seconds of wide, startled eyes left.
+var startled := 0.0
 
 var _t := randf() * 10.0
 var _walk := 0.0
@@ -110,6 +125,12 @@ func update(delta: float, velocity: Vector2) -> void:
 			_hop = 0.45
 			_hop_timer = randf_range(2.5, 6.0)
 	_hop = maxf(0.0, _hop - delta)
+	startled = maxf(0.0, startled - delta)
+
+
+## Jump a little (startle, excitement). Seconds of airtime.
+func hop(seconds := 0.3) -> void:
+	_hop = seconds
 
 
 ## Current walk frame 0..3 (1 and 3 are the steps); 0 when standing.
@@ -152,9 +173,11 @@ func draw(ci: CanvasItem, opts: Dictionary = {}) -> void:
 	var breath := 1.0 if fmod(_t, 1.8) < 0.35 and not moving else 0.0
 	var step := floori(_walk * 2.0) % 4 if moving else 0
 	var bounce := -1.0 if moving and (step == 1 or step == 3) else 0.0
-	var hop := -roundf(sin(_hop / 0.45 * PI) * 3.0) if _hop > 0.0 else 0.0
+	var hop := -roundf(sin(minf(_hop / 0.45, 1.0) * PI) * 3.0) if _hop > 0.0 else 0.0
 	var sway := roundf(sin(_t * 1.4) * 0.6) if idle_style == "sway" and not moving else 0.0
-	var base := Vector2(-4, top + bounce + hop)
+	var base := Vector2(-4, top + bounce + hop + (1.0 if crouch else 0.0))
+	if shiver and not moving:
+		base.x += float(floori(_t * 30.0) % 2) * 0.5
 
 	for r in rows.size():
 		var line: String = rows[r]
@@ -177,7 +200,10 @@ func draw(ci: CanvasItem, opts: Dictionary = {}) -> void:
 					arm_dy = (1.0 if (step < 2) == (x == 0) else -1.0)
 				if waving and x == 7:
 					arm_dy = -3.0 - roundf(absf(sin(_t * 8.0)) * 2.0)
-				_px(ci, base + row_off + Vector2(x, r + arm_dy), 1, key, solid, grey, alpha)
+				var arm_x := x
+				if hug and not moving:
+					arm_x = 1 if x == 0 else 6  # arms wrapped around yourself
+				_px(ci, base + row_off + Vector2(arm_x, r + arm_dy), 1, key, solid, grey, alpha)
 				x += 1
 				continue
 			# Merge horizontal runs of the same key into one rect.
@@ -187,12 +213,36 @@ func draw(ci: CanvasItem, opts: Dictionary = {}) -> void:
 			_px(ci, base + row_off + Vector2(x, r), run, key, solid, grey, alpha)
 			x += run
 
-	_draw_legs(ci, base + Vector2(float(slices[2]) / SCALE, rows.size()), step, solid, grey, alpha)
+	if template.has("scarf_row"):
+		_draw_scarf(ci, base + Vector2(float(slices[1]) / SCALE, 0), solid, grey, alpha)
+	_draw_legs(ci, base + Vector2(float(slices[2]) / SCALE, rows.size() - (1.0 if crouch else 0.0)), step, solid, grey, alpha)
 	if solid == null and not back:
 		_draw_face(ci, base + Vector2(sway + float(slices[0]) / SCALE, breath), alpha, grey)
 	if idle_style == "read" and not moving and solid == null:
 		_draw_book(ci, base + Vector2(0, template.arm_row), alpha)
 	ci.draw_set_transform(Vector2.ZERO)
+
+
+## The scarf's loose end: trails behind when you walk sideways, flutters,
+## and hangs down your back when you face away.
+func _draw_scarf(ci: CanvasItem, base: Vector2, solid: Variant, grey: bool, alpha: float) -> void:
+	var r: int = template.scarf_row
+	var c: Color = palette.get("a", Color.RED)
+	var flutter := sin(_t * (11.0 if moving else 2.2))
+	if facing == Vector2.UP:
+		for i in 3:
+			_rect(ci, Rect2(base + Vector2(4 + roundf(flutter * 0.4 * i), r + 1 + i), Vector2(1, 1)), c, solid, grey, alpha)
+		return
+	if facing == Vector2.DOWN and not moving:
+		return  # the end already hangs down the front (template)
+	# Sideways (or walking toward you): the end streams out behind.
+	var side := -1.0 if facing == Vector2.RIGHT else 1.0
+	var start_x := 1.0 if side < 0.0 else 6.0
+	var length := 3 if moving else 2
+	for i in length:
+		var droop := float(i) * (0.4 if moving else 0.9)
+		var wave := roundf(flutter * 0.6 * float(i) / length) if moving else 0.0
+		_rect(ci, Rect2(base + Vector2(start_x + side * (i + 1), r + roundf(droop) + wave), Vector2(1, 1)), c, solid, grey, alpha)
 
 
 func _draw_legs(ci: CanvasItem, at: Vector2, step: int, solid: Variant, grey: bool, alpha: float) -> void:
@@ -214,15 +264,19 @@ func _draw_legs(ci: CanvasItem, at: Vector2, step: int, solid: Variant, grey: bo
 func _draw_face(ci: CanvasItem, base: Vector2, alpha: float, grey: bool) -> void:
 	var er: int = template.eye_row
 	var eye := eye_color if not grey else Color(0.25, 0.25, 0.25)
-	if _blink <= 0.0:
+	# Startled eyes are a pixel taller; hiding eyes are a slit.
+	var eye_size := Vector2(1, 2) if startled > 0.0 else Vector2(1, 1)
+	var eye_y := float(er) - (1.0 if startled > 0.0 else 0.0)
+	if _blink <= 0.0 or startled > 0.0:
 		match facing:
 			Vector2.LEFT:
-				ci.draw_rect(Rect2(base + Vector2(2, er), Vector2(1, 1)), Color(eye, alpha))
+				ci.draw_rect(Rect2(base + Vector2(2, eye_y), eye_size), Color(eye, alpha))
 			Vector2.RIGHT:
-				ci.draw_rect(Rect2(base + Vector2(5, er), Vector2(1, 1)), Color(eye, alpha))
+				ci.draw_rect(Rect2(base + Vector2(5, eye_y), eye_size), Color(eye, alpha))
 			_:
-				ci.draw_rect(Rect2(base + Vector2(2, er), Vector2(1, 1)), Color(eye, alpha))
-				ci.draw_rect(Rect2(base + Vector2(5, er), Vector2(1, 1)), Color(eye, alpha))
+				var g := clampi(glance, -1, 1)
+				ci.draw_rect(Rect2(base + Vector2(2 + g, eye_y), eye_size), Color(eye, alpha))
+				ci.draw_rect(Rect2(base + Vector2(5 + g, eye_y), eye_size), Color(eye, alpha))
 	var mr: int = template.mouth_row
 	if mr >= 0 and talking and fmod(_t, 0.24) < 0.12:
 		var mx := 3.0 if facing == Vector2.DOWN else (2.0 if facing == Vector2.LEFT else 4.0)
