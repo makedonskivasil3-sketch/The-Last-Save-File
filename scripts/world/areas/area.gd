@@ -62,6 +62,7 @@ func start_erasure(extra_seeds: Array[Vector2] = []) -> void:
 	for p in extra_seeds:
 		erasure.seed_at(p)
 	world.fx.eraser_starts()
+	Sfx.play("erase_start")
 
 
 # --- helpers for subclasses -------------------------------------------------

@@ -205,8 +205,11 @@ func _cinematic_line(line: String) -> void:
 		await get_tree().process_frame
 		if get_tree().paused:
 			continue
+		var shown := int(typed)
 		typed += 40.0 * get_process_delta_time()
 		_cine_text.visible_characters = int(typed)
+		if int(typed) > shown:
+			Sfx.type_key("self" if _cine_text.get_theme_color("font_color") == SELF_COLOR else "system")
 		if typed >= line.length() or (Engine.get_process_frames() > start_frame + 1 and _advance_pressed()):
 			_cine_text.visible_characters = -1
 	_cine_hint.text = "[%s]" % Settings.glyph("interact")
@@ -285,8 +288,15 @@ func _update_dialogue(delta: float) -> void:
 		return
 	var total := _dialogue_text.get_total_character_count()
 	if _dialogue_text.visible_characters >= 0 and _dialogue_text.visible_characters < total:
+		var before := int(_dialogue_typed)
 		_dialogue_typed += 55.0 * delta
 		_dialogue_text.visible_characters = mini(int(_dialogue_typed), total)
+		if int(_dialogue_typed) > before:
+			# Each speaker has their own voice blip; books and notes rustle.
+			if _dialogue_speaker.text in Sfx.VOICES:
+				Sfx.voice_blip(_dialogue_speaker.text)
+			else:
+				Sfx.type_key("system")
 	if Engine.get_process_frames() == _dialogue_opened_frame:
 		return  # the press that opened the box doesn't also advance it
 	if Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("confirm"):
@@ -382,6 +392,9 @@ func _update_typing(delta: float) -> void:
 		_typed += TYPE_SPEED * delta
 		var full: String = _typing.get_meta("full", _typing.text)
 		var n := mini(int(_typed), full.length())
+		# One key sound per new visible character (the sound rate-limits itself).
+		if n > int(_typed - TYPE_SPEED * delta) and n > 0 and n <= full.length() and full[n - 1] != " ":
+			Sfx.type_key(_typing.get_meta("kind", "system"))
 		if _typing.has_meta("owner") and n < full.length() and Settings.glitch_intensity > 0.0:
 			# The owner's text arrives wrong first: garbage ahead of the cursor
 			# that resolves into the real letters as they're typed.
@@ -424,6 +437,7 @@ func _update_typing(delta: float) -> void:
 			line.text = msg.text
 			line.add_theme_color_override("font_color", SYSTEM_COLOR)
 	line.set_meta("full", line.text)
+	line.set_meta("kind", msg.kind)
 	line.visible_characters = 0
 	_console.add_child(line)
 	while _console.get_child_count() > MAX_LINES:

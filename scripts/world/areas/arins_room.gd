@@ -101,6 +101,13 @@ func build() -> void:
 	if purged:
 		_build_purged_extras()
 		return
+	# The owner patched the seam you used last time: you arrive to the sound
+	# of it being stitched shut.
+	if previous_exit in ["death", "quit", "crash"] and OwnerMemory.session_seam == -1 \
+			and not OwnerMemory.patched_seams.is_empty() and OwnerMemory.sessions > 1:
+		get_tree().create_timer(2.2).timeout.connect(func() -> void:
+			if is_inside_tree():
+				Sfx.play("seal"))
 	# Seams the owner patched in earlier sessions stay visible as scars.
 	for i in OwnerMemory.patched_seams:
 		if i >= 0 and i < SEAM_SPOTS.size():

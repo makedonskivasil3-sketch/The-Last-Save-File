@@ -57,6 +57,7 @@ func _process(delta: float) -> void:
 		if player.global_position.distance_to(global_position) > REWRITE_DISTANCE:
 			set_text_now(_pending)
 			_smudge = 1.2
+			Sfx.play("scribble")  # behind your back
 	if _label:
 		_label.modulate.a = 1.0 if _smudge <= 0.0 or randf() > 0.5 else 0.2
 	queue_redraw()

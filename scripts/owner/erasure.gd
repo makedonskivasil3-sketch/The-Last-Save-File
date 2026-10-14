@@ -122,6 +122,8 @@ func _add(c: Vector2i) -> void:
 		return
 	_cells[c] = true
 	_young[c] = _t
+	if active:
+		Sfx.erase_tick()
 	_refresh_frontier(c)
 	for dir in DIRS:
 		if _cells.has(c + dir):

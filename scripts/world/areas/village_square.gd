@@ -174,6 +174,7 @@ func _on_arin_sees(delta: float) -> void:
 	world.director.add_awareness(28.0 * delta)
 	if not _spotted_once:
 		_spotted_once = true
+		Sfx.play("spotted")
 		world.voice("see_arin")
 		world.director.say("there. by the %s." % _landmark(world.player.global_position))
 

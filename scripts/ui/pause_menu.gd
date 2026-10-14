@@ -32,7 +32,7 @@ func _ready() -> void:
 	_main = UiStyle.centered_panel(_root, 220)
 	UiStyle.heading(_main, "PAUSED", UiStyle.TEXT)
 	UiStyle.note(_main, "the owner is still here.", UiStyle.OWNER)
-	_resume = UiStyle.button(_main, "Resume", close)
+	_resume = UiStyle.button(_main, "Resume", close, "ui_back")
 	UiStyle.button(_main, "Settings", _show_settings)
 	UiStyle.button(_main, "Quit to title", _ask_quit.bind(true))
 	UiStyle.button(_main, "Quit game", _ask_quit.bind(false))
@@ -40,7 +40,7 @@ func _ready() -> void:
 	_confirm = UiStyle.centered_panel(_root, 260)
 	UiStyle.heading(_confirm, "QUIT?", UiStyle.OWNER)
 	_confirm_label = UiStyle.note(_confirm, "", UiStyle.TEXT)
-	UiStyle.button(_confirm, "Stay", _show_main)
+	UiStyle.button(_confirm, "Stay", _show_main, "ui_back")
 	UiStyle.button(_confirm, "Quit anyway", _do_quit)
 
 	_settings_box = UiStyle.centered_panel(_root, 300)
@@ -54,12 +54,15 @@ func open() -> void:
 		return
 	visible = true
 	get_tree().paused = true
+	Sfx.ui("pause")
+	Sfx.muffle(true)
 	_show_main()
 
 
 func close() -> void:
 	visible = false
 	get_tree().paused = false
+	Sfx.muffle(false)
 
 
 func _unhandled_input(event: InputEvent) -> void:

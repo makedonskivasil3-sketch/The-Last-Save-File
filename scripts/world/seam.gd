@@ -48,6 +48,7 @@ func _process(delta: float) -> void:
 		var fx := get_tree().get_first_node_in_group("screen_fx") as ScreenFx
 		if fx:
 			fx.spike(0.6, 0.6)  # the wall tearing open
+		Sfx.play("wound_open")
 	if open or sealed:
 		queue_redraw()
 

@@ -15,6 +15,7 @@ var _rebuild_on_close := false
 
 func _ready() -> void:
 	theme = UiStyle.make_theme()
+	Sfx.prewarm()  # build the common sounds while the title is up
 	($ScreenFX/Effect as ScreenFx).shake_world = false  # no world layer here
 	get_tree().paused = false
 

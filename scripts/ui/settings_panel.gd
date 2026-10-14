@@ -18,7 +18,9 @@ func _ready() -> void:
 	add_theme_constant_override("separation", 6)
 	UiStyle.heading(self, "SETTINGS", UiStyle.TEXT, 14)
 
-	_first = _slider("Volume", Settings.volume, func(v: float) -> void: Settings.set_value("volume", v))
+	_first = _slider("Master volume", Settings.volume, func(v: float) -> void: Settings.set_value("volume", v))
+	_slider("Music", Settings.music_volume, func(v: float) -> void: Settings.set_value("music_volume", v))
+	_slider("Effects", Settings.sfx_volume, _on_effects_volume)
 	_check("Fullscreen", Settings.fullscreen, func(on: bool) -> void: Settings.set_value("fullscreen", on))
 	_check("CRT curvature", Settings.crt_curvature, func(on: bool) -> void: Settings.set_value("crt_curvature", on))
 	var fx_button := Button.new()
@@ -31,7 +33,7 @@ func _ready() -> void:
 
 	if show_reset:
 		_reset_button = UiStyle.button(self, "Reset owner memory", _on_reset)
-	UiStyle.button(self, "Back", func() -> void: closed.emit())
+	UiStyle.button(self, "Back", func() -> void: closed.emit(), "ui_back")
 
 
 func focus_first() -> void:
@@ -42,6 +44,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	if is_visible_in_tree() and (event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause")):
 		get_viewport().set_input_as_handled()
 		closed.emit()
+
+
+## Effects volume, with a tick so you can hear the level you're choosing.
+func _on_effects_volume(v: float) -> void:
+	Settings.set_value("sfx_volume", v)
+	Sfx.ui("ui_move")
 
 
 ## Full -> Light -> Off -> Full.

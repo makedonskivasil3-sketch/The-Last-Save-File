@@ -34,6 +34,7 @@ func lock() -> void:
 		return
 	state = State.LOCKED
 	_flash = 1.0
+	Sfx.play("door_lock")
 
 
 func _process(delta: float) -> void:

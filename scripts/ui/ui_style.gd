@@ -75,11 +75,13 @@ static func note(parent: Control, text: String, color := MUTED) -> Label:
 	return l
 
 
-static func button(parent: Control, text: String, on_pressed: Callable) -> Button:
+static func button(parent: Control, text: String, on_pressed: Callable, sound := "ui_confirm") -> Button:
 	var b := Button.new()
 	b.text = text
 	b.focus_mode = Control.FOCUS_ALL
+	b.pressed.connect(func() -> void: Sfx.ui(sound))
 	b.pressed.connect(on_pressed)
+	b.focus_entered.connect(func() -> void: Sfx.ui("ui_move"))
 	parent.add_child(b)
 	return b
 

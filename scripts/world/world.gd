@@ -47,6 +47,7 @@ func _ready() -> void:
 		_build_purged()
 		return
 
+	Sfx.prewarm()
 	var previous := OwnerMemory.begin_session()
 	var room := ArinsRoom.new()
 	room.previous_exit = previous
@@ -66,6 +67,7 @@ func _begin_session(previous: String) -> void:
 			return
 	fx.spike(0.6, 1.0)  # loading into a save you don't belong in
 	player.dissolve("materialize")
+	Sfx.play("fragment", -4.0, 0.5, 0.0)  # pieces of you, pulled together
 	await get_tree().create_timer(1.4).timeout
 	if not is_inside_tree() or ending != "":
 		return
@@ -108,10 +110,24 @@ func recover_fragment(m: MemoryFragment) -> void:
 	area.process_mode = Node.PROCESS_MODE_DISABLED
 	m.absorb()
 	fx.memory(true)
+	Sfx.play("fragment")
+	# The world goes muffled and a music box plays while you remember.
+	Sfx.muffle(true, 500.0)
+	var music := AudioStreamPlayer.new()
+	music.bus = "Memory"
+	music.stream = Sfx.stream("memory_loop")
+	music.volume_db = -40.0
+	add_child(music)
+	music.play()
+	create_tween().tween_property(music, "volume_db", Sfx.LEVEL["memory_loop"], 1.0)
 	await hud.cinematic(f.title, f.lines, Hud.SELF_COLOR, 0.45)
 	if not is_inside_tree():
 		return
 	fx.memory(false)
+	Sfx.muffle(false)
+	var out := create_tween()
+	out.tween_property(music, "volume_db", -40.0, 1.2)
+	out.tween_callback(music.queue_free)
 	OwnerMemory.add_fragment(f.id)
 	area.process_mode = Node.PROCESS_MODE_INHERIT
 	player.frozen = false
@@ -164,6 +180,7 @@ func change_area(id: String, arrival: String) -> void:
 		return
 	_transitioning = true
 	player.frozen = true
+	Sfx.play("transition")
 	hud.close_dialogue()
 	hud.set_prompt("")
 	await hud.fade(true, 0.25).finished
@@ -211,6 +228,9 @@ func _load_area(next: Area, arrival: String) -> void:
 	hud.show_area_title(area.display_name)
 	if not purged:
 		fx.enter_area(area.area_id)
+		drone.edge = 1.0 if area.area_id == "edge" else 0.0
+		if area.area_id == "edge":
+			Sfx.play("unload")
 	if not purged:
 		area.catch_up()
 
@@ -239,6 +259,7 @@ func is_talking() -> bool:
 
 
 func flicker_lights() -> void:
+	Sfx.play("flicker")
 	var base := _base_light()
 	var tw := create_tween()
 	if Settings.reduce_flashing:
@@ -296,6 +317,7 @@ func kill(cause: String) -> void:
 	hud.set_prompt("")
 	fx.play_death(cause)
 	player.dissolve(cause)
+	Sfx.play("death_" + cause, 0.0, 1.0, 0.0)
 	drone.tension = 1.0
 	OwnerMemory.record_death(area.area_id, player.global_position)
 	var title := "ERASED"
@@ -333,6 +355,7 @@ func win() -> void:
 	area.erasure.active = false
 	fx.play_win()
 	player.dissolve("rescued")
+	Sfx.play("win", 0.0, 1.0, 0.0)
 	OwnerMemory.record_win()
 	await get_tree().create_timer(1.5).timeout
 	if not is_inside_tree():
@@ -357,6 +380,7 @@ func _quit(to_title: bool = false) -> void:
 	OwnerMemory.record_quit()
 	hud.show_overlay("QUITTING", "leaving? i'll still be here.")
 	fx.power_off(1.4)
+	Sfx.play("power_off", 0.0, 1.0, 0.0)
 	await get_tree().create_timer(1.6).timeout
 	if not is_inside_tree():
 		return

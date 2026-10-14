@@ -30,6 +30,7 @@ func interact_prompt() -> String:
 func interact() -> String:
 	_denied = 1.0
 	_uses += 1
+	Sfx.play("denied")
 	if _uses == 1:
 		return "SAVE FAILED: profile mismatch."
 	return "SAVE DENIED: you are not the owner of this file."

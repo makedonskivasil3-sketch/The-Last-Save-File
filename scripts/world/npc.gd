@@ -64,6 +64,7 @@ func delete() -> bool:
 	var fx := get_tree().get_first_node_in_group("screen_fx") as ScreenFx
 	if fx:
 		fx.deletion_hit()
+	Sfx.deletion(npc_id)
 	return true
 
 
@@ -75,6 +76,7 @@ func is_present() -> bool:
 func emote(text: String, duration: float = 1.6) -> void:
 	_emote = text
 	_emote_t = duration
+	Sfx.play("pop", 0.0, 1.0 + randf() * 0.2)
 
 
 func sprite() -> PixelCharacter:

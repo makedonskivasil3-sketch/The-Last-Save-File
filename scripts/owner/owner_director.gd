@@ -103,6 +103,8 @@ func _check_thresholds() -> void:
 		_fired[t] = true
 		_owner_line(t)
 		_world.fx.threshold_pulse(t / 100.0)
+		# A stinger that hits harder the closer the owner gets.
+		Sfx.play("stinger", -6.0 + t / 100.0 * 6.0, 1.05 - t / 400.0, 0.0)
 		_world.hud.awareness_jolt()
 		if t == SUSPECT:
 			_world.flicker_lights()
@@ -156,6 +158,8 @@ func _intro(previous_exit: String) -> void:
 	if known > 0 and OwnerMemory.sessions > 1:
 		say(Story.OWNER_RECOGNITION[known])
 	if OwnerMemory.purge > 0:
+		# Something is counting.
+		_world.get_tree().create_timer(1.6).timeout.connect(Sfx.play.bind("purge_bell", 0.0, 1.0, 0.0))
 		hud.say("OWNER PURGE PROGRESS %d/%d" % [OwnerMemory.purge, OwnerMemory.MAX_PURGE], "system")
 	if OwnerMemory.sessions == 1:
 		hud.say("%s interact  ·  %s pause" % [Settings.glyph("interact"), Settings.glyph("pause")], "system")

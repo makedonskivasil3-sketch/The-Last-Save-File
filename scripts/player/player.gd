@@ -29,6 +29,7 @@ var _trail: Array[Vector2] = []
 var _trail_timer := 0.0
 var _t := 0.0
 ## "", "erased", "overwritten", "selected", "rescued"
+var _last_step := 0
 var _dissolve := ""
 var _dissolve_t := 0.0
 ## A hood around nothing, two points of light.
@@ -77,6 +78,11 @@ func _process(delta: float) -> void:
 		if _dissolve == "materialize" and _dissolve_t > 1.4:
 			_dissolve = ""
 	_sprite.update(delta, velocity if not frozen else Vector2.ZERO)
+	# Footsteps on the walk cycle's contact frames.
+	var step := _sprite.step_frame()
+	if step != _last_step and step % 2 == 1:
+		Sfx.play("step_%d" % (step >> 1), 0.0, 1.0, 0.1)
+	_last_step = step
 	queue_redraw()
 
 

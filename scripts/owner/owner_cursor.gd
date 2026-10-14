@@ -19,6 +19,8 @@ var _tracking := false
 var _trail: Array[Vector2] = []
 var _arrive := 1.0  # 1 -> 0 as it materialises
 var _fx: ScreenFx
+## Rising whine while it hovers over you.
+var _whine: AudioStreamPlayer
 var _t := 0.0
 var _done := false
 
@@ -28,6 +30,8 @@ func _ready() -> void:
 	_fx = get_tree().get_first_node_in_group("screen_fx") as ScreenFx
 	if _fx:
 		_fx.cursor_arrives()
+	Sfx.play("cursor_arrive")
+	_whine = Sfx.loop_player("select_loop", self)
 
 
 func _physics_process(delta: float) -> void:
@@ -48,8 +52,13 @@ func _physics_process(delta: float) -> void:
 	if _fx and _select > 0.0:
 		_fx.noise(0.25 + 0.5 * _select / SELECT_TIME, 0.2)
 		_fx.spike(0.2 * _select / SELECT_TIME, 0.2)
+	var pressure := _select / SELECT_TIME
+	_whine.volume_db = Sfx.LEVEL["select_loop"] + linear_to_db(maxf(pressure * Sfx.harshness(), 0.0001))
+	_whine.pitch_scale = 0.8 + pressure * 0.9
 	if _select >= SELECT_TIME and not _done:
 		_done = true
+		_whine.stop()
+		Sfx.play("click")
 		selected_player.emit()
 
 

@@ -191,6 +191,62 @@ quickens as it fills, shifts orange → red → magenta, misfires, and its label
 durations live in the event methods of `screen_fx.gd` (`threshold_pulse()`, `deletion_hit()`,
 `cursor_arrives()`, `play_death()`, `play_win()`, ...).
 
+## Sound
+
+There are no audio files. Every sound is synthesised from code when the game starts
+(`scripts/audio/synth.gd`: oscillators, filtered noise, crackle, bit-crushing, gating), rendered
+once into an `AudioStreamWAV` and cached. `Sfx.prewarm()` builds them a few at a time on the title
+screen (about 6 ms of work per frame), so the first death never hitches. All of it together takes
+about half a second of CPU, once.
+
+**Buses.** `Sfx` (`scripts/autoload/sfx.gd`) creates four buses under Master:
+
+| Bus | What's on it | Volume slider |
+| --- | --- | --- |
+| Music | The drone and its layers | Music |
+| Memory | The flashback melody | Music |
+| SFX | Everything in the world (small reverb, plus a low-pass used for muffling) | Effects |
+| UI | Menu sounds (keep playing while paused) | Effects |
+
+**What makes a sound.**
+
+| Event | Sound |
+| --- | --- |
+| The owner types in the console | Their keyboard: three varied key clicks (tick, clack, thunk). System text is a thin teletype tick; your own thoughts are a soft breath of a note. |
+| Dialogue | A voice blip per letter, pitched per character (Wren high, Tobben low, the Archivist lowest). |
+| Character deleted | A unique sound per character, in their own pitch and timbre: a convulsion in their voice, a burst, a falling sweep, a thud, then static that won't stop for a moment. |
+| Eraser | The floor groans and the room sags when it starts; a crackle per cell turning to void (rate-limited). |
+| Cursor | A piercing whine on static as it reaches in; while hovering, a pulsing tone that rises with how close it is to clicking; then a plastic, final click. |
+| Deaths | Three variants: *erased* (crunching down into nothing, coarser as it goes), *overwritten* (a storm of data writing over you, then a slam), *selected* (a double click, a falling error chime, scattering glass). |
+| Wall seam | The wall tearing open; seams the owner patched since last session are heard being stitched shut. |
+| Awareness thresholds | A reversed swell into a hit, lower and louder the higher awareness is. Arin spotting you is a sour two-note stab. |
+| Purge / quitting | A low, inharmonic bell after the owner's intro once purge has started: something is counting. Quitting is a CRT powering off. |
+| Slot 2 | A rising arpeggio into a warm chord... with one note that's wrong. |
+| Memory fragment | A reversed shimmer resolving into a glass chime; the flashback muffles the world and plays a slow, tape-wobbly music box on the Memory bus. |
+| Small things | Footsteps, door lock, denied save, rewritten note, light flicker, emotes, area transitions, the Edge unloading. |
+| Menus | Quiet, diegetic: move, confirm, back, and a muffled world while paused. |
+
+**The drone** (`scripts/fx/drone.gd`) is layered and follows awareness:
+
+| Layer | When |
+| --- | --- |
+| Hum | Always: two low sines beating against each other. |
+| Dread | From ~25%: a dissonant, breathing pad. |
+| Shimmer | From ~55%, and always a little in the Edge: a thin whine over hiss. |
+| Heartbeat | From 65%: 55 bpm rising to 125. |
+| Crackle | Random digital crackle, more often as awareness rises. |
+
+**Settings.** *Master / Music / Effects* sliders drive the buses. *Glitch intensity* and *Reduce
+flashing* also tame the audio: harsh sounds (deletions, the eraser, the cursor, deaths, stingers,
+shimmer, crackle) are scaled by `Sfx.harshness()` (45-100% with glitch intensity, halved with reduce
+flashing), and glitchy ticks (eraser cells, flicker) fade out almost completely at zero glitch.
+
+**Tuning.** Each sound is one recipe in `Sfx._build()`; its loudness is in `Sfx.LEVEL` (dB), and the
+`HARSH` / `GLITCHY` lists decide which settings soften it. To add a sound, add a `match` branch in
+`_build()`, a level, optionally a `PREWARM` entry, and call `Sfx.play("name")`. `test_audio.gd`
+checks that every sound renders, is audible and builds in under 250 ms
+(`tests/run.sh --filter=test_audio --verbose-audio` prints the build times).
+
 ## Performance
 
 Measured in Godot 4.3 with the frame cap removed (headless, so this is all CPU work: scripts plus
@@ -281,6 +337,7 @@ Tests run with `--test-mode`, which points the owner's memory and the settings a
 | `test_story.gd` | Boot sequence, flashbacks, fragments persisting, endings |
 | `test_effects.gd` | Every death style, owner events, the win sequence, reduce flashing |
 | `test_performance.gd` | Worst-case frame budget (fully hunted square) and leak checks across area changes |
+| `test_audio.gd` | Every sound renders, is audible and builds fast; loops loop; buses follow the volume sliders; accessibility softens harsh sounds; the drone follows awareness; gameplay events make their sounds |
 
 Writing a test: add `tests/test_<thing>.gd` extending `res://tests/test_case.gd` and give it
 `test_*` methods. They're coroutines, so you can `await start_session()`, `go_to()`, `press()`,
@@ -323,7 +380,9 @@ scripts/
   ui/title.gd, pause_menu.gd, settings_panel.gd, ui_style.gd
   fx/screen_fx.gd              The screen: awareness look, event effects, world shake, settings
   ui/awareness_meter.gd        The living OWNER AWARENESS bar
-  fx/drone.gd                  Procedural ambient hum that tightens with tension
+  fx/drone.gd                  Layered ambient drone that follows awareness
+  autoload/sfx.gd              Every sound effect: recipes, buses, pooled players, settings
+  audio/synth.gd               The tiny offline synthesiser the sounds are rendered with
 shaders/
   save_corruption.gdshader     CRT glass, scanlines, grille, aberration, sickness, tearing, deaths
 ```
@@ -350,7 +409,6 @@ crossed → deaths, quits, helpers and wins flow back into `OwnerMemory`.
   physically enter.
 - **More owner presence**: dragging props around, dialog boxes that open on their own, a
   "Delete save?" prompt you have to stop.
-- **Audio**: real sound design (room tone, rewrite stingers, the owner's typing).
 
 ## License
 

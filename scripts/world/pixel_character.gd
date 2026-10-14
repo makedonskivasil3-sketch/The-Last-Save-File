@@ -112,6 +112,11 @@ func update(delta: float, velocity: Vector2) -> void:
 	_hop = maxf(0.0, _hop - delta)
 
 
+## Current walk frame 0..3 (1 and 3 are the steps); 0 when standing.
+func step_frame() -> int:
+	return floori(_walk * 2.0) % 4 if moving else 0
+
+
 ## Turn to face a point (used by NPCs watching you).
 func look_at(from: Vector2, to: Vector2) -> void:
 	var d := to - from
