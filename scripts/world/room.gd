@@ -112,14 +112,17 @@ func seams_remaining() -> int:
 
 
 func seam_reveal() -> void:
-	if seam:
-		seam.reveal = 0.2 + director.awareness / 100.0 * 0.6
+	if seam == null:
+		return
+	# The wall only tears once the owner starts rewriting the room.
+	seam.open = director.awareness >= OwnerDirector.CONTAIN
+	seam.reveal = 0.25 + director.awareness / 100.0 * 0.6 if seam.open else 0.0
 
 
 func start_erasure() -> void:
 	erasure.active = true
 	erasure.interval = maxf(0.12, 0.45 - 0.06 * OwnerMemory.purge)
-	erasure.burst = 1 + OwnerMemory.purge / 2
+	erasure.burst = 1 + (OwnerMemory.purge >> 1)
 	# It starts where you died before. The owner remembers.
 	for p in OwnerMemory.death_positions:
 		erasure.seed_at(p)
@@ -263,7 +266,8 @@ func _on_player_erased() -> void:
 		body = "the owner has learned enough."
 	hud.show_overlay("ERASED", body)
 	await get_tree().create_timer(3.0).timeout
-	get_tree().reload_current_scene()
+	if is_inside_tree():  # F9 may have reloaded the scene in the meantime
+		get_tree().reload_current_scene()
 
 
 func _on_escape(s: Seam) -> void:
@@ -289,11 +293,13 @@ func _quit() -> void:
 	player.frozen = true
 	director.stop()
 	hud.clear_queue()
+	hud.set_prompt("")
 	OwnerMemory.record_quit()
 	hud.show_overlay("QUITTING", "leaving? i'll still be here.")
 	fx.spike(0.5, 1.5)
 	await get_tree().create_timer(1.6).timeout
-	get_tree().quit()
+	if is_inside_tree():
+		get_tree().quit()
 
 
 func _build_purged() -> void:
@@ -342,6 +348,8 @@ func _handle_wipe(delta: float) -> void:
 		_wipe_hold += delta
 		hud.set_hint("restoring intruder… %d%%" % int(100.0 * _wipe_hold / WIPE_HOLD_TIME))
 		if _wipe_hold >= WIPE_HOLD_TIME:
+			_wipe_hold = 0.0
+			set_process(false)
 			OwnerMemory.wipe()
 			get_tree().reload_current_scene()
 	elif _wipe_hold > 0.0:

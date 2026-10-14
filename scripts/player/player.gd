@@ -28,8 +28,8 @@ func _physics_process(delta: float) -> void:
 	idle_time = idle_time + delta if dir == Vector2.ZERO else 0.0
 
 
-func _process(_delta: float) -> void:
-	_jitter = Vector2(randf_range(-2.0, 2.0), 0.0) if randf() < 0.05 else Vector2.ZERO
+func _process(delta: float) -> void:
+	_jitter = Vector2(randf_range(-2.0, 2.0), 0.0) if randf() < 3.0 * delta else Vector2.ZERO
 	queue_redraw()
 
 

@@ -23,6 +23,6 @@ func _process(delta: float) -> void:
 	_spike = maxf(0.0, _spike - _decay * delta)
 	var g := base_glitch + _spike
 	# Rare, unprompted twitches. Something is always running in the background.
-	if randf() < 0.004:
+	if randf() < 0.25 * delta:
 		g += 0.25
 	(material as ShaderMaterial).set_shader_parameter("glitch", clampf(g, 0.0, 1.0))

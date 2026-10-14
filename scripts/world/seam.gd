@@ -8,7 +8,9 @@ signal slipped_through(seam: Seam)
 var id := 0
 var size := Vector2(12, 22)
 ## 0..1, how visible the tear is. The owner's rewrites make it easier to see.
-var reveal := 0.2
+var reveal := 0.0
+## Closed seams are invisible and can't be used.
+var open := false
 
 var _used := false
 
@@ -22,21 +24,27 @@ func setup(seam_id: int, rect: Rect2) -> void:
 	var col := CollisionShape2D.new()
 	col.shape = shape
 	add_child(col)
-	body_entered.connect(_on_body_entered)
 
 
-func _on_body_entered(body: Node2D) -> void:
-	if _used or not body is Player:
+func _physics_process(_delta: float) -> void:
+	# Polled rather than body_entered, so standing in the spot when it opens counts.
+	if _used or not open:
 		return
-	_used = true
-	slipped_through.emit(self)
+	for body in get_overlapping_bodies():
+		if body is Player:
+			_used = true
+			slipped_through.emit(self)
+			return
 
 
 func _process(_delta: float) -> void:
-	queue_redraw()
+	if open:
+		queue_redraw()
 
 
 func _draw() -> void:
+	if not open:
+		return
 	var r := Rect2(-size / 2.0, size)
 	var vertical := size.y > size.x
 	var slices := 6

@@ -56,12 +56,13 @@ One room. One intruder. One owner who's getting impatient.
 - As awareness rises, the owner acts:
   - **25**: the note on the wall is rewritten, but only once you've walked away from it.
   - **40**: the lights flicker. *"who are you?"*
-  - **50**: the door locks (or locks instantly if you walk toward it).
+  - **50**: the door locks (or locks instantly if you walk toward it). The rewrite tears the wall
+    somewhere, and a **seam** starts flickering.
   - **65**: Mira is deleted for talking to you.
   - **75**: the **eraser** starts. Cells of the room are overwritten with nothing and grow toward
     you. New cells flicker for a moment as a warning. Once they settle, touching one kills you.
   - **100**: *"hold still."* The eraser doubles its speed.
-- Somewhere in the walls there's a **seam**, a flickering gap the owner hasn't patched. Touch it
+- Once it appears, the **seam** is a gap the owner hasn't patched yet. Touch it
   to slip out of the room (the end of the slice).
 
 **How the owner adapts (persisted across sessions)**
@@ -70,7 +71,7 @@ One room. One intruder. One owner who's getting impatient.
 | --- | --- |
 | Die | Remembers where. Your ghost marker stays on the floor, and the eraser seeds from there. |
 | Quit (Esc or closing the window) | Notices. *"you closed the game. i didn't."* |
-| Kill the process | Treats it as running away and counts it as a quit. |
+| Kill the process | Treats it as running away and counts it as a quit. **This includes the Stop button in the Godot editor**: quit with Esc instead, or hold F9 to reset. |
 | Escape through a seam | Patches that seam. The next one is somewhere else. Five in total. |
 | Anything | Starts the next session more aware, with the door deleted, Mira restricted or removed, a darker room, and a faster eraser. |
 

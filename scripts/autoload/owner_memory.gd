@@ -22,6 +22,9 @@ var patched_seams: Array[int] = []
 ## killed the owner finds out next launch.
 var last_exit: String = "none"
 
+## Not saved. Resources that should survive scene reloads (e.g. synthesized audio).
+var runtime_cache: Dictionary = {}
+
 var _session_closed := true
 
 

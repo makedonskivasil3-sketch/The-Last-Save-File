@@ -61,10 +61,8 @@ func _process(delta: float) -> void:
 func on_door_approached() -> void:
 	if _room.door.state != Door.State.OPEN:
 		return
-	_room.door.lock()
-	_room.fx.spike(0.7, 0.8)
 	_say("nope.")
-	_fired[CONTAIN] = true
+	# Jumping to CONTAIN fires every threshold on the way, in order; CONTAIN locks the door.
 	add_awareness(maxf(0.0, CONTAIN - awareness) + 2.0)
 
 
@@ -80,6 +78,7 @@ func _check_thresholds() -> void:
 			_room.door.lock()
 			_room.fx.spike(0.6, 0.8)
 		_say("stay where i can see you.")
+		_room.hud.say("WARNING: wall integrity 97%", "system")
 	if _fire_once(SILENCE):
 		if _room.mira.delete():
 			_room.fx.spike(0.8, 1.2)

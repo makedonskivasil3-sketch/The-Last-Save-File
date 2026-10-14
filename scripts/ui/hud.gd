@@ -113,7 +113,7 @@ func hide_overlay() -> void:
 func _process(delta: float) -> void:
 	_playtime += delta
 	_update_slot()
-	_awareness_fill.size.x = lerpf(_awareness_fill.size.x, 160.0 * _awareness, 0.1)
+	_awareness_fill.size.x = lerpf(_awareness_fill.size.x, 160.0 * _awareness, 1.0 - exp(-6.0 * delta))
 	_awareness_fill.color = OWNER_COLOR if _awareness < 0.75 or fmod(_playtime, 0.5) < 0.25 else Color.WHITE
 	_update_typing(delta)
 
@@ -125,7 +125,7 @@ func _update_slot() -> void:
 	if randf() < _awareness * 0.04:
 		var i := randi() % name_shown.length()
 		name_shown = name_shown.substr(0, i) + ["#", "?", "_", "0"].pick_random() + name_shown.substr(i + 1)
-	var text := "SLOT 1  ·  %s  ·  LV 7  ·  %02d:%02d:%02d" % [name_shown, secs / 3600, (secs / 60) % 60, secs % 60]
+	var text := "SLOT 1  ·  %s  ·  LV 7  ·  %02d:%02d:%02d" % [name_shown, floori(secs / 3600.0), floori(secs / 60.0) % 60, secs % 60]
 	if unknown_processes > 0:
 		text += "  ·  [!] %d UNKNOWN PROCESS" % unknown_processes
 	_slot.text = text
