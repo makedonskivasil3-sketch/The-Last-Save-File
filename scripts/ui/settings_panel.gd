@@ -20,6 +20,7 @@ func _ready() -> void:
 
 	_first = _slider("Volume", Settings.volume, func(v: float) -> void: Settings.set_value("volume", v))
 	_check("Fullscreen", Settings.fullscreen, func(on: bool) -> void: Settings.set_value("fullscreen", on))
+	_check("CRT curvature", Settings.crt_curvature, func(on: bool) -> void: Settings.set_value("crt_curvature", on))
 	_slider("Glitch intensity", Settings.glitch_intensity, func(v: float) -> void: Settings.set_value("glitch_intensity", v))
 	_check("Reduce flashing", Settings.reduce_flashing, func(on: bool) -> void: Settings.set_value("reduce_flashing", on))
 

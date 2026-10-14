@@ -15,6 +15,7 @@ var _rebuild_on_close := false
 
 func _ready() -> void:
 	theme = UiStyle.make_theme()
+	($ScreenFX/Effect as ScreenFx).shake_world = false  # no world layer here
 	get_tree().paused = false
 
 	var bg := ColorRect.new()

@@ -151,22 +151,51 @@ func _check_target() -> void:
 
 
 func _draw() -> void:
-	# Young cells: a flickering outline, the only warning you get.
+	var flash := Settings.flash_scale()
+	# Young cells: the only warning you get. A red frame that strobes while a
+	# black core grows inside it; when the core fills the cell, it's lethal.
 	for c: Vector2i in _young:
-		var blink := 0.5 + 0.5 * sin(_t * 30.0 * Settings.flash_scale() + c.x)
-		draw_rect(_cell_rect(c).grow(-1), Color(0.88, 0.25, 0.2, 0.25 + 0.5 * blink), false, 1.0)
-	# A little static crawling over the settled cells.
+		var r := _cell_rect(c)
+		var age := clampf((_t - float(_young[c])) / MATURE_TIME, 0.0, 1.0)
+		var blink := 0.5 + 0.5 * sin(_t * 30.0 * flash + c.x * 1.7)
+		draw_rect(r, Color(0.9, 0.12, 0.08, (0.12 + 0.25 * blink) * (0.5 + 0.5 * flash)))
+		draw_rect(r.grow(-1), Color(1.0, 0.3, 0.2, 0.35 + 0.55 * blink), false, 1.0)
+		var core := r.grow(-CELL * 0.5 * (1.0 - age))
+		draw_rect(core, Color(0.0, 0.0, 0.0, 0.6 + 0.4 * age))
 	if _mature.is_empty():
 		return
-	for i in mini(int(_mature.size() / 12.0) + 1, 64):
+	# The bite edge: settled cells that still touch the world burn dark red,
+	# so the void reads as hungry rather than painted.
+	var rim := Color(0.55, 0.02, 0.04, 0.55 + 0.25 * sin(_t * 4.0))
+	for c: Vector2i in _frontier:
+		if _young.has(c):
+			continue
+		var r := _cell_rect(c)
+		for dir in DIRS:
+			if _cells.has(c + dir) or not _in_grid(c + dir):
+				continue
+			match dir:
+				Vector2i.LEFT: draw_rect(Rect2(r.position, Vector2(1, CELL)), rim)
+				Vector2i.RIGHT: draw_rect(Rect2(r.position + Vector2(CELL - 1, 0), Vector2(1, CELL)), rim)
+				Vector2i.UP: draw_rect(Rect2(r.position, Vector2(CELL, 1)), rim)
+				_: draw_rect(Rect2(r.position + Vector2(0, CELL - 1), Vector2(CELL, 1)), rim)
+	# Static crawling over the void; the occasional bright scar line.
+	for i in mini(int(_mature.size() / 10.0) + 1, 80):
 		var r := _cell_rect(_mature.pick_random())
 		var px := r.position + Vector2(randi() % (CELL - 2), randi() % (CELL - 2))
 		draw_rect(Rect2(px, Vector2(2, 1)), STATIC_COLORS.pick_random())
+	if randf() < 0.08 * flash * Settings.glitch_intensity:
+		var r := _cell_rect(_mature.pick_random())
+		draw_rect(Rect2(Vector2(r.position.x - 24, r.position.y + randi() % CELL), Vector2(56, 1)), Color(1, 0.2, 0.5, 0.7))
 
 
 func _draw_mature(canvas: CanvasItem) -> void:
+	# Pure black void, with a faint deep-red grain baked in once per change.
 	for c in _mature:
-		canvas.draw_rect(_cell_rect(c), Color.BLACK)
+		var r := _cell_rect(c)
+		canvas.draw_rect(r, Color.BLACK)
+		if (c.x * 7 + c.y * 13) % 5 == 0:
+			canvas.draw_rect(Rect2(r.position + Vector2((c.x * 3) % 6, (c.y * 5) % 6), Vector2(1, 1)), Color(0.25, 0.0, 0.05))
 
 
 func _cell_rect(c: Vector2i) -> Rect2:

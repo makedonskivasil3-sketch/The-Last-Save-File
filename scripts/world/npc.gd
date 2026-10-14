@@ -48,6 +48,9 @@ func delete() -> bool:
 		return false
 	state = State.DELETING
 	_delete_t = 0.0
+	var fx := get_tree().get_first_node_in_group("screen_fx") as ScreenFx
+	if fx:
+		fx.deletion_hit()
 	return true
 
 
@@ -90,12 +93,7 @@ func _draw() -> void:
 		State.NORMAL, State.RESTRICTED:
 			_draw_body(state == State.RESTRICTED)
 		State.DELETING:
-			# Flickers between them and nothing, sliced into scanlines.
-			if randf() < 1.0 - _delete_t / 1.6:
-				_draw_body(true)
-			for i in 6:
-				if randf() < 0.5:
-					draw_rect(Rect2(-6, -10 + i * 3, 12, 1), Color(NULL_COL, 0.8))
+			_draw_deletion(_delete_t)
 		State.DELETED:
 			_draw_outline()
 
@@ -117,7 +115,52 @@ func _draw_body(desaturated: bool) -> void:
 	draw_rect(Rect2(Vector2(1, 0) + eye, Vector2(1, 1)), Color(0.1, 0.05, 0.05))
 
 
+## Deletion, in three beats: the body convulses in split colour, bursts into
+## a spray of pixels, and the spray burns out leaving static behind.
+func _draw_deletion(t: float) -> void:
+	var glitch := Settings.glitch_intensity
+	if t < 0.45:
+		# Convulsing: RGB-split copies jump around the real body.
+		var k := (1.0 + t * 6.0) * glitch
+		draw_set_transform(Vector2(randf_range(-2, 2) * k, 0))
+		_draw_body(randf() < 0.5)
+		draw_set_transform(Vector2(-2 - randf() * 2.0 * k, 0))
+		_draw_tinted(Color(1.0, 0.1, 0.4, 0.6))
+		draw_set_transform(Vector2(2 + randf() * 2.0 * k, 0))
+		_draw_tinted(Color(0.3, 0.9, 1.0, 0.6))
+		draw_set_transform(Vector2.ZERO)
+		for i in 6:
+			if randf() < 0.6:
+				draw_rect(Rect2(-8 - randf() * 4.0, -12 + i * 3, 16 + randf() * 8.0, 1), Color(NULL_COL, 0.9))
+		return
+	# Colour explosion: pixels from the body fly outward and fall.
+	var s := t - 0.45
+	var fade := 1.0 - clampf(s / 1.1, 0.0, 1.0)
+	var palette := [dress_color, skin_color, hair_color, Color(1, 0.15, 0.55), Color(0.4, 0.95, 1.0), Color.WHITE]
+	for i in 48:
+		var h := fmod(absf(sin(float(i) * 12.9898 + npc_id.length()) * 43758.5453), 1.0)
+		var h2 := fmod(absf(sin(float(i) * 78.233) * 12345.678), 1.0)
+		var dir := Vector2.from_angle(h * TAU) * (0.3 + h2)
+		var p := Vector2(-4 + (i % 8), -12 + floori(i / 8.0) * 3) + dir * 42.0 * s + Vector2(0, 30.0 * s * s)
+		draw_rect(Rect2(p, Vector2.ONE * (2 if i % 3 == 0 else 1)), Color(palette[i % palette.size()], fade))
+	_draw_residue(1.0 - fade * 0.5)
+
+
+func _draw_tinted(c: Color) -> void:
+	var h := height
+	draw_rect(Rect2(-4, 6 - 16 * h, 8, 16 * h + 1), c)
+
+
+## Static that keeps crawling where someone used to be.
+func _draw_residue(strength: float) -> void:
+	for i in 3:
+		if randf() < 0.5 * strength:
+			var p := Vector2(randf_range(-6, 6), randf_range(5 - 17 * height, 6))
+			draw_rect(Rect2(p, Vector2(randf_range(1, 3), 1)), [Color(NULL_COL), Color.WHITE, Color(1, 0.15, 0.55)].pick_random())
+
+
 func _draw_outline() -> void:
+	_draw_residue(0.35)
 	var c := Color(NULL_COL, 0.35)
 	draw_rect(Rect2(-4, 5 - 17 * height, 8, 17 * height), c, false, 1.0)
 	draw_string(ThemeDB.fallback_font, Vector2(-34, 16), "%s.npc = null" % npc_id, HORIZONTAL_ALIGNMENT_CENTER, 68, 7, c)

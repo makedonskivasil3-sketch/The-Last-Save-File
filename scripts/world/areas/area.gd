@@ -61,7 +61,7 @@ func start_erasure(extra_seeds: Array[Vector2] = []) -> void:
 		erasure.seed_at(p)
 	for p in extra_seeds:
 		erasure.seed_at(p)
-	world.fx.spike(0.9, 1.0)
+	world.fx.eraser_starts()
 
 
 # --- helpers for subclasses -------------------------------------------------

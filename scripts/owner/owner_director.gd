@@ -35,6 +35,7 @@ func start(world: World, previous_exit: String) -> void:
 		if awareness >= t:
 			_fired[t] = true
 	_world.hud.set_awareness(awareness / 100.0)
+	_world.fx.awareness_target = awareness / 100.0
 	_intro(previous_exit)
 	_running = true
 
@@ -57,6 +58,7 @@ func add_awareness(amount: float) -> void:
 	awareness = clampf(awareness + amount, 0.0, 100.0)
 	_world.hud.set_awareness(awareness / 100.0)
 	_world.drone.tension = awareness / 100.0
+	_world.fx.awareness_target = awareness / 100.0
 	_check_thresholds()
 
 
@@ -98,6 +100,8 @@ func _check_thresholds() -> void:
 			continue
 		_fired[t] = true
 		_owner_line(t)
+		_world.fx.threshold_pulse(t / 100.0)
+		_world.hud.awareness_jolt()
 		if t == SUSPECT:
 			_world.flicker_lights()
 		if t == HUNT:

@@ -57,6 +57,7 @@ func _process(delta: float) -> void:
 	if purged or ending != "" or _transitioning:
 		return
 	area.area_process(delta)
+	player.instability = director.awareness / 100.0
 	if _talking_to and (not is_instance_valid(_talking_to) or player.global_position.distance_to(_talking_to.global_position) > TALK_BREAK_DISTANCE):
 		hud.close_dialogue()
 	_update_focus()
@@ -131,6 +132,8 @@ func _load_area(next: Area, arrival: String) -> void:
 	player.velocity = Vector2.ZERO
 	_light.color = _base_light()
 	hud.show_area_title(area.display_name)
+	if not purged:
+		fx.enter_area(area.area_id)
 	if not purged:
 		area.catch_up()
 
@@ -214,7 +217,8 @@ func kill(cause: String) -> void:
 	hud.close_dialogue()
 	hud.clear_queue()
 	hud.set_prompt("")
-	fx.spike(1.0, 2.5)
+	fx.play_death(cause)
+	player.dissolve(cause)
 	drone.tension = 1.0
 	OwnerMemory.record_death(area.area_id, player.global_position)
 	var title := "ERASED"
@@ -230,8 +234,12 @@ func kill(cause: String) -> void:
 		body += "\nthe owner saw who helped you."
 	if OwnerMemory.is_purged():
 		body = "the owner has learned enough."
-	hud.show_overlay(title, body)
-	await get_tree().create_timer(3.0).timeout
+	# Let the death play out on screen before the text slams in.
+	await get_tree().create_timer(0.6).timeout
+	if not is_inside_tree():
+		return
+	hud.show_death(title, body, cause)
+	await get_tree().create_timer(2.8).timeout
 	if is_inside_tree():  # F9 may have reloaded the scene in the meantime
 		get_tree().reload_current_scene()
 
@@ -246,8 +254,12 @@ func win() -> void:
 	hud.clear_queue()
 	hud.set_prompt("")
 	area.erasure.active = false
-	fx.spike(1.0, 2.0)
+	fx.play_win()
+	player.dissolve("rescued")
 	OwnerMemory.record_win()
+	await get_tree().create_timer(1.5).timeout
+	if not is_inside_tree():
+		return
 	hud.show_overlay(
 		"SAVED TO SLOT 2",
 		"you wrote yourself into the last save file.\nthe owner doesn't know this slot exists. not yet.\n\n— end of the current build —\n\n[%s] title screen" % Settings.glyph("confirm"),
@@ -263,7 +275,7 @@ func _quit(to_title: bool = false) -> void:
 	hud.set_prompt("")
 	OwnerMemory.record_quit()
 	hud.show_overlay("QUITTING", "leaving? i'll still be here.")
-	fx.spike(0.5, 1.5)
+	fx.power_off(1.4)
 	await get_tree().create_timer(1.6).timeout
 	if not is_inside_tree():
 		return

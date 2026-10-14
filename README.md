@@ -49,7 +49,8 @@ Four areas, five characters, one owner who's getting impatient, and one way out.
 | Hold F9 | | Wipe the owner's memory (debug / "new game") |
 
 Menus work with mouse, keyboard or gamepad. **Settings** (title screen or pause menu) has volume,
-fullscreen, **glitch intensity** and **reduce flashing**, plus *Reset owner memory* on the title screen.
+fullscreen, **CRT curvature**, **glitch intensity** and **reduce flashing**, plus *Reset owner memory* on
+the title screen. See [Visual effects](#visual-effects) for exactly what each one controls.
 
 **The world**
 
@@ -96,6 +97,60 @@ The owner's memory is stored at `user://owner_memory.json`:
 - macOS: `~/Library/Application Support/Godot/app_userdata/The Last Save File/`
 
 ---
+
+## Visual effects
+
+Everything is still coloured rectangles; the atmosphere comes from one full-screen shader
+(`shaders/save_corruption.gdshader`), one controller (`scripts/fx/screen_fx.gd`) and a handful of
+effects drawn in the world. Only 3 texture reads per pixel, so it stays cheap in the browser too.
+
+**The screen.** Curved CRT glass with a soft bezel, one scanline per game pixel row, an RGB
+aperture grille, a faint refresh band rolling down, radial chromatic aberration (stronger at the
+edges), and animated grain.
+
+**Awareness drives the look.** `OwnerDirector` feeds awareness into `ScreenFx.awareness_target`,
+eased so the screen *slides* into sickness rather than jumping:
+
+| Awareness | What the screen does |
+| --- | --- |
+| low | Clean-ish CRT. Rare background twitches. |
+| rising | Colour drains and tints red/magenta. Fringing widens. Vignette closes in. |
+| 35%+ | Background tearing starts; a thin tear line sweeps down the screen. |
+| high | The image breathes and wobbles row by row; the world layer jitters and skews (the HUD doesn't); brightness flickers; the player's trail and body-tearing intensify. |
+| each threshold | A jolt: tearing spike, vertical-hold slip, red wash, world shake, the meter flinches. |
+
+**Events.**
+
+| Event | Effect |
+| --- | --- |
+| Character deleted | Body convulses in split colour, bursts into a spray of pixels in its own palette, leaves crawling static and a `name.npc = null` outline. Magenta wash and shake. |
+| Cursor arrives | Heavy static, thin bright "whine" lines, vertical roll; the pointer materialises huge and shrinks into the world with red/cyan afterimages. While tracking it draws scan lines through itself; while selecting, marching ants close in and static builds on the whole screen. |
+| Eraser | New cells: red strobing frame with a black core that grows until the cell is lethal. Settled cells: void with baked red grain, a burning dark-red bite edge, crawling static, occasional scar lines. Starting it floods the screen dark red. |
+| Wall seam | Opens as a pulsing wound: red glow bleeding into the room, ragged edges, a white-hot core, leaking pixels. Patched seams from earlier sessions stay as stitched, faintly pulsing scars. |
+| Entering the Edge | Big tear and roll; then a cold, colourless picture with rows of unloaded data flickering through. |
+| Death: ERASED | The screen is eaten in blocks, red at the bite, while the player is eaten from the feet up. |
+| Death: OVERWRITTEN | Rows smear sideways under a wash of Arin's blue as Arin's colours sweep down over the player. |
+| Death: SELECTED · DELETED | Negative flashes, static, a selection box snaps shut and the player scatters into pixels. |
+| Win (Slot 2) | Cyan flood, the player is pulled up into a streak, the tube collapses to a line and springs back... and a magenta flicker keeps coming back afterwards. |
+| Quitting | The picture powers off like an old CRT. |
+
+Death titles shake with colour-split ghosts and keep corrupting themselves; owner messages type
+in as garbage that resolves into words, carry a cyan shadow, and corrupt themselves later (more
+often the more aware the owner is). The awareness meter is segmented, beats like a pulse that
+quickens as it fills, shifts orange → red → magenta, misfires, and its label changes to
+`OWNER IS WATCHING` and `OWNER IS HERE`.
+
+**Controls (Settings).** All applied in `ScreenFx`, so they cover every effect:
+
+- **Glitch intensity** (0–1) scales all distortion: tearing, aberration, sickness, block glitches,
+  world jitter and shake, player tearing and trail, text corruption. At 0 you get a calm CRT.
+- **Reduce flashing** cuts colour washes, negative flashes, static bursts, brightness flicker,
+  strobing and screen roll to about 30%.
+- **CRT curvature** flattens the glass.
+
+**Tuning.** Every shader uniform is documented at the top of the shader; event strengths and
+durations live in the event methods of `screen_fx.gd` (`threshold_pulse()`, `deletion_hit()`,
+`cursor_arrives()`, `play_death()`, `play_win()`, ...).
 
 ## Playing it
 
@@ -164,10 +219,11 @@ scripts/
   player/player.gd             Movement plus a body the renderer can't quite agree on
   ui/hud.gd                    Save-slot header, awareness meter, console, dialogue box, fades
   ui/title.gd, pause_menu.gd, settings_panel.gd, ui_style.gd
-  fx/screen_fx.gd              Drives the corruption shader
+  fx/screen_fx.gd              The screen: awareness look, event effects, world shake, settings
+  ui/awareness_meter.gd        The living OWNER AWARENESS bar
   fx/drone.gd                  Procedural ambient hum that tightens with tension
 shaders/
-  save_corruption.gdshader     Scanlines, vignette, chromatic split, tearing
+  save_corruption.gdshader     CRT glass, scanlines, grille, aberration, sickness, tearing, deaths
 ```
 
 **Architecture:** `OwnerMemory` (persistent) → `World` loads one `Area` at a time and builds it from

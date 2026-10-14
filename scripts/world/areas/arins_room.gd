@@ -96,6 +96,13 @@ func build() -> void:
 	if purged:
 		_build_purged_extras()
 		return
+	# Seams the owner patched in earlier sessions stay visible as scars.
+	for i in OwnerMemory.patched_seams:
+		if i >= 0 and i < SEAM_SPOTS.size():
+			var scar := Seam.new()
+			scar.sealed = true
+			add_child(scar)
+			scar.setup(i, SEAM_SPOTS[i])
 	for i in SEAM_SPOTS.size():
 		if i not in OwnerMemory.patched_seams:
 			seam = Seam.new()

@@ -11,6 +11,8 @@ var volume := 0.8
 var fullscreen := false
 ## 0..1 multiplier for screen tearing, chromatic split and grain.
 var glitch_intensity := 1.0
+## Curved CRT glass. Off = flat screen (some players find curvature disorienting).
+var crt_curvature := true
 ## Softens flashes: no strobing lights, gentler spikes, slower blinking.
 var reduce_flashing := false
 ## Whether the last input came from a gamepad (for button prompts).
@@ -70,6 +72,7 @@ func save() -> void:
 	cfg.set_value("video", "fullscreen", fullscreen)
 	cfg.set_value("accessibility", "glitch_intensity", glitch_intensity)
 	cfg.set_value("accessibility", "reduce_flashing", reduce_flashing)
+	cfg.set_value("video", "crt_curvature", crt_curvature)
 	cfg.save(PATH)
 
 
@@ -81,3 +84,4 @@ func _load() -> void:
 	fullscreen = bool(cfg.get_value("video", "fullscreen", fullscreen))
 	glitch_intensity = clampf(float(cfg.get_value("accessibility", "glitch_intensity", glitch_intensity)), 0.0, 1.0)
 	reduce_flashing = bool(cfg.get_value("accessibility", "reduce_flashing", reduce_flashing))
+	crt_curvature = bool(cfg.get_value("video", "crt_curvature", crt_curvature))
