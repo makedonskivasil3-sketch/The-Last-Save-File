@@ -41,12 +41,15 @@ One room. One intruder. One owner who's getting impatient.
 
 **Controls**
 
-| Key | Action |
-| --- | --- |
-| WASD / Arrows | Move |
-| E / Space | Interact (read, talk, try to save) |
-| Esc | Quit (the owner counts this) |
-| Hold F9 | Wipe the owner's memory (debug / "new game") |
+| Keyboard | Gamepad | Action |
+| --- | --- | --- |
+| WASD / Arrows | Left stick / D-pad | Move |
+| E / Space | A | Interact (read, talk, try to save) |
+| Esc | Start | Pause menu (Resume · Settings · Quit). Quitting counts, and the menu warns you first. |
+| Hold F9 | | Wipe the owner's memory (debug / "new game") |
+
+Menus work with mouse, keyboard or gamepad. **Settings** (title screen or pause menu) has volume,
+fullscreen, **glitch intensity** and **reduce flashing**, plus *Reset owner memory* on the title screen.
 
 **What happens**
 
@@ -70,8 +73,8 @@ One room. One intruder. One owner who's getting impatient.
 | You... | The owner... |
 | --- | --- |
 | Die | Remembers where. Your ghost marker stays on the floor, and the eraser seeds from there. |
-| Quit (Esc or closing the window) | Notices. *"you closed the game. i didn't."* |
-| Kill the process | Treats it as running away and counts it as a quit. **This includes the Stop button in the Godot editor**: quit with Esc instead, or hold F9 to reset. |
+| Quit (from the pause menu, or closing the window) | Notices. *"you closed the game. i didn't."* |
+| Kill the process | Treats it as running away and counts it as a quit. **This includes the Stop button in the Godot editor**: quit from the pause menu instead, or hold F9 to reset. |
 | Escape through a seam | Patches that seam. The next one is somewhere else. Five in total. |
 | Anything | Starts the next session more aware, with the door deleted, Mira restricted or removed, a darker room, and a faster eraser. |
 
@@ -86,11 +89,31 @@ The owner's memory is stored at `user://owner_memory.json`:
 
 ---
 
-## Running it
+## Playing it
+
+### Just play (no Godot needed)
+
+Every push to `main` builds the game automatically (see `.github/workflows/build.yml`):
+
+1. Open the repo's **Actions** tab, then the latest green **Build game** run.
+2. Under **Artifacts**, download **TheLastSaveFile-windows** (or `-linux` / `-web`).
+3. Unzip and run `TheLastSaveFile.exe`. Windows SmartScreen may warn because the game isn't
+   signed: click **More info → Run anyway**.
+
+Tagging a version (`git tag v0.2.0 && git push --tags`) also publishes the zips on a **Release** page.
+
+**Optional: play in the browser.** Under *Settings → Pages* set *Source* to **GitHub Actions**, then
+under *Settings → Secrets and variables → Actions → Variables* add `ENABLE_PAGES` = `true`. The
+next push deploys the web build to `https://<user>.github.io/The-Last-Save-File/`.
+
+### From the Godot editor
 
 1. Install [Godot 4.3+](https://godotengine.org/download) (standard build, no .NET needed).
 2. Open Godot, choose **Import**, and select this folder's `project.godot`.
 3. Press **F5**.
+
+Building locally: install the 4.3 export templates (*Editor → Manage Export Templates*), then
+*Project → Export…* and use one of the presets (Windows Desktop, Linux, Web).
 
 From the command line:
 
@@ -106,11 +129,19 @@ and the CRT/corruption look is a single screen shader.
 
 ```
 project.godot                  Engine config (640x360 viewport, GL Compatibility renderer)
+export_presets.cfg             Windows / Linux / Web export presets
+.github/workflows/build.yml    CI: exports all three on every push, releases on tags
 scenes/
+  title.tscn                   Title screen (main scene)
   main.tscn                    The room: player, owner director, HUD, screen FX, drone
   player.tscn                  The intruder
 scripts/
   autoload/owner_memory.gd     What the owner knows. Persists outside the save. Registers input.
+  autoload/settings.gd         Player preferences (user://settings.cfg), button glyphs
+  ui/title.gd                  Title screen with the save slot's current state
+  ui/pause_menu.gd             Pause, settings, and the quit warning
+  ui/settings_panel.gd         Volume, fullscreen, glitch intensity, reduce flashing
+  ui/ui_style.gd               Shared menu theme
   owner/owner_director.gd      Awareness, thresholds, and the owner's voice
   owner/erasure.gd             The eraser: a grid of overwritten cells that hunts you
   world/room.gd                Builds the room from OwnerMemory, handles death/quit/escape

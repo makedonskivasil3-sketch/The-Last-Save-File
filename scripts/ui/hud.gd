@@ -92,7 +92,7 @@ func set_awareness(value: float) -> void:
 
 
 func set_prompt(text: String) -> void:
-	_prompt.text = "[E] " + text if text != "" else ""
+	_prompt.text = "[%s] %s" % [Settings.glyph("interact"), text] if text != "" else ""
 
 
 func set_hint(text: String) -> void:
@@ -114,7 +114,8 @@ func _process(delta: float) -> void:
 	_playtime += delta
 	_update_slot()
 	_awareness_fill.size.x = lerpf(_awareness_fill.size.x, 160.0 * _awareness, 1.0 - exp(-6.0 * delta))
-	_awareness_fill.color = OWNER_COLOR if _awareness < 0.75 or fmod(_playtime, 0.5) < 0.25 else Color.WHITE
+	var blink := _awareness >= 0.75 and fmod(_playtime, 0.5) >= 0.25 and not Settings.reduce_flashing
+	_awareness_fill.color = Color.WHITE if blink else OWNER_COLOR
 	_update_typing(delta)
 
 

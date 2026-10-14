@@ -1,0 +1,107 @@
+name: Build game
+
+# Builds Windows, Linux and Web versions on every push to main (download them
+# from the run's "Artifacts"), and attaches them to a GitHub Release when you
+# push a tag like v0.2.0.
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: "4.3"
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Godot and export templates
+        id: cache-godot
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/godot
+            ~/.local/share/godot/export_templates
+          key: godot-${{ env.GODOT_VERSION }}-stable
+
+      - name: Download Godot and export templates
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          mkdir -p ~/godot ~/.local/share/godot/export_templates
+          curl -fsSL -o /tmp/godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q /tmp/godot.zip -d ~/godot
+          mv ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 ~/godot/godot
+          curl -fsSL -o /tmp/templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -q /tmp/templates.tpz -d /tmp/tpl
+          mv /tmp/tpl/templates ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+
+      - name: Import project
+        run: ~/godot/godot --headless --path . --import
+
+      - name: Export
+        run: |
+          mkdir -p build/windows build/linux build/web
+          ~/godot/godot --headless --path . --export-release "Windows Desktop"
+          ~/godot/godot --headless --path . --export-release "Linux"
+          ~/godot/godot --headless --path . --export-release "Web"
+          test -s build/windows/TheLastSaveFile.exe
+          test -s build/linux/TheLastSaveFile.x86_64
+          test -s build/web/index.html
+
+      - name: Package
+        run: |
+          mkdir -p dist
+          (cd build/windows && zip -q -r ../../dist/TheLastSaveFile-windows.zip .)
+          (cd build/linux && chmod +x TheLastSaveFile.x86_64 && zip -q -r ../../dist/TheLastSaveFile-linux.zip .)
+          (cd build/web && zip -q -r ../../dist/TheLastSaveFile-web.zip .)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TheLastSaveFile-windows
+          path: build/windows/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TheLastSaveFile-linux
+          path: build/linux/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TheLastSaveFile-web
+          path: build/web/
+
+      - name: Upload web build for GitHub Pages
+        if: github.ref == 'refs/heads/main' && vars.ENABLE_PAGES == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web/
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+          generate_release_notes: true
+
+  # Optional: play in the browser. Turn on by setting Settings → Pages → Source to
+  # "GitHub Actions" and adding a repository variable ENABLE_PAGES = true.
+  pages:
+    needs: export
+    if: github.ref == 'refs/heads/main' && vars.ENABLE_PAGES == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+permissions:
+  contents: write

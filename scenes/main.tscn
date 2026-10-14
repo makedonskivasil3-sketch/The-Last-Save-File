@@ -12,6 +12,7 @@
 shader = ExtResource("6_shader")
 shader_parameter/glitch = 0.0
 shader_parameter/vignette = 1.1
+shader_parameter/grain = 1.0
 
 [node name="Room" type="Node2D"]
 script = ExtResource("1_room")

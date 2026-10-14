@@ -156,21 +156,31 @@ func _close_session(how: String) -> void:
 
 
 func _register_input() -> void:
-	_add_action("move_left", [KEY_A, KEY_LEFT])
-	_add_action("move_right", [KEY_D, KEY_RIGHT])
-	_add_action("move_up", [KEY_W, KEY_UP])
-	_add_action("move_down", [KEY_S, KEY_DOWN])
-	_add_action("interact", [KEY_E, KEY_SPACE])
-	_add_action("confirm", [KEY_ENTER, KEY_KP_ENTER])
-	_add_action("quit_game", [KEY_ESCAPE])
-	_add_action("wipe_memory", [KEY_F9])
+	# Keyboard keys are physical, so WASD works on QWERTZ/AZERTY layouts too.
+	_add_action("move_left", [KEY_A, KEY_LEFT], [JOY_BUTTON_DPAD_LEFT], JOY_AXIS_LEFT_X, -1.0)
+	_add_action("move_right", [KEY_D, KEY_RIGHT], [JOY_BUTTON_DPAD_RIGHT], JOY_AXIS_LEFT_X, 1.0)
+	_add_action("move_up", [KEY_W, KEY_UP], [JOY_BUTTON_DPAD_UP], JOY_AXIS_LEFT_Y, -1.0)
+	_add_action("move_down", [KEY_S, KEY_DOWN], [JOY_BUTTON_DPAD_DOWN], JOY_AXIS_LEFT_Y, 1.0)
+	_add_action("interact", [KEY_E, KEY_SPACE], [JOY_BUTTON_A])
+	_add_action("confirm", [KEY_ENTER, KEY_KP_ENTER], [JOY_BUTTON_A])
+	_add_action("pause", [KEY_ESCAPE], [JOY_BUTTON_START])
+	_add_action("wipe_memory", [KEY_F9], [])
 
 
-func _add_action(action: StringName, keys: Array) -> void:
+func _add_action(action: StringName, keys: Array, buttons: Array, axis: JoyAxis = JOY_AXIS_INVALID, direction := 0.0) -> void:
 	if InputMap.has_action(action):
 		return
-	InputMap.add_action(action)
+	InputMap.add_action(action, 0.3)
 	for key: Key in keys:
 		var event := InputEventKey.new()
 		event.physical_keycode = key
 		InputMap.action_add_event(action, event)
+	for button: JoyButton in buttons:
+		var pad := InputEventJoypadButton.new()
+		pad.button_index = button
+		InputMap.action_add_event(action, pad)
+	if axis != JOY_AXIS_INVALID:
+		var motion := InputEventJoypadMotion.new()
+		motion.axis = axis
+		motion.axis_value = direction
+		InputMap.action_add_event(action, motion)

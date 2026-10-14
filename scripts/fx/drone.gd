@@ -86,3 +86,5 @@ func _exit_tree() -> void:
 	# Stop explicitly so the audio server releases its playback on quit.
 	stop()
 	_crackle.stop()
+	stream = null
+	_crackle.stream = null

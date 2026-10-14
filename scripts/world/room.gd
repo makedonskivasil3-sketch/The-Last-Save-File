@@ -25,6 +25,7 @@ const SEAM_SPOTS: Array[Rect2] = [
 const DOOR_TRIGGER_DISTANCE := 70.0
 const INTERACT_DISTANCE := 22.0
 const WIPE_HOLD_TIME := 1.5
+const TITLE_SCENE := "res://scenes/title.tscn"
 
 const FLOOR := Color("2a2320")
 const FLOOR_LINE := Color("231d1a")
@@ -48,6 +49,7 @@ var _purged := false
 var _wipe_hold := 0.0
 var _light: CanvasModulate
 var _base_light := Color(1, 1, 1)
+var _pause_menu: PauseMenu
 
 @onready var player: Player = $Player
 @onready var director: OwnerDirector = $OwnerDirector
@@ -58,6 +60,9 @@ var _base_light := Color(1, 1, 1)
 
 func _ready() -> void:
 	player.z_index = 10
+	_pause_menu = PauseMenu.new()
+	_pause_menu.quit_requested.connect(_quit)
+	add_child(_pause_menu)
 	_build_walls()
 	_light = CanvasModulate.new()
 	add_child(_light)
@@ -77,25 +82,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_handle_wipe(delta)
-	if _purged:
-		if Input.is_action_just_pressed("quit_game"):
-			get_tree().quit()
-		return
-
-	match _ending:
-		"":
-			pass
-		"escape":
-			if Input.is_action_just_pressed("confirm"):
-				get_tree().reload_current_scene()
-			elif Input.is_action_just_pressed("quit_game"):
-				get_tree().quit()
-			return
-		_:
-			return
-
-	if Input.is_action_just_pressed("quit_game"):
-		_quit()
+	if _purged or _ending != "":
 		return
 
 	if door.state == Door.State.OPEN and player.global_position.distance_to(door.global_position) < DOOR_TRIGGER_DISTANCE:
@@ -105,6 +92,26 @@ func _process(delta: float) -> void:
 	_update_focus()
 	if _focused and Input.is_action_just_pressed("interact"):
 		_interact(_focused)
+
+
+# Menu keys go through _unhandled_input so the pause menu can consume the same
+# press that closes it (otherwise it would reopen in the same frame).
+func _unhandled_input(event: InputEvent) -> void:
+	if _purged:
+		# Nothing left for the owner to count: leaving is free.
+		if event.is_action_pressed("pause"):
+			get_tree().change_scene_to_file(TITLE_SCENE)
+		return
+	match _ending:
+		"":
+			if event.is_action_pressed("pause"):
+				get_viewport().set_input_as_handled()
+				_pause_menu.open()
+		"escape":
+			if event.is_action_pressed("confirm"):
+				get_tree().reload_current_scene()
+			elif event.is_action_pressed("pause"):
+				get_tree().change_scene_to_file(TITLE_SCENE)
 
 
 func seams_remaining() -> int:
@@ -132,6 +139,10 @@ func start_erasure() -> void:
 
 func flicker_lights() -> void:
 	var tw := create_tween()
+	if Settings.reduce_flashing:
+		tw.tween_property(_light, "color", _base_light.darkened(0.3), 0.4)
+		tw.tween_property(_light, "color", _base_light, 0.6)
+		return
 	for i in 3:
 		tw.tween_property(_light, "color", Color(0.25, 0.2, 0.25), 0.05)
 		tw.tween_property(_light, "color", _base_light, 0.08)
@@ -283,12 +294,12 @@ func _on_escape(s: Seam) -> void:
 	OwnerMemory.record_escape(s.id)
 	hud.show_overlay(
 		"YOU SLIPPED THROUGH",
-		"a gap the owner hasn't written yet.\n\n— end of prototype —\n\n[ENTER] load the save again      [ESC] quit",
+		"a gap the owner hasn't written yet.\n\n— end of prototype —\n\n[%s] load the save again      [%s] title screen" % [Settings.glyph("confirm"), Settings.glyph("pause")],
 		Color("8cf2ff")
 	)
 
 
-func _quit() -> void:
+func _quit(to_title: bool = false) -> void:
 	_ending = "quit"
 	player.frozen = true
 	director.stop()
@@ -298,7 +309,11 @@ func _quit() -> void:
 	hud.show_overlay("QUITTING", "leaving? i'll still be here.")
 	fx.spike(0.5, 1.5)
 	await get_tree().create_timer(1.6).timeout
-	if is_inside_tree():
+	if not is_inside_tree():
+		return
+	if to_title:
+		get_tree().change_scene_to_file(TITLE_SCENE)
+	else:
 		get_tree().quit()
 
 
@@ -338,7 +353,7 @@ func _build_purged() -> void:
 	hud.say("SCAN COMPLETE: 0 UNKNOWN PROCESSES", "system")
 	hud.say("there. clean.", "owner")
 	hud.say("welcome back, arin.", "owner")
-	hud.set_hint("hold F9 to restore the intruder")
+	hud.set_hint("hold F9 to restore the intruder  ·  %s title" % Settings.glyph("pause"))
 	drone.volume_db = -30.0
 
 
@@ -354,7 +369,7 @@ func _handle_wipe(delta: float) -> void:
 			get_tree().reload_current_scene()
 	elif _wipe_hold > 0.0:
 		_wipe_hold = 0.0
-		hud.set_hint("hold F9 to restore the intruder" if _purged else "")
+		hud.set_hint("hold F9 to restore the intruder  ·  %s title" % Settings.glyph("pause") if _purged else "")
 
 
 func _draw() -> void:

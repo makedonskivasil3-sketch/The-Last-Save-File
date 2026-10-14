@@ -1,0 +1,37 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/title.gd" id="1_title"]
+[ext_resource type="Script" path="res://scripts/fx/screen_fx.gd" id="2_fx"]
+[ext_resource type="Shader" path="res://shaders/save_corruption.gdshader" id="3_shader"]
+[ext_resource type="Script" path="res://scripts/fx/drone.gd" id="4_drone"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_fx"]
+shader = ExtResource("3_shader")
+shader_parameter/glitch = 0.0
+shader_parameter/vignette = 1.1
+shader_parameter/grain = 1.0
+
+[node name="Title" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_title")
+
+[node name="ScreenFX" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="Effect" type="ColorRect" parent="ScreenFX"]
+material = SubResource("ShaderMaterial_fx")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_fx")
+
+[node name="Drone" type="AudioStreamPlayer" parent="."]
+script = ExtResource("4_drone")

@@ -153,7 +153,7 @@ func _check_target() -> void:
 func _draw() -> void:
 	# Young cells: a flickering outline, the only warning you get.
 	for c: Vector2i in _young:
-		var blink := 0.5 + 0.5 * sin(_t * 30.0 + c.x)
+		var blink := 0.5 + 0.5 * sin(_t * 30.0 * Settings.flash_scale() + c.x)
 		draw_rect(_cell_rect(c).grow(-1), Color(0.88, 0.25, 0.2, 0.25 + 0.5 * blink), false, 1.0)
 	# A little static crawling over the settled cells.
 	if _mature.is_empty():

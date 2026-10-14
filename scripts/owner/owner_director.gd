@@ -121,7 +121,7 @@ func _intro(previous_exit: String) -> void:
 	if OwnerMemory.purge > 0:
 		hud.say("OWNER PURGE PROGRESS %d/%d" % [OwnerMemory.purge, OwnerMemory.MAX_PURGE], "system")
 	if OwnerMemory.sessions == 1:
-		hud.say("WASD move · E interact · ESC quit", "system")
+		hud.say("%s interact  ·  %s pause" % [Settings.glyph("interact"), Settings.glyph("pause")], "system")
 
 
 func _say(text: String, kind: String = "owner") -> void:
