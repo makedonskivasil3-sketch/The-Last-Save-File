@@ -22,8 +22,9 @@ func _init() -> void:
 	area_id = "archive"
 	display_name = "THE ARCHIVE · CUT CONTENT"
 	bounds = Rect2(96, 36, 448, 256)
-	# The owner barely looks in here.
-	awareness_rate = 0.3
+	# The owner can't see in here: awareness slowly cools (never below the
+	# last threshold reached). The one place to catch your breath.
+	awareness_rate = -0.6
 	tint = Color(0.9, 0.88, 1.0)
 	entries = {"west": Vector2(118, 180)}
 

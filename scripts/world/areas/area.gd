@@ -12,6 +12,7 @@ var area_id := ""
 var display_name := ""
 var bounds := Rect2(96, 36, 448, 256)
 ## Multiplies how fast the owner's awareness rises while you're here.
+## Negative: awareness cools here instead (see OwnerDirector.floor_level()).
 var awareness_rate := 1.0
 ## CanvasModulate tint for this area (darkened further by purge).
 var tint := Color(1, 1, 1)
@@ -55,8 +56,9 @@ func start_erasure(extra_seeds: Array[Vector2] = []) -> void:
 	if erasure == null or erasure.active:
 		return
 	erasure.active = true
-	erasure.interval = maxf(0.12, 0.45 - 0.06 * OwnerMemory.purge)
-	erasure.burst = 1 + (OwnerMemory.purge >> 1)
+	# Faster with every purge, but always something you can outrun.
+	erasure.interval = maxf(0.2, 0.45 - 0.04 * OwnerMemory.purge)
+	erasure.burst = 1 + OwnerMemory.purge / 3
 	for p in OwnerMemory.deaths_in(area_id):
 		erasure.seed_at(p)
 	for p in extra_seeds:

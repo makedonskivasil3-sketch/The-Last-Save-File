@@ -15,8 +15,15 @@ const LABELS := {
 	Vector2(120, 130): "TODO: art",
 }
 const SLOT_POS := Vector2(580, 64)
+## The cursor waits beside Slot 2: you have to draw it away before you can
+## write yourself in.
+const CURSOR_START := Vector2(540, 84)
+## However angry the owner gets, the cursor here stays slower than you
+## (90 px/s) by enough to win a sprint back to the slot.
+const CURSOR_MAX_SPEED := 62.0
 
 var cursor: OwnerCursor
+var slot: SlotTwo
 var _t := 0.0
 
 
@@ -36,15 +43,15 @@ func build() -> void:
 		add_solid(m)
 	add_exit(Rect2(SOUTH_GAP.x, bounds.end.y, SOUTH_GAP.y - SOUTH_GAP.x, 8), "square", "north")
 
-	var slot := SlotTwo.new()
+	slot = SlotTwo.new()
 	slot.position = SLOT_POS
 	slot.reached.connect(world.win)
 	add_child(slot)
 
 	cursor = OwnerCursor.new()
 	cursor.bounds = bounds
-	cursor.position = Vector2(60, 50)
-	cursor.speed = 42.0 + OwnerMemory.purge * 8.0
+	cursor.position = CURSOR_START
+	cursor.speed = minf(40.0 + OwnerMemory.purge * 3.0, CURSOR_MAX_SPEED)
 	cursor.player = world.player
 	cursor.is_hidden = world.is_player_hidden
 	cursor.selected_player.connect(func() -> void: world.kill("selected"))
@@ -54,15 +61,17 @@ func build() -> void:
 
 func catch_up() -> void:
 	# The owner is already unloading this place under you.
+	# The owner doesn't know Slot 2 exists, so the eraser never touches it.
+	erasure.protect(Rect2(SLOT_POS - Vector2(14, 14), Vector2(28, 28)))
 	start_erasure([Vector2(40, 50), Vector2(600, 280)])
 	erasure.interval = maxf(0.25, 0.75 - 0.07 * OwnerMemory.purge)
 	if world.director.has_fired(OwnerDirector.PURGE):
-		cursor.speed *= 1.3
+		cursor.speed = minf(cursor.speed * 1.15, CURSOR_MAX_SPEED)
 
 
 func on_owner_event(threshold: float) -> void:
 	if threshold == OwnerDirector.PURGE:
-		cursor.speed *= 1.3
+		cursor.speed = minf(cursor.speed * 1.15, CURSOR_MAX_SPEED)
 		erasure.interval *= 0.6
 
 

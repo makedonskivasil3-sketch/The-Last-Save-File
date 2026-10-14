@@ -77,22 +77,24 @@ shown once ever; turn *Tutorial tips* off to skip them, or back on to see them a
 
 | Area | What's there |
 | --- | --- |
-| **Arin's Room** | Where you wake up. The owner watches it closely, so awareness rises fast. The door locks; Mira is deleted for talking to you. A **seam** tears open in the wall once the owner starts rewriting the room: that's your way out. |
-| **Ashvale · Village Square** | The owner's hub. **Arin** (the owner's character, driven by the owner) patrols around the well with a view cone: if Arin sees you, awareness climbs fast, and if Arin walks into you, you're overwritten. **Wren**, a child, hides you while you stand next to her. **Tobben** the shopkeeper reports anything you say to him. A notice board, Arin's locked house, and a road north that isn't loaded. |
-| **The Archive · Cut Content** | East of the square. Barely watched. **The Archivist** was cut before the game shipped, so the owner can't delete them; they give you a pointer to Slot 2 that opens the north road. The books are live logs of *your* history: every death (where and when), every deleted character, every patched seam. |
-| **The Edge · Not Loaded** | North of the square. Missing textures, wireframe, debug labels, an eraser already running, and the owner's **cursor** reaching in. Hold still under it and you get selected and deleted. Somewhere out here is **Slot 2**: the last save file. Reach it to win. |
+| **Arin's Room** | Where you wake up. The owner watches it closely, so awareness rises fast. The door locks; Mira is deleted for talking to you. A **seam** tears open in the wall once the owner gets suspicious (40%): that's your way out, and agitating the owner on purpose opens it sooner. |
+| **Ashvale · Village Square** | The owner's hub. **Arin** (the owner's character, driven by the owner) patrols around the well with a view cone: if Arin sees you, awareness climbs fast, and if Arin walks into you, you're overwritten. **Wren**, a child, hides you while you stand next to her, and while she does the owner loses track of you (awareness cools). **Tobben** the shopkeeper reports anything you say to him. A notice board, Arin's locked house, and a road north that isn't loaded. |
+| **The Archive · Cut Content** | East of the square. The owner can't see in here: awareness slowly cools. **The Archivist** was cut before the game shipped, so the owner can't delete them; they give you a pointer to Slot 2 that opens the north road. The books are live logs of *your* history: every death (where and when), every deleted character, every patched seam. |
+| **The Edge · Not Loaded** | North of the square. Missing textures, wireframe, debug labels, an eraser already running, and the owner's **cursor** reaching in. Hold still under it and you get selected and deleted. Somewhere out here is **Slot 2**: the last save file, with the cursor waiting beside it. Stand in it for 2.4 seconds to write yourself in and win, but the cursor selects anything that holds still for 1.1, so lead it away first. The eraser never touches the slot: the owner doesn't know it exists. |
 
-**The owner's awareness** rises over time (fastest in Arin's room, slowest in the Archive), and with
-what you do: being seen by Arin, Tobben's reports, touching the save crystal. At each threshold the
+**The owner's awareness** rises over time (fastest in Arin's room), and with what you do: being
+seen by Arin (a glance under a third of a second is forgiven; a stare isn't), Tobben's reports,
+touching the save crystal. It **cools** while Wren hides you and inside the Archive, but never below
+the last threshold the owner has reacted to, so nothing the owner did gets undone. At each threshold the
 owner acts on whatever area you're in:
 
 | Awareness | The owner... |
 | --- | --- |
 | 25 | rewrites notes and notices, but only once you've walked away from them |
-| 40 | flickers the lights; Arin walks faster |
-| 50 | locks the door and tears the wall; Arin looks further |
+| 40 | flickers the lights and tears the wall of Arin's room; Arin walks faster |
+| 50 | locks the door; Arin looks further |
 | 65 | deletes whoever has been talking to you or hiding you |
-| 75 | starts the eraser where you died before, and sends in the cursor |
+| 75 | starts the eraser where you died before (and in the far corners, never on the roads out), and sends in the cursor |
 | 100 | "hold still." Everything speeds up. |
 
 **How the owner adapts (persisted across sessions)**
@@ -105,7 +107,7 @@ owner acts on whatever area you're in:
 | Quit (from the pause menu, or closing the window) | Notices. *"you closed the game. i didn't."* |
 | Kill the process | Treats it as running away and counts it as a quit. **This includes the Stop button in the Godot editor**: quit from the pause menu instead, or hold F9 to reset. |
 | Reach Slot 2 | Shows up on the title screen as a second save slot, and the owner opens the next session with *"there's a second slot. you hid in it."* |
-| Anything | Starts the next session more aware, with the door gone, Mira restricted or removed, a darker world, and a faster Arin, cursor and eraser. |
+| Anything | Starts the next session more aware (+10 per purge, never above 35), with the door gone, Mira restricted or removed, a darker world, and a faster Arin, cursor and eraser. All of them stay slower than you, so every session can still be won. |
 
 Every death or quit adds one to **purge progress**. At **6/6** the owner wins: the save is clean,
 the real Arin is back in the room, and you're gone. (Reset from the title screen's Settings, or
@@ -225,6 +227,29 @@ quickens as it fills, shifts orange → red → magenta, misfires, and its label
 **Tuning.** Every shader uniform is documented at the top of the shader; event strengths and
 durations live in the event methods of `screen_fx.gd` (`threshold_pulse()`, `deletion_hit()`,
 `cursor_arrives()`, `play_death()`, `play_win()`, ...).
+
+## Balance
+
+Tuned with a playtest bot that walks the real route with real input and collisions at every purge
+level (0 to 5), in two styles: a careful player taking the direct route, and a curious one who reads
+everything, talks to everyone and wanders the square. What it found, and what changed:
+
+| Problem the bot found | Fix |
+| --- | --- |
+| At the hunt, the square's eraser seeded *on* the north road and the path to the Archive: it walled off the exits instead of chasing you. Most deaths came from walking into a sealed exit. | Hunt seeds moved to the far corners; the eraser now chases you. |
+| Death spiral: each death added +15 starting awareness and +0.25/s. From purge 3 the square hit 100% before you could cross it once. | +10 start (capped at 35) and +0.15/s per purge. |
+| At purge 5, Arin (85 px/s) and the cursor (up to 117) were as fast as you (90) or faster: escape was impossible. | Arin 38 + 4/purge, cursors 48 + 5/purge with smaller boosts; the Edge cursor is capped at 62. |
+| A split-second glimpse by Arin cost ~17 awareness, and awareness never went down: hiding only paused it. | 0.35 s grace before Arin's sight counts (then 22/s); hiding with Wren and the Archive cool awareness, down to the last threshold reached. |
+| After the first session (no door to trigger) you waited ~27 s in the first room for the wall to open. | The seam opens at 40% instead of 50%, and a tip says the walls change when the owner gets suspicious. |
+| The finale was a 5-second sprint nothing could stop, even at 100%. | Slot 2 takes 2.4 s of standing still to write yourself in, and the cursor waits beside it: lure it away, then sprint back. The eraser can't touch the slot. |
+| Nothing told you that Arin's touch kills. | New tips: Arin, the Archive as a safe place, and how Slot 2 works. |
+
+Result: the careful bot now wins at every purge level (arriving at the Edge at 78% awareness on
+purge 0 and 100% on purge 5); the curious bot survives exploring at purge 0 and 2 and dies at purge 4,
+standing still to read while the cursor hunts. Early sessions forgive curiosity; later ones demand care.
+
+Tuning lives in `OwnerDirector` (rates, start, cooling), `VillageSquare` (Arin, sight grace, hunt
+seeds), `TheEdge` (cursor), `SlotTwo.WRITE_TIME` and `Area.start_erasure()` (eraser speed).
 
 ## Sound
 

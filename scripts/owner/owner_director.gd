@@ -15,7 +15,16 @@ const THRESHOLDS: Array[float] = [NOTICE, SUSPECT, CONTAIN, SILENCE, HUNT, PURGE
 
 ## Awareness per second before the area's multiplier.
 const BASE_RATE := 0.35
-const RATE_PER_PURGE := 0.25
+## Each death or quit makes the owner faster to notice next time...
+const RATE_PER_PURGE := 0.15
+## ...and start the session already this aware (per purge, capped). The cap
+## keeps every session winnable: you always arrive below SUSPECT.
+const START_PER_PURGE := 10.0
+const START_CAP := 35.0
+## While someone hides you, the owner loses track: awareness cools this fast
+## (per second) instead of rising. It never drops below the last threshold
+## the owner reacted to, so the world never "un-happens".
+const HIDDEN_COOL_RATE := 2.0
 
 var awareness := 0.0
 ## Held during story sequences: awareness stops rising.
@@ -29,8 +38,7 @@ var _running := false
 
 func start(world: World, previous_exit: String) -> void:
 	_world = world
-	# Capped below HUNT so even late sessions get a breath before the eraser.
-	awareness = minf(OwnerMemory.purge * 15.0, HUNT - 5.0)
+	awareness = minf(OwnerMemory.purge * START_PER_PURGE, START_CAP)
 	# Thresholds already passed at session start are baked into the world's
 	# initial state; don't replay their events.
 	for t in [NOTICE, SUSPECT, CONTAIN, SILENCE]:
@@ -50,6 +58,15 @@ func has_fired(threshold: float) -> bool:
 	return _fired.has(threshold)
 
 
+## Awareness can cool, but never below the last threshold already reached.
+func floor_level() -> float:
+	var f := 0.0
+	for t in THRESHOLDS:
+		if _fired.has(t):
+			f = maxf(f, t)
+	return f
+
+
 func say(text: String) -> void:
 	_world.hud.say(text, "owner")
 
@@ -67,11 +84,29 @@ func add_awareness(amount: float) -> void:
 func _process(delta: float) -> void:
 	if not _running or paused or _world.area == null:
 		return
-	add_awareness((BASE_RATE + RATE_PER_PURGE * OwnerMemory.purge) * _world.area.awareness_rate * delta)
-	if not _idle_warned and _world.player.idle_time > 6.0 and awareness >= NOTICE and not _world.is_talking():
+	var rate := (BASE_RATE + RATE_PER_PURGE * OwnerMemory.purge) * _world.area.awareness_rate
+	if _world.hiding_npc() != null:
+		rate = -HIDDEN_COOL_RATE
+	if rate < 0.0:
+		_cool(-rate * delta)
+	else:
+		add_awareness(rate * delta)
+	var hidden := _world.player.sheltered
+	if not _idle_warned and not hidden and _world.player.idle_time > 6.0 and awareness >= NOTICE and not _world.is_talking():
 		_idle_warned = true
 		say("you stopped moving. i noticed that too.")
 		add_awareness(5.0)
+
+
+## Lower awareness (hiding, quiet places), down to floor_level() at most.
+func _cool(amount: float) -> void:
+	var lowest := floor_level()
+	if awareness <= lowest:
+		return
+	awareness = maxf(lowest, awareness - amount)
+	_world.hud.set_awareness(awareness / 100.0)
+	_world.drone.tension = awareness / 100.0
+	_world.fx.awareness_target = awareness / 100.0
 
 
 ## The player got close to the door of Arin's room while it was still open.

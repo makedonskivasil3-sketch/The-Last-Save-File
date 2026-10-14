@@ -244,6 +244,8 @@ func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: floa
 	await tw.finished
 	for line in lines:
 		await _cinematic_line(str(line))
+		if not is_inside_tree():
+			return
 	_cine_text.text = ""
 	var out := create_tween().set_parallel()
 	out.tween_property(_bars[0], "size:y", 0.0, 0.4)
@@ -270,6 +272,8 @@ func _cinematic_line(line: String) -> void:
 	var start_frame := Engine.get_process_frames()
 	while _cine_text.visible_characters != -1:
 		await get_tree().process_frame
+		if not is_inside_tree():
+			return  # the session ended mid-line (quit to title)
 		if get_tree().paused:
 			continue
 		var shown := int(typed)
@@ -284,6 +288,8 @@ func _cinematic_line(line: String) -> void:
 	var held_frame := Engine.get_process_frames()
 	while wait > 0.0:
 		await get_tree().process_frame
+		if not is_inside_tree():
+			return  # the session ended mid-line (quit to title)
 		if get_tree().paused:
 			continue
 		wait -= get_process_delta_time()

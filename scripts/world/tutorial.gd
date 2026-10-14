@@ -4,8 +4,8 @@ extends Node
 ## and that quitting counts. Shown one at a time in the HUD's tip card.
 ##
 ## The room tips play in order as soon as you wake; the contextual ones
-## (interacting, the locked door, being hidden) jump in the first time their
-## moment comes. Each tip is shown once ever (Settings.tips_seen), and none
+## (interacting, the locked door, being hidden, Arin, the Archive, Slot 2)
+## jump in the first time their moment comes. Each tip is shown once ever (Settings.tips_seen), and none
 ## at all with Settings > Tutorial tips off. Turning tips back on replays them.
 
 ## id -> [title, body]. {move} / {interact} / {pause} become button glyphs.
@@ -15,8 +15,11 @@ const TIPS := {
 	"quit": ["QUITTING COUNTS", "Dying and quitting both count against you. Close the game and the owner remembers you tried to leave."],
 	"wren": ["HIDE WITH WREN", "Some people here will protect you. In the village square, stand right beside Wren and the owner's eyes slide past you."],
 	"interact": ["LOOK CLOSER", "Press {interact} to talk, read and touch things."],
-	"way_out": ["LOCKED OUT", "The door is the owner's, not yours. Rooms change when the owner panics: watch the walls."],
-	"hidden": ["HIDDEN", "Arin can't see you here. But if the owner finds out who helped you, they pay for it."],
+	"way_out": ["LOCKED OUT", "The door is the owner's, not yours. Rooms change when the owner gets suspicious: watch the walls."],
+	"hidden": ["HIDDEN", "Arin can't see you here, and the owner slowly loses track of you. But if the owner finds out who helped you, they pay for it."],
+	"arin": ["ARIN IS THE OWNER", "The owner plays as Arin. Stay out of the light cone, and never let Arin touch you."],
+	"quiet": ["A QUIET PLACE", "The owner can't see in here. Awareness slowly cools, but never below what the owner has already done."],
+	"slot": ["SLOT 2", "Stand in the slot to write yourself in. It takes a few seconds, and the cursor selects anything that holds still. Lead it away first."],
 }
 ## Shown in this order after waking.
 const SEQUENCE := ["move", "watched", "quit", "wren"]
@@ -79,10 +82,13 @@ func _next_tip() -> String:
 	if _world.has_focus() and _unseen("interact"):
 		return "interact"
 	var door: Variant = _world.area.get("door")
-	if door is Door and door.state == Door.State.LOCKED and _unseen("way_out"):
+	if door is Door and door.state != Door.State.OPEN and _unseen("way_out"):
 		return "way_out"
 	if _world.hiding_npc() != null and _unseen("hidden"):
 		return "hidden"
+	var area_tip: String = {"square": "arin", "archive": "quiet", "edge": "slot"}.get(_world.area.area_id, "")
+	if area_tip != "" and _unseen(area_tip):
+		return area_tip
 	if _world.area.area_id != "room":
 		return ""
 	for id in SEQUENCE:

@@ -11,8 +11,8 @@ func test_tips_play_in_order_and_only_once() -> void:
 	check("move" in settings().tips_seen, "a shown tip is remembered")
 	w.player.global_position += Vector2(70, 0)
 	await wait_until(func() -> bool: return w.hud._tip_title.text == "THE OWNER IS WATCHING", 8.0, "second tip")
-	# Every room tip is eventually shown; a new session shows none of them again.
-	for id in Tutorial.SEQUENCE:
+	# Once every tip has been seen, a new session shows none of them again.
+	for id in Tutorial.TIPS:
 		settings().mark_tip_seen(id)
 	w.kill("erased")
 	var next := await wait_for_new_session(w)

@@ -10,16 +10,16 @@ func test_session_starts_in_arins_room() -> void:
 	check(w.director._running, "the owner is watching")
 
 
-func test_seam_opens_at_contain_and_leads_to_square() -> void:
+func test_seam_opens_when_suspicious_and_leads_to_square() -> void:
 	var w := await start_session()
 	var seam: Seam = w.area.seam
 	check(not seam.open, "seam closed while the owner is calm")
 	w.player.global_position = seam.global_position + Vector2(10, 0)
 	await wait(0.3)
 	check_eq(w.area.area_id, "room", "a closed seam can't be used")
-	w.director.add_awareness(OwnerDirector.CONTAIN + 1.0)
+	w.director.add_awareness(OwnerDirector.SUSPECT + 1.0)
 	await frames(3)
-	check(seam.open, "seam opens once the owner rewrites the room")
+	check(seam.open, "seam opens once the owner gets suspicious")
 	await wait_until(func() -> bool: return w.area.area_id == "square", 3.0, "slipping into the square")
 	check_eq(memory().session_seam, seam.id, "the seam used is remembered")
 
@@ -89,10 +89,24 @@ func test_reaching_slot_two_wins() -> void:
 	var w := await start_session()
 	w.flags["pointer"] = true
 	await go_to(w, "edge", "south")
+	w.area.cursor.position = Vector2(60, 270)  # lured away
 	w.player.global_position = Vector2(580, 66)
-	await wait_until(func() -> bool: return w.ending == "win", 3.0, "touching Slot 2")
+	await wait(0.5)
+	check(w.ending == "", "touching Slot 2 isn't enough: you write yourself in")
+	check(w.area.slot.is_writing(), "standing in the slot writes you in")
+	await wait_until(func() -> bool: return w.ending == "win", 4.0, "writing yourself into Slot 2")
 	check_eq(memory().wins, 1, "win recorded")
 	check_eq(memory().last_exit, "win", "session closed as a win")
+
+
+func test_cursor_guards_slot_two() -> void:
+	var w := await start_session()
+	w.flags["pointer"] = true
+	await go_to(w, "edge", "south")
+	check(w.area.cursor.position.distance_to(TheEdge.SLOT_POS) < 60.0, "the cursor waits beside Slot 2")
+	w.player.global_position = Vector2(580, 66)
+	await wait_until(func() -> bool: return w.ending != "", 4.0, "the cursor reaching you")
+	check_eq(w.ending, "death", "writing yourself in with the cursor on you gets you selected")
 
 
 func test_hunt_starts_eraser_and_cursor_in_square() -> void:
@@ -102,3 +116,32 @@ func test_hunt_starts_eraser_and_cursor_in_square() -> void:
 	await frames(3)
 	check(w.area.erasure.active, "eraser running")
 	check(w.area.cursor != null, "cursor sent in")
+
+
+func test_hiding_cools_awareness_down_to_the_last_threshold() -> void:
+	var w := await start_session()
+	await go_to(w, "square", "house")
+	w.director.add_awareness(OwnerDirector.SUSPECT + 8.0)  # 48: SUSPECT has fired
+	var before: float = w.director.awareness
+	w.player.global_position = w.area.wren.global_position + Vector2(10, 0)
+	await wait(1.5)
+	check(w.director.awareness < before - 1.0, "hiding with Wren lets the owner lose track")
+	await wait(4.0)
+	check_eq(w.director.awareness, OwnerDirector.SUSPECT, "but never below what the owner already did")
+
+
+func test_archive_is_a_breather() -> void:
+	var w := await start_session()
+	w.director.add_awareness(30.0)
+	await go_to(w, "archive", "west")
+	await wait(2.0)
+	check(w.director.awareness < 30.0, "awareness cools in the Archive")
+	check(w.director.awareness >= OwnerDirector.NOTICE, "down to the last threshold")
+
+
+func test_glance_from_arin_is_forgiven() -> void:
+	var w := await start_session()
+	await go_to(w, "square", "house")
+	var before: float = w.director.awareness
+	w.area._on_arin_sees(0.2)  # a single glance, shorter than the grace
+	check_eq(w.director.awareness, before, "a glance at the edge of the cone costs nothing")

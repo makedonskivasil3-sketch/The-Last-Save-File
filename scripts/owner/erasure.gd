@@ -33,6 +33,7 @@ var _acc := 0.0
 var _caught := false
 var _t := 0.0
 var _mature_layer: _MatureLayer
+var _protected: Dictionary = {}  # Vector2i -> true, cells the eraser can't touch
 
 
 func setup(room_rect: Rect2, player: Node2D) -> void:
@@ -43,6 +44,16 @@ func setup(room_rect: Rect2, player: Node2D) -> void:
 	_mature_layer = _MatureLayer.new()
 	_mature_layer.owner_erasure = self
 	add_child(_mature_layer)
+
+
+## Cells inside `rect` (world space) can never be erased: things the owner
+## can't see (Slot 2).
+func protect(rect: Rect2) -> void:
+	var a := _to_cell(rect.position)
+	var b := _to_cell(rect.end)
+	for x in range(a.x, b.x + 1):
+		for y in range(a.y, b.y + 1):
+			_protected[Vector2i(x, y)] = true
 
 
 func seed_at(world_pos: Vector2) -> void:
@@ -210,7 +221,7 @@ func _to_cell(world_pos: Vector2) -> Vector2i:
 
 
 func _in_grid(c: Vector2i) -> bool:
-	return c.x >= 0 and c.y >= 0 and c.x < _cols and c.y < _rows
+	return c.x >= 0 and c.y >= 0 and c.x < _cols and c.y < _rows and not _protected.has(c)
 
 
 ## Draws settled cells; redrawn only when the set changes.

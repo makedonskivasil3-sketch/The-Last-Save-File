@@ -12,6 +12,13 @@ const EAST_GAP := Vector2(160, 200)
 const NORTH_GAP := Vector2(300, 340)
 const TREES: Array[Vector2] = [Vector2(190, 268), Vector2(560, 250), Vector2(420, 274), Vector2(560, 120), Vector2(60, 160)]
 const ROUTE: Array[Vector2] = [Vector2(200, 130), Vector2(440, 130), Vector2(440, 230), Vector2(200, 230)]
+## Arin has to keep you in view this long before the owner reacts.
+const SIGHT_GRACE := 0.35
+## Awareness per second while Arin keeps watching you.
+const SIGHT_RATE := 22.0
+## Where the eraser starts when the owner hunts: the far corners, away from
+## both roads out, so it chases you instead of walling off the exits.
+const ERASE_SEEDS: Array[Vector2] = [Vector2(56, 280), Vector2(588, 52)]
 
 const GRASS := Color("1f2a1e")
 const PATH := Color("3a3128")
@@ -42,6 +49,10 @@ var north_exit: Exit
 var _wren_line := 0
 var _tobben_line := 0
 var _spotted_once := false
+## Seconds Arin has had you in view without a break, and the frame they last
+## saw you: a glance at the edge of the cone is forgiven, a stare is not.
+var _seen_for := 0.0
+var _seen_frame := -10
 
 
 func _init() -> void:
@@ -111,7 +122,8 @@ func build() -> void:
 	arin = OwnerAvatar.new()
 	arin.route = ROUTE
 	arin.position = ROUTE[0]
-	arin.speed = 38.0 + OwnerMemory.purge * 6.0
+	# Even at the worst, Arin stays slower than you (90): you can always run.
+	arin.speed = 38.0 + OwnerMemory.purge * 4.0
 	arin.player = world.player
 	arin.is_hidden = world.is_player_hidden
 	arin.sees_player.connect(_on_arin_sees)
@@ -148,7 +160,7 @@ func on_owner_event(threshold: float) -> void:
 			_unleash()
 		OwnerDirector.PURGE:
 			if cursor:
-				cursor.speed *= 1.3
+				cursor.speed *= 1.2
 
 
 func area_process(_delta: float) -> void:
@@ -157,12 +169,12 @@ func area_process(_delta: float) -> void:
 
 
 func _unleash() -> void:
-	start_erasure([Vector2(320, 60), Vector2(580, 270)])
+	start_erasure(ERASE_SEEDS)
 	if cursor == null:
 		cursor = OwnerCursor.new()
 		cursor.bounds = bounds
 		cursor.position = Vector2(320, 40)
-		cursor.speed = 50.0 + OwnerMemory.purge * 8.0
+		cursor.speed = 48.0 + OwnerMemory.purge * 5.0
 		cursor.player = world.player
 		cursor.is_hidden = world.is_player_hidden
 		cursor.selected_player.connect(func() -> void: world.kill("selected"))
@@ -171,7 +183,14 @@ func _unleash() -> void:
 
 
 func _on_arin_sees(delta: float) -> void:
-	world.director.add_awareness(28.0 * delta)
+	var frame := Engine.get_physics_frames()
+	if frame - _seen_frame > 2:
+		_seen_for = 0.0  # Arin lost sight of you in between
+	_seen_frame = frame
+	_seen_for += delta
+	if _seen_for < SIGHT_GRACE:
+		return
+	world.director.add_awareness(SIGHT_RATE * delta)
 	if not _spotted_once:
 		_spotted_once = true
 		Sfx.play("spotted")

@@ -128,8 +128,9 @@ func area_process(_delta: float) -> void:
 	if door.state == Door.State.OPEN and world.player.global_position.distance_to(door.global_position) < DOOR_TRIGGER_DISTANCE:
 		world.director.on_door_approached()
 	if seam:
-		# The wall only tears once the owner starts rewriting the room.
-		seam.open = world.director.awareness >= OwnerDirector.CONTAIN
+		# The wall tears once the owner gets suspicious and starts rewriting
+		# the room. (Agitating the owner on purpose is a way out.)
+		seam.open = world.director.awareness >= OwnerDirector.SUSPECT
 		seam.reveal = 0.25 + world.director.awareness / 100.0 * 0.6 if seam.open else 0.0
 
 
