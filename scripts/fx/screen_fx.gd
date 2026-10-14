@@ -223,6 +223,10 @@ func _process(delta: float) -> void:
 	if randf() < (0.25 + _awareness * 0.8) * delta * flash:
 		g += 0.25
 
+	# Screen effects off: skip the full-screen pass entirely (no screen copy,
+	# no shader). Gameplay is unaffected; only the CRT look goes away.
+	visible = Settings.screen_effects > 0
+	_mat.set_shader_parameter("quality", Settings.screen_effects)
 	_mat.set_shader_parameter("intensity", intensity)
 	_mat.set_shader_parameter("flash", flash)
 	_mat.set_shader_parameter("curvature", 0.14 if Settings.crt_curvature else 0.0)

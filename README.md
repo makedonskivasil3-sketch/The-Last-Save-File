@@ -185,10 +185,40 @@ quickens as it fills, shifts orange → red → magenta, misfires, and its label
 - **Reduce flashing** cuts colour washes, negative flashes, static bursts, brightness flicker,
   strobing and screen roll to about 30%.
 - **CRT curvature** flattens the glass.
+- **Screen effects** (Full / Light / Off) trades the CRT pass for speed on weak GPUs; see Performance.
 
 **Tuning.** Every shader uniform is documented at the top of the shader; event strengths and
 durations live in the event methods of `screen_fx.gd` (`threshold_pulse()`, `deletion_hit()`,
 `cursor_arrives()`, `play_death()`, `play_win()`, ...).
+
+## Performance
+
+Measured in Godot 4.3 with the frame cap removed (headless, so this is all CPU work: scripts plus
+building draw commands):
+
+| Scene | CPU per frame |
+| --- | --- |
+| Arin's room | ~0.3 ms |
+| Square (Arin, Wren, Tobben) | ~0.4 ms |
+| Square, fully erased, cursor hunting | ~0.5 ms |
+| The Edge | ~0.5 ms |
+| Archive | ~0.3 ms |
+
+The eraser draws settled cells on a layer that only redraws when a cell settles and grows from a
+tracked frontier; the background hum is synthesised once at startup (~15 ms) and looped; the HUD only
+re-shapes text when it changes. A soak test (40 area changes, repeated deaths) shows no node,
+resource or object leaks, and the project has no GDScript warnings even with warnings-as-errors.
+
+Most of the cost is on the **GPU**: one full-screen CRT pass at window resolution. Settings →
+**Screen effects** picks how much of it runs:
+
+| Screen effects | What you get | Relative GPU cost* |
+| --- | --- | --- |
+| Full (default) | Everything: 3-tap colour fringing, aperture grille, static lines | 100% |
+| Light (default on phones) | Same CRT look with 1 texture read, no fringing or grille | ~70% |
+| Off | No full-screen pass at all | ~30% |
+
+*Frame time on a software GPU at 1280x720; real GPUs are far faster, the proportions are what matter.
 
 ## Playing it
 

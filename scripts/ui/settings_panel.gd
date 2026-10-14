@@ -21,6 +21,11 @@ func _ready() -> void:
 	_first = _slider("Volume", Settings.volume, func(v: float) -> void: Settings.set_value("volume", v))
 	_check("Fullscreen", Settings.fullscreen, func(on: bool) -> void: Settings.set_value("fullscreen", on))
 	_check("CRT curvature", Settings.crt_curvature, func(on: bool) -> void: Settings.set_value("crt_curvature", on))
+	var fx_button := Button.new()
+	fx_button.focus_mode = Control.FOCUS_ALL
+	fx_button.pressed.connect(_cycle_effects.bind(fx_button))
+	add_child(fx_button)
+	_label_effects(fx_button)
 	_slider("Glitch intensity", Settings.glitch_intensity, func(v: float) -> void: Settings.set_value("glitch_intensity", v))
 	_check("Reduce flashing", Settings.reduce_flashing, func(on: bool) -> void: Settings.set_value("reduce_flashing", on))
 
@@ -37,6 +42,16 @@ func _unhandled_input(event: InputEvent) -> void:
 	if is_visible_in_tree() and (event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause")):
 		get_viewport().set_input_as_handled()
 		closed.emit()
+
+
+## Full -> Light -> Off -> Full.
+func _cycle_effects(b: Button) -> void:
+	Settings.set_value("screen_effects", (Settings.screen_effects + 2) % 3)
+	_label_effects(b)
+
+
+func _label_effects(b: Button) -> void:
+	b.text = "Screen effects: %s" % ["Off", "Light", "Full"][Settings.screen_effects]
 
 
 func _on_reset() -> void:

@@ -373,7 +373,8 @@ func _update_slot() -> void:
 	var text := "SLOT 1  ·  %s  ·  LV 7  ·  %02d:%02d:%02d" % [name_shown, floori(secs / 3600.0), floori(secs / 60.0) % 60, secs % 60]
 	if unknown_processes > 0:
 		text += "  ·  [!] %d UNKNOWN PROCESS" % unknown_processes
-	_slot.text = text
+	if _slot.text != text:  # re-shaping text every frame is wasted work
+		_slot.text = text
 
 
 func _update_typing(delta: float) -> void:

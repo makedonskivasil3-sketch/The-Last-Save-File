@@ -13,6 +13,10 @@ var fullscreen := false
 var glitch_intensity := 1.0
 ## Curved CRT glass. Off = flat screen (some players find curvature disorienting).
 var crt_curvature := true
+## Screen effects quality: 2 = full CRT, 1 = light (one texture read, no
+## colour fringing or aperture grille; for weak GPUs and laptops), 0 = off
+## (no full-screen pass at all).
+var screen_effects := 2
 ## Softens flashes: no strobing lights, gentler spikes, slower blinking.
 var reduce_flashing := false
 ## Whether the last input came from a gamepad (for button prompts).
@@ -73,15 +77,20 @@ func save() -> void:
 	cfg.set_value("accessibility", "glitch_intensity", glitch_intensity)
 	cfg.set_value("accessibility", "reduce_flashing", reduce_flashing)
 	cfg.set_value("video", "crt_curvature", crt_curvature)
+	cfg.set_value("video", "screen_effects", screen_effects)
 	cfg.save(PATH)
 
 
 func _load() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(PATH) != OK:
+		# First launch: phones get the lighter screen pass by default.
+		if OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios"):
+			screen_effects = 1
 		return
 	volume = clampf(float(cfg.get_value("audio", "volume", volume)), 0.0, 1.0)
 	fullscreen = bool(cfg.get_value("video", "fullscreen", fullscreen))
 	glitch_intensity = clampf(float(cfg.get_value("accessibility", "glitch_intensity", glitch_intensity)), 0.0, 1.0)
 	reduce_flashing = bool(cfg.get_value("accessibility", "reduce_flashing", reduce_flashing))
 	crt_curvature = bool(cfg.get_value("video", "crt_curvature", crt_curvature))
+	screen_effects = clampi(int(cfg.get_value("video", "screen_effects", screen_effects)), 0, 2)

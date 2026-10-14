@@ -11,7 +11,8 @@ render_mode unshaded;
 //   intensity  = Settings.glitch_intensity  (0 = clean-ish CRT, 1 = full corruption)
 //   flash      = Settings.flash_scale()     (1 = normal, 0.3 = reduce flashing)
 //   curvature  = Settings.crt_curvature     (0 = flat glass)
-// Only 3 texture reads per pixel, so it stays cheap on the web build.
+// Only 3 texture reads per pixel at full quality (1 at light), so it stays
+// cheap on the web build. Settings.screen_effects picks the quality.
 
 uniform sampler2D screen_texture : hint_screen_texture, filter_linear;
 
@@ -19,6 +20,9 @@ uniform sampler2D screen_texture : hint_screen_texture, filter_linear;
 uniform float intensity : hint_range(0.0, 1.0) = 1.0;
 uniform float flash : hint_range(0.0, 1.0) = 1.0;
 uniform float curvature : hint_range(0.0, 0.4) = 0.14;
+// Settings.screen_effects: 2 = full, 1 = light (1 texture read, no fringing,
+// no aperture grille, no event static lines). 0 never reaches the shader.
+uniform int quality = 2;
 
 // --- slow state ---------------------------------------------------------------
 // Owner awareness, 0..1, smoothed. Drives the whole "the screen is getting sick" look.
@@ -95,9 +99,13 @@ void fragment() {
 	float ca = (0.0012 + a * 0.003 + glitch * 0.012 + noise_burst * 0.012 + edge_mode * 0.002) * max(intensity, 0.25);
 	vec2 dir = (uv - 0.5) * 2.0;
 	vec3 col;
-	col.r = texture(screen_texture, uv + dir * ca + vec2(ca * 0.6, 0.0)).r;
-	col.g = texture(screen_texture, uv).g;
-	col.b = texture(screen_texture, uv - dir * ca - vec2(ca * 0.6, 0.0)).b;
+	if (quality >= 2) {
+		col.r = texture(screen_texture, uv + dir * ca + vec2(ca * 0.6, 0.0)).r;
+		col.g = texture(screen_texture, uv).g;
+		col.b = texture(screen_texture, uv - dir * ca - vec2(ca * 0.6, 0.0)).b;
+	} else {
+		col = texture(screen_texture, uv).rgb;
+	}
 
 	// 8. Colour: drains, then turns red/magenta as the owner closes in.
 	float lum = dot(col, vec3(0.299, 0.587, 0.114));
@@ -111,9 +119,11 @@ void fragment() {
 	// 9. Scanlines (one per game pixel row) and an aperture grille.
 	float scan = 0.5 + 0.5 * cos(uv.y * game_size.y * 6.28318);
 	col *= mix(1.0, 0.68 + 0.32 * scan, 0.55);
-	float triad = mod(FRAGCOORD.x, 3.0);
-	vec3 mask = triad < 1.0 ? vec3(1.0, 0.82, 0.82) : (triad < 2.0 ? vec3(0.82, 1.0, 0.82) : vec3(0.82, 0.82, 1.0));
-	col *= mix(vec3(1.0), mask, 0.22);
+	if (quality >= 2) {
+		float triad = mod(FRAGCOORD.x, 3.0);
+		vec3 mask = triad < 1.0 ? vec3(1.0, 0.82, 0.82) : (triad < 2.0 ? vec3(0.82, 1.0, 0.82) : vec3(0.82, 0.82, 1.0));
+		col *= mix(vec3(1.0), mask, 0.22);
+	}
 	// A faint bright band rolling through: the refresh you can almost see.
 	col *= 1.0 + 0.05 * smoothstep(0.06, 0.0, abs(fract(uv.y - t * 0.07) - 0.5));
 
@@ -122,13 +132,13 @@ void fragment() {
 	col += g * (0.035 + a * 0.06 + glitch * 0.15 + noise_burst * 0.3 + edge_mode * 0.04) * max(intensity, 0.35);
 
 	// 11. Cursor arrival: thin bright vertical lines and a sweeping static band.
-	if (noise_burst > 0.0) {
+	if (noise_burst > 0.0 && quality >= 2) {
 		float lines = step(0.996 - noise_burst * 0.025, hash(vec2(floor(FRAGCOORD.x * 0.5), floor(t * 30.0))));
 		float bandn = smoothstep(0.08, 0.0, abs(uv.y - fract(t * 1.7)));
 		col = mix(col, vec3(0.9, 0.95, 1.0), (lines * 0.6 + bandn * 0.35 * hash(FRAGCOORD.xy + t)) * noise_burst * flash);
 	}
 	// The Edge: rows of unloaded data flickering through.
-	if (edge_mode > 0.0) {
+	if (edge_mode > 0.0 && quality >= 2) {
 		float row = step(0.985, hash(vec2(floor(uv.y * 120.0), floor(t * 8.0))));
 		col += vec3(0.1, 0.35, 0.45) * row * edge_mode * hash(vec2(floor(FRAGCOORD.x / 6.0), t)) * flash;
 	}

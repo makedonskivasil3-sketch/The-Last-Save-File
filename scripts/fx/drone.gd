@@ -6,7 +6,8 @@ extends AudioStreamPlayer
 ## (0..1) only bends its pitch and triggers digital crackle, so the audio
 ## costs nothing per frame.
 
-const MIX_RATE := 22050
+## 11 kHz is plenty for a 55 Hz drone and halves the one-off build cost.
+const MIX_RATE := 11025
 ## Every partial completes a whole number of cycles in this time, so the loop
 ## is seamless.
 const LOOP_SECONDS := 4.0
