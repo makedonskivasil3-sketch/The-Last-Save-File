@@ -256,12 +256,43 @@ godot --path . --editor   # open the editor
 There are no external assets yet. All visuals are drawn in code, the hum is synthesized at runtime,
 and the CRT/corruption look is a single screen shader.
 
+## Tests
+
+The suite lives in `tests/` and runs headless in about 1.5 minutes. CI runs it on every push and
+pull request **before** building; a failing test or any Godot script error blocks the build and
+the web deploy.
+
+```bash
+tests/run.sh                         # everything (uses `godot` on PATH)
+GODOT=/path/to/godot tests/run.sh    # a specific Godot 4.3 binary
+tests/run.sh --filter=story          # only files/methods matching "story"
+# Screenshots of the effects (needs a display, so not headless):
+godot --path . -s res://tests/run_tests.gd -- --test-mode --screenshots=/tmp/shots
+```
+
+Tests run with `--test-mode`, which points the owner's memory and the settings at separate
+`test_*` files, so running them never touches your real progress.
+
+| File | Covers |
+| --- | --- |
+| `test_memory.gd` | What the owner learns: deaths, quits, crashes, helpers, seams, fragments, purge, old-save migration |
+| `test_world.gd` | The full route: seam, door, dialogue, Wren hiding (and being deleted), Tobben reporting, the pointer, the Edge, Slot 2, the hunt |
+| `test_menus.gd` | Pause/resume, quitting counts, Slot 2 on the title screen, settings |
+| `test_story.gd` | Boot sequence, flashbacks, fragments persisting, endings |
+| `test_effects.gd` | Every death style, owner events, the win sequence, reduce flashing |
+| `test_performance.gd` | Worst-case frame budget (fully hunted square) and leak checks across area changes |
+
+Writing a test: add `tests/test_<thing>.gd` extending `res://tests/test_case.gd` and give it
+`test_*` methods. They're coroutines, so you can `await start_session()`, `go_to()`, `press()`,
+`interact_with()`, `wait_until()`; record problems with `check()` / `check_eq()`.
+
 ## Project structure
 
 ```
 project.godot                  Engine config (640x360 viewport, GL Compatibility renderer)
 export_presets.cfg             Windows / Linux / Web export presets
-.github/workflows/build.yml    CI: exports all three on every push, releases on tags
+.github/workflows/build.yml    CI: runs the tests, exports all three on every push, releases on tags
+tests/                         Automated test suite (run.sh, run_tests.gd, test_*.gd)
 scenes/
   title.tscn                   Title screen (main scene)
   main.tscn                    The session: World, player, owner director, HUD, screen FX, drone

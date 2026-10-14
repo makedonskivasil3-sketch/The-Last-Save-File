@@ -5,6 +5,8 @@ extends Node
 signal changed
 
 const PATH := "user://settings.cfg"
+## Tests (`-- --test-mode`) never read or write the player's settings.
+const TEST_PATH := "user://test_settings.cfg"
 
 ## 0..1 linear master volume.
 var volume := 0.8
@@ -22,9 +24,13 @@ var reduce_flashing := false
 ## Whether the last input came from a gamepad (for button prompts).
 var using_gamepad := false
 
+var _path := PATH
+
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	if "--test-mode" in OS.get_cmdline_user_args():
+		_path = TEST_PATH
 	_load()
 	apply()
 
@@ -78,12 +84,12 @@ func save() -> void:
 	cfg.set_value("accessibility", "reduce_flashing", reduce_flashing)
 	cfg.set_value("video", "crt_curvature", crt_curvature)
 	cfg.set_value("video", "screen_effects", screen_effects)
-	cfg.save(PATH)
+	cfg.save(_path)
 
 
 func _load() -> void:
 	var cfg := ConfigFile.new()
-	if cfg.load(PATH) != OK:
+	if cfg.load(_path) != OK:
 		# First launch: phones get the lighter screen pass by default.
 		if OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios"):
 			screen_effects = 1

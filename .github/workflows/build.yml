@@ -1,8 +1,8 @@
 name: Build game
 
-# Builds Windows, Linux and Web versions on every push to main (download them
-# from the run's "Artifacts"), and attaches them to a GitHub Release when you
-# push a tag like v0.2.0.
+# Runs the test suite, then builds Windows, Linux and Web versions on every
+# push to main (download them from the run's "Artifacts"), and attaches them
+# to a GitHub Release when you push a tag like v0.2.0.
 
 on:
   push:
@@ -43,6 +43,11 @@ jobs:
 
       - name: Import project
         run: ~/godot/godot --headless --path . --import
+
+      # Blocks the build: if any test fails or Godot reports a script error,
+      # nothing gets exported or deployed.
+      - name: Run tests
+        run: GODOT=~/godot/godot tests/run.sh
 
       - name: Export
         run: |

@@ -6,6 +6,9 @@ extends Node
 ## point: you can reload the world, but you can't reload the owner.
 
 const SAVE_PATH := "user://owner_memory.json"
+## Automated tests run with `-- --test-mode` and use their own file, so they
+## can never touch a player's real progress.
+const TEST_SAVE_PATH := "user://test_owner_memory.json"
 ## When purge reaches this, the intruder is gone for good.
 const MAX_PURGE := 6
 const MAX_REMEMBERED_DEATHS := 12
@@ -41,9 +44,12 @@ var session_helpers: Array[String] = []
 var session_seam := -1
 
 var _session_closed := true
+var _path := SAVE_PATH
 
 
 func _ready() -> void:
+	if is_test_mode():
+		_path = TEST_SAVE_PATH
 	_register_input()
 	load_memory()
 	# We want to see the window close so the owner can count it as a quit.
@@ -54,6 +60,10 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
 		record_quit()
 		get_tree().quit()
+
+
+static func is_test_mode() -> bool:
+	return "--test-mode" in OS.get_cmdline_user_args()
 
 
 func is_purged() -> bool:
@@ -164,17 +174,17 @@ func save_memory() -> void:
 		"fragments": fragments,
 		"last_exit": last_exit,
 	}
-	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	var file := FileAccess.open(_path, FileAccess.WRITE)
 	if file == null:
-		push_warning("OwnerMemory: could not write %s" % SAVE_PATH)
+		push_warning("OwnerMemory: could not write %s" % _path)
 		return
 	file.store_string(JSON.stringify(data, "\t"))
 
 
 func load_memory() -> void:
-	if not FileAccess.file_exists(SAVE_PATH):
+	if not FileAccess.file_exists(_path):
 		return
-	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(SAVE_PATH))
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(_path))
 	if typeof(parsed) != TYPE_DICTIONARY:
 		push_warning("OwnerMemory: memory file unreadable, starting fresh")
 		return
