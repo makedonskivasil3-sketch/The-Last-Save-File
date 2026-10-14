@@ -98,6 +98,44 @@ The owner's memory is stored at `user://owner_memory.json`:
 
 ---
 
+## Characters & story
+
+**Who are you?** The game opens on the save booting: `[!] 1 UNRECOGNISED ENTITY · ENTITY SLOT: 02
+· slot 02 does not exist.` Then you assemble out of pixels in Arin's room, a hooded figure with a
+void for a face and two points of light, with no idea why you're here. Your own thoughts appear in
+the console in cyan `(like this)`, reacting to waking up, to the town, to Arin, to the characters
+the owner deletes because of you.
+
+**Memory fragments.** Five cyan shards float where something happened: under Arin's bed, by the
+well, between the Archive's shelves, and two at the Edge. Touching one stops the world for a short
+letterboxed flashback, with the screen going pale and cyan like an old photo of a screen. Fragments
+are *your* memories, not the owner's: they survive deaths and purges (only a full reset clears
+them). Together they tell what happened: two people shared one console; one always played Arin in
+slot 1, the other made their own character in slot 2. They drifted apart, and one night the owner
+deleted slot 2. **You are what's left of that save.**
+
+The world reacts to how much you remember:
+- the Archivist counts the pieces of you they can see, and greets you by name once you have them all;
+- Mira, Wren and Tobben each half-remember "the other one";
+- the owner starts to recognise you (*"...you move like someone i used to know."*);
+- the ending changes, and with all five the title screen shows `SLOT 2 · RUE`.
+
+All narrative text lives in `scripts/story/story.gd`, with the full story in its header comment.
+
+**Characters.** Everyone is code-drawn pixel art (`scripts/world/pixel_character.gd`): 8-pixel
+templates drawn at 2x, with a 4-frame walk cycle, swinging arms, breathing, blinking, a mouth that
+moves while they talk, facing in four directions, and speech-bubble emotes. Each has a personality
+in motion:
+
+| Character | Look | Moves |
+| --- | --- | --- |
+| You | Hood, void face, glowing eyes, cyan | Walk cycle plus trail, tearing slices, dropped frames |
+| Mira | Long hair, orange dress | Sways, turns to watch you, `!` when she notices you |
+| Arin | Blue tunic, red scarf | Patrols with a walk cycle, points at you when they see you |
+| Wren | Child, pigtails, green dress | Hops in place, `!` |
+| Tobben | Bald, moustache, apron | Waves you over, `?` |
+| The Archivist | Tall, white beard, robe | Reads a book and turns the pages, `...` |
+
 ## Visual effects
 
 Everything is still coloured rectangles; the atmosphere comes from one full-screen shader
@@ -207,7 +245,10 @@ scripts/
   world/areas/village_square.gd  Arin's patrol, Wren, Tobben, notice board, roads east and north
   world/areas/archive.gd       The Archivist and the live log books
   world/areas/the_edge.gd      Unloaded region, cursor, Slot 2
-  world/npc.gd                 Any character: look, dialogue provider, hiding, deletion
+  world/npc.gd                 Any character: sprite, emotes, dialogue provider, hiding, deletion
+  world/pixel_character.gd     Code-drawn pixel-art bodies and their animation
+  world/memory_fragment.gd     The cyan shards of your past
+  story/story.gd               Boot text, inner voice, the five fragments, endings
   world/readable.gd            Books, signs, terminals
   world/exit.gd                Area-to-area exits (open or blocked with a reason)
   world/slot_two.gd            The last save file

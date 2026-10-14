@@ -23,6 +23,10 @@ var patched_seams: Array[int] = []
 ## Characters the owner has dealt with for helping you: name -> "deleted".
 var npc_fates: Dictionary = {}
 var met_archivist := false
+## Memory fragments the intruder has recovered (Story.FRAGMENTS ids). These
+## are YOUR memories, not the owner's: they survive deaths and purges, and
+## only a full reset clears them.
+var fragments: Array[String] = []
 ## How the previous session ended: "none", "death", "quit", "crash", "win"
 ## (or "escape" from old saves). While a session is running it is stored as
 ## "active", so if the process is killed the owner finds out next launch.
@@ -80,6 +84,16 @@ func begin_session() -> String:
 	return previous
 
 
+func has_fragment(id: String) -> bool:
+	return id in fragments
+
+
+func add_fragment(id: String) -> void:
+	if id not in fragments:
+		fragments.append(id)
+		save_memory()
+
+
 func note_helper(npc: String) -> void:
 	if npc not in session_helpers:
 		session_helpers.append(npc)
@@ -128,6 +142,7 @@ func wipe() -> void:
 	patched_seams.clear()
 	npc_fates.clear()
 	met_archivist = false
+	fragments.clear()
 	last_exit = "none"
 	session_helpers.clear()
 	session_seam = -1
@@ -146,6 +161,7 @@ func save_memory() -> void:
 		"patched_seams": patched_seams,
 		"npc_fates": npc_fates,
 		"met_archivist": met_archivist,
+		"fragments": fragments,
 		"last_exit": last_exit,
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -170,6 +186,9 @@ func load_memory() -> void:
 	purge = int(data.get("purge", 0))
 	last_exit = str(data.get("last_exit", "none"))
 	met_archivist = bool(data.get("met_archivist", false))
+	fragments.clear()
+	for f in data.get("fragments", []):
+		fragments.append(str(f))
 	deaths_log.clear()
 	for d in data.get("deaths_log", []):
 		if d is Dictionary and d.has("x") and d.has("y"):

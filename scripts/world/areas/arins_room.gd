@@ -33,6 +33,7 @@ const MIRA_LINES := [
 	"You're not Arin. Who are you?",
 	"They're going to notice you. They notice everything.",
 	"If you get out, find Wren in the square. She sees things too.",
+	"Arin never talks about the other one. The one who used to sit next to them.",
 ]
 const MIRA_RESTRICTED := [
 	"I'm not allowed to talk to you anymore.",
@@ -84,6 +85,10 @@ func build() -> void:
 			mira_state = Npc.State.RESTRICTED
 	mira = add_npc("mira", MIRA_POS, mira_state)
 	mira.display_name = "MIRA"
+	mira.body_kind = "dress"
+	mira.idle_style = "sway"
+	mira.notice_emote = "!"
+	mira.dark_color = Color("a85a2e")
 	mira.lines_provider = _mira_lines
 	mira.awareness_cost = 8.0
 
@@ -135,6 +140,7 @@ func on_owner_event(event: float) -> void:
 				world.flags["mira_deleted"] = true
 				world.fx.spike(0.8, 1.2)
 				world.director.say("don't talk to it, mira.")
+				world.voice("mira_deleted")
 				world.hud.say("mira.npc deleted", "system")
 		OwnerDirector.HUNT:
 			start_erasure([door.global_position + Vector2(0, 10)])
@@ -182,6 +188,8 @@ func _build_purged_extras() -> void:
 	var arin := add_npc("arin", Vector2(320, 270))
 	arin.display_name = "ARIN"
 	arin.dress_color = Color("5a7fb0")
+	arin.dark_color = Color("2e3f5c")
+	arin.accent_color = Color("c0392b")
 	arin.hair_color = Color("2a2a30")
 	arin.lines_provider = func() -> Array: return ["..."]
 

@@ -8,6 +8,8 @@ signal dialogue_closed
 const OWNER_COLOR := Color("e0704f")
 const SYSTEM_COLOR := Color("8a8f98")
 const NPC_COLOR := Color("e8c48a")
+## The intruder's own thoughts.
+const SELF_COLOR := Color("8cf2ff")
 const SLOT_COLOR := Color("c8b8a0")
 const MAX_LINES := 4
 const TYPE_SPEED := 36.0  # characters per second
@@ -52,6 +54,11 @@ var _dialogue_opened_frame := -1
 var _area_title: Label
 var _area_tween: Tween
 var _fade: ColorRect
+var _bars: Array[ColorRect] = []
+var _cine_title: Label
+var _cine_text: Label
+var _cine_hint: Label
+var _cinematic := false
 
 
 func _ready() -> void:
@@ -126,6 +133,96 @@ func _ready() -> void:
 	_fade.color = Color(0, 0, 0, 0)
 	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_fade)
+
+	# Cinematic: letterbox bars and a centred, typed text block (above the fade,
+	# so a fully black fade still shows the text).
+	for i in 2:
+		var bar := ColorRect.new()
+		bar.color = Color.BLACK
+		bar.position = Vector2(0, 0 if i == 0 else 360)
+		bar.size = Vector2(640, 0)
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.add_child(bar)
+		_bars.append(bar)
+	_cine_title = _make_label(root, Vector2(0, 118), Vector2(640, 16), 9, SYSTEM_COLOR)
+	_cine_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_cine_text = _make_label(root, Vector2(60, 140), Vector2(520, 80), 12, SELF_COLOR)
+	_cine_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_cine_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_cine_text.add_theme_color_override("font_outline_color", Color.BLACK)
+	_cine_text.add_theme_constant_override("outline_size", 4)
+	_cine_hint = _make_label(root, Vector2(0, 330), Vector2(630, 12), 8, Color(SYSTEM_COLOR, 0.7))
+	_cine_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	for l in [_cine_title, _cine_text, _cine_hint]:
+		l.visible = false
+
+
+
+## Plays a letterboxed sequence of typed lines; await it. Each line waits
+## for interact/confirm (or advances by itself after a while).
+## `dim` darkens the world behind the text (0 = see-through, 1 = black).
+func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: float = 0.55) -> void:
+	_cinematic = true
+	_console.visible = false
+	_prompt.visible = false
+	_cine_title.text = title
+	_cine_text.add_theme_color_override("font_color", color)
+	for l in [_cine_title, _cine_text, _cine_hint]:
+		l.visible = true
+	var tw := create_tween().set_parallel()
+	tw.tween_property(_bars[0], "size:y", 40.0, 0.4)
+	tw.tween_property(_bars[1], "size:y", 40.0, 0.4)
+	tw.tween_property(_bars[1], "position:y", 320.0, 0.4)
+	tw.tween_property(_fade, "color:a", dim, 0.4)
+	await tw.finished
+	for line in lines:
+		await _cinematic_line(str(line))
+	_cine_text.text = ""
+	var out := create_tween().set_parallel()
+	out.tween_property(_bars[0], "size:y", 0.0, 0.4)
+	out.tween_property(_bars[1], "size:y", 0.0, 0.4)
+	out.tween_property(_bars[1], "position:y", 360.0, 0.4)
+	out.tween_property(_fade, "color:a", 0.0, 0.5)
+	await out.finished
+	for l in [_cine_title, _cine_text, _cine_hint]:
+		l.visible = false
+	_console.visible = true
+	_prompt.visible = true
+	_cinematic = false
+
+
+func is_cinematic() -> bool:
+	return _cinematic
+
+
+func _cinematic_line(line: String) -> void:
+	_cine_text.text = line
+	_cine_text.visible_characters = 0
+	_cine_hint.text = ""
+	var typed := 0.0
+	var start_frame := Engine.get_process_frames()
+	while _cine_text.visible_characters != -1:
+		await get_tree().process_frame
+		if get_tree().paused:
+			continue
+		typed += 40.0 * get_process_delta_time()
+		_cine_text.visible_characters = int(typed)
+		if typed >= line.length() or (Engine.get_process_frames() > start_frame + 1 and _advance_pressed()):
+			_cine_text.visible_characters = -1
+	_cine_hint.text = "[%s]" % Settings.glyph("interact")
+	var wait := 2.4 + line.length() * 0.045
+	var held_frame := Engine.get_process_frames()
+	while wait > 0.0:
+		await get_tree().process_frame
+		if get_tree().paused:
+			continue
+		wait -= get_process_delta_time()
+		if Engine.get_process_frames() > held_frame and _advance_pressed():
+			break
+
+
+func _advance_pressed() -> bool:
+	return Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("confirm")
 
 
 ## Opens the dialogue box. lines: Array of Strings, advanced with interact.
@@ -202,7 +299,8 @@ func _update_dialogue(delta: float) -> void:
 			close_dialogue()
 
 
-## kind: "owner", "system" or "npc". speaker is shown for npc lines.
+## kind: "owner", "system", "self" (the intruder's thoughts) or "npc".
+## speaker is shown for npc lines.
 func say(text: String, kind: String = "owner", speaker: String = "") -> void:
 	_queue.append({"text": text, "kind": kind, "speaker": speaker})
 
@@ -315,6 +413,9 @@ func _update_typing(delta: float) -> void:
 			line.add_theme_constant_override("shadow_offset_y", 0)
 			line.set_meta("owner", true)
 			_owner_lines.append(line)
+		"self":
+			line.text = "(%s)" % msg.text
+			line.add_theme_color_override("font_color", SELF_COLOR)
 		"npc":
 			line.text = "%s: %s" % [msg.speaker, msg.text]
 			line.add_theme_color_override("font_color", NPC_COLOR)

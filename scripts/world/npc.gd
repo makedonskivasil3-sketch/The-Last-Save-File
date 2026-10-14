@@ -16,8 +16,17 @@ var name_color := Color("e8c48a")
 var dress_color := Color("c9733e")
 var hair_color := Color("5a3420")
 var skin_color := Color("e8c48a")
-## 0.6 = child, 1.0 = adult, 1.15 = tall.
-var height := 1.0
+## Darker clothes / trousers and accent colours for the sprite.
+var dark_color := Color("6b3a24")
+var accent_color := Color("e8c48a")
+## Sprite template: "adult", "dress", "apron", "child", "robe".
+var body_kind := "adult"
+## "", "sway", "hop", "wave", "read" (see PixelCharacter).
+var idle_style := ""
+## Emote shown the first time you come close ("!", "?", "...").
+var notice_emote := ""
+## Set by World while you're talking to them.
+var talking := false
 var player: Node2D
 ## Returns Array[String]: the lines for this conversation.
 var lines_provider: Callable
@@ -29,6 +38,10 @@ var hide_radius := 0.0
 
 var _delete_t := 0.0
 var _col: CollisionShape2D
+var _sprite: PixelCharacter
+var _emote := ""
+var _emote_t := 0.0
+var _noticed := false
 
 
 func setup(initial: State) -> void:
@@ -58,6 +71,22 @@ func is_present() -> bool:
 	return state == State.NORMAL or state == State.RESTRICTED
 
 
+## A little speech bubble over their head.
+func emote(text: String, duration: float = 1.6) -> void:
+	_emote = text
+	_emote_t = duration
+
+
+func sprite() -> PixelCharacter:
+	if _sprite == null:
+		_sprite = PixelCharacter.new(body_kind, {
+			"h": hair_color, "s": skin_color, "c": dress_color, "d": dark_color,
+			"a": accent_color, "w": Color("d8d0c0"), "l": dark_color.darkened(0.3),
+		})
+		_sprite.idle_style = idle_style
+	return _sprite
+
+
 func hides(pos: Vector2) -> bool:
 	return hide_radius > 0.0 and is_present() and pos.distance_to(global_position) < hide_radius
 
@@ -78,6 +107,21 @@ func interact() -> Dictionary:
 
 
 func _process(delta: float) -> void:
+	var s := sprite()
+	s.update(delta, Vector2.ZERO)
+	s.talking = talking
+	_emote_t = maxf(0.0, _emote_t - delta)
+	if is_present() and is_instance_valid(player):
+		var d := player.global_position.distance_to(global_position)
+		# They turn to watch you when you're close.
+		if d < 90.0 or talking:
+			s.look_at(global_position, player.global_position)
+		elif not talking:
+			s.facing = Vector2.DOWN
+		if d < 50.0 and not _noticed and notice_emote != "":
+			_noticed = true
+			emote(notice_emote)
+		s.waving = idle_style == "wave" and d < 70.0 and not talking
 	if state == State.DELETING:
 		_delete_t += delta
 		if _delete_t > 1.6:
@@ -99,20 +143,21 @@ func _draw() -> void:
 
 
 func _draw_body(desaturated: bool) -> void:
-	var grey := Color(0.45, 0.42, 0.4)
-	var dress := grey if desaturated else dress_color
-	var skin := Color(0.6, 0.58, 0.55) if desaturated else skin_color
-	var h := height
-	draw_rect(Rect2(-4, 6 - 11 * h, 8, 11 * h), dress)
-	draw_rect(Rect2(-3, 6 - 16 * h, 6, 5), skin)
-	draw_rect(Rect2(-4, 5 - 17 * h, 8, 2), hair_color)
-	# Eyes follow you.
-	var look := Vector2.ZERO
-	if is_instance_valid(player):
-		look = (player.global_position - global_position).normalized()
-	var eye := Vector2(roundf(look.x), clampf(roundf(look.y), 0.0, 1.0)) + Vector2(0, 8 - 16 * h)
-	draw_rect(Rect2(Vector2(-2, 0) + eye, Vector2(1, 1)), Color(0.1, 0.05, 0.05))
-	draw_rect(Rect2(Vector2(1, 0) + eye, Vector2(1, 1)), Color(0.1, 0.05, 0.05))
+	sprite().draw(self, {"grey": desaturated})
+	if _emote_t > 0.0 and state != State.DELETING:
+		_draw_emote()
+
+
+## Pops in, bobs, fades: a white bubble with a dark glyph.
+func _draw_emote() -> void:
+	var top := float(PixelCharacter.FEET_Y - sprite().height())
+	var pop := clampf((1.6 - _emote_t) * 8.0, 0.0, 1.0)
+	var y := top - 9.0 - pop * 2.0 + sin(_emote_t * 6.0)
+	var w := 4.0 + _emote.length() * 4.0
+	var a := clampf(_emote_t * 3.0, 0.0, 1.0)
+	draw_rect(Rect2(-w / 2.0, y, w, 9), Color(0.95, 0.93, 0.88, a))
+	draw_rect(Rect2(-1, y + 9, 2, 2), Color(0.95, 0.93, 0.88, a))
+	draw_string(ThemeDB.fallback_font, Vector2(-w / 2.0 + 2, y + 7.5), _emote, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.1, 0.06, 0.08, a))
 
 
 ## Deletion, in three beats: the body convulses in split colour, bursts into
@@ -122,16 +167,12 @@ func _draw_deletion(t: float) -> void:
 	if t < 0.45:
 		# Convulsing: RGB-split copies jump around the real body.
 		var k := (1.0 + t * 6.0) * glitch
-		draw_set_transform(Vector2(randf_range(-2, 2) * k, 0))
-		_draw_body(randf() < 0.5)
-		draw_set_transform(Vector2(-2 - randf() * 2.0 * k, 0))
-		_draw_tinted(Color(1.0, 0.1, 0.4, 0.6))
-		draw_set_transform(Vector2(2 + randf() * 2.0 * k, 0))
-		_draw_tinted(Color(0.3, 0.9, 1.0, 0.6))
-		draw_set_transform(Vector2.ZERO)
+		sprite().draw(self, {"offset": Vector2(randf_range(-2, 2) * k, 0), "grey": randf() < 0.5})
+		_draw_tinted(Color(1.0, 0.1, 0.4, 0.6), Vector2(-2 - randf() * 2.0 * k, 0))
+		_draw_tinted(Color(0.3, 0.9, 1.0, 0.6), Vector2(2 + randf() * 2.0 * k, 0))
 		for i in 6:
 			if randf() < 0.6:
-				draw_rect(Rect2(-8 - randf() * 4.0, -12 + i * 3, 16 + randf() * 8.0, 1), Color(NULL_COL, 0.9))
+				draw_rect(Rect2(-12 - randf() * 4.0, PixelCharacter.FEET_Y - sprite().height() + i * 4, 24 + randf() * 8.0, 1), Color(NULL_COL, 0.9))
 		return
 	# Colour explosion: pixels from the body fly outward and fall.
 	var s := t - 0.45
@@ -141,26 +182,25 @@ func _draw_deletion(t: float) -> void:
 		var h := fmod(absf(sin(float(i) * 12.9898 + npc_id.length()) * 43758.5453), 1.0)
 		var h2 := fmod(absf(sin(float(i) * 78.233) * 12345.678), 1.0)
 		var dir := Vector2.from_angle(h * TAU) * (0.3 + h2)
-		var p := Vector2(-4 + (i % 8), -12 + floori(i / 8.0) * 3) + dir * 42.0 * s + Vector2(0, 30.0 * s * s)
+		var p := Vector2(-8 + (i % 8) * 2, PixelCharacter.FEET_Y - sprite().height() + floori(i / 8.0) * 4) + dir * 48.0 * s + Vector2(0, 30.0 * s * s)
 		draw_rect(Rect2(p, Vector2.ONE * (2 if i % 3 == 0 else 1)), Color(palette[i % palette.size()], fade))
 	_draw_residue(1.0 - fade * 0.5)
 
 
-func _draw_tinted(c: Color) -> void:
-	var h := height
-	draw_rect(Rect2(-4, 6 - 16 * h, 8, 16 * h + 1), c)
+func _draw_tinted(c: Color, offset: Vector2 = Vector2.ZERO) -> void:
+	sprite().draw(self, {"solid": c, "offset": offset})
 
 
 ## Static that keeps crawling where someone used to be.
 func _draw_residue(strength: float) -> void:
 	for i in 3:
 		if randf() < 0.5 * strength:
-			var p := Vector2(randf_range(-6, 6), randf_range(5 - 17 * height, 6))
+			var p := Vector2(randf_range(-10, 10), randf_range(PixelCharacter.FEET_Y - sprite().height(), 6))
 			draw_rect(Rect2(p, Vector2(randf_range(1, 3), 1)), [Color(NULL_COL), Color.WHITE, Color(1, 0.15, 0.55)].pick_random())
 
 
 func _draw_outline() -> void:
 	_draw_residue(0.35)
 	var c := Color(NULL_COL, 0.35)
-	draw_rect(Rect2(-4, 5 - 17 * height, 8, 17 * height), c, false, 1.0)
+	draw_rect(Rect2(-8, PixelCharacter.FEET_Y - sprite().height(), 16, sprite().height()), c, false, 1.0)
 	draw_string(ThemeDB.fallback_font, Vector2(-34, 16), "%s.npc = null" % npc_id, HORIZONTAL_ALIGNMENT_CENTER, 68, 7, c)

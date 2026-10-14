@@ -39,6 +39,8 @@ var _jitter_timer := 0.0
 var _haunted := false
 var _haunt_timer := 3.0
 ## Animated by tweens during deaths, wins and quitting.
+## `memory` tints the screen for flashbacks.
+var memory_amount := 0.0
 var squeeze := 0.0
 var void_amount := 0.0
 var smear := 0.0
@@ -184,6 +186,14 @@ func _begin_haunting() -> void:
 	_haunted = true
 
 
+## Flashbacks: the picture goes soft, pale and cyan, like a memory.
+func memory(on: bool) -> void:
+	var tw := create_tween()
+	tw.tween_property(self, "memory_amount", 1.0 if on else 0.0, 0.6)
+	if on:
+		spike(0.5, 0.6)
+
+
 ## Quitting: the picture collapses like a CRT switching off.
 func power_off(duration: float = 0.8) -> void:
 	spike(0.6, duration)
@@ -226,6 +236,7 @@ func _process(delta: float) -> void:
 	_mat.set_shader_parameter("void_amount", void_amount)
 	_mat.set_shader_parameter("smear", smear * maxf(intensity, 0.3))
 	_mat.set_shader_parameter("invert", _invert)
+	_mat.set_shader_parameter("memory", memory_amount)
 
 	if shake_world:
 		_update_world_transform(delta, intensity)

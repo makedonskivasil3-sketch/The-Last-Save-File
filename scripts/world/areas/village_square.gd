@@ -22,12 +22,14 @@ const WREN_LINES := [
 	"Stand right next to me. The owner can't see what I'm standing beside. I don't know why.",
 	"There's a library east of here. Arin never goes there. Nobody does.",
 	"If they find out I hid you, they'll take me out of the save. It's okay. Go.",
+	"You look like someone who used to play here. Before. They fell in the well once. It was funny.",
 ]
 const TOBBEN_LINES := [
 	"Welcome to Tobben's! Finest wares in Ashvale!",
 	"Welcome to Tobben's! Finest... you don't have any gold. You don't have an inventory.",
 	"Welcome to... I have to tell them, you know. It's in my script.",
 	"I told them. I'm sorry. Welcome to Tobben's.",
+	"There used to be two names in my guest book. Now there's one. I don't remember the other.",
 ]
 
 var arin: OwnerAvatar
@@ -86,7 +88,10 @@ func build() -> void:
 	wren.display_name = "WREN"
 	wren.dress_color = Color("6a8f5a")
 	wren.hair_color = Color("c9a04a")
-	wren.height = 0.75
+	wren.body_kind = "child"
+	wren.idle_style = "hop"
+	wren.notice_emote = "!"
+	wren.dark_color = Color("4a6a3a")
 	wren.hide_radius = 22.0
 	wren.lines_provider = _wren_lines
 
@@ -94,7 +99,12 @@ func build() -> void:
 	tobben.display_name = "TOBBEN"
 	tobben.dress_color = Color("7a5a8a")
 	tobben.hair_color = Color("bbbbbb")
-	tobben.height = 1.1
+	tobben.body_kind = "apron"
+	tobben.idle_style = "wave"
+	tobben.notice_emote = "?"
+	tobben.skin_color = Color("e0b48a")
+	tobben.accent_color = Color("bbbbbb")
+	tobben.dark_color = Color("4a3a5a")
 	tobben.lines_provider = _tobben_lines
 	tobben.on_talk = _tobben_reports
 
@@ -132,6 +142,7 @@ func on_owner_event(threshold: float) -> void:
 			if "wren" in OwnerMemory.session_helpers and wren.delete():
 				world.fx.spike(0.8, 1.2)
 				world.director.say("she was hiding you. not anymore.")
+				world.voice("wren_deleted")
 				world.hud.say("wren.npc deleted", "system")
 		OwnerDirector.HUNT:
 			_unleash()
@@ -163,6 +174,7 @@ func _on_arin_sees(delta: float) -> void:
 	world.director.add_awareness(28.0 * delta)
 	if not _spotted_once:
 		_spotted_once = true
+		world.voice("see_arin")
 		world.director.say("there. by the %s." % _landmark(world.player.global_position))
 
 

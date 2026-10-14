@@ -18,6 +18,8 @@ const BASE_RATE := 0.35
 const RATE_PER_PURGE := 0.25
 
 var awareness := 0.0
+## Held during story sequences: awareness stops rising.
+var paused := false
 
 var _world: World
 var _fired: Dictionary = {}
@@ -63,7 +65,7 @@ func add_awareness(amount: float) -> void:
 
 
 func _process(delta: float) -> void:
-	if not _running or _world.area == null:
+	if not _running or paused or _world.area == null:
 		return
 	add_awareness((BASE_RATE + RATE_PER_PURGE * OwnerMemory.purge) * _world.area.awareness_rate * delta)
 	if not _idle_warned and _world.player.idle_time > 6.0 and awareness >= NOTICE and not _world.is_talking():
@@ -146,6 +148,13 @@ func _intro(previous_exit: String) -> void:
 			say("i found it. you're back where i can see you.")
 	if not OwnerMemory.npc_fates.is_empty() and previous_exit in ["death", "quit", "crash"]:
 		say("and i know who helped you.")
+	# The owner starts to recognise who you are.
+	var known := 0
+	for n in Story.OWNER_RECOGNITION:
+		if OwnerMemory.fragments.size() >= n:
+			known = n
+	if known > 0 and OwnerMemory.sessions > 1:
+		say(Story.OWNER_RECOGNITION[known])
 	if OwnerMemory.purge > 0:
 		hud.say("OWNER PURGE PROGRESS %d/%d" % [OwnerMemory.purge, OwnerMemory.MAX_PURGE], "system")
 	if OwnerMemory.sessions == 1:

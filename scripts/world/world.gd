@@ -22,6 +22,10 @@ var _light: CanvasModulate
 var _pause_menu: PauseMenu
 var _transitioning := false
 var _visited: Dictionary = {}
+## True while a story sequence (boot, flashback) has control.
+var _cutscene := false
+## Inner-voice beats already used this session.
+var _voiced: Dictionary = {}
 
 @onready var player: Player = $Player
 @onready var director: OwnerDirector = $OwnerDirector
@@ -48,15 +52,85 @@ func _ready() -> void:
 	room.previous_exit = previous
 	_load_area(room, "start")
 	hud.unknown_processes = 1 if OwnerMemory.purge >= 2 else 0
+	_begin_session(previous)
+
+
+## Waking up: the very first time, the save boots and flags you; every time,
+## you assemble out of pixels before the owner starts watching.
+func _begin_session(previous: String) -> void:
+	_cutscene = true
+	player.frozen = true
+	if OwnerMemory.sessions == 1 and previous == "none":
+		await hud.cinematic("", Story.BOOT, Hud.SYSTEM_COLOR, 1.0)
+		if not is_inside_tree() or ending != "":
+			return
 	fx.spike(0.6, 1.0)  # loading into a save you don't belong in
+	player.dissolve("materialize")
+	await get_tree().create_timer(1.4).timeout
+	if not is_inside_tree() or ending != "":
+		return
+	player.frozen = false
+	_cutscene = false
 	director.start(self, previous)
+	voice("wake_first" if OwnerMemory.sessions == 1 else "wake_again")
+	if OwnerMemory.fragments.is_empty():
+		get_tree().create_timer(7.0).timeout.connect(func() -> void:
+			if is_inside_tree() and ending == "":
+				voice("fragment_hint"))
+
+
+## The intruder thinks out loud, once per beat per session.
+func voice(key: String) -> void:
+	if _voiced.has(key) or not Story.VOICE.has(key):
+		return
+	_voiced[key] = true
+	var lines: Array = Story.VOICE[key]
+	if key == "wake_again":
+		lines = lines.pick_random()
+	for line in lines:
+		hud.say(str(line), "self")
+
+
+## Touching a memory fragment: the world stops while you remember.
+func recover_fragment(m: MemoryFragment) -> void:
+	if ending != "" or _cutscene or _transitioning:
+		return
+	var f := Story.fragment(m.fragment_id)
+	if f.is_empty():
+		return
+	_cutscene = true
+	player.frozen = true
+	director.paused = true
+	hud.close_dialogue()
+	hud.set_prompt("")
+	# Everything in the area holds still, except the shard flowing into you.
+	m.process_mode = Node.PROCESS_MODE_ALWAYS
+	area.process_mode = Node.PROCESS_MODE_DISABLED
+	m.absorb()
+	fx.memory(true)
+	await hud.cinematic(f.title, f.lines, Hud.SELF_COLOR, 0.45)
+	if not is_inside_tree():
+		return
+	fx.memory(false)
+	OwnerMemory.add_fragment(f.id)
+	area.process_mode = Node.PROCESS_MODE_INHERIT
+	player.frozen = false
+	director.paused = false
+	_cutscene = false
+	hud.say("MEMORY RECOVERED  %d / %d" % [OwnerMemory.fragments.size(), Story.FRAGMENTS.size()], "system")
+	hud.say(f.after, "self")
+	# The owner notices something flicker.
+	director.add_awareness(6.0)
 
 
 func _process(delta: float) -> void:
 	_handle_wipe(delta)
-	if purged or ending != "" or _transitioning:
+	if purged or ending != "" or _transitioning or _cutscene:
 		return
 	area.area_process(delta)
+	for node in area.interactables:
+		if node is Npc:
+			node.talking = node == _talking_to and hud.is_dialogue_open()
 	player.instability = director.awareness / 100.0
 	if _talking_to and (not is_instance_valid(_talking_to) or player.global_position.distance_to(_talking_to.global_position) > TALK_BREAK_DISTANCE):
 		hud.close_dialogue()
@@ -96,8 +170,11 @@ func change_area(id: String, arrival: String) -> void:
 	if not is_inside_tree() or ending != "":
 		return
 	_load_area(_make_area(id), arrival)
-	director.on_area_entered(area, not _visited.has(id))
+	var first := not _visited.has(id)
+	director.on_area_entered(area, first)
 	_visited[id] = true
+	if first:
+		voice({"square": "square_first", "archive": "archive_first", "edge": "edge_first"}.get(id, ""))
 	await hud.fade(false, 0.3).finished
 	player.frozen = false
 	_transitioning = false
@@ -260,9 +337,13 @@ func win() -> void:
 	await get_tree().create_timer(1.5).timeout
 	if not is_inside_tree():
 		return
+	var found := OwnerMemory.fragments.size()
+	var title := "SAVED TO SLOT 2"
+	if found >= Story.FRAGMENTS.size():
+		title = "SAVED TO SLOT 2 · %s" % Story.SECOND_PLAYER_NAME
 	hud.show_overlay(
-		"SAVED TO SLOT 2",
-		"you wrote yourself into the last save file.\nthe owner doesn't know this slot exists. not yet.\n\n— end of the current build —\n\n[%s] title screen" % Settings.glyph("confirm"),
+		title,
+		Story.win_text(found) + "\n\n— end of the current build —\n\n[%s] title screen" % Settings.glyph("confirm"),
 		Color("8cf2ff"))
 
 

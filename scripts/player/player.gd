@@ -31,6 +31,11 @@ var _t := 0.0
 ## "", "erased", "overwritten", "selected", "rescued"
 var _dissolve := ""
 var _dissolve_t := 0.0
+## A hood around nothing, two points of light.
+var _sprite := PixelCharacter.new("intruder", {
+	"g": Color("3fa6b8"), "v": Color("05070a"), "c": BODY, "e": Color("e8ffff"),
+	"l": Color("2f8a9a"), "f": Color("1c4e58"),
+})
 
 
 func _physics_process(delta: float) -> void:
@@ -43,7 +48,8 @@ func _physics_process(delta: float) -> void:
 	idle_time = idle_time + delta if dir == Vector2.ZERO else 0.0
 
 
-## Play the end-of-life (or rescue) animation for this cause.
+## Play the end-of-life (or rescue) animation for this cause, or
+## "materialize" to assemble out of pixels (waking up in the save).
 func dissolve(cause: String) -> void:
 	_dissolve = cause
 	_dissolve_t = 0.0
@@ -68,6 +74,9 @@ func _process(delta: float) -> void:
 			_trail.pop_back()
 	if _dissolve != "":
 		_dissolve_t += delta
+		if _dissolve == "materialize" and _dissolve_t > 1.4:
+			_dissolve = ""
+	_sprite.update(delta, velocity if not frozen else Vector2.ZERO)
 	queue_redraw()
 
 
@@ -80,21 +89,23 @@ func _draw() -> void:
 		return
 	# Chromatic ghost: a second copy of you, slightly out of sync.
 	var ghost_off := Vector2(1, 0) - _jitter + Vector2(sin(_t * 7.0), 0) * instability
-	draw_rect(Rect2(Vector2(-4, -10) + ghost_off, Vector2(8, 16)), GHOST)
+	_sprite.draw(self, {"offset": ghost_off, "solid": GHOST})
 	_draw_body(Vector2.ZERO, 1.0)
 
 
 func _draw_body(offset: Vector2, alpha: float) -> void:
 	var o := offset + _jitter
 	# Head, torso, legs: three slices that can tear apart independently.
-	draw_rect(Rect2(Vector2(-3 + _tear_rows[0], -10) + o, Vector2(6, 5)), Color(HEAD, alpha))
-	draw_rect(Rect2(Vector2(-4 + _tear_rows[1], -5) + o, Vector2(8, 6)), Color(BODY, alpha))
-	draw_rect(Rect2(Vector2(-4 + _tear_rows[2], 1) + o, Vector2(8, 5)), Color(BODY, alpha))
+	_sprite.draw(self, {"offset": o, "alpha": alpha, "slices": [_tear_rows[0], _tear_rows[1], _tear_rows[2]]})
+	# Your eyes glow a little into the dark.
+	if _sprite.facing != Vector2.UP:
+		draw_circle(o + _sprite.eye_position(), 5.0, Color(0.8, 1.0, 1.0, 0.08 * alpha))
 	# Torn slice edges flash the other colour.
+	var top := float(PixelCharacter.FEET_Y - _sprite.height())
 	for i in _tear_rows.size():
 		if _tear_rows[i] != 0.0:
-			var y := [-10.0, -5.0, 1.0][i] as float
-			draw_rect(Rect2(Vector2(-6 + _tear_rows[i] * 2.0, y) + o, Vector2(1, 4)), Color(1, 0.2, 0.5, 0.8 * alpha))
+			var y := top + [2.0, 11.0, 20.0][i] as float
+			draw_rect(Rect2(Vector2(-10 + _tear_rows[i] * 2.0, y) + o, Vector2(1, 6)), Color(1, 0.2, 0.5, 0.8 * alpha))
 
 
 func _draw_trail() -> void:
@@ -106,39 +117,49 @@ func _draw_trail() -> void:
 			continue
 		var a := strength * 0.22 * (1.0 - float(i) / TRAIL_LENGTH)
 		var c := Color(0.55, 0.95, 1.0, a) if i % 2 == 0 else Color(1.0, 0.25, 0.55, a)
-		draw_rect(Rect2(p + Vector2(-4, -10), Vector2(8, 16)), c)
+		_sprite.draw(self, {"offset": p, "solid": c})
 
 
 func _draw_dissolve() -> void:
 	var t := _dissolve_t
+	var top := float(PixelCharacter.FEET_Y - _sprite.height())
+	var h := float(_sprite.height())
 	match _dissolve:
+		"materialize":
+			# Pixels converge out of nowhere, then the body flickers in.
+			if t < 0.9:
+				_draw_scatter(0.9 - t, [BODY, HEAD, Color(1, 0.2, 0.5), Color.WHITE], 46.0)
+			else:
+				if randf() < (t - 0.9) * 2.5:
+					_draw_body(Vector2.ZERO, clampf((t - 0.9) * 2.0, 0.0, 1.0))
+				_draw_scatter(0.0, [BODY, Color.WHITE], 0.0)
 		"erased":
 			# Eaten from the feet up by black, red at the bite.
-			var eaten := clampf(t / 1.2, 0.0, 1.0) * 16.0
-			if eaten < 16.0:
+			var eaten := clampf(t / 1.2, 0.0, 1.0) * h
+			if eaten < h:
 				_draw_body(Vector2(randf_range(-1, 1), 0), 1.0)
-				draw_rect(Rect2(-5, 6 - eaten, 10, eaten), Color.BLACK)
-				draw_rect(Rect2(-5, 6 - eaten - 1, 10, 1), Color(0.95, 0.15, 0.1))
+				draw_rect(Rect2(-9, 6 - eaten, 18, eaten), Color.BLACK)
+				draw_rect(Rect2(-9, 6 - eaten - 1, 18, 1), Color(0.95, 0.15, 0.1))
 		"overwritten":
 			# Arin's colours sweep down over you, row by row.
-			var rows := clampf(t / 0.8, 0.0, 1.0) * 16.0
+			var rows := clampf(t / 0.8, 0.0, 1.0) * h
 			_draw_body(Vector2(randf_range(-2, 2), 0), 1.0)
-			draw_rect(Rect2(-4, -10, 8, rows), Color("5a7fb0"))
-			draw_rect(Rect2(-4, -10 + rows, 8, 1), Color.WHITE)
+			draw_rect(Rect2(-8, top, 16, rows), Color("5a7fb0"))
+			draw_rect(Rect2(-8, top + rows, 16, 1), Color.WHITE)
 		"selected":
 			# A selection box snaps around you, then you scatter into pixels.
 			if t < 0.35:
 				_draw_body(Vector2.ZERO, 1.0)
-				var s := 14.0 - t * 20.0
-				draw_rect(Rect2(Vector2(-s, -s - 2), Vector2(s, s) * 2.0), Color(0.55, 0.8, 1.0, 0.9), false, 1.0)
+				var s := 20.0 - t * 26.0
+				draw_rect(Rect2(Vector2(-s, -s - 6), Vector2(s, s) * 2.0), Color(0.55, 0.8, 1.0, 0.9), false, 1.0)
 			else:
 				_draw_scatter(t - 0.35, [BODY, HEAD, Color(1, 0.2, 0.5), Color.WHITE], 40.0)
 		"rescued":
 			# Pulled upward into the slot as a stretched cyan streak.
 			var stretch := clampf(t / 0.6, 0.0, 1.0)
 			var a := 1.0 - clampf((t - 0.6) / 0.6, 0.0, 1.0)
-			draw_rect(Rect2(-4 + stretch * 2.0, -10 - stretch * 60.0, 8 - stretch * 4.0, 16 + stretch * 60.0), Color(BODY, a))
-			draw_rect(Rect2(-1, -10 - stretch * 80.0, 2, 16 + stretch * 80.0), Color(1, 1, 1, a))
+			draw_rect(Rect2(-8 + stretch * 4.0, top - stretch * 60.0, 16 - stretch * 8.0, h + stretch * 60.0), Color(BODY, a))
+			draw_rect(Rect2(-1, top - stretch * 80.0, 2, h + stretch * 80.0), Color(1, 1, 1, a))
 
 
 ## Pixels flying apart from the body: deterministic per pixel, no allocations.
@@ -148,6 +169,6 @@ func _draw_scatter(t: float, palette: Array, speed_px: float) -> void:
 		var h := fmod(sin(float(i) * 12.9898) * 43758.5453, 1.0)
 		var h2 := fmod(sin(float(i) * 78.233) * 12345.678, 1.0)
 		var dir := Vector2.from_angle(h * TAU) * (0.4 + absf(h2))
-		var start := Vector2(-4 + (i % 8), -10 + floori(i / 8.0) * 3)
+		var start := Vector2(-8 + (i % 8) * 2, -18 + floori(i / 8.0) * 5)
 		var p := start + dir * speed_px * t * (1.0 + t)
 		draw_rect(Rect2(p, Vector2(1, 1) * (1 + (i % 2))), Color(palette[i % palette.size()], a))

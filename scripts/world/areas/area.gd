@@ -73,6 +73,8 @@ func setup_common() -> void:
 	erasure.setup(bounds, world.player)
 	erasure.caught_player.connect(func() -> void: world.kill("erased"))
 	add_child(erasure)
+	if not world.purged:
+		add_fragments.call_deferred()
 	var deaths := OwnerMemory.deaths_in(area_id)
 	for i in deaths.size():
 		var g := GhostMarker.new()
@@ -147,6 +149,19 @@ func add_npc(id: String, pos: Vector2, initial := Npc.State.NORMAL) -> Npc:
 	n.setup(Npc.State.DELETED if OwnerMemory.is_deleted(id) else initial)
 	interactables.append(n)
 	return n
+
+
+## Places this area's memory fragments that haven't been recovered yet.
+func add_fragments() -> void:
+	for f in Story.fragments_in(area_id):
+		if OwnerMemory.has_fragment(f.id):
+			continue
+		var m := MemoryFragment.new()
+		m.fragment_id = f.id
+		m.position = f.pos
+		m.player = world.player
+		m.touched.connect(world.recover_fragment)
+		add_child(m)
 
 
 func add_readable(title: String, pos: Vector2, look: Readable.Look, provider: Callable) -> Readable:

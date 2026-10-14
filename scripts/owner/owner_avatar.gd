@@ -22,12 +22,24 @@ var is_hidden: Callable
 var paused := false
 
 var _target := 0
+var _vel := Vector2.ZERO
+## The protagonist the owner loves: blue tunic, dark hair, a red scarf.
+var _sprite := PixelCharacter.new("adult", {
+	"h": HAIR, "s": SKIN, "c": BODY, "d": Color("2e3f5c"), "a": Color("c0392b"),
+	"l": Color("2e3f5c"), "f": Color("1a1a20"), "e": Color("101018"),
+})
 var _facing := Vector2.RIGHT
 var _seeing := false
 var _wait := 0.0
 
 
 func _physics_process(delta: float) -> void:
+	var before := position
+	_physics_step(delta)
+	_vel = (position - before) / maxf(delta, 0.0001)
+
+
+func _physics_step(delta: float) -> void:
 	if route.is_empty() or paused:
 		return
 	if _wait > 0.0:
@@ -58,7 +70,10 @@ func can_see(pos: Vector2) -> bool:
 	return not (is_hidden.is_valid() and is_hidden.call(pos))
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_sprite.update(delta, _vel if not paused else Vector2.ZERO)
+	if not _sprite.moving:
+		_sprite.look_at(Vector2.ZERO, _facing)
 	queue_redraw()
 
 
@@ -70,8 +85,10 @@ func _draw() -> void:
 		var ang := _facing.angle() - view_angle * 0.5 + view_angle * i / 8.0
 		pts.append(Vector2.from_angle(ang) * view_distance)
 	draw_colored_polygon(pts, Color(VIEW_COL, a))
-	draw_rect(Rect2(-4, -5, 8, 11), BODY)
-	draw_rect(Rect2(-3, -10, 6, 5), SKIN)
-	draw_rect(Rect2(-4, -11, 8, 2), HAIR)
+	_sprite.waving = _seeing  # points at you
+	_sprite.draw(self)
 	if _seeing:
-		draw_string(ThemeDB.fallback_font, Vector2(-2, -14), "!", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, VIEW_COL)
+		# An alert bubble, owner-orange.
+		var y := float(PixelCharacter.FEET_Y - _sprite.height()) - 12.0 + sin(Time.get_ticks_msec() * 0.015)
+		draw_rect(Rect2(-4, y, 8, 9), Color(0.95, 0.93, 0.88))
+		draw_string(ThemeDB.fallback_font, Vector2(-1.5, y + 7.5), "!", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, VIEW_COL)

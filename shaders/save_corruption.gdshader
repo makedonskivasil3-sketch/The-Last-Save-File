@@ -35,6 +35,7 @@ uniform vec4 wash : source_color = vec4(0.0);           // full-screen colour fl
 uniform float void_amount : hint_range(0.0, 1.0) = 0.0; // erased: the screen gets eaten in blocks
 uniform float smear : hint_range(0.0, 1.0) = 0.0;       // overwritten: rows dragged sideways
 uniform float invert : hint_range(0.0, 1.0) = 0.0;      // selected: negative flash
+uniform float memory : hint_range(0.0, 1.0) = 0.0;      // flashbacks: soft, pale, cyan
 
 uniform vec2 game_size = vec2(640.0, 360.0);
 
@@ -91,7 +92,7 @@ void fragment() {
 	uv.x -= smear * hash(vec2(floor(uv.y * 90.0), floor(t * 24.0))) * 0.25;
 
 	// 7. Chromatic aberration, stronger toward the edges of the glass.
-	float ca = (0.0012 + a * 0.0045 + glitch * 0.012 + noise_burst * 0.012 + edge_mode * 0.002) * max(intensity, 0.25);
+	float ca = (0.0012 + a * 0.003 + glitch * 0.012 + noise_burst * 0.012 + edge_mode * 0.002) * max(intensity, 0.25);
 	vec2 dir = (uv - 0.5) * 2.0;
 	vec3 col;
 	col.r = texture(screen_texture, uv + dir * ca + vec2(ca * 0.6, 0.0)).r;
@@ -102,6 +103,8 @@ void fragment() {
 	float lum = dot(col, vec3(0.299, 0.587, 0.114));
 	col = mix(col, vec3(lum), a * 0.55);
 	col *= mix(vec3(1.0), vec3(1.28, 0.72, 0.92), a * 0.75);
+	// Flashback: pale cyan monochrome, lifted blacks, like an old photo of a screen.
+	col = mix(col, vec3(lum) * vec3(0.7, 1.0, 1.1) + vec3(0.04, 0.07, 0.08), memory * 0.8);
 	// The Edge: cold and colourless.
 	col = mix(col, vec3(lum) * vec3(0.75, 0.95, 1.2), edge_mode * 0.55);
 

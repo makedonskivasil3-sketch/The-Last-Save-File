@@ -41,7 +41,10 @@ func build() -> void:
 	archivist.name_color = Color("8cf2ff")
 	archivist.dress_color = Color("3a4a6a")
 	archivist.hair_color = Color("d8d8e0")
-	archivist.height = 1.15
+	archivist.body_kind = "robe"
+	archivist.idle_style = "read"
+	archivist.notice_emote = "..."
+	archivist.accent_color = Color("c8a040")
 	archivist.lines_provider = _archivist_lines
 
 	add_readable("SESSION LOG", Vector2(180, 138), Readable.Look.BOOK, _session_log)
@@ -55,6 +58,20 @@ func catch_up() -> void:
 
 
 func _archivist_lines() -> Array:
+	return _archivist_core() + [_fragment_comment()]
+
+
+## What the Archivist says about the pieces of yourself you've found.
+func _fragment_comment() -> String:
+	var n := OwnerMemory.fragments.size()
+	if n == 0:
+		return "Things like you leave pieces behind when they're deleted. Look for anything your colour."
+	if n < Story.FRAGMENTS.size():
+		return "You've found %d piece%s of yourself. There are %d. I can count them on you." % [n, "" if n == 1 else "s", Story.FRAGMENTS.size()]
+	return "You remember now. I wondered when you would. Hello, %s." % Story.SECOND_PLAYER_NAME.capitalize()
+
+
+func _archivist_core() -> Array:
 	if world.flags.get("pointer", false):
 		return [
 			"North. Through the square, up the road that isn't loaded.",

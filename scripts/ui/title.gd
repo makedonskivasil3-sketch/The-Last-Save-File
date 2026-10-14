@@ -77,7 +77,8 @@ func _build_slot_card() -> void:
 
 	if OwnerMemory.wins > 0:
 		var two := Label.new()
-		two.text = "SLOT 2   ·   ???   ·   LV 1   ·   00:00:%02d" % mini(OwnerMemory.wins, 59)
+		var who := Story.SECOND_PLAYER_NAME if OwnerMemory.fragments.size() >= Story.FRAGMENTS.size() else "???"
+		two.text = "SLOT 2   ·   %s   ·   LV 1   ·   00:00:%02d" % [who, mini(OwnerMemory.wins, 59)]
 		two.add_theme_font_size_override("font_size", 10)
 		two.add_theme_color_override("font_color", UiStyle.INTRUDER)
 		v.add_child(two)
