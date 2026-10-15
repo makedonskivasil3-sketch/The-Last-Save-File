@@ -36,6 +36,9 @@ var _sprite := PixelCharacter.new("adult", {
 var _facing := Vector2.RIGHT
 var _seeing := false
 var _wait := 0.0
+## Arin's footsteps, positional: you hear which side they're coming from.
+var _steps: AudioStreamPlayer2D
+var _last_step := 0
 
 
 func _physics_process(delta: float) -> void:
@@ -93,8 +96,23 @@ func can_see(pos: Vector2) -> bool:
 	return not (is_hidden.is_valid() and is_hidden.call(pos))
 
 
+func _ready() -> void:
+	_steps = AudioStreamPlayer2D.new()
+	_steps.bus = "SFX"
+	_steps.max_distance = 300.0
+	_steps.attenuation = 1.6
+	add_child(_steps)
+
+
 func _process(delta: float) -> void:
-	_sprite.update(delta, _vel if not paused else Vector2.ZERO)
+	_sprite.update(delta, _vel if not paused and stunned <= 0.0 else Vector2.ZERO)
+	var step := _sprite.step_frame()
+	if step != _last_step and step % 2 == 1:
+		_steps.stream = Sfx.stream("step_%d" % (step >> 1))
+		_steps.volume_db = -8.0
+		_steps.pitch_scale = randf_range(0.75, 0.85)  # heavier than yours
+		_steps.play()
+	_last_step = step
 	if not _sprite.moving:
 		_sprite.look_at(Vector2.ZERO, _facing)
 	queue_redraw()

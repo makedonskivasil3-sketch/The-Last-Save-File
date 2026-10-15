@@ -18,6 +18,13 @@ func _ready() -> void:
 	Sfx.prewarm()  # build the common sounds while the title is up
 	($ScreenFX/Effect as ScreenFx).shake_world = false  # no world layer here
 	get_tree().paused = false
+	# The theme, as far as you remember it.
+	var music := AudioStreamPlayer.new()
+	music.bus = "Music"
+	music.stream = MusicBox.stream(OwnerMemory.fragments.size())
+	music.volume_db = -22.0
+	add_child(music)
+	music.play()
 	var touch := TouchControls.new()
 	touch.buttons_enabled = false
 	add_child(touch)
@@ -130,7 +137,9 @@ func _slot_status() -> String:
 
 
 func _start() -> void:
-	get_tree().change_scene_to_file(GAME_SCENE)
+	# Deferred: on touch screens the tap that pressed the button is still being
+	# delivered (as an emulated mouse event) when this runs.
+	get_tree().change_scene_to_file.call_deferred(GAME_SCENE)
 
 
 func _show_menu() -> void:

@@ -149,6 +149,33 @@ WREN hops by some crates. TOBBEN waves from the stall.*
 **TOBBEN:** I told them. I'm sorry. Welcome to Tobben's.
 **TOBBEN:** There used to be two names in my guest book. Now there's one. I don't remember the other.
 
+*After a couple of talks, Wren asks:*
+
+**WREN:** I want to see the Edge. Before they delete me. Will you take me with you?
+
+> **CHOICE:** *Take her with you* / *Not now*
+
+*If you take her:*
+**WREN:** Really? Okay. Okay! I'll be quiet. I'll be so quiet.
+**CONSOLE:** `wren.npc · following`
+**THE OWNER:** > where are you taking her?
+
+*She walks your exact footsteps, slower than you. You can't leave a place until she catches up:*
+**RUE:** (wait for wren.)
+
+*When the owner is suspicious, a red ring fills over her.*
+**THE OWNER:** > and you. wren.npc. delete.
+*If Rue glitches, the deletion breaks:*
+**THE OWNER:** > ...fine. later.
+*If it fills:*
+**CONSOLE:** `wren.npc deleted`
+**THE OWNER:** > she wanted to see the edge. now she won't see anything.
+**RUE:** (...wren?)
+**RUE:** (i promised her the edge.)
+
+*If Rue says not now:*
+**WREN:** That's okay. Maybe next time. If there is one.
+
 *The well. A sign on it reads `WELL · out of order`. Rue looks down. Something down
 there is cyan.*
 
@@ -263,6 +290,15 @@ shrinking into the world.*
 **RUE:** (the world just... stops.)
 **RUE:** (there's something in the corner. it's the same colour as me.)
 
+*If Wren made it here with you:*
+**WREN:** So this is the Edge.
+**WREN:** It's not finished. Nobody finished it. Nobody finished me either.
+**WREN:** It's the most beautiful thing I've ever seen.
+**CONSOLE:** `wren.npc · moved to CUT CONTENT`
+**THE OWNER:** > where did she go. she's not in the list anymore.
+*(From now on the owner can never delete her. In later runs:)*
+**WREN:** I saw the Edge. I'm not afraid of them anymore.
+
 > **MEMORY · THE LAST TIME**
 > "you never come round anymore."
 > "it's my console."
@@ -287,24 +323,25 @@ cursor selects anything that holds still. Lure it away, then run.*
 
 ---
 
-## EPILOGUE
+## SLOT 2 — THE CHOICE
 
-*Rue streaks upward into the slot. White. Then the load menu, letterboxed.*
+*Rue stands in Slot 2 and writes. The world freezes.*
 
-**If Rue remembers fewer than 3 memories:**
+> **SLOT 2 · EMPTY. Whose name goes here?**
+> *Write yourself in* (or *Write RUE*, once you remember) / *Give Slot 2 to Wren* (only if she's with you) / *Leave the slot to the owner, with a message*
 
-> SAVED TO SLOT 2
+*The music box plays through every epilogue, as far as Rue remembers it. Only the true ending hears
+it complete.*
+
+### Ending I — Escape (write yourself in)
+
+*Rue streaks upward into the slot.*
+
+**With fewer than five memories:**
 > you wrote yourself into the last save file.
-> the owner doesn't know this slot exists. not yet.
+> you load in somewhere the owner has never looked.
 
-**If Rue remembers 3 or 4:**
-
-> SAVED TO SLOT 2
-> you wrote yourself into the last save file.
-> you almost remember whose it was.
-
-**If Rue remembers all 5 (the true ending):**
-
+**With all five (the true ending):**
 ```
 LOAD GAME
 SLOT 1  ·  ARIN  ·  LV 7  ·  14:22
@@ -316,12 +353,63 @@ SLOT 2  ·  RUE   ·  LV 1  ·  00:00
 > > i kept your controller. it's still under the couch.
 > it presses LOAD.
 
-**If Pip came too, the last line of any ending:**
+*Title afterwards:* `SLOT 2 · RUE` (or `???`). *Next time:* **THE OWNER:** > there's a second slot. you hid in it.
 
-> a small orange fox curls up at the bottom of the screen. nobody saved it. it came anyway.
+### Ending II — Give it to Wren
 
-*Title screen. From now on it shows a second save slot. With all five memories it
-reads `SLOT 2 · RUE`.*
+> NEW GAME · SLOT 2 · WREN
+> a girl with pigtails stands at the start of a whole new world. nobody has ever deleted anything here.
+> **WREN:** aren't you coming?
+> **RUE:** (no. it only fits one. go.)
+> *(with all five memories)* **RUE:** (i know my name now. i don't need a slot to keep it.)
+> the owner finds a save they don't remember making. they leave it alone.
+
+*End card:* you gave the last save file away. you're still out here, in someone else's save. but
+someone is safe because of you.
+*Title afterwards:* `SLOT 2 · WREN · NEW GAME`. *Next time:* **THE OWNER:** > there's a new save in
+slot 2. a girl. i don't remember making her. > i'm leaving her alone. you, i'm not.
+
+### Ending III — The message (hand the slot back)
+
+> **What do you write?** *i'm sorry i stopped coming.* / *you can keep the save. i just wanted to be
+> remembered.* / *please don't delete me again.*
+
+> you write it into the empty slot, one letter at a time.
+> somewhere outside the screen, the owner reads it for a long time.
+> *(with all five memories)* > ...rue? > i didn't know you were still in there. > *(by message)*
+> i stopped waiting. i shouldn't have. / i kept your controller. it's still under the couch. / i
+> won't. i promise. > i'm going to call you. the real you.
+> *(otherwise)* > who wrote this. > ...i'm not going to delete it.
+> the eraser stops. the cursor goes still. for the first time, the save is quiet.
+
+*The purge resets; everyone deleted comes back.* *Title afterwards:* the tagline reads **"someone is
+waiting."** and slot 2 holds `(a message for you)`. *Next time:* **THE OWNER:** > i read your message.
+> i still don't know what to do with you. so i'm just going to watch.
+
+**If Pip came, the last line of any ending:** a small orange fox curls up at the bottom of the screen.
+nobody saved it. it came anyway. *(With Wren: it jumps into the new game after her.)*
+
+---
+
+## Rue's glitches (and what the owner says)
+
+Every glitch costs awareness. The first time each is used in a session, the owner reacts:
+
+| Glitch | The owner |
+| --- | --- |
+| Phase through a wall | > you can't walk through walls. |
+| Freeze Arin | > arin? ARIN. |
+| Falsify a note | > i didn't write that. |
+| Unlock the door | > that door is locked. i locked it. |
+| Decoy | > there you— no. |
+| Scrub the eraser | > stop undoing my work. |
+| Blind the cursor | > i can't see. why can't i see. |
+| Restore someone | > i deleted them. i DELETED them. |
+| Pause the owner | > ...why won't it move. |
+
+And the owner plays back: **> no. loading autosave.** (the reload), **> saving over you.** (the save
+ring; broken by any glitch: **> ...the save failed. what did you do.**), **> no. not that way.** (the
+crates across the road), **> i know where you like to walk.** (Arin's learned route).
 
 ---
 

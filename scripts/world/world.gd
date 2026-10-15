@@ -43,6 +43,8 @@ var escort: Npc
 var _crumbs: Array[Vector2] = []
 ## The owner's active moves: reloading, saving over you, dragging props.
 var owner_moves: OwnerMoves
+## The current area's sound bed.
+var _ambience: Ambience
 ## Brackets around whatever [E] would act on.
 var _focus_marker: FocusMarker
 ## False until you've woken up: area intros (act cards) wait for it.
@@ -153,11 +155,12 @@ func recover_fragment(m: MemoryFragment) -> void:
 	m.absorb()
 	fx.memory(true)
 	Sfx.play("fragment")
-	# The world goes muffled and a music box plays while you remember.
+	# The world goes muffled and the music box plays while you remember: the
+	# theme with this memory's layer added, so you hear it grow.
 	Sfx.muffle(true, 500.0)
 	var music := AudioStreamPlayer.new()
 	music.bus = "Memory"
-	music.stream = Sfx.stream("memory_loop")
+	music.stream = MusicBox.stream(OwnerMemory.fragments.size() + 1)
 	music.volume_db = -40.0
 	add_child(music)
 	music.play()
@@ -320,6 +323,11 @@ func _load_area(next: Area, arrival: String) -> void:
 				_wren_sees_edge.call_deferred()
 	if not purged:
 		area.catch_up()
+		if _ambience:
+			_ambience.queue_free()
+		_ambience = Ambience.new()
+		add_child(_ambience)
+		_ambience.setup(self, area.area_id)
 
 
 ## The first time ever you reach an act's area: its title card. Otherwise
@@ -793,6 +801,14 @@ func win(chosen := "escape", message := 0) -> void:
 	fx.awareness_target = 0.0
 	fx.memory(true)
 	drone.tension = 0.0
+	# The theme, as far as you remember it: complete only in the true ending.
+	var theme := AudioStreamPlayer.new()
+	theme.bus = "Memory"
+	theme.stream = MusicBox.stream(found)
+	theme.volume_db = -30.0
+	add_child(theme)
+	theme.play()
+	create_tween().tween_property(theme, "volume_db", -6.0, 2.0)
 	await hud.cinematic("EPILOGUE", epilogue, Hud.SELF_COLOR, 1.0)
 	if not is_inside_tree():
 		return

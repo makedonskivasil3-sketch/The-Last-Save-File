@@ -34,6 +34,8 @@ const LEVEL := {
 	"step": -27.0, "heartbeat": -5.0,
 	"glitch_charge": -10.0, "glitch_fire": -4.0, "phase": -6.0, "glitch_learn": -6.0,
 	"owner_pause": -6.0, "owner_unpause": -7.0,
+	"wind": -18.0, "bird": -20.0, "murmur": -24.0, "archive_hum": -16.0, "page_turn": -18.0,
+	"air": -20.0, "owner_voice": -16.0, "cursor_hum": -10.0,
 }
 ## Loud, sudden or piercing sounds that Reduce flashing / glitch intensity tame.
 const HARSH := ["deletion", "erase_start", "cursor_arrive", "select_loop", "click",
@@ -50,7 +52,7 @@ const PREWARM := ["key_owner_0", "key_owner_1", "key_owner_2", "key_system", "ke
 	"erase_cell_1", "erase_start", "wound_open", "seal", "fragment", "cursor_arrive",
 	"select_loop", "click", "purge_bell", "heartbeat", "death_erased", "death_overwritten",
 	"death_selected", "power_off", "unload", "win", "memory_loop", "glitch_charge", "glitch_fire",
-	"phase", "glitch_learn", "owner_pause", "owner_unpause"]
+	"phase", "glitch_learn", "owner_pause", "owner_unpause", "owner_voice", "cursor_hum"]
 
 var _cache: Dictionary = {}
 var _queue: Array = []
@@ -144,6 +146,20 @@ func type_key(kind: String) -> void:
 			play("key_self", 0.0, 1.0, 0.08)
 		_:
 			play("key_system", 0.0, 1.0, 0.05)
+
+
+## The owner "speaks" their lines: a low, slightly wrong voice blip per
+## letter, its pitch following the letter (vowels lift it), like Undertale.
+func owner_blip(letter: String) -> void:
+	var now := Time.get_ticks_msec()
+	if now - _last_key < 38 or letter.strip_edges() == "":
+		return
+	_last_key = now
+	var code := letter.to_lower().unicode_at(0)
+	var pitch := 0.8 + float(code % 7) * 0.035
+	if letter.to_lower() in ["a", "e", "i", "o", "u"]:
+		pitch += 0.12
+	play("owner_voice", 0.0, pitch, 0.02)
 
 
 ## A dialogue blip in the speaker's voice.
@@ -478,6 +494,72 @@ func _build(name: String) -> AudioStreamWAV:
 			S.lowpass(b, 0.3)
 			S.normalize(b, 0.8)
 			return S.to_wav(b)
+		# The owner's voice: a low square formant with a detuned shadow.
+		"owner_voice":
+			var b := S.begin(0.07)
+			S.tone(b, 0.0, 0.07, 150.0, 140.0, 0.5, W.SQUARE, 0.002, 28.0)
+			S.tone(b, 0.0, 0.07, 153.0, 142.0, 0.35, W.SAW, 0.002, 28.0)
+			S.lowpass(b, 0.25)
+			S.normalize(b, 0.7)
+			return S.to_wav(b)
+		# The cursor's presence: an electrical hum (loop; positional).
+		"cursor_hum":
+			var b := S.begin(1.0, 11025)
+			S.tone(b, 0.0, 1.0, 220.0, 220.0, 0.4, W.SAW, 0.0, 0.0)
+			S.tone(b, 0.0, 1.0, 330.0, 330.0, 0.2, W.SQUARE, 0.0, 0.0)
+			S.lowpass(b, 0.3)
+			for i in b.size():
+				b[i] *= 0.7 + 0.3 * sin(TAU * 6.0 * i / S.rate)
+			S.normalize(b, 0.6)
+			return S.to_wav(b, true)
+		# Ashvale's air: soft wind (loop).
+		"wind":
+			var b := S.begin(4.3, 11025)
+			S.noise(b, 0.0, 4.3, 0.6, 0.0, 0.0, 0.03)
+			for i in b.size():
+				b[i] *= 0.6 + 0.4 * sin(TAU * 0.5 * i / S.rate)
+			S.loop_crossfade(b, 0.3)
+			S.normalize(b, 0.6)
+			return S.to_wav(b, true)
+		# A bird, somewhere off-screen.
+		"bird":
+			var b := S.begin(0.35)
+			S.tone(b, 0.0, 0.12, 2600.0, 3400.0, 0.4, W.SINE, 0.005, 25.0)
+			S.tone(b, 0.15, 0.15, 3000.0, 2400.0, 0.35, W.SINE, 0.005, 20.0)
+			return S.to_wav(b)
+		# Distant villagers talking: muffled voice-like blips.
+		"murmur":
+			var b := S.begin(0.9, 11025)
+			var t := 0.0
+			while t < 0.75:
+				S.tone(b, t, 0.1, randf_range(150.0, 260.0), randf_range(140.0, 240.0), 0.4, W.SQUARE, 0.01, 18.0)
+				t += randf_range(0.08, 0.16)
+			S.lowpass(b, 0.08)
+			S.normalize(b, 0.5)
+			return S.to_wav(b)
+		# The Archive's lights: a low, slightly beating hum (loop).
+		"archive_hum":
+			var b := S.begin(4.0, 11025)
+			S.tone(b, 0.0, 4.0, 60.0, 60.0, 0.4, W.SINE, 0.0, 0.0)
+			S.tone(b, 0.0, 4.0, 120.25, 120.25, 0.2, W.SINE, 0.0, 0.0)
+			S.tone(b, 0.0, 4.0, 180.0, 180.0, 0.1, W.TRIANGLE, 0.0, 0.0)
+			S.normalize(b, 0.5)
+			return S.to_wav(b, true)
+		# A page turning, somewhere in the stacks.
+		"page_turn":
+			var b := S.begin(0.4)
+			S.noise(b, 0.0, 0.35, 0.6, 0.05, 8.0, 0.5, 0.9, true)
+			S.gate(b, 0.0, 0.3, 40.0, 0.7)
+			S.normalize(b, 0.6)
+			return S.to_wav(b)
+		# Out of bounds: thin, high air (loop).
+		"air":
+			var b := S.begin(4.3, 11025)
+			S.noise(b, 0.0, 4.3, 0.4, 0.0, 0.0, 0.6, -1.0, true)
+			S.lowpass(b, 0.5)
+			S.loop_crossfade(b, 0.3)
+			S.normalize(b, 0.4)
+			return S.to_wav(b, true)
 		# A mouse button. Plastic, close, final.
 		"click":
 			var b := S.begin(0.12)

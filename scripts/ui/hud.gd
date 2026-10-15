@@ -649,7 +649,10 @@ func _update_typing(delta: float) -> void:
 		var n := mini(int(_typed), full.length())
 		# One key sound per new visible character (the sound rate-limits itself).
 		if n > int(_typed - TYPE_SPEED * delta) and n > 0 and n <= full.length() and full[n - 1] != " ":
-			Sfx.type_key(_typing.get_meta("kind", "system"))
+			if _typing.get_meta("kind", "") == "owner":
+				Sfx.owner_blip(full[n - 1])  # the owner "speaks"
+			else:
+				Sfx.type_key(_typing.get_meta("kind", "system"))
 		if _typing.has_meta("owner") and n < full.length() and Settings.glitch_intensity > 0.0:
 			# The owner's text arrives wrong first: garbage ahead of the cursor
 			# that resolves into the real letters as they're typed.

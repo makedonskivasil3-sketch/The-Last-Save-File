@@ -32,6 +32,8 @@ var _arrive := 1.0  # 1 -> 0 as it materialises
 var _fx: ScreenFx
 ## Rising whine while it hovers over you.
 var _whine: AudioStreamPlayer
+## The cursor's hum, positional: louder as it closes in.
+var _hum: AudioStreamPlayer2D
 var _t := 0.0
 var _done := false
 
@@ -43,6 +45,14 @@ func _ready() -> void:
 		_fx.cursor_arrives()
 	Sfx.play("cursor_arrive")
 	_whine = Sfx.loop_player("select_loop", self)
+	_hum = AudioStreamPlayer2D.new()
+	_hum.bus = "SFX"
+	_hum.stream = Sfx.stream("cursor_hum")
+	_hum.max_distance = 360.0
+	_hum.attenuation = 1.4
+	_hum.volume_db = Sfx.LEVEL["cursor_hum"] + linear_to_db(maxf(Sfx.harshness(), 0.05))
+	add_child(_hum)
+	_hum.play()
 
 
 ## The owner grabs a prop and drags it to `to` (to block your way).

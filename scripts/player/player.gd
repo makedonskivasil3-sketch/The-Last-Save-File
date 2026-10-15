@@ -70,6 +70,10 @@ var _startle_mark := 0.0
 
 func _ready() -> void:
 	refresh_look(false)
+	# Positional sound (Arin's footsteps, the cursor's hum) is heard from Rue.
+	var ear := AudioListener2D.new()
+	add_child(ear)
+	ear.make_current()
 
 
 ## Rebuild the palette from how many memory fragments you have. With

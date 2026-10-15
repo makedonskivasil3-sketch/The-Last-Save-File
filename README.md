@@ -45,9 +45,10 @@ out. The whole story, as a readable script, is in **[docs/STORY_SCRIPT.md](docs/
 | Keyboard | Gamepad | Action |
 | --- | --- | --- |
 | WASD / Arrows | Left stick / D-pad | Move |
-| E / Space | A | Interact: read, talk, advance dialogue |
+| E / Space | A | Tap: interact (read, talk, advance dialogue). **Hold: glitch** whatever is in the pink brackets (see [Glitches](#glitches)) |
 | Esc | Start | Pause menu (Resume · Settings · Quit). Quitting counts, and the menu warns you first. |
 | Hold F9 | | Wipe the owner's memory (debug / "new game") |
+| F5 / F6 / F7 / F8 / F10 / F11 | | Debug (editor, debug builds, or the web build with `?debug=1`): all glitches · load last save · save over you · drag the crates · jump to Slot 2 · Wren joins you. Also under **Pause → Debug**, for phones. |
 
 **On a phone or tablet** (in the browser): turn it sideways. Drag anywhere on the left side to
 move (a joystick appears under your thumb), tap **E** (bottom right) to interact or advance text,
@@ -133,6 +134,61 @@ The owner's memory is stored at `user://owner_memory.json`:
 - macOS: `~/Library/Application Support/Godot/app_userdata/The Last Save File/`
 
 ---
+
+## Glitches
+
+Rue can corrupt the owner's reality. **Hold E** (or the E button on a phone) on whatever is in the
+pink brackets: a ring charges around Rue, a buzz rises, and the glitch fires. A tap of E still just
+interacts. **Every glitch costs awareness**: the cost flies up into the meter and the owner feels the
+save twitch (and says so, the first time). Stronger glitches cost more. Four work from the start,
+and each recovered memory unlocks one more (a big *NEW GLITCH* card says so).
+
+| Memories | Glitch | Cost | What it does |
+| --- | --- | --- | --- |
+| 0 | **Phase** | +8 | Facing a wall: slip through it (up to ~50 px). Out of bounds, it jumps gaps in the floor. Patched seams, crates, missing textures... |
+| 0 | **Freeze** | +6 | Arin (or anyone) stops dead for 2 s: no moving, no seeing, no overwriting. |
+| 0 | **Falsify** | +4 | A note or the notice board lies ("ALL CLEAR."): the owner relaxes and awareness rises far slower for 15 s. Tobben's report becomes a lie too. |
+| 0 | **Unlock** | +10 | The locked door glitches open for 5 s: a second way out of Arin's room. |
+| 1 | **Decoy** | +7 | Hold while running: leave a stale frame of yourself. Arin walks at it and the cursor selects it. |
+| 2 | **Scrub** | +9 | Wipe the eraser's void back into floor around you. |
+| 3 | **Blind** | +10 | The cursor goes grey and can't see you for 3 s. |
+| 4 | **Restore** | +20 | Bring back someone the owner deleted, for good. |
+| 5 | **Pause** | +15 | Hold standing still: the owner's world stops for 6 s (everything but Rue). |
+
+The code is `scripts/player/glitch.gd` (definitions, costs, unlocks, owner reactions) and
+`scripts/player/glitch_controller.gd` (hold, targeting, charging, firing, feedback).
+
+## The owner's moves
+
+The owner doesn't just watch; they play (`scripts/owner/owner_moves.gd`). None of this happens where
+the owner can't see (the Archive, out of bounds).
+
+| Move | When | What happens |
+| --- | --- | --- |
+| **Load Last Save** | Your 3rd glitch since the last reload (once noticed), or once at 65% | `◀◀ LOADING AUTOSAVE`: Rue is dragged back along her own path ~10 s, Arin and the cursor snap back, and every glitch effect is undone (freezes, blinds, lies, the glitched door, decoys). Never into the void. |
+| **Saving Over You** | From the hunt, every ~35 s, or when you stand still too long under suspicion | A save ring fills over Rue: fast while you stand still, slowly while you move. **Any glitch interrupts it.** If it fills, you're overwritten. |
+| **Drag** | In the square during the hunt, when you head for a road | The cursor grabs the crate stack and drags it across that road. Phase through it, or wait for it to be dragged back. |
+| **Route memory** | When a session ends badly | Where Arin saw you is remembered. Next time Arin's patrol detours through those spots (one more each session, up to three), and the owner tells you so. |
+
+## Wren, and the three endings
+
+**Wren's escort.** Talk to Wren a few times and she asks to see the Edge before they delete her. A
+choice: take her or not. Escorting her is risky: she's slow (she walks your exact footsteps at 2/3 your
+speed), you can't leave an area until she catches up, Arin seeing her raises awareness, the owner
+notices you faster, and from 40% on the owner tries to delete her (a red ring over her; any glitch
+interrupts it). Lose her and she's gone for good. Get her to the Edge and she has her moment there:
+she's logged as *cut content*, and the owner can never delete her again, in any future run.
+
+**Slot 2.** When Rue finishes writing herself into Slot 2, the world freezes and you choose:
+
+| Choice | Ending |
+| --- | --- |
+| **Write yourself in** (*Write RUE* once you remember) | Escape. With all five memories: the load menu, the owner's cursor hovering over `SLOT 2 · RUE`, and LOAD. Title: `SLOT 2 · RUE`. |
+| **Give Slot 2 to Wren** (only if she's with you) | She gets a new game; Rue stays behind (and Pip goes with her). Title: `SLOT 2 · WREN · NEW GAME`. |
+| **Leave the slot to the owner, with a message** (pick one of three) | The owner reads it and answers (differently by memories and message). The purge resets and everyone deleted comes back. Title: *"someone is waiting."* |
+
+Each ending has its own epilogue, end card, title-screen aftermath, and what the owner says next time.
+The full text is in [docs/STORY_SCRIPT.md](docs/STORY_SCRIPT.md).
 
 ## Characters & story
 
@@ -291,7 +347,7 @@ about half a second of CPU, once.
 
 | Event | Sound |
 | --- | --- |
-| The owner types in the console | Their keyboard: three varied key clicks (tick, clack, thunk). System text is a thin teletype tick; your own thoughts are a soft breath of a note. |
+| The owner types in the console | The owner *speaks*: a low, slightly detuned voice blip per letter, its pitch following the letters (Undertale-style). System text is a thin teletype tick; your own thoughts are a soft breath of a note. |
 | Dialogue | A voice blip per letter, pitched per character (Wren high, Tobben low, the Archivist lowest). |
 | Character deleted | A unique sound per character, in their own pitch and timbre: a convulsion in their voice, a burst, a falling sweep, a thud, then static that won't stop for a moment. |
 | Eraser | The floor groans and the room sags when it starts; a crackle per cell turning to void (rate-limited). |
@@ -301,9 +357,25 @@ about half a second of CPU, once.
 | Awareness thresholds | A reversed swell into a hit, lower and louder the higher awareness is. Arin spotting you is a sour two-note stab. |
 | Purge / quitting | A low, inharmonic bell after the owner's intro once purge has started: something is counting. Quitting is a CRT powering off. |
 | Slot 2 | A rising arpeggio into a warm chord... with one note that's wrong. |
-| Memory fragment | A reversed shimmer resolving into a glass chime; the flashback muffles the world and plays a slow, tape-wobbly music box on the Memory bus. |
+| Memory fragment | A reversed shimmer resolving into a glass chime; the flashback muffles the world and plays the music-box theme with this memory's new layer. |
+| Glitches | A buzz rising while you charge, then reality crunching and skipping; slipping through a wall is a reversed whoosh; a new glitch learned is a bright, broken arpeggio; PAUSE sags the world to a halt and lurches it back. |
+| The owner's moves | The reload: a rewind roar; saving over you: disk ticks that speed up; dragging: a click and a heavy drop. |
 | Small things | Footsteps, door lock, denied save, rewritten note, light flicker, emotes, area transitions, the Edge unloading. |
 | Menus | Quiet, diegetic: move, confirm, back, and a muffled world while paused. |
+
+**The theme** (`scripts/audio/music_box.gd`). One melody, a fragile music box in A minor, that
+grows with Rue's memories: two notes with none; then the first phrase, the answering phrase (left
+hanging on the leading tone), a bass line, a high countermelody, and with all five it finally
+resolves, to A major. It plays in every flashback (with the new layer), quietly on the title screen
+(so your progress is audible there), and through every epilogue (complete only in the true ending).
+
+**Area beds** (`scripts/fx/ambience.gd`, Music bus): Ashvale has wind, birds and distant voices
+that thin with every character the owner deletes (and the birds go quiet during the hunt); the
+Archive hums and pages turn somewhere in the stacks; the Edge plays the theme **backwards**, slowed;
+out of bounds plays it **upside down** (every interval mirrored) at half speed over thin air.
+
+**Positional sound.** The listener is on Rue: Arin's heavy footsteps pan and fade with distance
+(you can hear which side Arin is coming from), and the cursor has a hum that grows as it closes in.
 
 **The drone** (`scripts/fx/drone.gd`) is layered and follows awareness:
 
@@ -416,11 +488,15 @@ Tests run with `--test-mode`, which points the owner's memory and the settings a
 | `test_story.gd` | Boot sequence, flashbacks, fragments persisting, endings |
 | `test_effects.gd` | Every death style, owner events, the win sequence, reduce flashing |
 | `test_performance.gd` | Worst-case frame budget (fully hunted square) and leak checks across area changes |
+| `test_glitch.gd` | Tap still interacts; every glitch (freeze, falsify, unlock, phase, decoy, pause, restore, blind, scrub), its cost and its unlock |
+| `test_owner_moves.gd` | Load last save (and what it undoes), the 3-glitch reload, saving over you (and a glitch interrupting it), no moves where the owner can't see, the crates dragged across the road, Arin's route memory, debug tools |
+| `test_wren.gd` | Wren asks, comes along and follows; declining; the leash; reaching the Edge saves her for good; the owner deleting her; a glitch saving her |
+| `test_endings.gd` | The Slot 2 choice (two or three options), the escape, Wren and message endings, and the title aftermath |
 | `test_touch.gd` | Phone controls with real touch events: dragging walks, the E button talks, the II button pauses |
 | `test_expansion.gd` | The well, Out of Bounds (cooling, falling back, anchors and streaming floor), finding Pip and Pip staying, Pip leading the way, act cards, focus brackets, the map, the epilogue |
 | `test_onboarding.gd` | Tips appear in order and only once, can be turned off and replayed; the HIDDEN status; large text; the pause menu's goal |
 | `test_character.gd` | Rue starts as missing texture, each fragment restores the right part, Rue startles at thresholds |
-| `test_audio.gd` | Every sound renders, is audible and builds fast; loops loop; buses follow the volume sliders; accessibility softens harsh sounds; the drone follows awareness; gameplay events make their sounds |
+| `test_audio.gd` | Every sound renders, is audible and builds fast; loops loop; buses follow the volume sliders; accessibility softens harsh sounds; the drone follows awareness; gameplay events make their sounds; the theme grows with memories (and plays backwards / inverted); area beds thin as characters are deleted; positional steps; the owner's voice |
 
 Writing a test: add `tests/test_<thing>.gd` extending `res://tests/test_case.gd` and give it
 `test_*` methods. They're coroutines, so you can `await start_session()`, `go_to()`, `press()`,
@@ -460,6 +536,13 @@ scripts/
   world/companion.gd           Pip: follows you, leads the way, warns about Arin
   world/passage.gd             Ways you take on purpose: into the well, back up the respawn pillar
   world/exit_sign.gd, focus_marker.gd   Signs at exits; brackets on what [E] acts on
+  world/drag_prop.gd           The crate stack the cursor can drag across a road
+  player/glitch.gd             The glitches: costs, hold times, unlocks, the owner's reactions
+  player/glitch_controller.gd  Hold [E]: targeting, charging, firing, feedback
+  player/decoy.gd, fx/glitch_burst.gd   DECOY's stale frame; what a glitch looks like where it lands
+  owner/owner_moves.gd         The owner's moves: load last save, saving over you, drag, route memory, deleting Wren
+  audio/music_box.gd           The growing theme (and its reversed / inverted versions)
+  fx/ambience.gd               Each area's sound bed
   ui/map_view.gd               The pause menu's map
   owner/owner_director.gd      Awareness, thresholds, the owner's voice; areas react to thresholds
   owner/owner_avatar.gd        Arin, driven by the owner: patrol route and view cone

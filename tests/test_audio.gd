@@ -105,3 +105,42 @@ func test_gameplay_events_make_sounds() -> void:
 	check(sfx.history.any(func(n: String) -> bool: return n.begins_with("erase_cell")), "cells crackle into void")
 	w.kill("overwritten")
 	check("death_overwritten" in sfx.history, "each death has its own sound")
+
+
+func test_the_theme_grows_with_memories() -> void:
+	check_eq(MusicBox.notes_at(0), 2, "with no memories, the theme is two notes")
+	for level in range(1, MusicBox.MAX_LEVEL + 1):
+		check(MusicBox.notes_at(level) > MusicBox.notes_at(level - 1), "memory %d adds to the theme" % level)
+	check(MusicBox.stream(5).data != MusicBox.stream(4).data, "the last memory changes how it ends")
+	var fwd := MusicBox.stream(5)
+	var back := MusicBox.stream(5, "reverse")
+	check_eq(back.data.decode_s16(0), fwd.data.decode_s16(fwd.data.size() - 2), "the Edge plays it backwards")
+	check(MusicBox.stream(5, "invert").data.size() > 0, "out of bounds plays it upside down")
+
+
+func test_area_beds() -> void:
+	var w := await start_session()
+	await go_to(w, "square", "house")
+	check(w._ambience != null and w._ambience.area_id == "square", "the square has its own sound bed")
+	var full_life: float = w._ambience.village_life()
+	memory().npc_fates["wren"] = "deleted"
+	check(w._ambience.village_life() < full_life, "the village thins as characters are deleted")
+	await go_to(w, "archive", "west")
+	check_eq(w._ambience.area_id, "archive", "and the archive hums")
+
+
+func test_positional_sound_and_the_owner_voice() -> void:
+	var w := await start_session()
+	await go_to(w, "square", "house")
+	check(w.area.arin._steps is AudioStreamPlayer2D, "Arin's footsteps are positional")
+	var sfx := tree.root.get_node("Sfx")
+	sfx.history.clear()
+	w.hud.clear_queue()
+	w.director.say("hello there, little bug")
+	var spoke := false
+	for i in 80:
+		await frames(1)
+		if "owner_voice" in sfx.history:
+			spoke = true
+			break
+	check(spoke, "the owner's lines are spoken in blips")
