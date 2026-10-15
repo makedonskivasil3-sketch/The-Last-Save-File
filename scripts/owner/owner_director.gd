@@ -237,3 +237,9 @@ func _intro(previous_exit: String) -> void:
 		hud.say("OWNER PURGE PROGRESS %d/%d" % [OwnerMemory.purge, OwnerMemory.MAX_PURGE], "system")
 	if OwnerMemory.sessions == 1:
 		hud.say("%s interact  ·  %s pause" % [Settings.glyph("interact"), Settings.glyph("pause")], "system")
+	# Between runs the owner leaves a note: one a run, in order.
+	var note := Story.next_owner_note()
+	if not note.is_empty():
+		OwnerMemory.save_memory()
+		for line in note:
+			say(line)

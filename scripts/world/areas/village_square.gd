@@ -114,6 +114,16 @@ func build() -> void:
 		func() -> bool: return world.flags.get("pointer", false))
 	add_sign(Vector2(WELL.get_center().x, WELL.position.y - 8), "WELL", Vector2.DOWN)
 
+	# Once you've found a couple of real memories, the owner plants one.
+	if OwnerMemory.fragments.size() >= 2 and not OwnerMemory.false_memory_taken and not world.purged:
+		var lie := MemoryFragment.new()
+		lie.fragment_id = Story.FALSE_FRAGMENT.id
+		lie.planted = true
+		lie.position = Story.FALSE_FRAGMENT.pos
+		lie.player = world.player
+		lie.touched.connect(world.recover_fragment)
+		add_child(lie)
+
 	well = Passage.new()
 	well.prompt = "climb into the well"
 	well.target_area = "oob"

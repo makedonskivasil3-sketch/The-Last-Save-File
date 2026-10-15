@@ -166,6 +166,7 @@ func load_last_save(force := false) -> void:
 	if _load_cd > 0.0 and not force:
 		return  # one reload at a time, however many glitches queued one
 	rewinding = true
+	OwnerMemory.total_reloads += 1
 	_load_cd = LOAD_COOLDOWN
 	_glitches_since_load = 0
 	if save_progress >= 0.0:

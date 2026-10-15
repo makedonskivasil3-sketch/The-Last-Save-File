@@ -175,3 +175,17 @@ func hold(action: String, seconds: float) -> void:
 	await wait(seconds)
 	_act(action, false)
 	await frames(2)
+
+
+## Slot 2: skips the recap (E advances it) until the choice is up.
+func until_choosing(w: Node, timeout := 20.0) -> bool:
+	var until := Time.get_ticks_msec() + int(timeout * 1000.0)
+	while Time.get_ticks_msec() < until:
+		if w.hud.is_choosing():
+			await frames(3)
+			return true
+		if w.hud.is_cinematic():
+			await press("interact")
+		await frames(2)
+	failures.append("timed out waiting for the Slot 2 choice")
+	return false

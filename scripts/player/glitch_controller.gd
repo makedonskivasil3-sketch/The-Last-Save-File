@@ -266,6 +266,8 @@ func _pay(id: String) -> void:
 	world.fx.shake(1.5 + cost * 0.15)
 	Sfx.play("glitch_fire", 0.0, 1.0 + randf_range(-0.05, 0.05))
 	world.glitches_used += 1
+	OwnerMemory.session_glitches += 1
+	OwnerMemory.total_glitches += 1
 	world.owner_moves.on_glitch(id)
 	if not _reacted.has(id):
 		_reacted[id] = true

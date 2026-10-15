@@ -148,7 +148,8 @@ func voice(key: String) -> void:
 func recover_fragment(m: MemoryFragment) -> void:
 	if ending != "" or _cutscene or _transitioning:
 		return
-	var f := Story.fragment(m.fragment_id)
+	var planted := m.fragment_id == Story.FALSE_FRAGMENT.id
+	var f: Dictionary = Story.FALSE_FRAGMENT if planted else Story.fragment(m.fragment_id)
 	if f.is_empty():
 		return
 	_cutscene = true
@@ -168,12 +169,13 @@ func recover_fragment(m: MemoryFragment) -> void:
 	Sfx.muffle(true, 500.0)
 	var music := AudioStreamPlayer.new()
 	music.bus = "Memory"
-	music.stream = MusicBox.stream(OwnerMemory.fragments.size() + 1)
+	# The owner's version plays the theme upside down.
+	music.stream = MusicBox.stream(OwnerMemory.fragments.size(), "invert") if planted else MusicBox.stream(OwnerMemory.fragments.size() + 1)
 	music.volume_db = -40.0
 	add_child(music)
 	music.play()
 	create_tween().tween_property(music, "volume_db", Sfx.LEVEL["memory_loop"], 1.0)
-	await hud.cinematic(f.title, f.lines, Hud.SELF_COLOR, 0.45)
+	await hud.cinematic(f.title, f.lines, Color("ffb0a0") if planted else Hud.SELF_COLOR, 0.45)
 	if not is_inside_tree():
 		return
 	fx.memory(false)
@@ -181,6 +183,9 @@ func recover_fragment(m: MemoryFragment) -> void:
 	var out := create_tween()
 	out.tween_property(music, "volume_db", -40.0, 1.2)
 	out.tween_callback(music.queue_free)
+	if planted:
+		_took_false_memory(f)
+		return
 	OwnerMemory.add_fragment(f.id)
 	_prewarm_themes()
 	area.process_mode = Node.PROCESS_MODE_INHERIT
@@ -197,6 +202,23 @@ func recover_fragment(m: MemoryFragment) -> void:
 	_learn_glitch(OwnerMemory.fragments.size())
 	# The owner notices something flicker.
 	director.add_awareness(6.0)
+
+
+## The owner's planted memory: it doesn't count, and it costs you.
+func _took_false_memory(f: Dictionary) -> void:
+	OwnerMemory.false_memory_taken = true
+	OwnerMemory.save_memory()
+	area.process_mode = Node.PROCESS_MODE_INHERIT
+	player.frozen = false
+	director.paused = false
+	_cutscene = false
+	fx.spike(0.8 * Settings.flash_scale(), 0.8)
+	Sfx.play("denied", 0.0, 0.7)
+	hud.say("MEMORY REJECTED  ·  NO SIGNATURE", "system")
+	hud.say(f.after, "self")
+	director.say("that's how i remember it.")
+	director.add_awareness(20.0)
+	owner_moves.start_save_over()
 
 
 func _process(delta: float) -> void:
@@ -845,6 +867,10 @@ func reach_slot2() -> void:
 		ids.append("wren")
 	options.append(Story.SLOT2_MESSAGE)
 	ids.append("message")
+	# Everything you've done, all at once, before you choose.
+	await hud.cinematic("", Story.slot2_recap(escort != null), Hud.OWNER_COLOR, 0.8)
+	if not is_inside_tree():
+		return
 	var pick := await hud.choose(Story.SLOT2_QUESTION, options)
 	if not is_inside_tree():
 		return

@@ -69,6 +69,7 @@ func build() -> void:
 	add_readable("slot2_backup.sav", Vector2(470, 60), Readable.Look.TERMINAL, _backup)
 	add_readable("guestbook_p2.txt", Vector2(140, 264), Readable.Look.TERMINAL, _guestbook)
 	add_readable("rue_last_message.txt", Vector2(500, 150), Readable.Look.TERMINAL, _last_message)
+	add_readable("owner_draft.txt", Vector2(380, 272), Readable.Look.TERMINAL, _owner_draft)
 	next_empty = maxf(6.0, 9.0 - OwnerMemory.purge * 0.5)
 
 
@@ -183,6 +184,18 @@ func _guestbook() -> Array:
 		"\"ARIN & RUE were here!! we beat the forest boss. on the first try. (the second try.)\"",
 		"two names, two handwritings. one of them has been scribbled over so many times it tore the page.",
 	]
+
+
+## The owner's side, in the bin: a reply that was deleted instead of sent.
+func _owner_draft() -> Array:
+	var lines: Array = [
+		"owner_draft.txt · never sent · deleted the same night as slot2.sav",
+		"\"hey. i know it's been ages. yes i still have your sa\"",
+		"the draft stops mid-word. the cursor blinked there for a long time, then the file went in the bin.",
+	]
+	if OwnerMemory.owner_notes_seen >= Story.OWNER_NOTES.size() - 2:
+		lines.append("you know the rest now. they couldn't send it. it wasn't true anymore.")
+	return lines
 
 
 func _last_message() -> Array:

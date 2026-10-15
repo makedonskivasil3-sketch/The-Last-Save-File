@@ -31,7 +31,7 @@ func _choices(w: Node) -> Array:
 func test_two_choices_without_wren() -> void:
 	var w := await _at_slot()
 	w.reach_slot2()
-	await frames(2)
+	await until_choosing(w)
 	check(w.hud.is_choosing(), "Slot 2 asks whose name goes there")
 	check_eq(_choices(w).size(), 2, "yourself, or a message for the owner")
 
@@ -39,7 +39,7 @@ func test_two_choices_without_wren() -> void:
 func test_escape_ending() -> void:
 	var w := await _at_slot()
 	w.reach_slot2()
-	await frames(2)
+	await until_choosing(w)
 	w.hud._chosen.emit(0)
 	await _finish(w)
 	check_eq(memory().last_ending, "escape", "you took the slot")
@@ -49,7 +49,7 @@ func test_escape_ending() -> void:
 func test_wren_ending() -> void:
 	var w := await _at_slot(true)
 	w.reach_slot2()
-	await frames(2)
+	await until_choosing(w)
 	check_eq(_choices(w).size(), 3, "with Wren there, three choices")
 	w.hud._chosen.emit(1)
 	await _finish(w)
@@ -65,7 +65,7 @@ func test_message_ending_reconciles() -> void:
 	memory().npc_fates["mira"] = "deleted"
 	var w := await _at_slot()
 	w.reach_slot2()
-	await frames(2)
+	await until_choosing(w)
 	w.hud._chosen.emit(1)  # the message
 	await frames(3)
 	check(w.hud.is_choosing(), "then you choose what to write")

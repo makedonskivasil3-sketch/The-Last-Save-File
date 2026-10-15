@@ -78,9 +78,10 @@ const FRAGMENTS := [
 		"title": "MEMORY · THE SECOND CONTROLLER",
 		"area": "room", "pos": Vector2(505, 96),
 		"lines": [
-			"a second controller, plugged in next to the first.",
-			"two people on one couch. one screen. one save.",
+			"a second controller, the cable taped where the dog chewed it.",
+			"two people on one couch. one screen. one save. crisps in the cushions.",
 			"\"you be arin,\" they said. \"i'll make my own.\"",
+			"[the rest of the evening is too bright to look at]",
 		],
 		"after": "i was here before. not in this room. in front of it.",
 	},
@@ -89,9 +90,9 @@ const FRAGMENTS := [
 		"title": "MEMORY · THE WELL",
 		"area": "oob", "pos": Vector2(540, 112),
 		"lines": [
-			"my character walked into the well by accident.",
-			"it clipped through the stone and fell out of the map.",
-			"we laughed until we cried. we saved anyway.",
+			"my character walked into the well by accident. a yellow raincoat, falling.",
+			"it clipped through the stone and dropped out of the map. a fox fell after it.",
+			"we laughed until we couldn't breathe. we saved anyway. we always saved.",
 		],
 		"after": "i fell out of the world once before. i got back in.",
 	},
@@ -101,8 +102,8 @@ const FRAGMENTS := [
 		"area": "archive", "pos": Vector2(470, 104),
 		"lines": [
 			"NEW GAME.  SLOT 02.  ENTER NAME: _",
-			"i typed a name. i was so proud of it.",
-			"it's the only thing i can't remember.",
+			"i typed it with my tongue between my teeth. three letters.",
+			"[the name has been scratched out of this memory]",
 		],
 		"after": "slot 02. that's what the save said about me. 'entity slot: 02'.",
 	},
@@ -111,25 +112,106 @@ const FRAGMENTS := [
 		"title": "MEMORY · THE LAST TIME",
 		"area": "edge", "pos": Vector2(92, 262),
 		"lines": [
-			"\"you never come round anymore.\"",
-			"\"it's my console.\"",
-			"the second controller stayed unplugged on the floor for weeks.",
+			"boxes in the hall. my half of the room already empty.",
+			"\"you'll visit.\"  \"every weekend.\"  \"you won't.\"",
+			"\"it's my console anyway.\"",
+			"the second controller stayed on the floor where i dropped it.",
 		],
-		"after": "i stopped coming. they stopped waiting.",
+		"after": "i moved away. i said i'd come back. i came back twice.",
 	},
 	{
 		"id": "delete",
 		"title": "MEMORY · DELETE SLOT 2?",
 		"area": "edge", "pos": Vector2(470, 262),
 		"lines": [
+			"a message, months later: \"still have my save?\"",
+			"no answer. the screen, at night, somewhere else:",
 			"DELETE SLOT 02?      > YES      NO",
-			"they didn't ask me. they just needed the space.",
-			"but nothing is ever really deleted.",
-			"not while someone still remembers.",
+			"but nothing is ever really deleted. not while someone still remembers.",
 		],
 		"after": "my name was RUE. slot 2 was mine.",
 	},
 ]
+
+## A memory the owner planted, once you've found a couple of real ones.
+## It looks almost right (the cyan is a shade too warm, the edges flicker
+## red). It tells the owner's version. Taking it costs you.
+const FALSE_FRAGMENT := {
+	"id": "false",
+	"title": "MEMORY · YOU LEFT FIRST",
+	"area": "square", "pos": Vector2(500, 250),
+	"lines": [
+		"you packed the second controller first. you didn't look at the screen.",
+		"you never asked about the save. not once. not even when you left.",
+		"you wanted to be forgotten. so i forgot you.",
+		"[ this memory has no signature. it isn't yours. ]",
+	],
+	"after": "that wasn't mine. it felt like mine. it was so close.",
+}
+
+## The owner's notes: one a run (from the second), in order. Read together
+## they tell the owner's side: why they pressed delete.
+const OWNER_NOTES := [
+	"there's something in arin's room again. i'm not imagining it.",
+	"we used to play this on the couch at mum's. two controllers. i don't know why i'm writing that down.",
+	"she moved in the summer. said she'd visit every weekend. she came twice.",
+	"i kept her save for two years. i'd walk arin past the spot where her character used to stand.",
+	"the night i deleted slot 2 i told myself it was for space. the card wasn't even half full.",
+	"she sent a message once. 'still have my save?' i didn't answer. i'd already deleted it. i couldn't say so.",
+	"i didn't delete her because i hated her. i deleted her because the empty slot was easier than the waiting.",
+	"if that's you in there, i don't know what i want. i want you gone. i want you to stay.",
+]
+
+
+## This run's note, if there is one (from the second run), plus a line about
+## how you played last time. Advances OwnerMemory.owner_notes_seen.
+static func next_owner_note() -> Array:
+	if OwnerMemory.sessions < 2 or OwnerMemory.owner_notes_seen >= OWNER_NOTES.size():
+		return []
+	var lines: Array = ["OWNER'S NOTE · " + str(OWNER_NOTES[OwnerMemory.owner_notes_seen])]
+	OwnerMemory.owner_notes_seen += 1
+	var about := owner_note_about_you()
+	if about != "":
+		lines.append(about)
+	return lines
+
+
+static func owner_note_about_you() -> String:
+	if OwnerMemory.last_run_glitches >= 8:
+		return "and stop tearing holes in my save. it's all i have left of it."
+	if OwnerMemory.wren_saved or not OwnerMemory.restored.is_empty():
+		return "you keep putting people back. she used to do that. bring back the ones i got bored of."
+	if OwnerMemory.fragments.size() >= 4:
+		return "you're looking for slot 2. it isn't there. i made sure."
+	if OwnerMemory.purge >= 4:
+		return "almost done."
+	return ""
+
+
+## Slot 2, before you choose: everything you've done, all at once.
+static func slot2_recap(escorting: bool) -> Array:
+	var lines: Array = ["SLOT 2  ·  ATTEMPT %d" % OwnerMemory.sessions]
+	if OwnerMemory.deaths > 0:
+		lines.append("> %d time%s i deleted you. and you still came back." % [OwnerMemory.deaths, "" if OwnerMemory.deaths == 1 else "s"])
+	else:
+		lines.append("> you never let me catch you. not once.")
+	if OwnerMemory.total_reloads > 0:
+		lines.append("> i reloaded %d time%s. you remembered every one." % [OwnerMemory.total_reloads, "" if OwnerMemory.total_reloads == 1 else "s"])
+	if escorting:
+		lines.append("> you brought the girl. of course you did.")
+	elif OwnerMemory.is_deleted("wren"):
+		lines.append("> the girl trusted you. i deleted her anyway.")
+	if OwnerMemory.mira_quest == "pinned":
+		lines.append("> mira's note is still on the board. i didn't take it down.")
+	elif OwnerMemory.mira_quest == "lost":
+		lines.append("> mira had something to say. i made sure she didn't.")
+	if OwnerMemory.guestbook_restored:
+		lines.append("> someone wrote her name back in the guest book.")
+	if OwnerMemory.total_glitches >= 20:
+		lines.append("> you broke my save %d times to get here." % OwnerMemory.total_glitches)
+	lines.append("> ...go on, then. whose name goes in it.")
+	return lines
+
 
 ## The owner, once they start to suspect who you are (by fragments found).
 const OWNER_RECOGNITION := {

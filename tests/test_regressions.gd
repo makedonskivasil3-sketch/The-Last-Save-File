@@ -26,7 +26,7 @@ func test_slot_two_choice_holds_the_owner_still() -> void:
 	w.escort.global_position = w.player.global_position
 	w.director.add_awareness(OwnerDirector.HUNT + 1.0 - w.director.awareness)
 	w.reach_slot2()
-	await frames(2)
+	await until_choosing(w)
 	w.owner_moves.start_save_over()
 	w.owner_moves.start_wren_delete()
 	await wait(OwnerMoves.WREN_DELETE_TIME + 0.5)

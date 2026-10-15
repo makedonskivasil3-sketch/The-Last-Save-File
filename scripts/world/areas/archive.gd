@@ -150,7 +150,10 @@ func _cut_content() -> Array:
 
 
 func _owner_notes() -> Array:
-	return [
+	var pages: Array = []
+	for i in mini(OwnerMemory.owner_notes_seen, Story.OWNER_NOTES.size()):
+		pages.append("A page in the owner's handwriting: \"%s\"" % Story.OWNER_NOTES[i])
+	return pages + [
 		"The owner has %d hours in this save. They won't start a new one." % 14,
 		"They'd rather delete everything around Arin than lose Arin.",
 		"They play at night, mostly. They talk to the screen when they think nobody hears.",

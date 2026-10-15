@@ -32,6 +32,20 @@ var found_pip := false
 ## Wren saw the Edge with you: she's logged as cut content now, and the
 ## owner can never delete her again.
 var wren_saved := false
+## How many of the owner's notes you've read (they come one a run).
+var owner_notes_seen: int = 0
+## Glitches this run, and last run's total (the owner notices).
+var session_glitches: int = 0
+var last_run_glitches: int = 0
+var total_glitches: int = 0
+## Times the owner has reloaded you, ever.
+var total_reloads: int = 0
+## You took the memory the owner planted.
+var false_memory_taken: bool = false
+## Mira's note: "" (not given), "carried", "pinned" or "lost".
+var mira_quest: String = ""
+## Rue's name is back in Tobben's guest book.
+var guestbook_restored: bool = false
 ## Read the torn guest book page in the Recycle Bin.
 var found_guestbook := false
 ## How the last game ended at Slot 2: "escape", "wren" or "message" ("" if
@@ -121,6 +135,8 @@ func deaths_in(area: String) -> Array[Vector2]:
 func begin_session() -> String:
 	var previous := last_exit
 	previous_exit = previous
+	last_run_glitches = session_glitches
+	session_glitches = 0
 	sessions += 1
 	last_exit = "active"
 	session_helpers.clear()
@@ -229,6 +245,14 @@ func wipe() -> void:
 	found_pip = false
 	wren_saved = false
 	found_guestbook = false
+	owner_notes_seen = 0
+	session_glitches = 0
+	last_run_glitches = 0
+	total_glitches = 0
+	total_reloads = 0
+	false_memory_taken = false
+	mira_quest = ""
+	guestbook_restored = false
 	last_ending = ""
 	last_death = ""
 	edge_static_deaths = 0
@@ -263,6 +287,14 @@ func save_memory() -> void:
 		"found_pip": found_pip,
 		"wren_saved": wren_saved,
 		"found_guestbook": found_guestbook,
+		"owner_notes_seen": owner_notes_seen,
+		"session_glitches": session_glitches,
+		"last_run_glitches": last_run_glitches,
+		"total_glitches": total_glitches,
+		"total_reloads": total_reloads,
+		"false_memory_taken": false_memory_taken,
+		"mira_quest": mira_quest,
+		"guestbook_restored": guestbook_restored,
 		"last_ending": last_ending,
 		"endings_seen": endings_seen,
 		"last_death": last_death,
@@ -300,6 +332,14 @@ func load_memory() -> void:
 	found_pip = bool(data.get("found_pip", false))
 	wren_saved = bool(data.get("wren_saved", false))
 	found_guestbook = bool(data.get("found_guestbook", false))
+	owner_notes_seen = int(data.get("owner_notes_seen", 0))
+	session_glitches = int(data.get("session_glitches", 0))
+	last_run_glitches = int(data.get("last_run_glitches", 0))
+	total_glitches = int(data.get("total_glitches", 0))
+	total_reloads = int(data.get("total_reloads", 0))
+	false_memory_taken = bool(data.get("false_memory_taken", false))
+	mira_quest = str(data.get("mira_quest", ""))
+	guestbook_restored = bool(data.get("guestbook_restored", false))
 	last_ending = str(data.get("last_ending", ""))
 	endings_seen.clear()
 	for e in data.get("endings_seen", []):

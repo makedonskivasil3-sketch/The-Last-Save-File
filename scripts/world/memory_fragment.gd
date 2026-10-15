@@ -8,6 +8,8 @@ signal touched(fragment: MemoryFragment)
 const COL := Color("8cf2ff")
 
 var fragment_id := ""
+## The owner's planted memory: almost the right colour.
+var planted := false
 var player: Node2D
 
 var _t := randf() * 5.0
@@ -51,18 +53,22 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var fade := 1.0 - clampf(_absorb / 0.7, 0.0, 1.0) if _absorb > 0.0 else 1.0
+	var tint := COL.lerp(Color("ffb0a0"), 0.35) if planted else COL
+	if planted and fmod(_t, 2.3) < 0.12:
+		# Its edges give it away, if you watch.
+		draw_arc(Vector2(0, sin(_t * 2.2) * 2.0), 9.0, 0.0, TAU, 16, Color(1, 0.25, 0.2, 0.7 * fade), 1.0)
 	var bob := sin(_t * 2.2) * 2.0
 	var pulse := 0.5 + 0.5 * sin(_t * 3.0)
 	# Soft glow.
 	for i in 3:
-		draw_circle(Vector2(0, bob), 6.0 + i * 5.0 + pulse * 2.0, Color(COL, (0.08 - i * 0.02) * fade))
+		draw_circle(Vector2(0, bob), 6.0 + i * 5.0 + pulse * 2.0, Color(tint, (0.08 - i * 0.02) * fade))
 	# A diamond turning in place: its width follows a cosine.
 	var w := 4.0 * absf(cos(_t * 1.6)) + 0.6
 	var pts := PackedVector2Array([Vector2(0, -7 + bob), Vector2(w, bob), Vector2(0, 7 + bob), Vector2(-w, bob)])
-	draw_colored_polygon(pts, Color(COL.lerp(Color.WHITE, pulse * 0.4), fade))
+	draw_colored_polygon(pts, Color(tint.lerp(Color.WHITE, pulse * 0.4), fade))
 	draw_line(Vector2(0, -7 + bob), Vector2(0, 7 + bob), Color(1, 1, 1, 0.7 * fade))
 	# Pixels orbiting it, like it's still pulling memories in.
 	for i in 4:
 		var a := _t * 1.8 + i * TAU / 4.0
 		var p := Vector2(cos(a) * 10.0, sin(a) * 4.0 + bob)
-		draw_rect(Rect2(p, Vector2(1, 1)), Color(COL, 0.8 * fade))
+		draw_rect(Rect2(p, Vector2(1, 1)), Color(tint, 0.8 * fade))
