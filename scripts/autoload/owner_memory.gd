@@ -35,6 +35,12 @@ var wren_saved := false
 ## How the last game ended at Slot 2: "escape", "wren" or "message" ("" if
 ## never), and every ending reached so far.
 var last_ending := ""
+## Why you died last (a key of Story.DEATHS), for lines next time.
+var last_death := ""
+## How often each kind of death got you (records screen).
+var death_causes: Dictionary = {}
+## Characters you brought back with RESTORE, ever.
+var restored: Array[String] = []
 var endings_seen: Array[String] = []
 ## Where the owner has seen you go in each area, learned when a session ends
 ## badly: {"area", "x", "y", "w" (weight)}. Arin's patrol detours through
@@ -59,6 +65,11 @@ var runtime_cache: Dictionary = {}
 ## This session only: who helped you and how you got out of the room. The
 ## owner learns these when the session ends badly.
 var session_helpers: Array[String] = []
+## How the session before this one ended (last_exit is "active" while
+## one runs).
+var previous_exit := "none"
+## Characters who already said their "remember last time" line this session.
+var session_recalled: Array[String] = []
 var session_seam := -1
 
 var _session_closed := true
@@ -103,9 +114,11 @@ func deaths_in(area: String) -> Array[Vector2]:
 ## Starts a new session and returns how the previous one ended.
 func begin_session() -> String:
 	var previous := last_exit
+	previous_exit = previous
 	sessions += 1
 	last_exit = "active"
 	session_helpers.clear()
+	session_recalled.clear()
 	session_seam = -1
 	session_spots.clear()
 	_session_closed = false
@@ -123,6 +136,13 @@ func add_fragment(id: String) -> void:
 		save_memory()
 
 
+## Brought someone back with RESTORE (remembered across runs).
+func note_restored(npc: String) -> void:
+	if npc not in restored:
+		restored.append(npc)
+	save_memory()
+
+
 func note_helper(npc: String) -> void:
 	if npc not in session_helpers:
 		session_helpers.append(npc)
@@ -132,9 +152,12 @@ func note_seam(seam_id: int) -> void:
 	session_seam = seam_id
 
 
-func record_death(area: String, at: Vector2) -> void:
+func record_death(area: String, at: Vector2, reason := "") -> void:
 	if _session_closed:
 		return
+	last_death = reason
+	if reason != "":
+		death_causes[reason] = int(death_causes.get(reason, 0)) + 1
 	deaths += 1
 	purge += 1
 	deaths_log.append({"area": area, "x": at.x, "y": at.y, "session": sessions})
@@ -161,6 +184,9 @@ func record_win(ending := "escape") -> void:
 	last_ending = ending
 	if ending not in endings_seen:
 		endings_seen.append(ending)
+	# Taking the slot remembering everything is its own ending: RUE.
+	if ending == "escape" and fragments.size() >= Story.FRAGMENTS.size() and "rue" not in endings_seen:
+		endings_seen.append("rue")
 	if ending == "message":
 		# Reconciliation: the owner stops the purge and lets everyone back.
 		purge = 0
@@ -182,6 +208,11 @@ func wipe() -> void:
 	found_pip = false
 	wren_saved = false
 	last_ending = ""
+	last_death = ""
+	death_causes.clear()
+	restored.clear()
+	session_recalled.clear()
+	previous_exit = "none"
 	endings_seen.clear()
 	route_memory.clear()
 	session_spots.clear()
@@ -209,6 +240,9 @@ func save_memory() -> void:
 		"wren_saved": wren_saved,
 		"last_ending": last_ending,
 		"endings_seen": endings_seen,
+		"last_death": last_death,
+		"death_causes": death_causes,
+		"restored": restored,
 		"acts_seen": acts_seen,
 		"route_memory": route_memory,
 		"fragments": fragments,
@@ -242,6 +276,12 @@ func load_memory() -> void:
 	endings_seen.clear()
 	for e in data.get("endings_seen", []):
 		endings_seen.append(str(e))
+	last_death = str(data.get("last_death", ""))
+	var causes: Variant = data.get("death_causes", {})
+	death_causes = causes if causes is Dictionary else {}
+	restored.clear()
+	for r in data.get("restored", []):
+		restored.append(str(r))
 	route_memory.clear()
 	for r in data.get("route_memory", []):
 		if r is Dictionary and r.has("x") and r.has("y"):

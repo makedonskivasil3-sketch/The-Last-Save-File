@@ -52,7 +52,7 @@ func test_deaths_explain_themselves() -> void:
 	var w := await start_session()
 	w.kill("overwritten", "arin")
 	await wait(0.8)
-	check(w.hud._overlay_title.text == "OVERWRITTEN", "the death card")
+	check_eq(w.hud._death_title, "OVERWRITTEN", "the death card")
 	check(w.hud.death_tip_text().contains("freeze"), "says what to try next, with the glitch you have for it (%s)" % w.hud.death_tip_text())
 	# Before you have the glitch for it, the tip is plain advice.
 	check(w.death_tip("cursor").contains("holds still"), "no BLIND yet: keep moving")

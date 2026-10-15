@@ -205,6 +205,23 @@ she's logged as *cut content*, and the owner can never delete her again, in any 
 Each ending has its own epilogue, end card, title-screen aftermath, and what the owner says next time.
 The full text is in [docs/STORY_SCRIPT.md](docs/STORY_SCRIPT.md).
 
+## Records, and a world that remembers
+
+**Records** (on the title screen once you've played): every ending, memory and secret,
+named once you've found it and hinted at while you haven't, plus what the owner has counted
+(runs, deaths, quits, escapes, and what got you most often). The save card shows the short
+version: `ENDINGS 1/4 · MEMORIES 2/5 · SECRETS 1/4`.
+
+| Endings (4) | Secrets (4) |
+| --- | --- |
+| Saved to Slot 2 · **RUE** (take the slot with every memory) · A new game for Wren · A message | Pip · the Archivist · Wren saw the Edge · Undeleted (RESTORE someone) |
+
+**Lines that change with your last run.** The owner's opening line names what got you last
+time; the room's note does too (or reacts to the ending you chose); and the first time you talk
+to Mira, Tobben or Wren in a run, they may remember: the escape, the message, Wren's fate, that
+you brought them back, that Arin walked through you. One line each, once a session
+(`Story.recall()`; all lines are in `docs/STORY_SCRIPT.md`).
+
 ## Characters & story
 
 **Who are you?** The game opens on the save booting: `[!] 1 UNRECOGNISED ENTITY · ENTITY SLOT: 02
@@ -526,6 +543,7 @@ Tests run with `--test-mode`, which points the owner's memory and the settings a
 | `test_wren.gd` | Wren asks, comes along and follows; declining; the leash; reaching the Edge saves her for good; the owner deleting her; a glitch saving her |
 | `test_endings.gd` | The Slot 2 choice (two or three options), the escape, Wren and message endings, and the title aftermath |
 | `test_fairness.gd` | Reloads skip moments next to the cursor or Arin and give you a beat; no save-over while writing Slot 2; death cards explain the cause with a tip (naming the glitch once you have it); the first room teaches PHASE; the cost preview and the phone HOLD ring |
+| `test_records.gd` | Endings (including RUE) and death causes are recorded and survive a reload; the owner and the note recall how you died; Mira and Tobben remember your last runs, once a session; nothing on a first run; the title's progress line and Records screen |
 | `test_touch.gd` | Phone controls with real touch events: dragging walks, the E button talks, the II button pauses |
 | `test_expansion.gd` | The well, Out of Bounds (cooling, falling back, anchors and streaming floor), finding Pip and Pip staying, Pip leading the way, act cards, focus brackets, the map, the epilogue |
 | `test_onboarding.gd` | Tips appear in order and only once, can be turned off and replayed; the HIDDEN status; large text; the pause menu's goal |
@@ -573,6 +591,7 @@ scripts/
   world/drag_prop.gd           The crate stack the cursor can drag across a road
   world/cracked_wall.gd        The first room's thin partition: the first PHASE
   ui/perf_overlay.gd           Debug: frame times in the corner (F3)
+  ui/records_panel.gd          The title's Records: endings, memories, secrets, the owner's counts
   player/glitch.gd             The glitches: costs, hold times, unlocks, the owner's reactions
   player/glitch_controller.gd  Hold [E]: targeting, charging, firing, feedback
   player/decoy.gd, fx/glitch_burst.gd   DECOY's stale frame; what a glitch looks like where it lands

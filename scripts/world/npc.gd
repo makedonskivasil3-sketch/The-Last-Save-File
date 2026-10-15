@@ -141,6 +141,13 @@ func interact_prompt() -> String:
 
 func interact() -> Dictionary:
 	var lines: Array = lines_provider.call()
+	# The first time you talk this session: anything they remember from your
+	# last runs comes first.
+	if state == State.NORMAL and npc_id not in OwnerMemory.session_recalled:
+		OwnerMemory.session_recalled.append(npc_id)
+		var memory := Story.recall(npc_id)
+		if memory != "":
+			lines = [memory] + lines
 	if on_talk.is_valid():
 		on_talk.call()
 	return {"speaker": display_name, "color": name_color, "lines": lines}

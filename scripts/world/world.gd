@@ -764,7 +764,7 @@ func kill(cause: String, reason := "") -> void:
 	player.dissolve(cause)
 	Sfx.play("death_" + cause, 0.0, 1.0, 0.0)
 	drone.tension = 1.0
-	OwnerMemory.record_death(area.area_id, player.global_position)
+	OwnerMemory.record_death(area.area_id, player.global_position, reason)
 	last_death = reason
 	var info: Array = Story.DEATHS.get(reason, ["ERASED", "the owner learned something.", "", "", ""])
 	var title: String = info[0]

@@ -268,6 +268,83 @@ const ENDING_RETURN := {
 }
 
 
+## The owner, the morning after each kind of death.
+const OWNER_DEATH_RECALL := {
+	"arin": "arin walked right through you. i didn't even have to aim.",
+	"save": "i saved over you. you're still in the backup, apparently.",
+	"cursor": "one click. that's all you were.",
+	"eraser": "the static was faster than you. it still is.",
+}
+
+## The room's note after each kind of death, or each ending.
+const NOTE_RECALL := {
+	"arin": "ARIN REMEMBERS\nYOUR SHAPE.",
+	"save": "SAVED OVER YOU.\nSAVING AGAIN.",
+	"cursor": "I CLICKED.\nYOU WERE GONE.",
+	"wren": "WHO IS WREN?\nI DIDN'T MAKE HER.",
+	"message": "I READ IT.\n...THANK YOU?",
+}
+
+
+## The first thing someone says to you this session, if they remember
+## something about your last runs ("" if nothing). Checked in order: the
+## first matching condition wins.
+static func recall(who: String) -> String:
+	var wren_lost: bool = OwnerMemory.npc_fates.get("wren", "") == "deleted"
+	var ending: String = OwnerMemory.last_ending if OwnerMemory.previous_exit in ["win", "escape"] else ""
+	var died_by: String = OwnerMemory.last_death if OwnerMemory.previous_exit == "death" else ""
+	match who:
+		"mira":
+			if "mira" in OwnerMemory.restored:
+				return "I was deleted. Then I wasn't. I remember the dark in between. Thank you."
+			if wren_lost:
+				return "They took Wren. She wanted to see the Edge so badly."
+			if ending == "message":
+				return "The owner sat with the game open for an hour last night. Didn't move Arin once. Just watched."
+			if ending == "wren":
+				return "There's a new name in the save menu. Wren's. Did you do that?"
+			if ending == "escape":
+				return "You got out. I watched the slot fill. So why are you back?"
+			if died_by == "arin":
+				return "Arin came back through the door alone last time. Humming."
+		"tobben":
+			if wren_lost:
+				return "Wren used to come in every day and buy nothing. I miss her buying nothing."
+			if OwnerMemory.wren_saved:
+				return "Someone walked Wren to the Edge. That wasn't in anybody's script. Good for her."
+			if ending == "message":
+				return "The owner opened my shop menu yesterday. First time in years. Didn't buy anything. Still."
+			if OwnerMemory.deaths >= 3:
+				return "You again! I've started a tab for you. Out of guilt."
+		"wren":
+			if ending == "message":
+				return "Did you write to them? Everything's quieter. Even the static."
+			if ending == "escape":
+				return "You got out, and you came back? For me? ...No. Probably not for me."
+			if died_by == "eraser":
+				return "I saw the static take you. It went right past me after. Like I wasn't worth erasing."
+	return ""
+
+
+## The records screen: every ending, with a hint while it's still unseen.
+## id -> [name, what happened, hint].
+const ENDINGS_RECORD := [
+	["escape", "SAVED TO SLOT 2", "You wrote yourself into the last save file.", "Reach Slot 2 and take it."],
+	["rue", "RUE", "You took the slot remembering everything. Your name, at last.", "Take Slot 2 with every memory."],
+	["wren", "A NEW GAME FOR WREN", "You gave the last save to someone who asked for it.", "Bring someone to the Edge with you."],
+	["message", "A MESSAGE", "You left the slot to the owner, with something to read.", "Leave the slot to the owner."],
+]
+
+## Things you can find or do, beyond the endings. [name, hint].
+static func secrets() -> Array:
+	return [
+		["Pip", "Something small lives out of bounds.", OwnerMemory.found_pip],
+		["The Archivist", "Someone keeps the cut content.", OwnerMemory.met_archivist],
+		["Wren saw the Edge", "She wants to see it before she's gone.", OwnerMemory.wren_saved],
+		["Undeleted", "Bring back someone the owner deleted.", not OwnerMemory.restored.is_empty()],
+	]
+
+
 ## How you died, and what to try next time. reason -> [title, body, tip,
 ## glitch, glitch tip]: the glitch tip replaces the plain one once that
 ## glitch is yours. {interact} becomes the button glyph.

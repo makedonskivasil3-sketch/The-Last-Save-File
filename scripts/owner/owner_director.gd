@@ -210,6 +210,8 @@ func _intro(previous_exit: String) -> void:
 	match previous_exit:
 		"death":
 			say("got you.")
+			if Story.OWNER_DEATH_RECALL.has(OwnerMemory.last_death):
+				say(Story.OWNER_DEATH_RECALL[OwnerMemory.last_death])
 			say("%d times now. i'm learning how you move." % OwnerMemory.deaths if OwnerMemory.deaths > 1 else "but you're still in here.")
 		"quit":
 			say("you closed the game.")

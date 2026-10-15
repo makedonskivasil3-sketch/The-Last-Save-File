@@ -208,11 +208,11 @@ func _note_text() -> String:
 		return "Welcome home, Arin.\nDon't forget to save!"
 	match previous_exit:
 		"death":
-			return "I REMEMBER WHERE\nYOU DIED."
+			return Story.NOTE_RECALL.get(OwnerMemory.last_death, "I REMEMBER WHERE\nYOU DIED.")
 		"quit", "crash":
 			return "CLOSING THE GAME\nWON'T SAVE YOU."
 		"win", "escape":
-			return "I KNOW ABOUT\nSLOT 2."
+			return Story.NOTE_RECALL.get(OwnerMemory.last_ending, "I KNOW ABOUT\nSLOT 2.")
 	if OwnerMemory.sessions > 1:
 		return "I SAW YOU."
 	return "Welcome home, Arin.\nDon't forget to save!"

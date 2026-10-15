@@ -9,6 +9,8 @@ var _title: Label
 var _menu: VBoxContainer
 var _settings_box: VBoxContainer
 var _settings: SettingsPanel
+var _records_box: VBoxContainer
+var _records: RecordsPanel
 var _load: Button
 var _rebuild_on_close := false
 
@@ -43,7 +45,13 @@ func _ready() -> void:
 	_build_slot_card()
 	_menu.add_child(_spacer(6))
 	_load = UiStyle.button(_menu, "Load Slot 1", _start)
-	UiStyle.button(_menu, "Settings", _show_settings)
+	# Records and Settings share a row, so the menu still fits a phone screen.
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	_menu.add_child(row)
+	if OwnerMemory.sessions > 0:
+		UiStyle.button(row, "Records", _show_records).size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UiStyle.button(row, "Settings", _show_settings).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UiStyle.button(_menu, "Quit", func() -> void: get_tree().quit())
 	_menu.add_child(_spacer(4))
 	UiStyle.note(_menu, "Contains flashing and glitch effects. Both can be reduced in Settings.")
@@ -60,6 +68,11 @@ func _ready() -> void:
 	# Rebuild so the slot card reflects the wiped memory.
 	_settings.memory_wiped.connect(func() -> void: _rebuild_on_close = true)
 	_settings_box.add_child(_settings)
+
+	_records_box = UiStyle.centered_panel(self, 600)
+	_records = RecordsPanel.new()
+	_records.closed.connect(_show_menu)
+	_records_box.add_child(_records)
 
 	_show_menu()
 
@@ -109,6 +122,13 @@ func _build_slot_card() -> void:
 		two.add_theme_color_override("font_color", color)
 		v.add_child(two)
 
+	if OwnerMemory.sessions > 0:
+		var progress := Label.new()
+		progress.text = RecordsPanel.progress_line()
+		progress.add_theme_font_size_override("font_size", 9)
+		progress.add_theme_color_override("font_color", UiStyle.MUTED)
+		v.add_child(progress)
+
 	var status := _slot_status()
 	if status != "":
 		var s := Label.new()
@@ -148,11 +168,19 @@ func _show_menu() -> void:
 		return
 	_panel_of(_menu).visible = true
 	_panel_of(_settings_box).visible = false
+	_panel_of(_records_box).visible = false
 	_load.grab_focus()
+
+
+func _show_records() -> void:
+	_panel_of(_menu).visible = false
+	_panel_of(_records_box).visible = true
+	_records.focus_first()
 
 
 func _show_settings() -> void:
 	_panel_of(_menu).visible = false
+	_panel_of(_records_box).visible = false
 	_panel_of(_settings_box).visible = true
 	_settings.focus_first()
 

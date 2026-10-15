@@ -418,8 +418,11 @@ crates across the road), **> i know where you like to walk.** (Arin's learned ro
 **Death** (*erased* by the eraser, *overwritten* by Arin's touch, *selected* by the
 cursor). The next session opens with:
 **THE OWNER:** > got you.
+**THE OWNER:** > *(what got you)* one click. that's all you were.
 **THE OWNER:** > 3 times now. i'm learning how you move.
-**THE NOTE:** I REMEMBER WHERE YOU DIED.
+**THE NOTE:** I CLICKED. YOU WERE GONE. *(or ARIN REMEMBERS YOUR SHAPE / SAVED OVER YOU. SAVING AGAIN. / I REMEMBER WHERE YOU DIED.)*
+
+The death card names the cause and gives a tip (*"TIP · Hold E on the cursor to blind it…"*).
 
 **Quitting.** Closing the game counts as dying.
 **THE OWNER:** > you closed the game.
@@ -438,3 +441,27 @@ cursor). The next session opens with:
 stands where you used to, and the console reads `SCAN COMPLETE: 0 UNKNOWN PROCESSES`.
 **THE OWNER:** > there. clean.
 **THE OWNER:** > welcome back, arin.
+
+## What they remember
+
+The first time you talk to someone in a run, they may remember your last ones
+(`Story.recall()`; the first matching line wins, once a session).
+
+| Who | Remembers | Line |
+| --- | --- | --- |
+| MIRA | you restored her | I was deleted. Then I wasn't. I remember the dark in between. Thank you. |
+| MIRA | Wren was deleted | They took Wren. She wanted to see the Edge so badly. |
+| MIRA | the message ending | The owner sat with the game open for an hour last night. Didn't move Arin once. Just watched. |
+| MIRA | Wren's ending | There's a new name in the save menu. Wren's. Did you do that? |
+| MIRA | the escape | You got out. I watched the slot fill. So why are you back? |
+| MIRA | Arin got you | Arin came back through the door alone last time. Humming. |
+| TOBBEN | Wren was deleted | Wren used to come in every day and buy nothing. I miss her buying nothing. |
+| TOBBEN | Wren saw the Edge | Someone walked Wren to the Edge. That wasn't in anybody's script. Good for her. |
+| TOBBEN | the message ending | The owner opened my shop menu yesterday. First time in years. Didn't buy anything. Still. |
+| TOBBEN | 3+ deaths | You again! I've started a tab for you. Out of guilt. |
+| WREN | the message ending | Did you write to them? Everything's quieter. Even the static. |
+| WREN | the escape | You got out, and you came back? For me? ...No. Probably not for me. |
+| WREN | the static got you | I saw the static take you. It went right past me after. Like I wasn't worth erasing. |
+
+After Wren's ending the note reads **WHO IS WREN? I DIDN'T MAKE HER.**; after the message,
+**I READ IT. ...THANK YOU?**

@@ -245,7 +245,7 @@ func _fire(t: Dictionary) -> void:
 		"restore":
 			if node.restore():
 				OwnerMemory.npc_fates.erase(node.npc_id)
-				OwnerMemory.save_memory()
+				OwnerMemory.note_restored(node.npc_id)
 				world.flags["%s_restored" % node.npc_id] = true
 				world.hud.say("%s.npc  ·  restored" % node.npc_id, "system")
 		"pause":
