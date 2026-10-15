@@ -741,16 +741,18 @@ func _update_focus() -> void:
 		hud.set_prompt("")
 		return
 	var best := INTERACT_DISTANCE
-	var candidates: Array[Node2D] = area.interactables.duplicate()
-	if pip:
-		candidates.append(pip)
-	for node in candidates:
+	for node in area.interactables:
 		if not node.can_interact():
 			continue
 		var d := player.global_position.distance_to(node.global_position)
 		if d < best:
 			best = d
 			_focused = node
+	# Pip trots at your heels: Pip is only what E talks to when nothing
+	# else is in reach (or Pip would steal every pillar, door and note).
+	if _focused == null and pip and pip.can_interact() \
+			and player.global_position.distance_to(pip.global_position) < INTERACT_DISTANCE:
+		_focused = pip
 	hud.set_prompt(_focused.interact_prompt() if _focused else "")
 	_focus_marker.target = _focused
 

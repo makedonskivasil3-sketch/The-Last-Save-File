@@ -204,3 +204,14 @@ func _tap(hold: int) -> void:
 		await frames(1)
 		if not w.hud.is_dialogue_open() and f == 0:
 			_closed_between = true
+
+
+func test_pip_does_not_steal_the_focus() -> void:
+	memory().found_pip = true
+	var w := await start_session()
+	await wait_until(func() -> bool: return w.pip != null, 3.0, "Pip")
+	await go_to(w, "oob", "well")
+	w.player.global_position = OutOfBounds.PILLAR_POS + Vector2(4, 10)
+	w.pip.global_position = w.player.global_position + Vector2(-3, 2)  # right at your heels
+	await frames(3)
+	check(w._focused == w.area.pillar, "standing at the pillar, E climbs up, even with Pip underfoot (focus %s)" % w._focused)
