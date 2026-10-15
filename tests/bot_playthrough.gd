@@ -399,6 +399,8 @@ func _go(w: Node, points: Array, timeout := STEP_TIMEOUT) -> bool:
 		var still := 0.0
 		while left > 0.0:
 			if w.ending != "" or w.area.area_id != area_id or w._transitioning:
+				if w.ending == "":
+					_say("left %s unplanned (heading for %s, at %s)" % [area_id, p, w.player.global_position.round()])
 				_release_all()
 				return w.ending == ""
 			_heartbeat(w, p)
@@ -445,6 +447,10 @@ func _avoid(w: Node, n: Vector2) -> Vector2:
 			var away: Vector2 = p - h.global_position
 			if away.length() < pair[1]:
 				n = (away.normalized() * 1.5 + n * 0.4).normalized()
+	# Dodging shouldn't carry us out of an exit we didn't mean to take
+	# (the Edge's road home is right under the arrival point).
+	if w.area.area_id == "edge" and p.y > 266.0 and n.y > 0.0:
+		n = Vector2(n.x, -0.3).normalized()
 	return n
 
 
