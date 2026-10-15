@@ -225,6 +225,13 @@ func _ready() -> void:
 	_overlay_tip = _make_label(_overlay, Vector2(80, 268), Vector2(480, 40), 10, Color("ffe08a"))
 	_overlay_tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_overlay_tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var tip_bg := StyleBoxFlat.new()
+	tip_bg.bg_color = Color(0, 0, 0, 0.75)
+	tip_bg.content_margin_left = 8
+	tip_bg.content_margin_right = 8
+	tip_bg.content_margin_top = 3
+	tip_bg.content_margin_bottom = 3
+	_overlay_tip.add_theme_stylebox_override("normal", tip_bg)
 
 	_area_title = _make_label(root, Vector2(0, 150), Vector2(640, 24), 16, SLOT_COLOR)
 	_area_title.add_theme_color_override("font_outline_color", Color.BLACK)
@@ -611,6 +618,7 @@ func show_death(title: String, body: String, cause: String, tip := "") -> void:
 		g.visible = Settings.glitch_intensity > 0.0
 		g.text = title
 	_overlay_tip.text = ("TIP  ·  " + tip) if tip != "" else ""
+	_overlay_tip.visible = tip != ""
 
 
 func death_tip_text() -> String:
@@ -626,6 +634,7 @@ func show_overlay(title: String, body: String, title_color: Color = OWNER_COLOR)
 	_overlay_title.add_theme_color_override("font_color", title_color)
 	_overlay_body.text = body
 	_overlay_tip.text = ""
+	_overlay_tip.visible = false
 
 
 func hide_overlay() -> void:

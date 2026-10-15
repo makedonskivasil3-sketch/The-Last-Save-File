@@ -9,8 +9,11 @@ extends RefCounted
 ##   "invert"   upside down, every interval mirrored around A (out of bounds)
 ## Loops seamlessly (late notes ring into the start).
 
-## Lo-fi on purpose (an old music box). A full render takes ~80-120 ms, so it
-## only happens at load, behind area fades, or as a flashback starts; cached.
+## Lo-fi on purpose (an old music box). A full render takes ~20-70 ms (several
+## times that on the web, which has no threads), so themes the session will
+## need are built ahead of time a few notes per frame (prewarm(), run by Sfx
+## in quiet moments); stream() only renders on the spot if that hasn't
+## happened yet. Cached for the run.
 const RATE := 8000
 const BEAT := 0.42          # seconds
 const BEATS := 16
@@ -40,7 +43,9 @@ static func stream(level: int, variant := "normal") -> AudioStreamWAV:
 	level = clampi(level, 0, MAX_LEVEL)
 	var key := "theme_%d_%s" % [level, variant]
 	if not OwnerMemory.runtime_cache.has(key):
-		if variant == "reverse":
+		if Sfx.finish_job(key):
+			pass  # it was being built in the background: finished it now
+		elif variant == "reverse":
 			# Backwards is the same samples, flipped: no need to render again.
 			OwnerMemory.runtime_cache[key] = _reversed(stream(level))
 		else:
@@ -66,20 +71,71 @@ static func notes_at(level: int) -> int:
 
 
 static func render(level: int, variant := "normal") -> AudioStreamWAV:
-	var loop_len := BEAT * BEATS
-	var b := Synth.begin(loop_len + 1.6, RATE)
-	for n in NOTES:
-		if int(n[3]) > level:
-			continue
-		var midi: int = n[1]
-		if variant == "invert":
-			midi = 2 * ROOT - midi
-		_tine(b, float(n[0]) * BEAT, _freq(midi), float(n[2]) * BEAT, float(n[4]))
-	Synth.wrap(b, loop_len)
+	var job := Job.new(level, variant)
+	job.step(-1)
+	return job.result
+
+
+## Queue this theme to be built in the background (no-op if it's cached or
+## already queued). "reverse" builds the normal theme, then flips it.
+static func prewarm(level: int, variant := "normal") -> void:
+	level = clampi(level, 0, MAX_LEVEL)
+	var key := "theme_%d_%s" % [level, variant]
+	if OwnerMemory.runtime_cache.has(key):
+		return
 	if variant == "reverse":
-		b.reverse()
-	Synth.normalize(b, 0.7)
-	return Synth.to_wav(b, true)
+		prewarm(level)
+	Sfx.queue_job(key, Job.new(level, variant))
+
+
+## A theme render that can be spread over frames: step() renders notes until
+## its time budget runs out. When done, `result` holds the stream and it's in
+## the cache.
+class Job:
+	var level: int
+	var variant: String
+	var result: AudioStreamWAV
+	var _b: PackedFloat32Array
+	var _notes: Array = []
+	var _i := 0
+
+	func _init(lv: int, v: String) -> void:
+		level = clampi(lv, 0, MusicBox.MAX_LEVEL)
+		variant = v
+		if variant == "reverse":
+			return  # derived from the normal theme in step()
+		for n in MusicBox.NOTES:
+			if int(n[3]) <= level:
+				_notes.append(n)
+
+	## Renders for up to budget_usec (< 0: until done). Returns true when done.
+	func step(budget_usec: int) -> bool:
+		var key := "theme_%d_%s" % [level, variant]
+		if OwnerMemory.runtime_cache.has(key):
+			result = OwnerMemory.runtime_cache[key]
+			return true
+		if variant == "reverse":
+			result = MusicBox._reversed(MusicBox.stream(level))
+			OwnerMemory.runtime_cache[key] = result
+			return true
+		var t0 := Time.get_ticks_usec()
+		if _b.is_empty():
+			_b = Synth.begin(MusicBox.BEAT * MusicBox.BEATS + 1.6, MusicBox.RATE)
+		Synth.rate = MusicBox.RATE  # other sounds may have been built in between
+		while _i < _notes.size():
+			var n: Array = _notes[_i]
+			_i += 1
+			var midi: int = n[1]
+			if variant == "invert":
+				midi = 2 * MusicBox.ROOT - midi
+			MusicBox._tine(_b, float(n[0]) * MusicBox.BEAT, MusicBox._freq(midi), float(n[2]) * MusicBox.BEAT, float(n[4]))
+			if budget_usec >= 0 and Time.get_ticks_usec() - t0 > budget_usec:
+				return false
+		_b = Synth.wrap(_b, MusicBox.BEAT * MusicBox.BEATS)
+		Synth.normalize(_b, 0.7)
+		result = Synth.to_wav(_b, true)
+		OwnerMemory.runtime_cache[key] = result
+		return true
 
 
 ## One music-box tine: a plucked sine with a bright overtone and a click.

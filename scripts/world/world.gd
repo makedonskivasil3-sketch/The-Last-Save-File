@@ -82,6 +82,9 @@ func _ready() -> void:
 		return
 
 	Sfx.prewarm()
+	Sfx.hold_back = _is_tense
+	_sync_perf_overlay()
+	_prewarm_themes()
 	glitch = GlitchController.new()
 	glitch.world = self
 	add_child(glitch)
@@ -178,6 +181,7 @@ func recover_fragment(m: MemoryFragment) -> void:
 	out.tween_property(music, "volume_db", -40.0, 1.2)
 	out.tween_callback(music.queue_free)
 	OwnerMemory.add_fragment(f.id)
+	_prewarm_themes()
 	area.process_mode = Node.PROCESS_MODE_INHERIT
 	player.frozen = false
 	director.paused = false
@@ -229,7 +233,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_tree().change_scene_to_file(TITLE_SCENE)
 		return
 	if ending == "" and event is InputEventKey and event.pressed and not event.echo and debug_enabled():
-		var keys := {KEY_F5: "glitches", KEY_F6: "load", KEY_F7: "save", KEY_F8: "drag", KEY_F10: "slot2", KEY_F11: "wren"}
+		var keys := {KEY_F5: "glitches", KEY_F6: "load", KEY_F7: "save", KEY_F8: "drag", KEY_F10: "slot2", KEY_F11: "wren", KEY_F3: "perf"}
 		if keys.has(event.keycode):
 			get_viewport().set_input_as_handled()
 			debug(keys[event.keycode])
@@ -509,6 +513,8 @@ func debug(action: String) -> void:
 		"slot2":
 			flags["pointer"] = true
 			change_area("edge", "slot")
+		"perf":
+			toggle_perf_overlay()
 		"wren":
 			# Wren joins you on the spot (from wherever she is).
 			if escort == null:
@@ -516,6 +522,25 @@ func debug(action: String) -> void:
 					OwnerMemory.npc_fates.erase("wren")
 				var w := VillageSquare.make_wren(area, player.global_position + Vector2(-16, 4))
 				start_escort(w)
+
+
+## Debug: frame times in the corner (F3). Survives scene reloads.
+static var show_perf := false
+
+
+func toggle_perf_overlay() -> void:
+	show_perf = not show_perf
+	_sync_perf_overlay()
+
+
+func _sync_perf_overlay() -> void:
+	var existing := get_node_or_null("PerfOverlay")
+	if show_perf and existing == null:
+		var o := PerfOverlay.new()
+		o.name = "PerfOverlay"
+		add_child(o)
+	elif not show_perf and existing:
+		existing.queue_free()
 
 
 # --- glitches --------------------------------------------------------------------
@@ -625,6 +650,38 @@ func _spawn_pip() -> void:
 
 
 ## True while a story sequence (waking, a flashback) has control.
+## The versions of the theme this session may need, built in the background
+## so nothing hitches when they start: the next memory's flashback, the
+## Edge's backwards theme, out of bounds' upside-down one, the epilogue.
+func _prewarm_themes() -> void:
+	var found := OwnerMemory.fragments.size()
+	if found < MusicBox.MAX_LEVEL:
+		MusicBox.prewarm(found + 1)
+	MusicBox.prewarm(found, "reverse")
+	MusicBox.prewarm(found, "invert")
+	MusicBox.prewarm(found)
+
+
+## Background building (sounds, themes) waits while you're being chased: a
+## hitch then could cost you the run. Fades, cutscenes and calm are fine.
+func _is_tense() -> bool:
+	if _transitioning or _cutscene or ending != "" or hud.is_dialogue_open():
+		return false
+	if director.awareness >= OwnerDirector.HUNT or owner_moves.save_progress >= 0.0 or owner_moves.wren_delete >= 0.0:
+		return true
+	var p := player.global_position
+	for threat in ["arin", "cursor"]:
+		var n: Variant = area.get(threat)
+		if n is Node2D and n.global_position.distance_to(p) < 120.0:
+			return true
+	return false
+
+
+func _exit_tree() -> void:
+	if Sfx.hold_back == Callable(_is_tense):
+		Sfx.hold_back = Callable()
+
+
 func in_cutscene() -> bool:
 	return _cutscene
 

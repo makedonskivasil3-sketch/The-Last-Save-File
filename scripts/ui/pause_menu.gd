@@ -71,7 +71,7 @@ func _ready() -> void:
 	_debug_box = UiStyle.centered_panel(_root, 260)
 	UiStyle.heading(_debug_box, "DEBUG", UiStyle.OWNER, 14)
 	for pair in [["Unlock all glitches", "glitches"], ["Owner: load last save", "load"], ["Owner: save over you", "save"],
-			["Owner: drag the crates", "drag"], ["Wren joins you", "wren"], ["Jump to Slot 2", "slot2"]]:
+			["Owner: drag the crates", "drag"], ["Wren joins you", "wren"], ["Jump to Slot 2", "slot2"], ["Show frame times", "perf"]]:
 		UiStyle.button(_debug_box, pair[0], _debug.bind(pair[1]))
 	UiStyle.button(_debug_box, "Back", _show_main, "ui_back")
 

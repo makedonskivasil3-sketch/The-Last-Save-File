@@ -52,7 +52,11 @@ const PREWARM := ["key_owner_0", "key_owner_1", "key_owner_2", "key_system", "ke
 	"erase_cell_1", "erase_start", "wound_open", "seal", "fragment", "cursor_arrive",
 	"select_loop", "click", "purge_bell", "heartbeat", "death_erased", "death_overwritten",
 	"death_selected", "power_off", "unload", "win", "memory_loop", "glitch_charge", "glitch_fire",
-	"phase", "glitch_learn", "owner_pause", "owner_unpause", "owner_voice", "cursor_hum"]
+	"phase", "glitch_learn", "owner_pause", "owner_unpause", "owner_voice", "cursor_hum",
+	"wind", "bird", "murmur", "archive_hum", "page_turn", "air"]
+
+## Microseconds of building per frame (a 60 fps frame is 16,667).
+const BUILD_BUDGET := 4000
 
 var _cache: Dictionary = {}
 var _queue: Array = []
@@ -90,11 +94,51 @@ func prewarm() -> void:
 			_queue.append(n)
 
 
+## Background jobs (music box themes): key -> an object with step(budget_usec)
+## -> bool (true when done). Run after the sound queue, in the same budget.
+var _jobs: Dictionary = {}
+## Building a sound is one indivisible chunk (up to ~80 ms on the web), so
+## the game can ask us to hold off while the action is tense: returns true to
+## wait. Unset (the title, tests) means always build.
+var hold_back: Callable
+
+
+func queue_job(key: String, job: Object) -> void:
+	if not _jobs.has(key):
+		_jobs[key] = job
+
+
+## Finish a queued job right now (someone needs its result). False if none.
+func finish_job(key: String) -> bool:
+	if not _jobs.has(key):
+		return false
+	var job: Object = _jobs[key]
+	_jobs.erase(key)
+	job.step(-1)
+	return true
+
+
+func is_busy() -> bool:
+	return not _queue.is_empty() or not _jobs.is_empty()
+
+
 func _process(_delta: float) -> void:
+	if _queue.is_empty() and _jobs.is_empty():
+		return
+	if hold_back.is_valid() and hold_back.call():
+		return
 	# Build queued sounds within a small time budget per frame.
 	var t0 := Time.get_ticks_usec()
-	while not _queue.is_empty() and Time.get_ticks_usec() - t0 < 6000:
+	while not _queue.is_empty() and Time.get_ticks_usec() - t0 < BUILD_BUDGET:
 		stream(_queue.pop_front())
+	# Then background jobs, a slice at a time.
+	while not _jobs.is_empty():
+		var left := BUILD_BUDGET - (Time.get_ticks_usec() - t0)
+		if left <= 0:
+			break
+		var key: String = _jobs.keys()[0]
+		if _jobs[key].step(left):
+			_jobs.erase(key)
 
 
 # --- playing ----------------------------------------------------------------------

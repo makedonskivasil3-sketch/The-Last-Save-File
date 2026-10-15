@@ -288,8 +288,8 @@ func _update_prompt() -> void:
 	if target.is_empty() or _cooldown > 0.0:
 		world.hud.set_glitch_prompt("")
 		return
-	# The price is part of the prompt: every glitch costs awareness.
-	world.hud.set_glitch_prompt("hold [%s]  %s  +%d" % [Settings.glyph("interact"), Glitch.label(target.id), int(Glitch.cost(target.id))])
+	# The label names the price ("PHASE +8"): every glitch costs awareness.
+	world.hud.set_glitch_prompt("hold [%s]  %s" % [Settings.glyph("interact"), Glitch.label(target.id)])
 
 
 func _draw() -> void:

@@ -48,7 +48,7 @@ out. The whole story, as a readable script, is in **[docs/STORY_SCRIPT.md](docs/
 | E / Space | A | Tap: interact (read, talk, advance dialogue). **Hold: glitch** whatever is in the pink brackets (see [Glitches](#glitches)) |
 | Esc | Start | Pause menu (Resume · Settings · Quit). Quitting counts, and the menu warns you first. |
 | Hold F9 | | Wipe the owner's memory (debug / "new game") |
-| F5 / F6 / F7 / F8 / F10 / F11 | | Debug (editor, debug builds, or the web build with `?debug=1`): all glitches · load last save · save over you · drag the crates · jump to Slot 2 · Wren joins you. Also under **Pause → Debug**, for phones. |
+| F3 / F5 / F6 / F7 / F8 / F10 / F11 | | Debug (editor, debug builds, or the web build with `?debug=1`): frame times · all glitches · load last save · save over you · drag the crates · jump to Slot 2 · Wren joins you. Also under **Pause → Debug**, for phones. |
 
 **On a phone or tablet** (in the browser): turn it sideways. Drag anywhere on the left side to
 move (a joystick appears under your thumb), tap **E** (bottom right) to interact or advance text,
@@ -431,6 +431,24 @@ tracked frontier; the background hum is synthesised once at startup (~15 ms) and
 re-shapes text when it changes. A soak test (40 area changes, repeated deaths) shows no node,
 resource or object leaks, and the project has no GDScript warnings even with warnings-as-errors.
 
+**No hitches from sound.** Every sound and every version of the music box theme is synthesised in
+code. A single theme takes 20–70 ms to render (several times that on the web build, which has no
+threads), so the session builds what it will need **ahead of time, a few notes per frame**: the next
+memory's flashback, the Edge's backwards theme, out of bounds' upside-down one, the epilogue. Sounds
+are queued the same way (a 4 ms budget per frame). This background work pauses while you're in
+danger (the hunt, a save or delete ring, Arin or the cursor close by) and catches up in calm moments
+and behind area fades; anything needed before it's ready is built on the spot as before.
+
+| Moment (native, worst frame) | Before | After |
+| --- | --- | --- |
+| Entering the Edge | 38 ms | 4 ms |
+| Entering out of bounds | 18 ms | 7 ms |
+| A memory's flashback starting | 20 ms | 4 ms |
+
+To check a real phone, open the web build with `?debug=1` and pick **Pause → Debug → Show frame
+times** (F3 on a keyboard): FPS and the average/worst frame time over the last second appear in the
+corner (and in the browser console as `PERF` lines).
+
 Most of the cost is on the **GPU**: one full-screen CRT pass at window resolution. Settings →
 **Screen effects** picks how much of it runs:
 
@@ -502,7 +520,7 @@ Tests run with `--test-mode`, which points the owner's memory and the settings a
 | `test_menus.gd` | Pause/resume, quitting counts, Slot 2 on the title screen, settings |
 | `test_story.gd` | Boot sequence, flashbacks, fragments persisting, endings |
 | `test_effects.gd` | Every death style, owner events, the win sequence, reduce flashing |
-| `test_performance.gd` | Worst-case frame budget (fully hunted square) and leak checks across area changes |
+| `test_performance.gd` | Worst-case frame budget (fully hunted square), leak checks across area changes, themes built in slices (identically), the session prewarming what it needs (no hitch entering the Edge), background building pausing mid-chase, the frame-time overlay |
 | `test_glitch.gd` | Tap still interacts; every glitch (freeze, falsify, unlock, phase, decoy, pause, restore, blind, scrub), its cost and its unlock |
 | `test_owner_moves.gd` | Load last save (and what it undoes), the 3-glitch reload, saving over you (and a glitch interrupting it), no moves where the owner can't see, the crates dragged across the road, Arin's route memory, debug tools |
 | `test_wren.gd` | Wren asks, comes along and follows; declining; the leash; reaching the Edge saves her for good; the owner deleting her; a glitch saving her |
@@ -554,6 +572,7 @@ scripts/
   world/exit_sign.gd, focus_marker.gd   Signs at exits; brackets on what [E] acts on
   world/drag_prop.gd           The crate stack the cursor can drag across a road
   world/cracked_wall.gd        The first room's thin partition: the first PHASE
+  ui/perf_overlay.gd           Debug: frame times in the corner (F3)
   player/glitch.gd             The glitches: costs, hold times, unlocks, the owner's reactions
   player/glitch_controller.gd  Hold [E]: targeting, charging, firing, feedback
   player/decoy.gd, fx/glitch_burst.gd   DECOY's stale frame; what a glitch looks like where it lands
