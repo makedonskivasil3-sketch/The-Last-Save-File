@@ -42,6 +42,7 @@ func _ready() -> void:
 	_slider(right, "Glitch", Settings.glitch_intensity, func(v: float) -> void: Settings.set_value("glitch_intensity", v))
 	_check(right, "Reduce flashing", Settings.reduce_flashing, func(on: bool) -> void: Settings.set_value("reduce_flashing", on))
 	_check(right, "Large text", Settings.large_text, func(on: bool) -> void: Settings.set_value("large_text", on))
+	_check(right, "Vibration", Settings.vibration, func(on: bool) -> void: Settings.set_value("vibration", on))
 	_section(right, "HELP")
 	_check(right, "Tutorial tips", Settings.tutorial_tips, func(on: bool) -> void: Settings.set_value("tutorial_tips", on))
 	if show_reset:

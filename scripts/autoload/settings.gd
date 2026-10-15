@@ -24,6 +24,8 @@ var crt_curvature := true
 var screen_effects := 2
 ## Softens flashes: no strobing lights, gentler spikes, slower blinking.
 var reduce_flashing := false
+## Short vibrations on phones (glitches, deaths, the save ring).
+var vibration := true
 ## Bigger HUD and menu text (x1.25), for small screens and tired eyes.
 var large_text := false
 ## First-session tips (moving, the owner watching, hiding, quitting).
@@ -95,6 +97,16 @@ func glyph(action: String) -> String:
 	return action.to_upper()
 
 
+## A short buzz on touch screens (if Vibration is on). ms: 10-200.
+## last_buzz is kept for tests.
+var last_buzz := 0
+func buzz(ms: int) -> void:
+	if not vibration or not using_touch:
+		return
+	last_buzz = ms
+	Input.vibrate_handheld(ms)
+
+
 func set_value(key: String, value: Variant) -> void:
 	if key == "tutorial_tips" and value:
 		tips_seen.clear()  # switching tips back on replays them
@@ -135,6 +147,7 @@ func save() -> void:
 	cfg.set_value("video", "fullscreen", fullscreen)
 	cfg.set_value("accessibility", "glitch_intensity", glitch_intensity)
 	cfg.set_value("accessibility", "reduce_flashing", reduce_flashing)
+	cfg.set_value("accessibility", "vibration", vibration)
 	cfg.set_value("video", "crt_curvature", crt_curvature)
 	cfg.set_value("video", "screen_effects", screen_effects)
 	cfg.set_value("accessibility", "large_text", large_text)
@@ -156,6 +169,7 @@ func _load() -> void:
 	fullscreen = bool(cfg.get_value("video", "fullscreen", fullscreen))
 	glitch_intensity = clampf(float(cfg.get_value("accessibility", "glitch_intensity", glitch_intensity)), 0.0, 1.0)
 	reduce_flashing = bool(cfg.get_value("accessibility", "reduce_flashing", reduce_flashing))
+	vibration = bool(cfg.get_value("accessibility", "vibration", vibration))
 	crt_curvature = bool(cfg.get_value("video", "crt_curvature", crt_curvature))
 	screen_effects = clampi(int(cfg.get_value("video", "screen_effects", screen_effects)), 0, 2)
 	large_text = bool(cfg.get_value("accessibility", "large_text", large_text))

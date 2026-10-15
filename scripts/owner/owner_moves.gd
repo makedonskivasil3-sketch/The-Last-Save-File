@@ -307,6 +307,8 @@ func _update_save(delta: float) -> void:
 	if _save_tick <= 0.0:
 		_save_tick = lerpf(0.35, 0.08, save_progress)
 		Sfx.play("key_system", -2.0, 0.6 + save_progress)
+		if save_progress > 0.5:
+			Settings.buzz(12)  # the ring, felt
 	if save_progress >= 1.0:
 		save_progress = -1.0
 		world.hud.say("SAVE COMPLETE: 0 UNKNOWN ENTITIES", "system")

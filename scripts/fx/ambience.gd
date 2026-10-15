@@ -59,12 +59,22 @@ func village_life() -> float:
 			gone += 1
 	if world and world.is_mira_deleted():
 		gone += 1
-	return clampf(1.0 - gone * 0.3, 0.1, 1.0)
+	# What you put right gives a little of it back.
+	var warmth := 0.0
+	if OwnerMemory.mira_quest == "pinned":
+		warmth += 0.1
+	if OwnerMemory.guestbook_restored:
+		warmth += 0.1
+	warmth += 0.05 * OwnerMemory.restored.size()
+	return clampf(1.0 - gone * 0.3 + warmth, 0.1, 1.0)
 
 
 func _process(delta: float) -> void:
 	if world == null or world.ending != "":
 		return
+	if area_id == "edge" and _theme and world.area.erasure != null and world.area.erasure.active:
+		# The backwards theme swells once the Edge starts unloading.
+		_theme.volume_db = move_toward(_theme.volume_db, -8.0, 4.0 * delta)
 	_next_event -= delta
 	if _next_event > 0.0:
 		return

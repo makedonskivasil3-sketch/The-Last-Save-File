@@ -262,8 +262,9 @@ func _pay(id: String) -> void:
 	world.hud.glitch_cost(cost)
 	world.fx.spike(0.3 + cost * 0.02, 0.35)
 	world.fx.noise(0.6, 0.35)
-	# The world shudders: the save felt that.
+	# The world shudders: the save felt that. So does your hand.
 	world.fx.shake(1.5 + cost * 0.15)
+	Settings.buzz(30 + int(cost * 2.0))
 	Sfx.play("glitch_fire", 0.0, 1.0 + randf_range(-0.05, 0.05))
 	world.glitches_used += 1
 	OwnerMemory.session_glitches += 1

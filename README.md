@@ -391,6 +391,18 @@ once into an `AudioStreamWAV` and cached. `Sfx.prewarm()` builds them a few at a
 screen (about 6 ms of work per frame), so the first death never hitches. All of it together takes
 about half a second of CPU, once.
 
+**The music box is held back.** The theme grows with every memory, but its last layer (where it
+finally resolves) is played only in the RUE ending: flashbacks and the title stop one step short
+until you've heard it whole there. Overwriting Slot 1 plays it upside down; walking off the map,
+backwards.
+
+**The world sounds like what you did to it.** Ashvale thins with every deletion and gets a little
+back for what you put right (Mira's note pinned, Rue back in the guest book, people restored). The
+Edge's backwards theme swells once the static starts.
+
+**Phones feel it.** Short vibrations (touch only; Settings > Vibration) when a glitch fires, when you
+die, and while a save ring fills past half.
+
 **Buses.** `Sfx` (`scripts/autoload/sfx.gd`) creates four buses under Master:
 
 | Bus | What's on it | Volume slider |
@@ -587,6 +599,7 @@ tests/run.sh --bots --speed=2 --filter=purge_3
 | `test_phase2.gd` | Death cards by cause, place and repetition; glitch scars and the owner losing patience; THE PRICE tip; the title whispering on first launch; the owner's notes in the Records |
 | `test_story_deep.gd` | The owner's notes (one a run, reacting to how you played, kept in the Archive); the Slot 2 recap; the false memory; the unsent draft |
 | `test_side_stories.gd` | Mira's note pinned (and lost); Tobben's guest book; Pip knowing you; Wren's last words |
+| `test_final_pass.gd` | The complete theme held back for RUE; the village warmed by what you put right; the Edge swelling; vibration (and the toggle) |
 | `test_touch.gd` | Phone controls with real touch events: dragging walks, the E button talks, the II button pauses |
 | `test_expansion.gd` | The well, Out of Bounds (cooling, falling back, anchors and streaming floor), finding Pip and Pip staying, Pip leading the way, act cards, focus brackets, the map, the epilogue |
 | `test_onboarding.gd` | Tips appear in order and only once, can be turned off and replayed; the HIDDEN status; large text; the pause menu's goal |

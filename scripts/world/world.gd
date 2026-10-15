@@ -170,7 +170,7 @@ func recover_fragment(m: MemoryFragment) -> void:
 	var music := AudioStreamPlayer.new()
 	music.bus = "Memory"
 	# The owner's version plays the theme upside down.
-	music.stream = MusicBox.stream(OwnerMemory.fragments.size(), "invert") if planted else MusicBox.stream(OwnerMemory.fragments.size() + 1)
+	music.stream = MusicBox.stream(OwnerMemory.fragments.size(), "invert") if planted else MusicBox.stream(mini(OwnerMemory.fragments.size() + 1, MusicBox.MAX_LEVEL - 1))
 	music.volume_db = -40.0
 	add_child(music)
 	music.play()
@@ -686,8 +686,7 @@ func _spawn_pip() -> void:
 ## Edge's backwards theme, out of bounds' upside-down one, the epilogue.
 func _prewarm_themes() -> void:
 	var found := OwnerMemory.fragments.size()
-	if found < MusicBox.MAX_LEVEL:
-		MusicBox.prewarm(found + 1)
+	MusicBox.prewarm(mini(found + 1, MusicBox.MAX_LEVEL - 1))
 	MusicBox.prewarm(found, "reverse")
 	MusicBox.prewarm(found, "invert")
 	MusicBox.prewarm(found)
@@ -810,6 +809,7 @@ func kill(cause: String, reason := "") -> void:
 	hud.set_prompt("")
 	hud.set_status("")
 	fx.play_death(cause)
+	Settings.buzz(160)
 	player.dissolve(cause)
 	Sfx.play("death_" + cause, 0.0, 1.0, 0.0)
 	drone.tension = 1.0

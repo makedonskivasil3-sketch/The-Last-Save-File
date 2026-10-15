@@ -38,6 +38,14 @@ const NOTES := [
 const MAX_LEVEL := 5
 
 
+## The theme as far as you remember it, outside the RUE ending: the last
+## layer (where it resolves) is held back for that ending alone.
+static func held_level(memories: int) -> int:
+	if OwnerMemory.last_ending == "rue" and memories >= MAX_LEVEL:
+		return MAX_LEVEL  # you've heard it whole; the title remembers
+	return mini(memories, MAX_LEVEL - 1)
+
+
 ## The theme at this memory level (0..5) as a looping stream.
 static func stream(level: int, variant := "normal") -> AudioStreamWAV:
 	level = clampi(level, 0, MAX_LEVEL)

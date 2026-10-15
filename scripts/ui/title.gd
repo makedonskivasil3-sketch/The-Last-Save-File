@@ -31,7 +31,7 @@ func _ready() -> void:
 	_music.bus = "Music"
 	_music.volume_db = -22.0
 	add_child(_music)
-	MusicBox.prewarm(OwnerMemory.fragments.size())
+	MusicBox.prewarm(MusicBox.held_level(OwnerMemory.fragments.size()))
 	var touch := TouchControls.new()
 	touch.buttons_enabled = false
 	add_child(touch)
@@ -90,7 +90,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_update_whispers(delta)
 	if not _music.playing:
-		var key := "theme_%d_normal" % mini(OwnerMemory.fragments.size(), MusicBox.MAX_LEVEL)
+		var key := "theme_%d_normal" % MusicBox.held_level(OwnerMemory.fragments.size())
 		if OwnerMemory.runtime_cache.has(key):
 			_music.stream = OwnerMemory.runtime_cache[key]
 			_music.play()
