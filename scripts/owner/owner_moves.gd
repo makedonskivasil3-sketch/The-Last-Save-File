@@ -39,6 +39,11 @@ const DRAG_HOLD := 14.0         # how long a dragged prop blocks the way
 const SPOT_EVERY := 1.5
 const WREN_DELETE_TIME := 5.0
 const WREN_DELETE_EVERY := 30.0
+## A reload never drops you into danger: it skips moments when the cursor or
+## Arin were this close, and gives you a beat to react afterwards.
+const SAFE_FROM_CURSOR := 64.0
+const SAFE_FROM_ARIN := 44.0
+const GRACE := 0.8
 ## Where the owner can't see you, there are no moves.
 const BLIND_AREAS := ["archive", "oob"]
 
@@ -83,7 +88,9 @@ func update(delta: float) -> void:
 	var aw := world.director.awareness
 	_note_route(delta)
 	# Saving over you.
-	if save_progress >= 0.0:
+	if _writing_slot():
+		pass  # standing still in Slot 2 is the point: no save-over there
+	elif save_progress >= 0.0:
 		_update_save(delta)
 	elif (aw >= OwnerDirector.HUNT and _clock >= _next_save) \
 			or (aw >= OwnerDirector.SUSPECT and world.player.idle_time > IDLE_SAVE and _clock >= _next_save - SAVE_EVERY * 0.5):
@@ -161,13 +168,7 @@ func load_last_save() -> void:
 	_glitches_since_load = 0
 	if save_progress >= 0.0:
 		save_progress = -1.0
-	# The oldest safe moment within reach (never into the eraser's void).
-	var target := _history.size() - 1
-	for i in range(_history.size() - 1, -1, -1):
-		if _clock - float(_history[i].t) > REWIND_BACK:
-			break
-		if not _is_void(_history[i].player):
-			target = i
+	var target := _pick_snapshot()
 	var path: Array[Vector2] = [world.player.global_position]
 	for i in range(_history.size() - 1, target - 1, -1):
 		path.append(_history[i].player)
@@ -195,9 +196,56 @@ func load_last_save() -> void:
 	world.player.frozen = false
 	world.player.velocity = Vector2.ZERO
 	rewinding = false
+	_grace()
 	await get_tree().create_timer(0.8).timeout
 	if is_inside_tree() and world.hud.banner_text().begins_with("◀◀"):
 		world.hud.set_banner("")
+
+
+## The oldest moment within reach that's safe to land in: never the eraser's
+## void, never under the cursor or within Arin's reach. If no moment is
+## fully safe, the oldest one that isn't void.
+func _pick_snapshot() -> int:
+	var fallback := _history.size() - 1
+	var safe := -1
+	for i in range(_history.size() - 1, -1, -1):
+		var s: Dictionary = _history[i]
+		if _clock - float(s.t) > REWIND_BACK:
+			break
+		if _is_void(s.player):
+			continue
+		fallback = i
+		if is_safe(s):
+			safe = i
+	return safe if safe >= 0 else fallback
+
+
+## Would landing in this snapshot put Rue right next to a threat?
+static func is_safe(s: Dictionary) -> bool:
+	var p: Vector2 = s.player
+	if s.has("cursor") and p.distance_to(s.cursor) < SAFE_FROM_CURSOR:
+		return false
+	if s.has("arin") and p.distance_to(s.arin) < SAFE_FROM_ARIN:
+		return false
+	return true
+
+
+## After a reload you get a beat to see where you are: the cursor's click
+## starts over and it loses you briefly; Rue flickers while it lasts.
+func _grace() -> void:
+	var cursor: Variant = world.area.get("cursor")
+	if cursor is OwnerCursor:
+		cursor.blind(GRACE)
+	var tw := world.player.create_tween()
+	for i in 3:
+		tw.tween_property(world.player, "modulate:a", 0.35, GRACE / 6.0)
+		tw.tween_property(world.player, "modulate:a", 1.0, GRACE / 6.0)
+
+
+## Rue is writing herself into Slot 2.
+func _writing_slot() -> bool:
+	var slot: Variant = world.area.get("slot")
+	return slot is SlotTwo and slot.is_writing()
 
 
 func _apply(snap: Dictionary) -> void:
@@ -241,7 +289,7 @@ func _is_void(p: Vector2) -> bool:
 # --- SAVING OVER YOU ----------------------------------------------------------------
 
 func start_save_over() -> void:
-	if save_progress >= 0.0 or rewinding or not _owner_watching() or world.ending != "":
+	if save_progress >= 0.0 or rewinding or _writing_slot() or not _owner_watching() or world.ending != "":
 		return
 	save_progress = 0.0
 	_next_save = _clock + SAVE_EVERY
@@ -259,7 +307,7 @@ func _update_save(delta: float) -> void:
 	if save_progress >= 1.0:
 		save_progress = -1.0
 		world.hud.say("SAVE COMPLETE: 0 UNKNOWN ENTITIES", "system")
-		world.kill("overwritten")
+		world.kill("overwritten", "save")
 
 
 # --- DELETE WREN ---------------------------------------------------------------------

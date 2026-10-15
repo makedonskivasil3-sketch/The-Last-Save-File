@@ -135,21 +135,3 @@ func test_blind_and_scrub() -> void:
 	check_eq(w.glitch.target.get("id", ""), "scrub", "the eraser's void can be scrubbed")
 	await hold("interact", 0.9)
 	check(w.area.erasure.nearest_cell(Vector2(220, 262), 10.0) == Vector2.INF, "SCRUB wipes it")
-
-
-## A real key press (unlike action events, keys don't release each other).
-func _act(action: String, pressed: bool) -> void:
-	for bound in InputMap.action_get_events(action):
-		if bound is InputEventKey:
-			var e: InputEventKey = bound.duplicate()
-			e.pressed = pressed
-			Input.parse_input_event(e)
-			return
-
-
-## Holds an action's key down for `seconds`.
-func hold(action: String, seconds: float) -> void:
-	_act(action, true)
-	await wait(seconds)
-	_act(action, false)
-	await frames(2)

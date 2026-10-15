@@ -21,6 +21,7 @@ const TIPS := {
 	"quiet": ["A QUIET PLACE", "The owner can't see in here. Awareness slowly cools, but never below what the owner has already done."],
 	"oob": ["THE FLOOR ISN'T THERE", "Only the anchors are solid. Chunks of floor stream in and out: cross while they're there, and get off when they flicker red."],
 	"pip": ["PIP", "Pip follows you and runs ahead toward whatever you need next. Pip yips when Arin is close. The owner can't see Pip."],
+	"crack": ["A THIN WALL", "Something glints behind that crack. Face the wall and hold {interact} to glitch through it. Every glitch costs awareness: the bar jumps."],
 	"glitch": ["GLITCH", "Hold {interact} to corrupt whatever is in the pink brackets. It works, but the owner feels every glitch: each one raises awareness."],
 	"slot": ["SLOT 2", "Stand in the slot to write yourself in. It takes a few seconds, and the cursor selects anything that holds still. Lead it away first."],
 }
@@ -29,6 +30,8 @@ const SEQUENCE := ["move", "watched", "quit", "wren"]
 ## A tip stays up at least this long, and at most this long.
 const MIN_TIME := 3.5
 const MAX_TIME := 8.0
+## Behind the cracked wall (the first room's partition).
+const NOOK := Rect2(462, 36, 82, 80)
 ## Breathing room between tips.
 const GAP := 1.2
 
@@ -89,6 +92,11 @@ func _next_tip() -> String:
 		return "way_out"
 	if _world.hiding_npc() != null and _unseen("hidden"):
 		return "hidden"
+	# The cracked wall in the first room teaches the first glitch.
+	var cracked: Variant = _world.area.get("cracked")
+	if cracked is CrackedWall and not cracked.is_open() and _unseen("crack") and "move" in Settings.tips_seen \
+			and _world.player.global_position.distance_to(cracked.crack) < 90.0:
+		return "crack"
 	# The glitch tip waits until you've learned to move.
 	if _world.glitch and not _world.glitch.target.is_empty() and _unseen("glitch") and "move" in Settings.tips_seen:
 		return "glitch"
@@ -111,6 +119,8 @@ func _show(id: String) -> void:
 	if id == "move":
 		_moved = 0.0
 	Settings.mark_tip_seen(id)
+	if id == "crack":
+		Settings.mark_tip_seen("glitch")  # the same lesson
 	_world.hud.show_tip(_title(id), _body(id))
 	Sfx.ui("ui_move")
 
@@ -133,6 +143,8 @@ func _done(id: String) -> bool:
 			return not _world.has_focus()
 		"hidden":
 			return _world.hiding_npc() == null
+		"crack":
+			return NOOK.has_point(_world.player.global_position)
 	return false  # the rest just need reading time
 
 

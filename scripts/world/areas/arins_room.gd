@@ -20,6 +20,10 @@ const SEAM_SPOTS: Array[Rect2] = [
 	Rect2(88, 70, 12, 22),
 ]
 const DOOR_TRIGGER_DISTANCE := 70.0
+## The corner behind the bed is walled off by a thin cracked partition: the
+## room's memory is behind it, and PHASE is the way in (the first glitch).
+const NOOK_WALLS: Array[Rect2] = [Rect2(458, 36, 4, 84), Rect2(458, 116, 86, 4)]
+const CRACK := Vector2(500, 118)
 
 const FLOOR := Color("2a2320")
 const FLOOR_LINE := Color("231d1a")
@@ -48,6 +52,7 @@ var mira: Npc
 var door: Door
 var seam: Seam
 var save_point: SavePoint
+var cracked: CrackedWall
 
 var _mira_line := 0
 
@@ -102,6 +107,14 @@ func build() -> void:
 	if purged:
 		_build_purged_extras()
 		return
+	var hidden_memory := ""
+	for f in Story.fragments_in(area_id):
+		if not OwnerMemory.has_fragment(f.id):
+			hidden_memory = f.id
+	if hidden_memory != "":
+		cracked = CrackedWall.new()
+		add_child(cracked)
+		cracked.setup(NOOK_WALLS, CRACK, hidden_memory)
 	# The owner patched the seam you used last time: you arrive to the sound
 	# of it being stitched shut.
 	if previous_exit in ["death", "quit", "crash"] and OwnerMemory.session_seam == -1 \
@@ -143,6 +156,8 @@ func area_process(_delta: float) -> void:
 func guide_point() -> Vector2:
 	if seam and seam.open:
 		return seam.global_position
+	if cracked and not cracked.is_open():
+		return CRACK
 	return Vector2.INF
 
 

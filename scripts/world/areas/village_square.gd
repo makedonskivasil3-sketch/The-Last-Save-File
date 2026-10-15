@@ -149,7 +149,7 @@ func build() -> void:
 	arin.player = world.player
 	arin.is_hidden = world.is_player_hidden
 	arin.sees_player.connect(_on_arin_sees)
-	arin.touched_player.connect(func() -> void: world.kill("overwritten"))
+	arin.touched_player.connect(func() -> void: world.kill("overwritten", "arin"))
 	arin.lure = world.lure_point
 	add_child(arin)
 
@@ -253,7 +253,7 @@ func _unleash() -> void:
 		cursor.speed = 48.0 + OwnerMemory.purge * 5.0
 		cursor.player = world.player
 		cursor.is_hidden = world.is_player_hidden
-		cursor.selected_player.connect(func() -> void: world.kill("selected"))
+		cursor.selected_player.connect(func() -> void: world.kill("selected", "cursor"))
 		cursor.lure = world.lure_point
 		cursor.paused = world.is_owner_paused()
 		cursor.z_index = 20

@@ -51,6 +51,7 @@ var _prompt: Label
 var _overlay: ColorRect
 var _overlay_title: Label
 var _overlay_body: Label
+var _overlay_tip: Label
 var _hint: Label
 ## "hold [E]  FREEZE +6": what holding interact would do right now.
 var _glitch_prompt: Label
@@ -220,6 +221,10 @@ func _ready() -> void:
 	_overlay_body = _make_label(_overlay, Vector2(40, 170), Vector2(560, 140), 11, SLOT_COLOR)
 	_overlay_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_overlay_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# Death cards: what to try next time.
+	_overlay_tip = _make_label(_overlay, Vector2(80, 268), Vector2(480, 40), 10, Color("ffe08a"))
+	_overlay_tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_overlay_tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
 	_area_title = _make_label(root, Vector2(0, 150), Vector2(640, 24), 16, SLOT_COLOR)
 	_area_title.add_theme_color_override("font_outline_color", Color.BLACK)
@@ -529,6 +534,15 @@ func glitch_prompt_text() -> String:
 
 
 ## A glitch's price: "+8" flies up into the awareness meter, which flinches.
+## While a glitch charges: its price as a ghost on the meter (0 hides it).
+func preview_cost(amount: float) -> void:
+	_meter.preview = amount / 100.0
+
+
+func cost_preview() -> float:
+	return _meter.preview * 100.0
+
+
 func glitch_cost(amount: float) -> void:
 	var l := _make_label(_meter.get_parent(), _meter.position + Vector2(_meter.size.x - 30, 24), Vector2(40, 14), 12, Color(1.0, 0.35, 0.45))
 	l.text = "+%d" % int(amount)
@@ -587,7 +601,7 @@ func awareness_jolt() -> void:
 
 ## Death screen, styled per cause ("erased", "overwritten", "selected"):
 ## the title shakes with colour-split ghosts and keeps corrupting itself.
-func show_death(title: String, body: String, cause: String) -> void:
+func show_death(title: String, body: String, cause: String, tip := "") -> void:
 	_death_style = cause
 	_death_title = title
 	var colors := {"erased": OWNER_COLOR, "overwritten": Color("8fb4e8"), "selected": Color.WHITE}
@@ -596,6 +610,11 @@ func show_death(title: String, body: String, cause: String) -> void:
 	for g in _death_ghosts:
 		g.visible = Settings.glitch_intensity > 0.0
 		g.text = title
+	_overlay_tip.text = ("TIP  ·  " + tip) if tip != "" else ""
+
+
+func death_tip_text() -> String:
+	return _overlay_tip.text
 
 
 func show_overlay(title: String, body: String, title_color: Color = OWNER_COLOR) -> void:
@@ -606,6 +625,7 @@ func show_overlay(title: String, body: String, title_color: Color = OWNER_COLOR)
 	_overlay_title.text = title
 	_overlay_title.add_theme_color_override("font_color", title_color)
 	_overlay_body.text = body
+	_overlay_tip.text = ""
 
 
 func hide_overlay() -> void:

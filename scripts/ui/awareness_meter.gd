@@ -23,6 +23,9 @@ const STAGES := [[0.0, "CALM"], [OwnerDirector.NOTICE / 100.0, "NOTICED"],
 
 ## 0..1, eased toward by the meter itself.
 var value := 0.0
+## What a glitch you're charging will cost (0..1 of the bar): shown as a
+## blinking ghost past the fill, so you see the price before you pay it.
+var preview := 0.0
 
 var _shown := 0.0
 var _beat := 0.0
@@ -89,6 +92,12 @@ func _draw() -> void:
 			draw_rect(r, Color(col, fmod(lit, 1.0)))
 		else:
 			draw_rect(r, Color(1, 1, 1, 0.12))
+	if preview > 0.0:
+		var from := bar.position.x + bar.size.x * _shown
+		var to := bar.position.x + bar.size.x * minf(1.0, value + preview)
+		var blink := 0.45 + 0.35 * sin(_t * 14.0) if flash >= 1.0 else 0.6
+		draw_rect(Rect2(Vector2(from, bar.position.y - 1), Vector2(maxf(1.0, to - from), bar.size.y + 2)), Color(1.0, 0.31, 0.64, blink), false, 1.0)
+		draw_rect(Rect2(Vector2(from, bar.position.y), Vector2(maxf(1.0, to - from), bar.size.y)), Color(1.0, 0.31, 0.64, blink * 0.35))
 	# Under the bar: what the owner is doing right now.
 	_text(font, Vector2(0, bar.end.y + fs + 3), stage_name(value), HORIZONTAL_ALIGNMENT_RIGHT, fs, col.lightened(0.25))
 	# Ticks where the owner's next reactions kick in.

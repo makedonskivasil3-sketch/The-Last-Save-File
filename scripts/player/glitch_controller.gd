@@ -57,7 +57,7 @@ func _process(delta: float) -> void:
 	if not world.can_act():
 		_cancel()
 		target = {}
-		world.hud.set_glitch_prompt("")
+		_update_prompt()
 		queue_redraw()
 		return
 	if Input.is_action_just_pressed("interact"):
@@ -280,10 +280,16 @@ func _react(id: String) -> void:
 # --- feedback ------------------------------------------------------------------------
 
 func _update_prompt() -> void:
+	var charging := _charge > 0.0 and not target.is_empty()
+	world.hud.preview_cost(Glitch.cost(target.id) if charging else 0.0)
+	if world.touch:
+		world.touch.hold_label = "" if target.is_empty() or _cooldown > 0.0 else Glitch.label(target.id).to_upper()
+		world.touch.hold_progress = clampf(_charge / float(Glitch.DEFS[target.id].hold), 0.0, 1.0) if charging else -1.0
 	if target.is_empty() or _cooldown > 0.0:
 		world.hud.set_glitch_prompt("")
 		return
-	world.hud.set_glitch_prompt("hold [%s]  %s" % [Settings.glyph("interact"), Glitch.label(target.id)])
+	# The price is part of the prompt: every glitch costs awareness.
+	world.hud.set_glitch_prompt("hold [%s]  %s  +%d" % [Settings.glyph("interact"), Glitch.label(target.id), int(Glitch.cost(target.id))])
 
 
 func _draw() -> void:
@@ -295,16 +301,19 @@ func _draw() -> void:
 	# Brackets on the target (not on yourself).
 	if not (target.id in ["decoy", "pause"]):
 		var tp: Vector2 = target.pos if target.id in ["phase", "scrub"] or target.node == null else target.node.global_position
-		var s := 12.0 - 4.0 * k + (sin(_t * (20.0 if charging else 5.0)) * 1.0)
+		# Bigger and bolder on touch screens, where a thumb hides half the view.
+		var big := 1.4 if Settings.using_touch else 1.0
+		var s := (12.0 - 4.0 * k) * big + (sin(_t * (20.0 if charging else 5.0)) * 1.0)
 		var r := Rect2(tp - global_position - Vector2(s, s + 6), Vector2(s, s) * 2.0)
 		var c := MAGENTA.lerp(CYAN, k)
 		c.a = 0.5 + 0.5 * k if charging else 0.45
-		var arm := 4.0
+		var arm := 4.0 * big
+		var w := 2.0 if big > 1.0 else 1.0
 		for corner in [r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]:
 			var dx := arm if corner.x == r.position.x else -arm
 			var dy := arm if corner.y == r.position.y else -arm
-			draw_line(corner, corner + Vector2(dx, 0), c, 1.0)
-			draw_line(corner, corner + Vector2(0, dy), c, 1.0)
+			draw_line(corner, corner + Vector2(dx, 0), c, w)
+			draw_line(corner, corner + Vector2(0, dy), c, w)
 		if target.id == "phase":
 			_dotted(p + Vector2(0, 6) - global_position, tp - global_position, Color(c, 0.6))
 	if charging:

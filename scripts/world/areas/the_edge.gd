@@ -56,7 +56,7 @@ func build() -> void:
 	cursor.speed = minf(40.0 + OwnerMemory.purge * 3.0, CURSOR_MAX_SPEED)
 	cursor.player = world.player
 	cursor.is_hidden = world.is_player_hidden
-	cursor.selected_player.connect(func() -> void: world.kill("selected"))
+	cursor.selected_player.connect(func() -> void: world.kill("selected", "cursor"))
 	cursor.lure = world.lure_point
 	cursor.z_index = 20
 	add_child(cursor)

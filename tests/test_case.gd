@@ -157,3 +157,21 @@ func shot(name: String) -> void:
 			var img := tree.root.get_texture().get_image()
 			if img:
 				img.save_png(arg.trim_prefix("--screenshots=").path_join(name + ".png"))
+
+
+## A real key press (unlike action events, keys don't release each other).
+func _act(action: String, pressed: bool) -> void:
+	for bound in InputMap.action_get_events(action):
+		if bound is InputEventKey:
+			var e: InputEventKey = bound.duplicate()
+			e.pressed = pressed
+			Input.parse_input_event(e)
+			return
+
+
+## Holds an action's key down for `seconds`.
+func hold(action: String, seconds: float) -> void:
+	_act(action, true)
+	await wait(seconds)
+	_act(action, false)
+	await frames(2)

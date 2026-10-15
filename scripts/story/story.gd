@@ -268,6 +268,25 @@ const ENDING_RETURN := {
 }
 
 
+## How you died, and what to try next time. reason -> [title, body, tip,
+## glitch, glitch tip]: the glitch tip replaces the plain one once that
+## glitch is yours. {interact} becomes the button glyph.
+const DEATHS := {
+	"arin": ["OVERWRITTEN", "arin walked through you. there was only room for one of you.",
+		"Arin only sees inside the light cone. Stay behind, or hide beside Wren.",
+		"freeze", "Hold {interact} near Arin to freeze them for 2 seconds, then slip past."],
+	"save": ["OVERWRITTEN", "the owner saved over you.",
+		"When the save ring appears, keep moving: it fills slowly while you walk.",
+		"phase", "Any glitch breaks a save. Hold {interact} the moment the ring appears."],
+	"cursor": ["SELECTED · DELETED", "the owner clicked on you.",
+		"The cursor selects whatever holds still under it. Keep moving, or break its line of sight.",
+		"blind", "Hold {interact} on the cursor to blind it for a few seconds."],
+	"eraser": ["ERASED", "the static caught up with you.",
+		"The erasure spreads from where it starts. Stay ahead of it and head for the exit.",
+		"scrub", "Hold {interact} on erased ground to scrub a path through it."],
+}
+
+
 static func fragment(id: String) -> Dictionary:
 	for f in FRAGMENTS:
 		if f.id == id:

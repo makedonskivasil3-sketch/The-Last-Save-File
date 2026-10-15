@@ -88,7 +88,7 @@ func setup_common() -> void:
 	add_child(_body)
 	erasure = Erasure.new()
 	erasure.setup(bounds, world.player)
-	erasure.caught_player.connect(func() -> void: world.kill("erased"))
+	erasure.caught_player.connect(func() -> void: world.kill("erased", "eraser"))
 	add_child(erasure)
 	if not world.purged:
 		add_fragments.call_deferred()

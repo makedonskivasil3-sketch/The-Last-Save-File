@@ -15,6 +15,8 @@ var area: Area
 var flags: Dictionary = {}
 ## "", "death", "quit", "win"
 var ending := ""
+## Why you last died this session (a key of Story.DEATHS), for the death card.
+var last_death := ""
 var purged := false
 
 var _focused: Node2D
@@ -33,6 +35,7 @@ var _tutorial: Tutorial
 var pip: Companion
 ## Rue's glitch power: reads [E] (tap = interact, hold = glitch).
 var glitch: GlitchController
+var touch: TouchControls
 ## DECOY: the stale frame of you Arin and the cursor chase, if any.
 var decoy: Decoy
 ## Glitches fired this session (the owner keeps count, and so do endings).
@@ -68,7 +71,8 @@ func _ready() -> void:
 	_light = CanvasModulate.new()
 	add_child(_light)
 	hud.dialogue_closed.connect(_on_dialogue_closed)
-	add_child(TouchControls.new())
+	touch = TouchControls.new()
+	add_child(touch)
 	_focus_marker = FocusMarker.new()
 	_focus_marker.z_index = 15
 	add_child(_focus_marker)
@@ -687,7 +691,9 @@ func _interact(node: Node2D) -> void:
 
 # --- endings ------------------------------------------------------------------
 
-func kill(cause: String) -> void:
+## cause picks the death effect ("erased", "overwritten", "selected");
+## reason picks the explanation and tip (a key of Story.DEATHS).
+func kill(cause: String, reason := "") -> void:
 	if ending != "" or _transitioning:
 		return
 	ending = "death"
@@ -702,27 +708,33 @@ func kill(cause: String) -> void:
 	Sfx.play("death_" + cause, 0.0, 1.0, 0.0)
 	drone.tension = 1.0
 	OwnerMemory.record_death(area.area_id, player.global_position)
-	var title := "ERASED"
-	var body := "the owner learned something."
-	match cause:
-		"overwritten":
-			title = "OVERWRITTEN"
-			body = "arin walked through you. there was only room for one of you."
-		"selected":
-			title = "SELECTED · DELETED"
-			body = "the owner clicked on you."
+	last_death = reason
+	var info: Array = Story.DEATHS.get(reason, ["ERASED", "the owner learned something.", "", "", ""])
+	var title: String = info[0]
+	var body: String = info[1]
 	if not OwnerMemory.session_helpers.is_empty():
 		body += "\nthe owner saw who helped you."
 	if OwnerMemory.is_purged():
 		body = "the owner has learned enough."
+	var tip := death_tip(reason)
 	# Let the death play out on screen before the text slams in.
 	await get_tree().create_timer(0.6).timeout
 	if not is_inside_tree():
 		return
-	hud.show_death(title, body, cause)
-	await get_tree().create_timer(2.8).timeout
+	hud.show_death(title, body, cause, tip)
+	# A tip needs reading time.
+	await get_tree().create_timer(3.6 if tip != "" else 2.8).timeout
 	if is_inside_tree():  # F9 may have reloaded the scene in the meantime
 		get_tree().reload_current_scene()
+
+
+## What to try next time, given the glitches you have.
+func death_tip(reason: String) -> String:
+	if not Story.DEATHS.has(reason):
+		return ""
+	var info: Array = Story.DEATHS[reason]
+	var tip: String = info[4] if glitch and glitch.unlocked(info[3]) else info[2]
+	return tip.replace("{interact}", Settings.glyph("interact"))
 
 
 ## Rue finished writing into Slot 2: the world holds still while you decide

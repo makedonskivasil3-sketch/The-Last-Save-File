@@ -21,6 +21,10 @@ const BUTTONS := {
 const CYAN := Color("8cf2ff")
 
 var active := false
+## Set by the glitch controller: what holding E would do ("" for nothing),
+## and how far the hold has charged (0..1, or < 0 when not charging).
+var hold_label := ""
+var hold_progress := -1.0
 ## The title screen only wants the "turn sideways" notice: menus take taps.
 var buttons_enabled := true
 
@@ -164,3 +168,24 @@ func _on_draw() -> void:
 		_draw_node.draw_arc(b.center, b.radius, 0.0, TAU, 32, Color(CYAN, 0.7), 1.5)
 		var fs := 18 if b.radius > 20.0 else 10
 		_draw_node.draw_string(font, b.center + Vector2(-b.radius, fs * 0.35), b.label, HORIZONTAL_ALIGNMENT_CENTER, b.radius * 2.0, fs, CYAN)
+		if name == "interact" and hold_label != "":
+			_draw_hold(b.center, b.radius, font)
+
+
+## Something to glitch in reach: the E button grows a pink "HOLD" ring that
+## fills as you charge.
+func _draw_hold(c: Vector2, r: float, font: Font) -> void:
+	var pink := Color("ff4fa3")
+	var ring := r + 6.0
+	var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.006)
+	if hold_progress < 0.0:
+		# Dashed: "press and hold".
+		for i in 12:
+			var a := TAU * i / 12.0
+			_draw_node.draw_arc(c, ring, a, a + TAU / 24.0, 4, Color(pink, 0.45 + 0.4 * pulse), 2.0)
+	else:
+		_draw_node.draw_arc(c, ring, 0.0, TAU, 32, Color(pink, 0.25), 2.0)
+		_draw_node.draw_arc(c, ring, -PI * 0.5, -PI * 0.5 + TAU * hold_progress, 32, pink.lerp(CYAN, hold_progress), 3.0)
+	var text := "HOLD · " + hold_label
+	_draw_node.draw_string_outline(font, c + Vector2(-90, -ring - 6), text, HORIZONTAL_ALIGNMENT_CENTER, 180, 9, 3, Color(0, 0, 0, 0.8))
+	_draw_node.draw_string(font, c + Vector2(-90, -ring - 6), text, HORIZONTAL_ALIGNMENT_CENTER, 180, 9, pink)

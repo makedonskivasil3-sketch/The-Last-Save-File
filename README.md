@@ -143,6 +143,16 @@ interacts. **Every glitch costs awareness**: the cost flies up into the meter an
 save twitch (and says so, the first time). Stronger glitches cost more. Four work from the start,
 and each recovered memory unlocks one more (a big *NEW GLITCH* card says so).
 
+The prompt names the price (`hold [E]  phase  +8`), and while you charge, the price shows as a
+blinking pink ghost on the awareness meter, so you know what you're paying before you pay it. On a
+phone the E button grows a dashed pink **HOLD** ring naming the glitch, which fills as you charge, and
+the target brackets are bigger and bolder.
+
+**The first glitch is taught by the first room.** The room's memory sits behind a thin partition
+with a glowing crack in the corner by the bed; the guide points at it, and the first time you get
+close a tip says to face the wall and hold E. Phase through, take the memory, and the partition
+comes down (you're never shut in).
+
 | Memories | Glitch | Cost | What it does |
 | --- | --- | --- | --- |
 | 0 | **Phase** | +8 | Facing a wall: slip through it (up to ~50 px). Out of bounds, it jumps gaps in the floor. Patched seams, crates, missing textures... |
@@ -165,10 +175,15 @@ the owner can't see (the Archive, out of bounds).
 
 | Move | When | What happens |
 | --- | --- | --- |
-| **Load Last Save** | Your 3rd glitch since the last reload (once noticed), or once at 65% | `◀◀ LOADING AUTOSAVE`: Rue is dragged back along her own path ~10 s, Arin and the cursor snap back, and every glitch effect is undone (freezes, blinds, lies, the glitched door, decoys). Never into the void. |
-| **Saving Over You** | From the hunt, every ~35 s, or when you stand still too long under suspicion | A save ring fills over Rue: fast while you stand still, slowly while you move. **Any glitch interrupts it.** If it fills, you're overwritten. |
+| **Load Last Save** | Your 3rd glitch since the last reload (once noticed), or once at 65% | `◀◀ LOADING AUTOSAVE`: Rue is dragged back along her own path ~10 s, Arin and the cursor snap back, and every glitch effect is undone (freezes, blinds, lies, the glitched door, decoys). It never drops you into danger: it skips moments in the void, under the cursor or within Arin's reach, and afterwards the cursor loses you for a beat (Rue flickers) so you can see where you are. |
+| **Saving Over You** | From the hunt, every ~35 s, or when you stand still too long under suspicion | A save ring fills over Rue: fast while you stand still, slowly while you move. **Any glitch interrupts it.** If it fills, you're overwritten. It never starts (and holds still) while you're writing yourself into Slot 2. |
 | **Drag** | In the square during the hunt, when you head for a road | The cursor grabs the crate stack and drags it across that road. Phase through it, or wait for it to be dragged back. |
 | **Route memory** | When a session ends badly | Where Arin saw you is remembered. Next time Arin's patrol detours through those spots (one more each session, up to three), and the owner tells you so. |
+
+**Deaths explain themselves.** The death card says what got you (Arin walking through you, the
+owner saving over you, the cursor's click, the static) and gives one yellow **TIP** line on what to
+try next time. Once you have the glitch that answers that death, the tip names it instead
+(`Story.DEATHS`).
 
 ## Wren, and the three endings
 
@@ -492,6 +507,7 @@ Tests run with `--test-mode`, which points the owner's memory and the settings a
 | `test_owner_moves.gd` | Load last save (and what it undoes), the 3-glitch reload, saving over you (and a glitch interrupting it), no moves where the owner can't see, the crates dragged across the road, Arin's route memory, debug tools |
 | `test_wren.gd` | Wren asks, comes along and follows; declining; the leash; reaching the Edge saves her for good; the owner deleting her; a glitch saving her |
 | `test_endings.gd` | The Slot 2 choice (two or three options), the escape, Wren and message endings, and the title aftermath |
+| `test_fairness.gd` | Reloads skip moments next to the cursor or Arin and give you a beat; no save-over while writing Slot 2; death cards explain the cause with a tip (naming the glitch once you have it); the first room teaches PHASE; the cost preview and the phone HOLD ring |
 | `test_touch.gd` | Phone controls with real touch events: dragging walks, the E button talks, the II button pauses |
 | `test_expansion.gd` | The well, Out of Bounds (cooling, falling back, anchors and streaming floor), finding Pip and Pip staying, Pip leading the way, act cards, focus brackets, the map, the epilogue |
 | `test_onboarding.gd` | Tips appear in order and only once, can be turned off and replayed; the HIDDEN status; large text; the pause menu's goal |
@@ -537,6 +553,7 @@ scripts/
   world/passage.gd             Ways you take on purpose: into the well, back up the respawn pillar
   world/exit_sign.gd, focus_marker.gd   Signs at exits; brackets on what [E] acts on
   world/drag_prop.gd           The crate stack the cursor can drag across a road
+  world/cracked_wall.gd        The first room's thin partition: the first PHASE
   player/glitch.gd             The glitches: costs, hold times, unlocks, the owner's reactions
   player/glitch_controller.gd  Hold [E]: targeting, charging, firing, feedback
   player/decoy.gd, fx/glitch_burst.gd   DECOY's stale frame; what a glitch looks like where it lands
