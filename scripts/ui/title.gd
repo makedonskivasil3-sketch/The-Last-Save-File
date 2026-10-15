@@ -13,6 +13,7 @@ var _records_box: VBoxContainer
 var _records: RecordsPanel
 var _load: Button
 var _rebuild_on_close := false
+var _music: AudioStreamPlayer
 
 
 func _ready() -> void:
@@ -21,12 +22,12 @@ func _ready() -> void:
 	($ScreenFX/Effect as ScreenFx).shake_world = false  # no world layer here
 	get_tree().paused = false
 	# The theme, as far as you remember it.
-	var music := AudioStreamPlayer.new()
-	music.bus = "Music"
-	music.stream = MusicBox.stream(OwnerMemory.fragments.size())
-	music.volume_db = -22.0
-	add_child(music)
-	music.play()
+	# Built in the background if it isn't cached yet; it starts when ready.
+	_music = AudioStreamPlayer.new()
+	_music.bus = "Music"
+	_music.volume_db = -22.0
+	add_child(_music)
+	MusicBox.prewarm(OwnerMemory.fragments.size())
 	var touch := TouchControls.new()
 	touch.buttons_enabled = false
 	add_child(touch)
@@ -78,6 +79,11 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+	if not _music.playing:
+		var key := "theme_%d_normal" % mini(OwnerMemory.fragments.size(), MusicBox.MAX_LEVEL)
+		if OwnerMemory.runtime_cache.has(key):
+			_music.stream = OwnerMemory.runtime_cache[key]
+			_music.play()
 	# The title glitches more the further the purge has gone.
 	var chance := (0.01 + OwnerMemory.purge * 0.02) * Settings.flash_scale()
 	if randf() < chance:

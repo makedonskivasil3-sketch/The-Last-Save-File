@@ -13,6 +13,8 @@ var blocked_message := ""
 var size := Vector2(16, 16)
 
 var _was_inside := false
+var _retry := 0.0
+const RETRY := 0.3
 
 
 func setup(rect: Rect2, target: String, arrive_at: String) -> void:
@@ -33,8 +35,16 @@ func _physics_process(_delta: float) -> void:
 		if body is Player:
 			inside = true
 	if inside and not _was_inside:
+		_retry = RETRY
 		if open:
 			used.emit(self)
 		else:
 			blocked.emit(self)
+	elif inside and open:
+		# Still standing in it (the move was refused, e.g. waiting for Wren):
+		# try again every so often.
+		_retry -= _delta
+		if _retry <= 0.0:
+			_retry = RETRY
+			used.emit(self)
 	_was_inside = inside

@@ -36,6 +36,7 @@ var pip: Companion
 ## Rue's glitch power: reads [E] (tap = interact, hold = glitch).
 var glitch: GlitchController
 var touch: TouchControls
+var _leash_said := -100000
 ## DECOY: the stale frame of you Arin and the cursor chase, if any.
 var decoy: Decoy
 ## Glitches fired this session (the owner keeps count, and so do endings).
@@ -262,7 +263,10 @@ func change_area(id: String, arrival: String) -> void:
 	if _transitioning or ending != "":
 		return
 	if escort and escort.global_position.distance_to(player.global_position) > ESCORT_LEASH:
-		hud.say("wait for wren.", "self")
+		var now := Time.get_ticks_msec()
+		if now - _leash_said > 2500:
+			_leash_said = now
+			hud.say("wait for wren.", "self")
 		return
 	_transitioning = true
 	player.frozen = true
@@ -500,7 +504,7 @@ func debug(action: String) -> void:
 		"glitches":
 			glitch.unlock_all = true
 		"load":
-			owner_moves.load_last_save()
+			owner_moves.load_last_save(true)
 		"save":
 			owner_moves.start_save_over()
 		"drag":
@@ -683,6 +687,22 @@ func _is_tense() -> bool:
 func _exit_tree() -> void:
 	if Sfx.hold_back == Callable(_is_tense):
 		Sfx.hold_back = Callable()
+
+
+## Mira is gone this run: deleted this session, or by an advanced purge
+## (unless you've brought her back).
+func is_mira_deleted() -> bool:
+	return flags.get("mira_deleted", false) or (OwnerMemory.purge >= 3 and "mira" not in OwnerMemory.restored)
+
+
+## Someone deleted is back (RESTORE, or the Recycle Bin): for good.
+func note_restored(id: String) -> void:
+	OwnerMemory.npc_fates.erase(id)
+	OwnerMemory.note_restored(id)
+	if id == "mira":
+		flags["mira_deleted"] = false
+	flags["%s_restored" % id] = true
+	hud.say("%s.npc  ·  restored" % id, "system")
 
 
 func in_cutscene() -> bool:

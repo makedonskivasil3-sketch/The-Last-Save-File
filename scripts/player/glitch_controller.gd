@@ -229,7 +229,6 @@ func _fire(t: Dictionary) -> void:
 		"falsify":
 			node.falsify()
 			world.director.believe_lie(Glitch.LIE_TIME)
-			world.flags["lie"] = true
 			burst_size = Vector2(20, 14)
 		"unlock":
 			node.force_open(Glitch.UNLOCK_TIME)
@@ -244,10 +243,7 @@ func _fire(t: Dictionary) -> void:
 			burst_size = Vector2(20, 24)
 		"restore":
 			if node.restore():
-				OwnerMemory.npc_fates.erase(node.npc_id)
-				OwnerMemory.note_restored(node.npc_id)
-				world.flags["%s_restored" % node.npc_id] = true
-				world.hud.say("%s.npc  ·  restored" % node.npc_id, "system")
+				world.note_restored(node.npc_id)
 		"pause":
 			world.pause_owner(Glitch.PAUSE_TIME)
 			burst_size = Vector2(40, 40)

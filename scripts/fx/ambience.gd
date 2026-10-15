@@ -53,8 +53,11 @@ func _loop(s: AudioStream, db: float) -> AudioStreamPlayer:
 ## How lively the village still is: every character the owner deleted
 ## takes some of the sound with them (0..1).
 func village_life() -> float:
-	var gone := OwnerMemory.npc_fates.size()
-	if OwnerMemory.purge >= 3 or (world and world.flags.get("mira_deleted", false)):
+	var gone := 0
+	for id in OwnerMemory.npc_fates:
+		if OwnerMemory.is_deleted(id):
+			gone += 1
+	if world and world.is_mira_deleted():
 		gone += 1
 	return clampf(1.0 - gone * 0.3, 0.1, 1.0)
 

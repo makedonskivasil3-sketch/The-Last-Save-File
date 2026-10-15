@@ -78,7 +78,7 @@ func deleted_characters() -> Array[String]:
 	for id in OwnerMemory.npc_fates:
 		if OwnerMemory.is_deleted(id):
 			out.append(id)
-	if world.flags.get("mira_deleted", false) or (OwnerMemory.purge >= 3 and "mira" not in OwnerMemory.restored):
+	if world.is_mira_deleted():
 		if "mira" not in out:
 			out.append("mira")
 	return out
@@ -160,12 +160,7 @@ func _check_sweep(from_x: float, to_x: float) -> void:
 
 
 func _on_restored(id: String) -> void:
-	OwnerMemory.npc_fates.erase(id)
-	OwnerMemory.note_restored(id)
-	if id == "mira":
-		world.flags["mira_deleted"] = false
-	world.flags["%s_restored" % id] = true
-	world.hud.say("%s.npc  ·  restored" % id, "system")
+	world.note_restored(id)
 	world.director.add_awareness(10.0)
 	world.director.say({"wren": "wren? i deleted you.", "mira": "mira. who put you back."}.get(id, "who restored that."))
 	world.voice("bin_restored")

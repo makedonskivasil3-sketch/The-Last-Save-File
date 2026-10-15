@@ -52,6 +52,10 @@ var _overlay: ColorRect
 var _overlay_title: Label
 var _overlay_body: Label
 var _overlay_tip: Label
+## Whether the last dialogue was read to its end (vs. walked away from or
+## closed by something else).
+var dialogue_finished := false
+var _finishing := false
 var _hint: Label
 ## "hold [E]  FREEZE +6": what holding interact would do right now.
 var _glitch_prompt: Label
@@ -385,6 +389,8 @@ func show_dialogue(speaker: String, color: Color, lines: Array) -> void:
 func close_dialogue() -> void:
 	if not _dialogue.visible:
 		return
+	dialogue_finished = _finishing
+	_finishing = false
 	_dialogue.visible = false
 	_console_box.visible = _console.get_child_count() > 0
 	_prompt.visible = true
@@ -505,6 +511,7 @@ func _update_dialogue(delta: float) -> void:
 			_dialogue_index += 1
 			_show_dialogue_line()
 		else:
+			_finishing = true  # read to the end, not walked away from
 			close_dialogue()
 
 

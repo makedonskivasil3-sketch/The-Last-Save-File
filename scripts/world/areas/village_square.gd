@@ -212,6 +212,9 @@ func on_dialogue_closed(who: Node) -> void:
 	if who != wren or not _wren_asked:
 		return
 	_wren_asked = false
+	# Walked off (or something ended the session): she'll ask again next time.
+	if not world.hud.dialogue_finished or world.ending != "":
+		return
 	world.player.frozen = true
 	var pick := await world.hud.choose(Story.WREN_ASK, Story.WREN_ASK_CHOICES)
 	if not is_inside_tree():
@@ -334,7 +337,7 @@ func _tobben_reports() -> void:
 
 func _tobben_report_lands() -> void:
 	if is_inside_tree() and world.ending == "":
-		if world.flags.get("lie", false):
+		if world.director.is_believing_lie():
 			# The owner already believes the lie on the board.
 			world.director.say("tobben says you're gone. good.")
 			return

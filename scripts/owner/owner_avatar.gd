@@ -88,6 +88,8 @@ func _physics_step(delta: float) -> void:
 
 
 func can_see(pos: Vector2) -> bool:
+	if stunned > 0.0 or paused:
+		return false
 	var to := pos - global_position
 	if to.length() > view_distance:
 		return false

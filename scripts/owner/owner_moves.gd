@@ -160,9 +160,11 @@ func _snapshot(delta: float) -> void:
 
 
 ## The owner reloads: Rue is dragged back ~10 seconds along her own path.
-func load_last_save() -> void:
+func load_last_save(force := false) -> void:
 	if rewinding or _history.size() < 2 or world.ending != "" or not world.can_act():
 		return
+	if _load_cd > 0.0 and not force:
+		return  # one reload at a time, however many glitches queued one
 	rewinding = true
 	_load_cd = LOAD_COOLDOWN
 	_glitches_since_load = 0
@@ -353,7 +355,7 @@ func _update_drag(delta: float) -> void:
 		if _drag_back < 0.0:
 			cursor.drag(prop, prop.home)  # done blocking: put it back
 		return
-	if _drag_cd > 0.0 or prop.global_position != prop.home:
+	if _drag_cd > 0.0 or prop.global_position.distance_to(prop.home) > 2.0:
 		return
 	var p: Vector2 = world.player.global_position
 	for block: Vector2 in area.call("block_points"):
