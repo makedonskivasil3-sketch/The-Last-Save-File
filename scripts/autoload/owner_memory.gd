@@ -158,6 +158,13 @@ func add_fragment(id: String) -> void:
 		save_memory()
 
 
+## Mira's note, still in your pocket when the run ends badly: the owner
+## finds it.
+func _lose_carried_note() -> void:
+	if mira_quest == "carried":
+		mira_quest = "lost"
+
+
 ## Brought someone back with RESTORE (remembered across runs).
 func note_restored(npc: String) -> void:
 	if npc not in restored:
@@ -188,6 +195,7 @@ func record_death(area: String, at: Vector2, reason := "") -> bool:
 		edge_static_deaths += 1
 	elif area != "edge":
 		edge_static_deaths = 0
+	_lose_carried_note()
 	var forgiven := area == "edge" and not edge_mercy_used
 	if forgiven:
 		edge_mercy_used = true
@@ -205,6 +213,7 @@ func record_death(area: String, at: Vector2, reason := "") -> bool:
 func record_quit() -> void:
 	if _session_closed:
 		return
+	_lose_carried_note()
 	quits += 1
 	purge += 1
 	_learn()

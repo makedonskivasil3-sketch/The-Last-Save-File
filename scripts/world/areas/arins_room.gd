@@ -197,6 +197,12 @@ func _on_seam(s: Seam) -> void:
 
 
 func _mira_lines() -> Array:
+	# Her request, once she trusts you a little.
+	if mira.state == Npc.State.NORMAL and OwnerMemory.mira_quest == "" and _mira_line >= 2:
+		OwnerMemory.mira_quest = "carried"
+		OwnerMemory.save_memory()
+		world.hud.say("RECEIVED: mira_note.txt", "system")
+		return Story.MIRA_NOTE_GIVE
 	var lines: Array = MIRA_LINES if mira.state == Npc.State.NORMAL else MIRA_RESTRICTED
 	var line: String = lines[mini(_mira_line, lines.size() - 1)]
 	_mira_line += 1

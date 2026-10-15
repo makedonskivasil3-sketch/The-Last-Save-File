@@ -102,6 +102,8 @@ func build() -> void:
 	board.player = world.player
 	board.text = "ASHVALE NOTICES\nHarvest fair on Sunday." if OwnerMemory.sessions <= 1 else "MISSING: ONE (1) INTRUDER.\nIF SEEN, TELL TOBBEN."
 	board.lie = "INTRUDER CAUGHT.\nALL CLEAR."
+	if OwnerMemory.mira_quest == "pinned":
+		board.text = Story.MIRA_NOTE_TEXT  # it stays up, every run
 	add_child(board)
 	interactables.append(board)
 
@@ -186,7 +188,7 @@ func block_points() -> Array[Vector2]:
 
 
 func catch_up() -> void:
-	if world.director.has_fired(OwnerDirector.NOTICE):
+	if world.director.has_fired(OwnerDirector.NOTICE) and OwnerMemory.mira_quest != "pinned":
 		board.set_text_now("MISSING: ONE (1) INTRUDER.\nIF SEEN, TELL TOBBEN.")
 	if world.director.has_fired(OwnerDirector.SUSPECT):
 		arin.speed *= 1.25
@@ -199,7 +201,8 @@ func catch_up() -> void:
 func on_owner_event(threshold: float) -> void:
 	match threshold:
 		OwnerDirector.NOTICE:
-			board.rewrite("MISSING: ONE (1) INTRUDER.\nIF SEEN, TELL TOBBEN.")
+			if OwnerMemory.mira_quest != "pinned":
+				board.rewrite("MISSING: ONE (1) INTRUDER.\nIF SEEN, TELL TOBBEN.")
 		OwnerDirector.SUSPECT:
 			arin.speed *= 1.25
 		OwnerDirector.CONTAIN:
@@ -217,8 +220,26 @@ func on_owner_event(threshold: float) -> void:
 				cursor.speed *= 1.2
 
 
-## Wren asked to come along: now you choose.
+## Pinning Mira's note to the board.
+func interact_extra(node: Node2D) -> void:
+	if node == board and OwnerMemory.mira_quest == "carried":
+		OwnerMemory.mira_quest = "pinned"
+		OwnerMemory.save_memory()
+		board.set_text_now(Story.MIRA_NOTE_TEXT)
+		world.hud.close_dialogue()
+		world.hud.say("PINNED: mira_note.txt", "system")
+		Sfx.play("seal", -4.0, 1.3)
+		world.director.add_awareness(5.0)
+		get_tree().create_timer(1.2).timeout.connect(func() -> void:
+			if is_inside_tree() and world.ending == "":
+				world.director.say("...mira wrote this?"))
+
+
+## Wren asked to come along, or Tobben could get his name back: now you choose.
 func on_dialogue_closed(who: Node) -> void:
+	if who == tobben:
+		await _offer_guestbook()
+		return
 	if who != wren or not _wren_asked:
 		return
 	_wren_asked = false
@@ -342,6 +363,36 @@ func _tobben_lines() -> Array:
 		i = 2  # he remembers what he's for
 	_tobben_line = i + 1
 	return [TOBBEN_LINES[mini(i, TOBBEN_LINES.size() - 1)]]
+
+
+## With the torn page found: write Rue's name back into Tobben's book.
+func _offer_guestbook() -> void:
+	if not OwnerMemory.found_guestbook or OwnerMemory.guestbook_restored or not world.hud.dialogue_finished:
+		return
+	world.player.frozen = true
+	var pick := await world.hud.choose(Story.GUESTBOOK_ASK, Story.GUESTBOOK_CHOICES)
+	if not is_inside_tree():
+		return
+	world.player.frozen = false
+	if pick != 0:
+		return
+	OwnerMemory.guestbook_restored = true
+	OwnerMemory.save_memory()
+	world.player.frozen = true
+	# A quiet moment: two notes of the theme, the name, the owner noticing.
+	var music := AudioStreamPlayer.new()
+	music.bus = "Memory"
+	music.stream = MusicBox.stream(0)
+	music.volume_db = -14.0
+	add_child(music)
+	music.play()
+	await world.hud.cinematic("TOBBEN'S GUEST BOOK", Story.GUESTBOOK_SCENE, Hud.SELF_COLOR, 0.6)
+	if not is_inside_tree():
+		return
+	music.queue_free()
+	world.player.frozen = false
+	world.hud.say("guestbook.txt  ·  2 names", "system")
+	world.director.say("...who wrote her name in the book.")
 
 
 func _tobben_reports() -> void:

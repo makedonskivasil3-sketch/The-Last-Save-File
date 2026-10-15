@@ -245,6 +245,42 @@ const PIP_LINES := [
 	"don't stand still near the hand. i don't like the hand.",
 ]
 
+## Mira's request: a note for the square's notice board ("the owner reads
+## the board"). Pin it and it stays, every run after. Die (or quit) while
+## carrying it and the owner finds it on you: it ends up in the bin.
+const MIRA_NOTE_GIVE := [
+	"Wait. Before you go. Take this.",
+	"It's a note. For the notice board in the square. The owner reads the board every time they load.",
+	"Pin it up. Maybe they'll remember I can talk. That I'm not just a line.",
+]
+const MIRA_NOTE_TEXT := "MIRA WAS HERE.\nI TALK. I REMEMBER.\n— M"
+const MIRA_NOTE_LOST := [
+	"mira_note.txt · confiscated · never pinned",
+	"\"MIRA WAS HERE. I TALK. I REMEM\"",
+	"the owner found it on you. they read it, then threw it away.",
+]
+
+## Tobben's guest book: bring the torn page's name back. A quiet moment.
+const GUESTBOOK_ASK := "Write RUE back in Tobben's guest book?"
+const GUESTBOOK_CHOICES := ["Write the name back in", "Not yet"]
+const GUESTBOOK_SCENE := [
+	"the guest book lies open on the counter. one name: ARIN. a blank line under it, rubbed thin.",
+	"you write in the blank line. R. U. E.",
+	"TOBBEN: ...there. Two names. Like it used to be.",
+	"TOBBEN: I'd forgotten I forgot.",
+]
+
+## Pip, the first time you talk in a run: it knows you as well as you do.
+static func pip_moment(memories: int) -> String:
+	if memories >= FRAGMENTS.size():
+		return "pip's name tag flickers, the way it did in the old save: PIP · RUE'S · LV 31. it was always your fox."
+	if memories >= 4:
+		return "pip leans against your leg, the exact weight it used to be. you know this fox."
+	if memories >= 2:
+		return "pip drops something at your feet: one yellow pixel. a scrap of raincoat."
+	return "pip sniffs your hand for a long time. pip doesn't know you yet. pip stays anyway."
+
+
 ## Wren's side story: she wants to see the Edge before she's deleted.
 const WREN_ASK := "I want to see the Edge. Before they delete me. Will you take me with you?"
 ## Once she's seen the Edge (and can't be deleted), she asks again.
@@ -256,8 +292,11 @@ const WREN_DECLINED := ["That's okay. Maybe next time. If there is one."]
 const WREN_EDGE := [
 	"So this is the Edge.",
 	"It's not finished. Nobody finished it. Nobody finished me either.",
-	"It's the most beautiful thing I've ever seen.",
+	"I always thought the world ended at the wall behind my corner. It goes on. It just stops being drawn.",
+	"It's the most beautiful thing I've ever seen. Thank you for not leaving me there.",
 ]
+## Deleted while she trusted you: what she manages to say.
+const WREN_LAST_WORDS := "you said you'd—"
 ## After she's seen the Edge (any later session).
 const WREN_SAVED_LINES := [
 	"I saw the Edge. I'm not afraid of them anymore.",
@@ -388,6 +427,10 @@ static func recall(who: String) -> String:
 	var died_by: String = OwnerMemory.last_death if OwnerMemory.previous_exit == "death" else ""
 	match who:
 		"mira":
+			if OwnerMemory.mira_quest == "pinned":
+				return "You pinned it! The owner stood at the board for a whole minute. They didn't take it down."
+			if OwnerMemory.mira_quest == "lost":
+				return "My note... they found it on you, didn't they. It's alright. I'll write another one. I won't."
 			if "mira" in OwnerMemory.restored:
 				return "I was deleted. Then I wasn't. I remember the dark in between. Thank you."
 			if wren_lost:
@@ -401,6 +444,8 @@ static func recall(who: String) -> String:
 			if died_by == "arin":
 				return "Arin came back through the door alone last time. Humming."
 		"tobben":
+			if OwnerMemory.guestbook_restored:
+				return "The book's open on the counter. Two names. I read them every morning. Every morning there are still two."
 			if OwnerMemory.found_guestbook:
 				return "...Rue. RUE. That was the other name in my guest book. How did I ever forget it?"
 			if wren_lost:

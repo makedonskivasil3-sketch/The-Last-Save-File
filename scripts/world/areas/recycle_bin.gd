@@ -69,6 +69,8 @@ func build() -> void:
 	add_readable("slot2_backup.sav", Vector2(470, 60), Readable.Look.TERMINAL, _backup)
 	add_readable("guestbook_p2.txt", Vector2(140, 264), Readable.Look.TERMINAL, _guestbook)
 	add_readable("rue_last_message.txt", Vector2(500, 150), Readable.Look.TERMINAL, _last_message)
+	if OwnerMemory.mira_quest == "lost":
+		add_readable("mira_note.txt", Vector2(320, 64), Readable.Look.TERMINAL, func() -> Array: return Story.MIRA_NOTE_LOST)
 	add_readable("owner_draft.txt", Vector2(380, 272), Readable.Look.TERMINAL, _owner_draft)
 	next_empty = maxf(6.0, 9.0 - OwnerMemory.purge * 0.5)
 

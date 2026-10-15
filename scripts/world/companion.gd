@@ -30,6 +30,7 @@ var _t := randf() * 5.0
 var _facing := 1.0
 var _moving := false
 var _line := 0
+var _moment_shown := false
 var _join_after_talk := false
 ## Seconds the "!" stays up, and the cooldown before the next warning.
 var _yip := 0.0
@@ -48,6 +49,10 @@ func interact() -> Dictionary:
 	if mode == Mode.WAITING:
 		_join_after_talk = true
 		return {"speaker": "PIP", "color": NAME_COLOR, "lines": Story.PIP_MEETING}
+	# The first talk each run: how well Pip knows you (by your memories).
+	if not _moment_shown:
+		_moment_shown = true
+		return {"speaker": "PIP", "color": NAME_COLOR, "lines": [Story.pip_moment(OwnerMemory.fragments.size())]}
 	var line: String = Story.PIP_LINES[_line % Story.PIP_LINES.size()]
 	_line += 1
 	if line.contains("%d"):

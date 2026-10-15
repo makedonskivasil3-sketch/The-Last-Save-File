@@ -129,6 +129,12 @@ func _deleted_assets() -> Array:
 		lines.append("mira.npc: deleted. Reason: spoke to intruder.")
 	for npc in OwnerMemory.npc_fates:
 		lines.append("%s.npc: deleted. Reason: helped intruder." % npc)
+	if OwnerMemory.mira_quest == "pinned":
+		lines.append("mira.npc: wrote on the notice board. Note, in the owner's hand: let her.")
+	elif OwnerMemory.mira_quest == "lost":
+		lines.append("mira.npc: note confiscated. Note: she talks too much.")
+	if OwnerMemory.guestbook_restored:
+		lines.append("guestbook.txt: modified. 2 names. Note: leave it.")
 	if not OwnerMemory.patched_seams.is_empty():
 		lines.append("Wall seams patched: %d of %d. The last one, they'll never find." % [OwnerMemory.patched_seams.size(), OwnerMemory.SEAM_COUNT])
 	if lines.is_empty():

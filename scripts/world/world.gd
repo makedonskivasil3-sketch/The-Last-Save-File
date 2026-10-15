@@ -478,6 +478,8 @@ func lose_escort() -> void:
 		return
 	var lost := escort
 	escort = null
+	# She trusted you. She gets half a sentence.
+	hud.say(Story.WREN_LAST_WORDS, "npc", "WREN")
 	lost.delete()
 	OwnerMemory.npc_fates["wren"] = "deleted"
 	OwnerMemory.save_memory()
