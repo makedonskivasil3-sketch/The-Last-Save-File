@@ -29,6 +29,9 @@ var met_archivist := false
 ## Pip, Rue's fox, found out of bounds. Pip was never in the save, so the
 ## owner can't take it away: once found, Pip stays with you.
 var found_pip := false
+## Wren saw the Edge with you: she's logged as cut content now, and the
+## owner can never delete her again.
+var wren_saved := false
 ## Where the owner has seen you go in each area, learned when a session ends
 ## badly: {"area", "x", "y", "w" (weight)}. Arin's patrol detours through
 ## the heaviest spots next time.
@@ -165,6 +168,7 @@ func wipe() -> void:
 	npc_fates.clear()
 	met_archivist = false
 	found_pip = false
+	wren_saved = false
 	route_memory.clear()
 	session_spots.clear()
 	acts_seen.clear()
@@ -188,6 +192,7 @@ func save_memory() -> void:
 		"npc_fates": npc_fates,
 		"met_archivist": met_archivist,
 		"found_pip": found_pip,
+		"wren_saved": wren_saved,
 		"acts_seen": acts_seen,
 		"route_memory": route_memory,
 		"fragments": fragments,
@@ -216,6 +221,7 @@ func load_memory() -> void:
 	last_exit = str(data.get("last_exit", "none"))
 	met_archivist = bool(data.get("met_archivist", false))
 	found_pip = bool(data.get("found_pip", false))
+	wren_saved = bool(data.get("wren_saved", false))
 	route_memory.clear()
 	for r in data.get("route_memory", []):
 		if r is Dictionary and r.has("x") and r.has("y"):
@@ -267,6 +273,8 @@ func route_spots(area: String, count: int) -> Array[Vector2]:
 
 
 func _learn() -> void:
+	if wren_saved:
+		session_helpers.erase("wren")  # out of the owner's reach
 	# Route memory: cluster this session's spots on a 40-pixel grid.
 	for s in session_spots:
 		var at: Vector2 = s.pos

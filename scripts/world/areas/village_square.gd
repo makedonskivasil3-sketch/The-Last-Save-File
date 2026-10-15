@@ -54,6 +54,8 @@ var crates: DragProp
 var well: Passage
 
 var _wren_line := 0
+## Wren just asked to come along: the choice comes when the dialogue closes.
+var _wren_asked := false
 var _tobben_line := 0
 var _spotted_once := false
 ## Seconds Arin has had you in view without a break, and the frame they last
@@ -121,16 +123,10 @@ func build() -> void:
 	add_child(well)
 	interactables.append(well)
 
-	wren = add_npc("wren", Vector2(126, 246))
-	wren.display_name = "WREN"
-	wren.dress_color = Color("6a8f5a")
-	wren.hair_color = Color("c9a04a")
-	wren.body_kind = "child"
-	wren.idle_style = "hop"
-	wren.notice_emote = "!"
-	wren.dark_color = Color("4a6a3a")
-	wren.hide_radius = 22.0
-	wren.lines_provider = _wren_lines
+	if world.escort == null:  # not when she's already walking with you
+		wren = make_wren(self, Vector2(126, 246))
+		interactables.append(wren)
+		wren.lines_provider = _wren_lines
 
 	tobben = add_npc("tobben", Vector2(488, 92))
 	tobben.display_name = "TOBBEN"
@@ -199,7 +195,7 @@ func on_owner_event(threshold: float) -> void:
 		OwnerDirector.CONTAIN:
 			arin.view_distance += 20.0
 		OwnerDirector.SILENCE:
-			if "wren" in OwnerMemory.session_helpers and wren.delete():
+			if wren and "wren" in OwnerMemory.session_helpers and not OwnerMemory.wren_saved and wren.delete():
 				world.fx.spike(0.8, 1.2)
 				world.director.say("she was hiding you. not anymore.")
 				world.voice("wren_deleted")
@@ -211,7 +207,29 @@ func on_owner_event(threshold: float) -> void:
 				cursor.speed *= 1.2
 
 
-func area_process(_delta: float) -> void:
+## Wren asked to come along: now you choose.
+func on_dialogue_closed(who: Node) -> void:
+	if who != wren or not _wren_asked:
+		return
+	_wren_asked = false
+	world.player.frozen = true
+	var pick := await world.hud.choose(Story.WREN_ASK, Story.WREN_ASK_CHOICES)
+	if not is_inside_tree():
+		return
+	world.player.frozen = false
+	if pick == 0:
+		world.hud.show_dialogue("WREN", wren.name_color, Story.WREN_JOINS)
+		world.start_escort(wren)
+		wren = null
+	else:
+		_wren_line += 1  # she'll ask again later
+		world.hud.show_dialogue("WREN", wren.name_color, Story.WREN_DECLINED)
+
+
+func area_process(delta: float) -> void:
+	# Arin sees Wren walking with you: the owner notices.
+	if world.escort and arin.can_see(world.escort.global_position):
+		world.director.add_awareness(8.0 * delta)
 	north_exit.open = world.flags.get("pointer", false)
 	arin.paused = world.is_talking() or world.is_owner_paused()
 	if world.player.global_position.distance_to(well.global_position) < 40.0:
@@ -268,7 +286,34 @@ func _landmark(p: Vector2) -> String:
 	return "road"
 
 
+## Wren, built the same way wherever she appears.
+static func make_wren(parent: Node, pos: Vector2) -> Npc:
+	var n := Npc.new()
+	n.npc_id = "wren"
+	n.position = pos
+	n.display_name = "WREN"
+	n.dress_color = Color("6a8f5a")
+	n.hair_color = Color("c9a04a")
+	n.body_kind = "child"
+	n.idle_style = "hop"
+	n.notice_emote = "!"
+	n.dark_color = Color("4a6a3a")
+	n.hide_radius = 22.0
+	parent.add_child(n)
+	n.player = parent.get("world").player if parent.get("world") else null
+	n.setup(Npc.State.DELETED if OwnerMemory.is_deleted("wren") else Npc.State.NORMAL)
+	return n
+
+
 func _wren_lines() -> Array:
+	if OwnerMemory.wren_saved:
+		var saved: String = Story.WREN_SAVED_LINES[mini(_wren_line, Story.WREN_SAVED_LINES.size() - 1)]
+		_wren_line += 1
+		return [saved]
+	# After a couple of talks she asks to come with you.
+	if _wren_line >= 2 and world.escort == null:
+		_wren_asked = true
+		return [Story.WREN_ASK]
 	var line: String = WREN_LINES[mini(_wren_line, WREN_LINES.size() - 1)]
 	_wren_line += 1
 	return [line]

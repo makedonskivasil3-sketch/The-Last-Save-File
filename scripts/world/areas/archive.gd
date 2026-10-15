@@ -132,7 +132,10 @@ func _deleted_assets() -> Array:
 
 
 func _cut_content() -> Array:
-	return [
+	var extra: Array = []
+	if OwnerMemory.wren_saved:
+		extra.append("ADDED: wren.npc. Note, in pencil: 'she saw the Edge. she's ours now. they can't delete what was cut.'")
+	return extra + [
 		"CUT: archivist.npc. Note: 'talks too much, breaks the mood'.",
 		"CUT: save slot 2. Note: 'one slot is enough, players never use the second one'.",
 		"CUT: the north road and everything past it. Note: 'nobody walks that far'.",

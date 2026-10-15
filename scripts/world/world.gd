@@ -7,6 +7,8 @@ const TITLE_SCENE := "res://scenes/title.tscn"
 const INTERACT_DISTANCE := 22.0
 const TALK_BREAK_DISTANCE := 40.0
 const WIPE_HOLD_TIME := 1.5
+## You can't leave an area without Wren closer than this.
+const ESCORT_LEASH := 70.0
 
 var area: Area
 ## Session-only facts: "pointer" (have Slot 2's pointer), "mira_deleted", ...
@@ -35,6 +37,10 @@ var glitch: GlitchController
 var decoy: Decoy
 ## Glitches fired this session (the owner keeps count, and so do endings).
 var glitches_used := 0
+## Wren, walking with you to the Edge (her side story), or null.
+var escort: Npc
+## Rue's footsteps in this area, for Wren to follow.
+var _crumbs: Array[Vector2] = []
 ## The owner's active moves: reloading, saving over you, dragging props.
 var owner_moves: OwnerMoves
 ## Brackets around whatever [E] would act on.
@@ -59,7 +65,7 @@ func _ready() -> void:
 	add_child(_pause_menu)
 	_light = CanvasModulate.new()
 	add_child(_light)
-	hud.dialogue_closed.connect(func() -> void: _talking_to = null)
+	hud.dialogue_closed.connect(_on_dialogue_closed)
 	add_child(TouchControls.new())
 	_focus_marker = FocusMarker.new()
 	_focus_marker.z_index = 15
@@ -202,6 +208,7 @@ func _process(delta: float) -> void:
 		hud.close_dialogue()
 	_update_focus()
 	_update_decoy()
+	_update_escort(delta)
 	owner_moves.update(delta)
 	# [E] itself is read by the GlitchController: a tap comes back as tap_interact().
 
@@ -215,7 +222,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_tree().change_scene_to_file(TITLE_SCENE)
 		return
 	if ending == "" and event is InputEventKey and event.pressed and not event.echo and debug_enabled():
-		var keys := {KEY_F5: "glitches", KEY_F6: "load", KEY_F7: "save", KEY_F8: "drag", KEY_F10: "slot2"}
+		var keys := {KEY_F5: "glitches", KEY_F6: "load", KEY_F7: "save", KEY_F8: "drag", KEY_F10: "slot2", KEY_F11: "wren"}
 		if keys.has(event.keycode):
 			get_viewport().set_input_as_handled()
 			debug(keys[event.keycode])
@@ -242,6 +249,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func change_area(id: String, arrival: String) -> void:
 	if _transitioning or ending != "":
+		return
+	if escort and escort.global_position.distance_to(player.global_position) > ESCORT_LEASH:
+		hud.say("wait for wren.", "self")
 		return
 	_transitioning = true
 	player.frozen = true
@@ -295,6 +305,9 @@ func _load_area(next: Area, arrival: String) -> void:
 	player.velocity = Vector2.ZERO
 	if pip:
 		pip.arrive(player.position)
+	_crumbs.clear()
+	if escort:
+		escort.global_position = player.position + Vector2(-16, 4)
 	_light.color = _base_light()
 	if _awake:
 		_area_intro()
@@ -303,6 +316,8 @@ func _load_area(next: Area, arrival: String) -> void:
 		drone.edge = 1.0 if area.area_id == "edge" else 0.0
 		if area.area_id == "edge":
 			Sfx.play("unload")
+			if escort:
+				_wren_sees_edge.call_deferred()
 	if not purged:
 		area.catch_up()
 
@@ -372,6 +387,76 @@ func current_goal() -> String:
 	return "%s\nMemories recovered: %d / %d" % [goal, OwnerMemory.fragments.size(), Story.FRAGMENTS.size()]
 
 
+# --- Wren's escort ----------------------------------------------------------------
+
+func _on_dialogue_closed() -> void:
+	var who := _talking_to
+	_talking_to = null
+	if area and is_instance_valid(who) and area.has_method("on_dialogue_closed"):
+		area.on_dialogue_closed(who)
+
+
+## Wren comes with you: she leaves her corner and follows your footsteps.
+func start_escort(npc: Npc) -> void:
+	if escort:
+		return
+	area.interactables.erase(npc)
+	var at := npc.global_position
+	npc.get_parent().remove_child(npc)
+	add_child(npc)
+	npc.global_position = at
+	npc.z_index = 9
+	npc.escorted = true
+	npc.hide_radius = 0.0  # walking with you, she can't hide you
+	npc.set_collision_layer_value(1, false)
+	escort = npc
+	_crumbs.clear()
+	OwnerMemory.note_helper("wren")
+	hud.say("wren.npc  ·  following", "system")
+	director.say("where are you taking her?")
+
+
+func _update_escort(delta: float) -> void:
+	if escort == null:
+		return
+	var p := player.global_position
+	if _crumbs.is_empty() or _crumbs[-1].distance_to(p) > 6.0:
+		_crumbs.append(p)
+		if _crumbs.size() > 300:
+			_crumbs.pop_front()
+	escort.follow(_crumbs, p, delta)
+
+
+## The owner got her while she was with you. For good.
+func lose_escort() -> void:
+	if escort == null:
+		return
+	var lost := escort
+	escort = null
+	lost.delete()
+	OwnerMemory.npc_fates["wren"] = "deleted"
+	OwnerMemory.save_memory()
+	hud.say("wren.npc deleted", "system")
+	director.say(Story.WREN_LOST_OWNER)
+	for line in Story.WREN_LOST_VOICE:
+		hud.say(line, "self")
+	fx.spike(0.8, 1.2)
+	get_tree().create_timer(2.0).timeout.connect(lost.queue_free)
+
+
+## Wren made it to the Edge: her moment, and she's out of the owner's reach.
+func _wren_sees_edge() -> void:
+	if escort == null or OwnerMemory.wren_saved:
+		return
+	OwnerMemory.wren_saved = true
+	OwnerMemory.npc_fates.erase("wren")
+	OwnerMemory.save_memory()
+	for line in Story.WREN_EDGE:
+		hud.say(line, "npc", "WREN")
+	hud.say("wren.npc  ·  moved to CUT CONTENT", "system")
+	director.say("where did she go. she's not in the list anymore.")
+
+
 # --- debug ------------------------------------------------------------------------
 
 ## Debug tools are on in the editor, debug builds, tests, and on the web with
@@ -386,7 +471,8 @@ func debug_enabled() -> bool:
 
 ## F5 "glitches" (unlock all), F6 "load" (load last save), F7 "save" (saving
 ## over you), F8 "drag" (the cursor drags the crates), F10 "slot2" (jump to
-## the Edge, next to Slot 2, with the pointer). Also in the pause menu.
+## the Edge, next to Slot 2, with the pointer), F11 "wren" (Wren joins you).
+## Also in the pause menu.
 func debug(action: String) -> void:
 	if purged or ending != "":
 		return
@@ -411,6 +497,13 @@ func debug(action: String) -> void:
 		"slot2":
 			flags["pointer"] = true
 			change_area("edge", "slot")
+		"wren":
+			# Wren joins you on the spot (from wherever she is).
+			if escort == null:
+				if OwnerMemory.is_deleted("wren"):
+					OwnerMemory.npc_fates.erase("wren")
+				var w := VillageSquare.make_wren(area, player.global_position + Vector2(-16, 4))
+				start_escort(w)
 
 
 # --- glitches --------------------------------------------------------------------

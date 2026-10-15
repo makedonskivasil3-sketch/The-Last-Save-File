@@ -154,6 +154,27 @@ const PIP_LINES := [
 	"don't stand still near the hand. i don't like the hand.",
 ]
 
+## Wren's side story: she wants to see the Edge before she's deleted.
+const WREN_ASK := "I want to see the Edge. Before they delete me. Will you take me with you?"
+const WREN_ASK_CHOICES := ["Take her with you", "Not now"]
+const WREN_JOINS := ["Really? Okay. Okay! I'll be quiet. I'll be so quiet."]
+const WREN_DECLINED := ["That's okay. Maybe next time. If there is one."]
+## Arriving at the Edge with her.
+const WREN_EDGE := [
+	"So this is the Edge.",
+	"It's not finished. Nobody finished it. Nobody finished me either.",
+	"It's the most beautiful thing I've ever seen.",
+]
+## After she's seen the Edge (any later session).
+const WREN_SAVED_LINES := [
+	"I saw the Edge. I'm not afraid of them anymore.",
+	"The Archivist says I'm cut content now. They can't delete what was never in the game.",
+]
+## Losing her while she's with you.
+const WREN_LOST_VOICE := ["...wren?", "i promised her the edge."]
+const WREN_LOST_OWNER := "she wanted to see the edge. now she won't see anything."
+
+
 ## After winning, shown as a letterboxed sequence before the end card.
 const EPILOGUE_TRUE := [
 	"LOAD GAME\nSLOT 1  ·  ARIN  ·  LV 7  ·  14:22\nSLOT 2  ·  RUE  ·  LV 1  ·  00:00",

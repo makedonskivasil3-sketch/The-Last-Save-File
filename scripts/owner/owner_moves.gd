@@ -15,6 +15,9 @@ extends Node2D
 ##   DRAG            In the square, during the hunt, the cursor grabs the
 ##                   crate stack and drags it across the road you're heading
 ##                   for. Phase through it, or wait for it to be dragged back.
+##   DELETE WREN     While Wren walks with you (and suspicion is up), the
+##                   owner tries to delete her: a red ring fills over her.
+##                   Any glitch interrupts it. If it fills, she's gone.
 ##   ROUTE MEMORY    Where Arin saw you is remembered (OwnerMemory.note_spot);
 ##                   next session Arin's patrol detours through those spots.
 ##
@@ -34,6 +37,8 @@ const IDLE_SAVE := 5.0          # standing still this long under suspicion
 const DRAG_COOLDOWN := 25.0
 const DRAG_HOLD := 14.0         # how long a dragged prop blocks the way
 const SPOT_EVERY := 1.5
+const WREN_DELETE_TIME := 5.0
+const WREN_DELETE_EVERY := 30.0
 ## Where the owner can't see you, there are no moves.
 const BLIND_AREAS := ["archive", "oob"]
 
@@ -41,6 +46,8 @@ var world: World
 ## The save ring (0..1) while "Saving over you" runs; -1 when it doesn't.
 var save_progress := -1.0
 var rewinding := false
+## The ring over Wren (0..1) while the owner deletes her; -1 otherwise.
+var wren_delete := -1.0
 
 var _history: Array[Dictionary] = []
 var _snap_t := 0.0
@@ -53,6 +60,7 @@ var _save_tick := 0.0
 var _drag_cd := 8.0
 var _drag_back := -1.0
 var _spot_t := 0.0
+var _next_wren := INF
 
 
 func _ready() -> void:
@@ -81,6 +89,7 @@ func update(delta: float) -> void:
 			or (aw >= OwnerDirector.SUSPECT and world.player.idle_time > IDLE_SAVE and _clock >= _next_save - SAVE_EVERY * 0.5):
 		start_save_over()
 	_update_drag(delta)
+	_update_wren(delta, aw)
 	queue_redraw()
 
 
@@ -105,6 +114,10 @@ func on_threshold(t: float) -> void:
 ## Every glitch is a provocation: it interrupts a save, and enough of them
 ## make the owner reload.
 func on_glitch(_id: String) -> void:
+	if wren_delete >= 0.0:
+		wren_delete = -1.0
+		world.director.say("...fine. later.")
+		Sfx.play("denied", -2.0, 0.8)
 	if save_progress >= 0.0:
 		save_progress = -1.0
 		world.hud.say("SAVE FAILED: SLOT 1 IN USE", "system")
@@ -249,6 +262,36 @@ func _update_save(delta: float) -> void:
 		world.kill("overwritten")
 
 
+# --- DELETE WREN ---------------------------------------------------------------------
+
+func _update_wren(delta: float, aw: float) -> void:
+	if world.escort == null or OwnerMemory.wren_saved:
+		wren_delete = -1.0
+		_next_wren = INF
+		return
+	if wren_delete >= 0.0:
+		wren_delete += delta / WREN_DELETE_TIME
+		if wren_delete >= 1.0:
+			wren_delete = -1.0
+			world.lose_escort()
+		return
+	if aw < OwnerDirector.SUSPECT:
+		return
+	if _next_wren == INF:
+		_next_wren = _clock + 6.0
+	elif _clock >= _next_wren:
+		start_wren_delete()
+
+
+func start_wren_delete() -> void:
+	if world.escort == null or wren_delete >= 0.0:
+		return
+	wren_delete = 0.0
+	_next_wren = _clock + WREN_DELETE_EVERY
+	world.director.say("and you. wren.npc. delete.")
+	Sfx.play("stinger", -6.0, 1.3, 0.0)
+
+
 # --- DRAG ----------------------------------------------------------------------------
 
 func _update_drag(delta: float) -> void:
@@ -287,6 +330,8 @@ func _note_route(delta: float) -> void:
 # --- the save ring -------------------------------------------------------------------
 
 func _draw() -> void:
+	if wren_delete >= 0.0 and world.escort:
+		_draw_ring(world.escort.global_position + Vector2(0, -34), wren_delete, "DELETE wren.npc ?")
 	if save_progress < 0.0:
 		return
 	var p: Vector2 = world.player.global_position + Vector2(0, -40)
@@ -302,3 +347,12 @@ func _draw() -> void:
 	draw_rect(Rect2(p - Vector2(2, 4), Vector2(4, 3)), Color(0.3, 0.3, 0.35))
 	draw_string(ThemeDB.fallback_font, p + Vector2(-30, 21), "SAVING  %d%%" % int(save_progress * 100.0),
 			HORIZONTAL_ALIGNMENT_CENTER, 60, 8, col)
+
+
+func _draw_ring(p: Vector2, k: float, text: String) -> void:
+	draw_circle(p, 10.0, Color(0, 0, 0, 0.7))
+	draw_arc(p, 9.0, 0.0, TAU, 32, Color(1, 1, 1, 0.2), 2.0)
+	draw_arc(p, 9.0, -PI * 0.5, -PI * 0.5 + TAU * k, 32, Color(1.0, 0.25, 0.3), 2.5)
+	draw_line(p + Vector2(-4, -4), p + Vector2(4, 4), Color(1.0, 0.4, 0.4), 2.0)
+	draw_line(p + Vector2(4, -4), p + Vector2(-4, 4), Color(1.0, 0.4, 0.4), 2.0)
+	draw_string(ThemeDB.fallback_font, p + Vector2(-40, 20), text, HORIZONTAL_ALIGNMENT_CENTER, 80, 8, Color(1.0, 0.5, 0.5))

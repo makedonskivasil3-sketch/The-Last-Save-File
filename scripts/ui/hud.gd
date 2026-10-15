@@ -4,6 +4,8 @@ extends CanvasLayer
 ## box for characters, area title cards and screen fades.
 
 signal dialogue_closed
+## choose() picked an option (index).
+signal _chosen(index: int)
 
 const OWNER_COLOR := Color("e0704f")
 const SYSTEM_COLOR := Color("8a8f98")
@@ -54,6 +56,11 @@ var _hint: Label
 var _glitch_prompt: Label
 ## Big centred line for owner-scale events ("‖ OWNER PAUSED").
 var _banner: Label
+## A choice: a question and a list of options (choose()).
+var _choice: PanelContainer
+var _choice_question: Label
+var _choice_list: VBoxContainer
+var _choice_frame := -1
 const GLITCH_COLOR := Color(1.0, 0.45, 0.75)
 
 var _queue: Array[Dictionary] = []
@@ -126,6 +133,34 @@ func _ready() -> void:
 
 	_glitch_prompt = _make_label(root, Vector2(640 - SAFE.x - 220, 360 - SAFE.y - 78), Vector2(220, 14), 10, GLITCH_COLOR)
 	_glitch_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+
+	# The choice box: bottom of the screen, like the dialogue box.
+	_choice = PanelContainer.new()
+	_choice.theme = UiStyle.make_theme()
+	var choice_bg := _backing(0.92)
+	choice_bg.border_color = Color(SELF_COLOR, 0.5)
+	choice_bg.set_border_width_all(1)
+	choice_bg.set_content_margin_all(8)
+	_choice.add_theme_stylebox_override("panel", choice_bg)
+	_choice.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_choice.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_choice.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_choice.offset_bottom = -SAFE.y
+	_choice.custom_minimum_size.x = 420
+	_choice.visible = false
+	root.add_child(_choice)
+	var choice_v := VBoxContainer.new()
+	choice_v.add_theme_constant_override("separation", 4)
+	_choice.add_child(choice_v)
+	_choice_question = Label.new()
+	UiStyle.sized(_choice_question, 11)
+	_choice_question.add_theme_color_override("font_color", SLOT_COLOR)
+	_choice_question.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_choice_question.custom_minimum_size.x = 400
+	choice_v.add_child(_choice_question)
+	_choice_list = VBoxContainer.new()
+	_choice_list.add_theme_constant_override("separation", 3)
+	choice_v.add_child(_choice_list)
 
 	_banner = _make_label(root, Vector2(0, 70), Vector2(640, 24), 16, SELF_COLOR)
 	_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -344,6 +379,49 @@ func close_dialogue() -> void:
 	dialogue_closed.emit()
 
 
+## Asks a question and waits for a pick (arrows / stick + E, or tap).
+## Returns the option's index. Await it.
+func choose(question: String, options: Array) -> int:
+	_choice_question.text = question
+	for c in _choice_list.get_children():
+		c.queue_free()
+	var first: Button = null
+	for i in options.size():
+		var b := Button.new()
+		b.text = str(options[i])
+		b.focus_mode = Control.FOCUS_ALL
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.pressed.connect(func() -> void: _chosen.emit(i))
+		b.focus_entered.connect(func() -> void: Sfx.ui("ui_move"))
+		_choice_list.add_child(b)
+		if first == null:
+			first = b
+	_choice.visible = true
+	_choice_frame = Engine.get_process_frames()
+	_console_box.visible = false
+	_prompt.visible = false
+	first.grab_focus()
+	var picked: int = await _chosen
+	Sfx.ui("ui_confirm")
+	_choice.visible = false
+	_console_box.visible = _console.get_child_count() > 0
+	_prompt.visible = true
+	return picked
+
+
+func is_choosing() -> bool:
+	return _choice.visible
+
+
+func _update_choice() -> void:
+	if not _choice.visible or Engine.get_process_frames() <= _choice_frame + 1:
+		return
+	if Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("confirm"):
+		var focused := get_viewport().gui_get_focus_owner()
+		if focused is Button and focused.get_parent() == _choice_list:
+			_chosen.emit(focused.get_index())
+
+
 func is_dialogue_open() -> bool:
 	return _dialogue.visible
 
@@ -547,6 +625,7 @@ func _process(delta: float) -> void:
 	_update_corruption(delta)
 	_update_death_title()
 	_update_dialogue(delta)
+	_update_choice()
 
 
 func _update_slot() -> void:

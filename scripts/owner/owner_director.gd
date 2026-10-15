@@ -112,6 +112,8 @@ func _process(delta: float) -> void:
 	var rate := (BASE_RATE + RATE_PER_PURGE * OwnerMemory.purge) * _world.area.awareness_rate
 	if _lie > 0.0 and rate > 0.0:
 		rate *= LIE_RATE
+	if _world.escort and rate > 0.0:
+		rate *= 1.4  # a child following an intruder: hard to miss
 	if _world.hiding_npc() != null:
 		rate = -HIDDEN_COOL_RATE
 	if rate < 0.0:

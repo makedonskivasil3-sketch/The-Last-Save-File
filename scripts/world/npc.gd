@@ -44,6 +44,10 @@ var _emote_t := 0.0
 var _noticed := false
 ## Seconds left frozen by Rue's FREEZE glitch.
 var frozen := 0.0
+## Escorted: walking behind Rue along her footsteps (World.escort).
+var escorted := false
+const ESCORT_SPEED := 60.0
+var _walk_velocity := Vector2.ZERO
 
 
 func setup(initial: State) -> void:
@@ -68,6 +72,22 @@ func delete() -> bool:
 		fx.deletion_hit()
 	Sfx.deletion(npc_id)
 	return true
+
+
+## Escort: walk along Rue's footsteps (`crumbs`, oldest first; reached ones
+## are removed), stopping a little behind her.
+func follow(crumbs: Array[Vector2], leader: Vector2, delta: float) -> void:
+	_walk_velocity = Vector2.ZERO
+	if frozen > 0.0 or not is_present():
+		return
+	while not crumbs.is_empty() and global_position.distance_to(crumbs[0]) < 3.0:
+		crumbs.pop_front()
+	if crumbs.is_empty() or global_position.distance_to(leader) < 16.0:
+		return
+	var to := crumbs[0] - global_position
+	var step := to.normalized() * minf(ESCORT_SPEED * delta, to.length())
+	global_position += step
+	_walk_velocity = step / maxf(delta, 0.0001)
 
 
 ## FREEZE: they stop mid-motion for a moment.
@@ -132,7 +152,7 @@ func _process(delta: float) -> void:
 		frozen -= delta
 		queue_redraw()
 		return
-	s.update(delta, Vector2.ZERO)
+	s.update(delta, _walk_velocity)
 	s.talking = talking
 	_emote_t = maxf(0.0, _emote_t - delta)
 	if is_present() and is_instance_valid(player):
