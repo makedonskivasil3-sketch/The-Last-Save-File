@@ -10,7 +10,10 @@ const SHELVES: Array[Rect2] = [
 ]
 const DESK := Rect2(296, 204, 48, 14)
 const WEST_GAP := Vector2(160, 200)
-const AREA_NAMES := {"room": "Arin's room", "square": "the square", "archive": "the archive", "edge": "the Edge"}
+## East: a door to the Recycle Bin.
+const EAST_GAP := Vector2(160, 200)
+const AREA_NAMES := {"room": "Arin's room", "square": "the square", "archive": "the archive", "edge": "the Edge",
+	"oob": "out of bounds", "bin": "the recycle bin"}
 
 const FLOOR := Color("221c22")
 const SHELF := Color("4a3428")
@@ -26,18 +29,20 @@ func _init() -> void:
 	# last threshold reached). The one place to catch your breath.
 	awareness_rate = -0.6
 	tint = Color(0.9, 0.88, 1.0)
-	entries = {"west": Vector2(118, 180)}
+	entries = {"west": Vector2(118, 180), "east": Vector2(522, 180)}
 
 
 func build() -> void:
 	setup_common()
-	add_boundary([{"side": "left", "from": WEST_GAP.x, "to": WEST_GAP.y}])
+	add_boundary([{"side": "left", "from": WEST_GAP.x, "to": WEST_GAP.y}, {"side": "right", "from": EAST_GAP.x, "to": EAST_GAP.y}])
 	for s in SHELVES:
 		add_solid(s)
 	add_solid(DESK)
 	add_exit(Rect2(bounds.position.x - 8, WEST_GAP.x, 8, WEST_GAP.y - WEST_GAP.x), "square", "east")
 
 	add_sign(Vector2(bounds.position.x + 32, WEST_GAP.x - 10), "ASHVALE", Vector2.LEFT)
+	add_exit(Rect2(bounds.end.x, EAST_GAP.x, 8, EAST_GAP.y - EAST_GAP.x), "bin", "west")
+	add_sign(Vector2(bounds.end.x - 40, EAST_GAP.x - 10), "RECYCLE BIN", Vector2.RIGHT)
 	archivist = add_npc("archivist", Vector2(320, 192))
 	archivist.display_name = "THE ARCHIVIST"
 	archivist.name_color = Color("8cf2ff")
@@ -128,6 +133,7 @@ func _deleted_assets() -> Array:
 		lines.append("Wall seams patched: %d of %d. The last one, they'll never find." % [OwnerMemory.patched_seams.size(), OwnerMemory.SEAM_COUNT])
 	if lines.is_empty():
 		lines.append("Nothing deleted yet. The page is ruled for a long list.")
+	lines.append("Deleted things go east, to the bin. For a while. Then the owner empties it.")
 	return lines
 
 
@@ -166,4 +172,4 @@ func _draw() -> void:
 	draw_rect(Rect2(DESK.position + Vector2(6, 3), Vector2(10, 6)), Color("c8b8a0"))
 	# Soft light: nothing in here was ever finished.
 	draw_circle(Vector2(320, 190), 60.0, Color(0.55, 0.95, 1.0, 0.03))
-	draw_walls([{"side": "left", "from": WEST_GAP.x, "to": WEST_GAP.y}])
+	draw_walls([{"side": "left", "from": WEST_GAP.x, "to": WEST_GAP.y}, {"side": "right", "from": EAST_GAP.x, "to": EAST_GAP.y}])

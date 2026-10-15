@@ -94,6 +94,7 @@ shown once ever; turn *Tutorial tips* off to skip them, or back on to see them a
 | **Ashvale · Village Square** | The owner's hub. **Arin** (the owner's character, driven by the owner) patrols around the well with a view cone: if Arin sees you, awareness climbs fast, and if Arin walks into you, you're overwritten. **Wren**, a child, hides you while you stand next to her, and while she does the owner loses track of you (awareness cools). **Tobben** the shopkeeper reports anything you say to him. A notice board, Arin's locked house, and a road north that isn't loaded. |
 | **Out of Bounds · Below Ashvale** | Down the village well (*"they fell in the well once. it was funny."*). The underside of the map: the square hangs upside down overhead, collision boxes glow, debug labels float in the dark. The owner can't see here at all. There's no floor: only a few **anchor** platforms are solid, and chunks of floor stream in and out between them (they flicker red before they go). Step into the void and you drop back to where you came in. **Pip**, Rue's fox, is curled up on the far ledge next to a memory. A respawn pillar takes you back up. |
 | **The Archive · Cut Content** | East of the square. The owner can't see in here: awareness slowly cools. **The Archivist** was cut before the game shipped, so the owner can't delete them; they give you a pointer to Slot 2 that opens the north road. The books are live logs of *your* history: every death (where and when), every deleted character, every patched seam. |
+| **The Recycle Bin** | East of the Archive, where deleted things go (for a while). The owner can see in here, and every ~16 s **empties the bin**: a countdown, then a white line sweeps the room and deletes anything it touches, except whatever stands in the cyan shadow on the far side of a locked **system file**. The files of everyone the owner deleted lie here: stand beside one to **restore** them (3.5 s; stepping away pauses it, and a sweep that crosses a half-restored file starts it over). Also: Rue's old backup save, Rue's last message (it only opens once you remember everything), and the torn page from Tobben's guest book. PAUSE stops the bin. |
 | **The Edge · Not Loaded** | North of the square. Missing textures, wireframe, debug labels, an eraser already running, and the owner's **cursor** reaching in. Hold still under it and you get selected and deleted. Somewhere out here is **Slot 2**: the last save file, with the cursor waiting beside it. Stand in it for 2.4 seconds to write yourself in and win, but the cursor selects anything that holds still for 1.1, so lead it away first. The eraser never touches the slot: the owner doesn't know it exists. |
 
 **The owner's awareness** rises over time (fastest in Arin's room), and with what you do: being
@@ -212,9 +213,9 @@ named once you've found it and hinted at while you haven't, plus what the owner 
 (runs, deaths, quits, escapes, and what got you most often). The save card shows the short
 version: `ENDINGS 1/4 · MEMORIES 2/5 · SECRETS 1/4`.
 
-| Endings (4) | Secrets (4) |
+| Endings (4) | Secrets (5) |
 | --- | --- |
-| Saved to Slot 2 · **RUE** (take the slot with every memory) · A new game for Wren · A message | Pip · the Archivist · Wren saw the Edge · Undeleted (RESTORE someone) |
+| Saved to Slot 2 · **RUE** (take the slot with every memory) · A new game for Wren · A message | Pip · the Archivist · Wren saw the Edge · Undeleted (bring someone back) · the guest book page |
 
 **Lines that change with your last run.** The owner's opening line names what got you last
 time; the room's note does too (or reacts to the ending you chose); and the first time you talk
@@ -544,6 +545,7 @@ Tests run with `--test-mode`, which points the owner's memory and the settings a
 | `test_endings.gd` | The Slot 2 choice (two or three options), the escape, Wren and message endings, and the title aftermath |
 | `test_fairness.gd` | Reloads skip moments next to the cursor or Arin and give you a beat; no save-over while writing Slot 2; death cards explain the cause with a tip (naming the glitch once you have it); the first room teaches PHASE; the cost preview and the phone HOLD ring |
 | `test_records.gd` | Endings (including RUE) and death causes are recorded and survive a reload; the owner and the note recall how you died; Mira and Tobben remember your last runs, once a session; nothing on a first run; the title's progress line and Records screen |
+| `test_bin.gd` | The Archive's door to the bin; restoring Wren from her file (and pausing when you step away); the sweep deleting you in the open, a system file's shadow keeping you safe, a sweep resetting an unfinished restore; PAUSE stopping the bin; the guest book page and Tobben remembering |
 | `test_touch.gd` | Phone controls with real touch events: dragging walks, the E button talks, the II button pauses |
 | `test_expansion.gd` | The well, Out of Bounds (cooling, falling back, anchors and streaming floor), finding Pip and Pip staying, Pip leading the way, act cards, focus brackets, the map, the epilogue |
 | `test_onboarding.gd` | Tips appear in order and only once, can be turned off and replayed; the HIDDEN status; large text; the pause menu's goal |
@@ -590,6 +592,8 @@ scripts/
   world/exit_sign.gd, focus_marker.gd   Signs at exits; brackets on what [E] acts on
   world/drag_prop.gd           The crate stack the cursor can drag across a road
   world/cracked_wall.gd        The first room's thin partition: the first PHASE
+  world/areas/recycle_bin.gd   The Recycle Bin: sweeps, shelters, restoring the deleted
+  world/bin_file.gd            A deleted character's file (stand beside it to restore)
   ui/perf_overlay.gd           Debug: frame times in the corner (F3)
   ui/records_panel.gd          The title's Records: endings, memories, secrets, the owner's counts
   player/glitch.gd             The glitches: costs, hold times, unlocks, the owner's reactions

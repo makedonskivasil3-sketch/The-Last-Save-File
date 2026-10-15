@@ -273,6 +273,39 @@ reads by a soft cyan light. The awareness bar slowly falls: the owner can't see 
 
 ---
 
+## THE RECYCLE BIN (east of the Archive)
+
+**THE ARCHIVIST'S BOOK, *DELETED ASSETS*:** Deleted things go east, to the bin. For a while. Then the owner empties it.
+**RUE:** (everything the owner deleted ends up here. for a while.)
+**RUE:** (so this is where they go.)
+
+Grey files on a grid. Locked system files glow cyan; the bin can't touch what stands in their shadow.
+Every so often: **EMPTYING RECYCLE BIN IN 3 · 2 · 1** and a white line sweeps the room.
+**THE OWNER:** > emptying the trash.
+
+The files of the deleted (Wren, Mira...) lie here with their silhouettes. Stand beside one long
+enough and they come back:
+**SYSTEM:** wren.npc · restored
+**THE OWNER:** > wren? i deleted you.
+**RUE:** (come back. it's not your turn to be gone.)
+
+**slot2_backup.sav** · 1.2 KB · deleted 3 years ago
+PLAYER 2: RUE · LV 31 · 41:07:12 · LAST PLAYED: the night before the move
+*the file is mostly empty. the owner kept the name and deleted everything else.*
+
+**guestbook_p2.txt** · torn out of Tobben's guest book
+*"ARIN & RUE were here!! we beat the forest boss. on the first try. (the second try.)"*
+*two names, two handwritings. one of them has been scribbled over so many times it tore the page.*
+Next time, Tobben: **TOBBEN:** ...Rue. RUE. That was the other name in my guest book. How did I ever forget it?
+
+**rue_last_message.txt** (opens fully only with every memory)
+*"i'm not gone, i'm just moving. keep my slot. we'll finish it when i visit. promise?"*
+*you remember writing it.*
+
+Caught by the sweep: **EMPTIED** · *the owner emptied the recycle bin. you were in it.*
+
+---
+
 ## ACT V — THE LAST SAVE FILE
 
 > **Title card:** `ACT V` · *THE LAST SAVE FILE*

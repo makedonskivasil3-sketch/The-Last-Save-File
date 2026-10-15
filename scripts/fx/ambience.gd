@@ -29,6 +29,10 @@ func setup(w: World, id: String) -> void:
 		"edge":
 			_theme = _loop(MusicBox.stream(OwnerMemory.fragments.size(), "reverse"), -14.0)
 			_theme.pitch_scale = 0.8
+		"bin":
+			# The archive's hum, lower: a drive spinning somewhere.
+			_bed = _loop(Sfx.stream("archive_hum"), Sfx.LEVEL["archive_hum"] - 2.0)
+			_bed.pitch_scale = 0.7
 		"oob":
 			_bed = _loop(Sfx.stream("air"), Sfx.LEVEL["air"])
 			_theme = _loop(MusicBox.stream(OwnerMemory.fragments.size(), "invert"), -12.0)

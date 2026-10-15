@@ -85,7 +85,7 @@ func build() -> void:
 
 	var mira_state := Npc.State.NORMAL
 	if not purged:
-		if OwnerMemory.purge >= 3 or world.flags.get("mira_deleted", false):
+		if (OwnerMemory.purge >= 3 and "mira" not in OwnerMemory.restored) or world.flags.get("mira_deleted", false):
 			mira_state = Npc.State.DELETED
 		elif OwnerMemory.purge >= 1:
 			mira_state = Npc.State.RESTRICTED

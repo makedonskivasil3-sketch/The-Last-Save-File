@@ -32,6 +32,8 @@ var found_pip := false
 ## Wren saw the Edge with you: she's logged as cut content now, and the
 ## owner can never delete her again.
 var wren_saved := false
+## Read the torn guest book page in the Recycle Bin.
+var found_guestbook := false
 ## How the last game ended at Slot 2: "escape", "wren" or "message" ("" if
 ## never), and every ending reached so far.
 var last_ending := ""
@@ -207,6 +209,7 @@ func wipe() -> void:
 	met_archivist = false
 	found_pip = false
 	wren_saved = false
+	found_guestbook = false
 	last_ending = ""
 	last_death = ""
 	death_causes.clear()
@@ -238,6 +241,7 @@ func save_memory() -> void:
 		"met_archivist": met_archivist,
 		"found_pip": found_pip,
 		"wren_saved": wren_saved,
+		"found_guestbook": found_guestbook,
 		"last_ending": last_ending,
 		"endings_seen": endings_seen,
 		"last_death": last_death,
@@ -272,6 +276,7 @@ func load_memory() -> void:
 	met_archivist = bool(data.get("met_archivist", false))
 	found_pip = bool(data.get("found_pip", false))
 	wren_saved = bool(data.get("wren_saved", false))
+	found_guestbook = bool(data.get("found_guestbook", false))
 	last_ending = str(data.get("last_ending", ""))
 	endings_seen.clear()
 	for e in data.get("endings_seen", []):

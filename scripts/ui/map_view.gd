@@ -11,8 +11,9 @@ const NODES := {
 	"square": ["ASHVALE", Vector2(0.5, 0.46)],
 	"archive": ["THE ARCHIVE", Vector2(0.86, 0.46)],
 	"oob": ["OUT OF BOUNDS", Vector2(0.5, 0.84)],
+	"bin": ["RECYCLE BIN", Vector2(0.86, 0.84)],
 }
-const LINKS := [["room", "square"], ["square", "archive"], ["square", "edge"], ["square", "oob"]]
+const LINKS := [["room", "square"], ["square", "archive"], ["square", "edge"], ["square", "oob"], ["archive", "bin"]]
 const BOX := Vector2(84, 22)
 const CYAN := Color("8cf2ff")
 const TEXT := Color("c8b8a0")

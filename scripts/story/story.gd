@@ -46,6 +46,8 @@ const VOICE := {
 	"fragment_hint": ["something cyan, in the corner of my eye. it feels like mine."],
 	"well_look": ["i've been down there before. i know i have."],
 	"oob_first": ["the owner can't see me down here. nobody's ever looked."],
+	"bin_first": ["everything the owner deleted ends up here. for a while.", "so this is where they go."],
+	"bin_restored": ["come back. it's not your turn to be gone."],
 	"oob_fell": ["fell out of the world. again."],
 	"hidden_first": ["she's warm. like a real person.", "stay still. stay small."],
 	"idle_long": ["don't just stand here. it notices stillness."],
@@ -308,6 +310,8 @@ static func recall(who: String) -> String:
 			if died_by == "arin":
 				return "Arin came back through the door alone last time. Humming."
 		"tobben":
+			if OwnerMemory.found_guestbook:
+				return "...Rue. RUE. That was the other name in my guest book. How did I ever forget it?"
 			if wren_lost:
 				return "Wren used to come in every day and buy nothing. I miss her buying nothing."
 			if OwnerMemory.wren_saved:
@@ -342,6 +346,7 @@ static func secrets() -> Array:
 		["The Archivist", "Someone keeps the cut content.", OwnerMemory.met_archivist],
 		["Wren saw the Edge", "She wants to see it before she's gone.", OwnerMemory.wren_saved],
 		["Undeleted", "Bring back someone the owner deleted.", not OwnerMemory.restored.is_empty()],
+		["The guest book", "Tobben lost a page. Look where deleted things go.", OwnerMemory.found_guestbook],
 	]
 
 
@@ -358,6 +363,9 @@ const DEATHS := {
 	"cursor": ["SELECTED · DELETED", "the owner clicked on you.",
 		"The cursor selects whatever holds still under it. Keep moving, or break its line of sight.",
 		"blind", "Hold {interact} on the cursor to blind it for a few seconds."],
+	"bin": ["EMPTIED", "the owner emptied the recycle bin. you were in it.",
+		"When the bin empties, stand in a system file's cyan shadow, on the side away from the line.",
+		"pause", "Hold {interact} standing still to PAUSE the owner: the bin can't empty while time stops."],
 	"eraser": ["ERASED", "the static caught up with you.",
 		"The erasure spreads from where it starts. Stay ahead of it and head for the exit.",
 		"scrub", "Hold {interact} on erased ground to scrub a path through it."],

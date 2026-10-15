@@ -278,7 +278,7 @@ func change_area(id: String, arrival: String) -> void:
 	director.on_area_entered(area, first)
 	_visited[id] = true
 	if first:
-		voice({"square": "square_first", "archive": "archive_first", "edge": "edge_first", "oob": "oob_first"}.get(id, ""))
+		voice({"square": "square_first", "archive": "archive_first", "edge": "edge_first", "oob": "oob_first", "bin": "bin_first"}.get(id, ""))
 	await hud.fade(false, 0.3).finished
 	player.frozen = false
 	_transitioning = false
@@ -296,6 +296,7 @@ func _make_area(id: String) -> Area:
 		"archive": return ArchiveArea.new()
 		"edge": return TheEdge.new()
 		"oob": return OutOfBounds.new()
+		"bin": return RecycleBin.new()
 	push_error("unknown area %s" % id)
 	return VillageSquare.new()
 
@@ -389,6 +390,8 @@ func current_goal() -> String:
 			goal = "Get out of Arin's room."
 		"edge":
 			goal = "Lead the cursor away, then stand in Slot 2 to write yourself in."
+		"bin":
+			goal = "Stand beside a deleted file to restore them. When the bin empties, get into a system file's cyan shadow."
 		"oob":
 			goal = "Climb back up at the respawn point." if OwnerMemory.found_pip else "Cross to the far ledge. Something is waiting there."
 		_:
