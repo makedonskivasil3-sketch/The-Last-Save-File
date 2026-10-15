@@ -62,6 +62,9 @@ var _restored := 0
 ## Seconds left of the "colour coming back" shimmer.
 var _restore_flash := 0.0
 var _glance_timer := 1.0
+## PHASE: where you slipped from, and how long ago (for the streak).
+var _phase_from := Vector2.ZERO
+var _phase_t := 1.0
 var _startle_mark := 0.0
 
 
@@ -84,6 +87,29 @@ func refresh_look(animate := true) -> void:
 	if animate and count > _restored:
 		_restore_flash = 1.2
 	_restored = count
+
+
+## Which way Rue is facing (for PHASE).
+func facing() -> Vector2:
+	return _sprite.facing
+
+
+## The sprite (for DECOY: a frame of exactly how you look right now).
+func sprite_snapshot() -> PixelCharacter:
+	var copy := PixelCharacter.new("rue", _palette)
+	copy.facing = _sprite.facing
+	copy.leg_color = _sprite.leg_color
+	copy.shoe_color = _sprite.shoe_color
+	copy.eye_color = _sprite.eye_color
+	return copy
+
+
+## PHASE: blink through a wall to `to`, leaving a streak of stale frames.
+func phase_to(to: Vector2) -> void:
+	_phase_from = global_position - to
+	_phase_t = 0.0
+	global_position = to
+	velocity = Vector2.ZERO
 
 
 ## How much of Rue is back (0..5).
@@ -150,6 +176,7 @@ func _process(delta: float) -> void:
 ## back to missing-texture cyan when the owner is close.
 func _update_mood(delta: float) -> void:
 	_restore_flash = maxf(0.0, _restore_flash - delta)
+	_phase_t = minf(1.0, _phase_t + delta * 2.5)
 	_startle_mark = maxf(0.0, _startle_mark - delta)
 	var still := velocity.length() < 2.0
 	_sprite.crouch = sheltered
@@ -175,6 +202,12 @@ func _draw() -> void:
 		_draw_dissolve()
 		return
 	_draw_trail()
+	if _phase_t < 1.0:
+		# The streak where you slipped through: frames smeared along the jump.
+		for i in 5:
+			var f := float(i) / 5.0
+			var c := Color(0.55, 0.95, 1.0, 0.5 * (1.0 - _phase_t) * (1.0 - f)) if i % 2 == 0 else Color(1.0, 0.25, 0.55, 0.4 * (1.0 - _phase_t) * (1.0 - f))
+			_sprite.draw(self, {"offset": _phase_from * (1.0 - f), "solid": c})
 	if _blink:
 		return
 	# Chromatic ghost: a second copy of you, slightly out of sync.

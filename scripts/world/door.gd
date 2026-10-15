@@ -13,6 +13,9 @@ var state: State = State.OPEN
 var size := Vector2(32, 8)
 
 var _flash := 0.0
+## Seconds left forced open by Rue's UNLOCK glitch (you can walk through).
+var forced := 0.0
+var _col: CollisionShape2D
 var _t := 0.0
 
 
@@ -24,9 +27,9 @@ func setup(rect: Rect2, initial: State) -> void:
 	# hasn't been loaded. You were never going to walk through it.
 	var shape := RectangleShape2D.new()
 	shape.size = size
-	var col := CollisionShape2D.new()
-	col.shape = shape
-	add_child(col)
+	_col = CollisionShape2D.new()
+	_col.shape = shape
+	add_child(_col)
 
 
 func lock() -> void:
@@ -37,8 +40,27 @@ func lock() -> void:
 	Sfx.play("door_lock")
 
 
+## UNLOCK: the lock pops and the doorway is walkable for a few seconds.
+func force_open(seconds: float) -> void:
+	if state != State.LOCKED:
+		return
+	forced = seconds
+	_col.set_deferred("disabled", true)
+	_flash = 1.0
+
+
+func is_forced_open() -> bool:
+	return forced > 0.0
+
+
 func _process(delta: float) -> void:
 	_t += delta
+	if forced > 0.0:
+		forced -= delta
+		if forced <= 0.0:
+			_col.set_deferred("disabled", false)
+			_flash = 1.0
+			Sfx.play("door_lock")
 	_flash = maxf(0.0, _flash - delta * 1.5)
 	queue_redraw()
 
@@ -54,6 +76,14 @@ func _draw() -> void:
 				var band := Rect2(r.position + Vector2(2, r.size.y + i * 3), Vector2(r.size.x - 4, 3))
 				draw_rect(band, Color(OUTSIDE, glow * (1.0 - i / 4.0) * 0.5))
 		State.LOCKED:
+			if forced > 0.0:
+				# Glitched open: the panel is there and isn't, flickering.
+				draw_rect(r, Color(0, 0, 0))
+				for i in 4:
+					if randf() < 0.6:
+						draw_rect(Rect2(r.position + Vector2(randf() * r.size.x, 0), Vector2(2, r.size.y)), Color(1.0, 0.2, 0.5, 0.6))
+				draw_rect(r, Color(0.55, 0.95, 1.0, 0.5 + 0.5 * sin(_t * 12.0)), false, 1.0)
+				return
 			draw_rect(r, PANEL)
 			draw_rect(r, FRAME, false, 1.0)
 			var lock_col := LOCK.lerp(Color.WHITE, _flash)

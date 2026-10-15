@@ -29,6 +29,12 @@ const HIDDEN_COOL_RATE := 2.0
 var awareness := 0.0
 ## Held during story sequences: awareness stops rising.
 var paused := false
+## Seconds left of Rue's PAUSE glitch: the owner's whole world stands still.
+var owner_paused := 0.0
+## Rue's FALSIFY glitch: while the owner believes a note's lie, awareness
+## rises this much slower.
+const LIE_RATE := 0.35
+var _lie := 0.0
 
 var _world: World
 var _fired: Dictionary = {}
@@ -58,6 +64,15 @@ func has_fired(threshold: float) -> bool:
 	return _fired.has(threshold)
 
 
+## FALSIFY: the owner reads the lie and relaxes for a while.
+func believe_lie(seconds: float) -> void:
+	_lie = maxf(_lie, seconds)
+
+
+func is_believing_lie() -> bool:
+	return _lie > 0.0
+
+
 ## Awareness can cool, but never below the last threshold already reached.
 func floor_level() -> float:
 	var f := 0.0
@@ -84,7 +99,15 @@ func add_awareness(amount: float) -> void:
 func _process(delta: float) -> void:
 	if not _running or paused or _world.area == null:
 		return
+	if owner_paused > 0.0:
+		owner_paused -= delta
+		if owner_paused <= 0.0:
+			_world.resume_owner()
+		return
+	_lie = maxf(0.0, _lie - delta)
 	var rate := (BASE_RATE + RATE_PER_PURGE * OwnerMemory.purge) * _world.area.awareness_rate
+	if _lie > 0.0 and rate > 0.0:
+		rate *= LIE_RATE
 	if _world.hiding_npc() != null:
 		rate = -HIDDEN_COOL_RATE
 	if rate < 0.0:

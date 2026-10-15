@@ -47,6 +47,15 @@ func area_process(_delta: float) -> void:
 	pass
 
 
+## Rue's PAUSE glitch: everything the owner drives holds still.
+func set_owner_paused(on: bool) -> void:
+	if erasure:
+		erasure.set_process(not on)
+	for n in [get("arin"), get("cursor")]:
+		if n is Node:
+			n.set("paused", on)
+
+
 ## Where to go next in this area (Pip trots toward it), or Vector2.INF.
 func guide_point() -> Vector2:
 	return Vector2.INF

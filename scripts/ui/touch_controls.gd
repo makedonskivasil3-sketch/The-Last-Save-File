@@ -27,6 +27,10 @@ var buttons_enabled := true
 var _stick_finger := -1
 var _stick_centre := Vector2.ZERO
 var _stick_knob := Vector2.ZERO
+## The stick's current direction. Re-applied every frame: in Godot 4.3, any
+## parsed action event (the E button) releases actions set with action_press,
+## which would stop Rue dead whenever you pressed E while running.
+var _stick := Vector2.ZERO
 ## Finger index -> button name.
 var _held: Dictionary = {}
 var _draw_node: Control
@@ -82,6 +86,7 @@ func _touch_up(finger: int) -> void:
 		_held.erase(finger)
 	if finger == _stick_finger:
 		_stick_finger = -1
+		_stick = Vector2.ZERO
 		_set_move(Vector2.ZERO)
 
 
@@ -91,7 +96,8 @@ func _move_stick(pos: Vector2) -> void:
 		off = off.normalized() * STICK_RADIUS
 	_stick_knob = _stick_centre + off
 	var v := off / STICK_RADIUS
-	_set_move(v if v.length() > DEAD_ZONE else Vector2.ZERO)
+	_stick = v if v.length() > DEAD_ZONE else Vector2.ZERO
+	_set_move(_stick)
 
 
 ## The joystick drives the same four move actions as the keys, with strength.
@@ -121,6 +127,8 @@ func _send(action: String, pressed: bool) -> void:
 
 
 func _process(_delta: float) -> void:
+	if _stick_finger != -1:
+		_set_move(_stick)
 	_draw_node.visible = active
 	if active:
 		_draw_node.queue_redraw()

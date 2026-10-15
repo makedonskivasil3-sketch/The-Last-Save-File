@@ -11,6 +11,11 @@ var text := ""
 var title := "NOTE"
 var player: Node2D
 
+## Rue's FALSIFY glitch made it lie (once per note per session).
+var falsified := false
+## What it says when falsified.
+var lie := "ALL CLEAR.\nNOTHING TO SEE HERE."
+
 var _label: Label
 var _pending := ""
 var _smudge := 0.0
@@ -34,8 +39,17 @@ func set_text_now(value: String) -> void:
 		_label.text = value
 
 
+## FALSIFY: the note lies, right now, in front of you.
+func falsify() -> void:
+	falsified = true
+	set_text_now(lie)
+	_smudge = 0.8
+
+
 ## Queue a rewrite. It only lands once the player is far enough away.
 func rewrite(value: String) -> void:
+	if falsified:
+		return  # the owner already believes the lie
 	_pending = value
 
 

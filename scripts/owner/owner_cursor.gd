@@ -12,6 +12,12 @@ var bounds := Rect2()
 var player: Node2D
 var is_hidden: Callable
 var speed := 55.0
+## Callable() -> Vector2: a decoy to select instead of you (Vector2.INF if none).
+var lure: Callable
+## Seconds left blinded by Rue's BLIND glitch: it drifts and selects nothing.
+var blinded := 0.0
+## Held still (the owner's world is paused).
+var paused := false
 
 var _goal := Vector2.ZERO
 var _select := 0.0
@@ -34,15 +40,29 @@ func _ready() -> void:
 	_whine = Sfx.loop_player("select_loop", self)
 
 
+## BLIND: the pointer loses you for a while.
+func blind(seconds: float) -> void:
+	blinded = maxf(blinded, seconds)
+	_select = 0.0
+
+
 func _physics_process(delta: float) -> void:
 	_t += delta
-	var visible_target: bool = is_instance_valid(player) and not (is_hidden.is_valid() and is_hidden.call(player.global_position))
-	if visible_target:
+	if paused:
+		_whine.volume_db = -80.0
+		return
+	blinded = maxf(0.0, blinded - delta)
+	var decoy: Vector2 = lure.call() if lure.is_valid() else Vector2.INF
+	var visible_target: bool = blinded <= 0.0 and decoy == Vector2.INF and is_instance_valid(player) \
+			and not (is_hidden.is_valid() and is_hidden.call(player.global_position))
+	if decoy != Vector2.INF and blinded <= 0.0:
+		_goal = decoy  # fooled: it goes for the stale frame
+	elif visible_target:
 		_goal = player.global_position
 	elif position.distance_to(_goal) < 6.0:
 		_goal = _random_point()
 	var to := _goal - position
-	var spd := speed if visible_target else speed * 0.6
+	var spd := speed if visible_target or decoy != Vector2.INF else speed * 0.6
 	position += to.normalized() * minf(spd * delta, to.length())
 
 	_tracking = visible_target
@@ -76,6 +96,12 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var glitch := Settings.glitch_intensity
+	if blinded > 0.0:
+		# Blind: a grey pointer full of static.
+		_draw_arrow(Vector2.ZERO, 1.0, Color(0.5, 0.5, 0.55, 0.7), true)
+		for i in 6:
+			draw_rect(Rect2(randf_range(0, 12), randf_range(0, 20), randf_range(2, 6), 1), Color(1, 1, 1, 0.6))
+		return
 	# Arriving: a huge pointer shrinking down into the world.
 	var scale := 1.0 + _arrive * _arrive * 6.0
 	# Tracking: thin scan lines through the pointer, across the whole area.

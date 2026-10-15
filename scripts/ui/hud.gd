@@ -50,6 +50,11 @@ var _overlay: ColorRect
 var _overlay_title: Label
 var _overlay_body: Label
 var _hint: Label
+## "hold [E]  FREEZE +6": what holding interact would do right now.
+var _glitch_prompt: Label
+## Big centred line for owner-scale events ("‖ OWNER PAUSED").
+var _banner: Label
+const GLITCH_COLOR := Color(1.0, 0.45, 0.75)
 
 var _queue: Array[Dictionary] = []
 var _typing: Label
@@ -118,6 +123,12 @@ func _ready() -> void:
 
 	_prompt = _make_label(root, Vector2(640 - SAFE.x - 176, 360 - SAFE.y - 62), Vector2(176, 16), 11, SLOT_COLOR)
 	_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+
+	_glitch_prompt = _make_label(root, Vector2(640 - SAFE.x - 220, 360 - SAFE.y - 78), Vector2(220, 14), 10, GLITCH_COLOR)
+	_glitch_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+
+	_banner = _make_label(root, Vector2(0, 70), Vector2(640, 24), 16, SELF_COLOR)
+	_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
 	_hint = _make_label(root, Vector2(640 - SAFE.x - 176, 360 - SAFE.y - 14), Vector2(176, 12), 9, Color(SYSTEM_COLOR, 0.8))
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -429,6 +440,37 @@ func set_hint(text: String) -> void:
 	_hint.text = text
 
 
+## What holding [E] would glitch ("" hides it).
+func set_glitch_prompt(text: String) -> void:
+	if _glitch_prompt.text != text:
+		_glitch_prompt.text = text
+
+
+func glitch_prompt_text() -> String:
+	return _glitch_prompt.text
+
+
+## A glitch's price: "+8" flies up into the awareness meter, which flinches.
+func glitch_cost(amount: float) -> void:
+	var l := _make_label(_meter.get_parent(), _meter.position + Vector2(_meter.size.x - 30, 24), Vector2(40, 14), 12, Color(1.0, 0.35, 0.45))
+	l.text = "+%d" % int(amount)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	var tw := create_tween().set_parallel()
+	tw.tween_property(l, "position:y", l.position.y - 18.0, 0.9)
+	tw.tween_property(l, "modulate:a", 0.0, 0.9).set_delay(0.3)
+	tw.chain().tween_callback(l.queue_free)
+	_meter.jolt()
+
+
+## A big line under the top bar ("" hides it).
+func set_banner(text: String) -> void:
+	_banner.text = text
+
+
+func banner_text() -> String:
+	return _banner.text
+
+
 ## One short status line under the meter (e.g. "HIDDEN"), "" to clear.
 func set_status(text: String) -> void:
 	if _status.text != text:
@@ -496,6 +538,8 @@ func _process(delta: float) -> void:
 	_playtime += delta
 	# On phones the on-screen E button sits bottom right: keep the prompt clear of it.
 	_prompt.position.x = 640 - SAFE.x - 176 - (72.0 if Settings.using_touch else 0.0)
+	_glitch_prompt.position.x = _prompt.position.x + 176 - 220
+	_glitch_prompt.visible = _prompt.visible
 	_update_slot()
 	_meter.value = _awareness
 	_trim_console()  # text size may have changed

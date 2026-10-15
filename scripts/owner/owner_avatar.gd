@@ -20,6 +20,11 @@ var player: Node2D
 ## Callable(Vector2) -> bool: true if the position is hidden from the owner.
 var is_hidden: Callable
 var paused := false
+## Callable() -> Vector2: a decoy to chase instead of patrolling (Vector2.INF
+## when there's none). Arin can't see you while chasing it.
+var lure: Callable
+## Seconds left frozen by Rue's FREEZE glitch: no moving, seeing or touching.
+var stunned := 0.0
 
 var _target := 0
 var _vel := Vector2.ZERO
@@ -39,8 +44,26 @@ func _physics_process(delta: float) -> void:
 	_vel = (position - before) / maxf(delta, 0.0001)
 
 
+## FREEZE: Arin stops dead, sees nothing, overwrites nothing.
+func stun(seconds: float) -> void:
+	stunned = maxf(stunned, seconds)
+	_seeing = false
+
+
 func _physics_step(delta: float) -> void:
+	if stunned > 0.0:
+		stunned -= delta
+		return
 	if route.is_empty() or paused:
+		return
+	var decoy: Vector2 = lure.call() if lure.is_valid() else Vector2.INF
+	if decoy != Vector2.INF and decoy.distance_to(global_position) < 200.0:
+		# Fooled: walk at the stale frame of you, staring at it.
+		var to_decoy := decoy - global_position
+		_facing = _facing.lerp(to_decoy.normalized(), minf(1.0, delta * 8.0)).normalized()
+		if to_decoy.length() > 6.0:
+			position += to_decoy.normalized() * speed * 1.2 * delta
+		_seeing = false
 		return
 	if _wait > 0.0:
 		_wait -= delta
@@ -86,9 +109,23 @@ func _draw() -> void:
 		pts.append(Vector2.from_angle(ang) * view_distance)
 	draw_colored_polygon(pts, Color(VIEW_COL, a))
 	_sprite.waving = _seeing  # points at you
+	if stunned > 0.0:
+		_draw_frozen()
+		return
 	_sprite.draw(self)
 	if _seeing:
 		# An alert bubble, owner-orange.
 		var y := float(PixelCharacter.FEET_Y - _sprite.height()) - 12.0 + sin(Time.get_ticks_msec() * 0.015)
 		draw_rect(Rect2(-4, y, 8, 9), Color(0.95, 0.93, 0.88))
 		draw_string(ThemeDB.fallback_font, Vector2(-1.5, y + 7.5), "!", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, VIEW_COL)
+
+
+## Frozen mid-step: colour-split copies hang either side, and a pause glyph.
+func _draw_frozen() -> void:
+	var k := Settings.glitch_intensity
+	_sprite.draw(self, {"solid": Color(1.0, 0.15, 0.5, 0.55), "offset": Vector2(-2.0 * k, 0)})
+	_sprite.draw(self, {"solid": Color(0.3, 0.95, 1.0, 0.55), "offset": Vector2(2.0 * k, 0)})
+	_sprite.draw(self, {"grey": true})
+	var top := float(PixelCharacter.FEET_Y - _sprite.height())
+	draw_rect(Rect2(-4, top - 10, 3, 7), Color(0.55, 0.95, 1.0))
+	draw_rect(Rect2(1, top - 10, 3, 7), Color(0.55, 0.95, 1.0))

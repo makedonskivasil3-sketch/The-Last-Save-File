@@ -29,6 +29,12 @@ var _voiced: Dictionary = {}
 var _tutorial: Tutorial
 ## Pip, once found out of bounds: follows you everywhere, every session.
 var pip: Companion
+## Rue's glitch power: reads [E] (tap = interact, hold = glitch).
+var glitch: GlitchController
+## DECOY: the stale frame of you Arin and the cursor chase, if any.
+var decoy: Decoy
+## Glitches fired this session (the owner keeps count, and so do endings).
+var glitches_used := 0
 ## Brackets around whatever [E] would act on.
 var _focus_marker: FocusMarker
 ## False until you've woken up: area intros (act cards) wait for it.
@@ -61,6 +67,9 @@ func _ready() -> void:
 		return
 
 	Sfx.prewarm()
+	glitch = GlitchController.new()
+	glitch.world = self
+	add_child(glitch)
 	if OwnerMemory.found_pip:
 		_spawn_pip()
 	var previous := OwnerMemory.begin_session()
@@ -156,11 +165,12 @@ func recover_fragment(m: MemoryFragment) -> void:
 	_cutscene = false
 	hud.say("MEMORY RECOVERED  %d / %d" % [OwnerMemory.fragments.size(), Story.FRAGMENTS.size()], "system")
 	hud.say(f.after, "self")
-	# A piece of Rue comes back with it.
+	# A piece of Rue comes back with it, and a new glitch.
 	player.refresh_look()
 	var restored: String = Story.RESTORED.get(player.restored_parts(), "")
 	if restored != "":
 		hud.say(restored, "self")
+	_learn_glitch(OwnerMemory.fragments.size())
 	# The owner notices something flicker.
 	director.add_awareness(6.0)
 
@@ -185,8 +195,8 @@ func _process(delta: float) -> void:
 	if _talking_to and (not is_instance_valid(_talking_to) or player.global_position.distance_to(_talking_to.global_position) > TALK_BREAK_DISTANCE):
 		hud.close_dialogue()
 	_update_focus()
-	if _focused and not hud.is_dialogue_open() and Input.is_action_just_pressed("interact"):
-		_interact(_focused)
+	_update_decoy()
+	# [E] itself is read by the GlitchController: a tap comes back as tap_interact().
 
 
 # Menu keys go through _unhandled_input so the pause menu can consume the same
@@ -344,6 +354,78 @@ func current_goal() -> String:
 			if area and area.area_id == "square" and not OwnerMemory.found_pip:
 				goal += " The well looks deeper than it should."
 	return "%s\nMemories recovered: %d / %d" % [goal, OwnerMemory.fragments.size(), Story.FRAGMENTS.size()]
+
+
+# --- glitches --------------------------------------------------------------------
+
+## Can Rue act (interact or glitch) right now?
+func can_act() -> bool:
+	return not (purged or ending != "" or _transitioning or _cutscene or player.frozen
+		or hud.is_dialogue_open() or get_tree().paused)
+
+
+## A tap of [E]: interact with whatever's focused.
+func tap_interact() -> void:
+	if _focused and can_act():
+		_interact(_focused)
+
+
+## A memory unlocked a new glitch: say so, big.
+func _learn_glitch(memories: int) -> void:
+	var id := Glitch.unlocked_by(memories)
+	if id == "":
+		return
+	var def: Dictionary = Glitch.DEFS[id]
+	hud.show_act("NEW GLITCH", def.name, str(def.how).replace("[E]", "[%s]" % Settings.glyph("interact")))
+	hud.say("NEW GLITCH: %s" % def.name, "system")
+	Sfx.play("glitch_learn")
+
+
+## DECOY: leave a stale frame of yourself here.
+func spawn_decoy() -> void:
+	if is_instance_valid(decoy):
+		decoy.queue_free()
+	decoy = Decoy.new()
+	decoy.sprite = player.sprite_snapshot()
+	decoy.z_index = 9
+	area.add_child(decoy)
+	decoy.global_position = player.global_position
+
+
+## Where the owner's hunters should go instead of you (Vector2.INF: you).
+func lure_point() -> Vector2:
+	return decoy.global_position if is_instance_valid(decoy) else Vector2.INF
+
+
+## A hunter reaching the decoy pops it.
+func _update_decoy() -> void:
+	if not is_instance_valid(decoy):
+		return
+	for hunter in [area.get("arin"), area.get("cursor")]:
+		if hunter is Node2D and hunter.global_position.distance_to(decoy.global_position) < 9.0:
+			decoy.pop()
+			return
+
+
+## PAUSE: the owner's whole world stops (Rue doesn't).
+func pause_owner(seconds: float) -> void:
+	director.owner_paused = seconds
+	area.set_owner_paused(true)
+	fx.memory(true)
+	hud.set_banner("‖  OWNER PAUSED")
+	Sfx.play("owner_pause")
+
+
+func resume_owner() -> void:
+	if area:
+		area.set_owner_paused(false)
+	fx.memory(false)
+	hud.set_banner("")
+	Sfx.play("owner_unpause")
+
+
+func is_owner_paused() -> bool:
+	return director.owner_paused > 0.0
 
 
 ## Where Pip should lead: a memory still in this area, else the area's goal.

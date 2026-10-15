@@ -91,6 +91,7 @@ func build() -> void:
 	board.position = BOARD_POS
 	board.player = world.player
 	board.text = "ASHVALE NOTICES\nHarvest fair on Sunday." if OwnerMemory.sessions <= 1 else "MISSING: ONE (1) INTRUDER.\nIF SEEN, TELL TOBBEN."
+	board.lie = "INTRUDER CAUGHT.\nALL CLEAR."
 	add_child(board)
 	interactables.append(board)
 
@@ -145,6 +146,7 @@ func build() -> void:
 	arin.is_hidden = world.is_player_hidden
 	arin.sees_player.connect(_on_arin_sees)
 	arin.touched_player.connect(func() -> void: world.kill("overwritten"))
+	arin.lure = world.lure_point
 	add_child(arin)
 
 
@@ -182,7 +184,7 @@ func on_owner_event(threshold: float) -> void:
 
 func area_process(_delta: float) -> void:
 	north_exit.open = world.flags.get("pointer", false)
-	arin.paused = world.is_talking()
+	arin.paused = world.is_talking() or world.is_owner_paused()
 	if world.player.global_position.distance_to(well.global_position) < 40.0:
 		world.voice("well_look")
 
@@ -205,6 +207,8 @@ func _unleash() -> void:
 		cursor.player = world.player
 		cursor.is_hidden = world.is_player_hidden
 		cursor.selected_player.connect(func() -> void: world.kill("selected"))
+		cursor.lure = world.lure_point
+		cursor.paused = world.is_owner_paused()
 		cursor.z_index = 20
 		add_child(cursor)
 
@@ -256,6 +260,10 @@ func _tobben_reports() -> void:
 
 func _tobben_report_lands() -> void:
 	if is_inside_tree() and world.ending == "":
+		if world.flags.get("lie", false):
+			# The owner already believes the lie on the board.
+			world.director.say("tobben says you're gone. good.")
+			return
 		world.director.say("tobben says you were asking questions.")
 		world.director.add_awareness(12.0)
 

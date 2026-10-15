@@ -75,6 +75,7 @@ func build() -> void:
 	note.position = NOTE_POS
 	note.player = world.player
 	note.text = _note_text()
+	note.lie = "Welcome home, Arin.\nEverything is fine."
 	add_child(note)
 
 	var mira_state := Npc.State.NORMAL
@@ -125,6 +126,11 @@ func build() -> void:
 
 
 func area_process(_delta: float) -> void:
+	# UNLOCK: through the glitched-open door, out into the square.
+	if door.is_forced_open() and world.player.global_position.y < bounds.position.y + 2.0 \
+			and absf(world.player.global_position.x - door.global_position.x) < DOOR_RECT.size.x * 0.5 + 2.0:
+		world.change_area("square", "house")
+		return
 	if door.state == Door.State.OPEN and world.player.global_position.distance_to(door.global_position) < DOOR_TRIGGER_DISTANCE:
 		world.director.on_door_approached()
 	if seam:

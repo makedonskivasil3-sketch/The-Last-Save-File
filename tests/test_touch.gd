@@ -23,6 +23,20 @@ func test_dragging_moves_rue() -> void:
 	check_eq(settings().glyph("pause"), "II", "the pause prompt names the touch button")
 
 
+func test_pressing_e_while_running_keeps_you_running() -> void:
+	var w := await start_session()
+	await _touch(0, Vector2(120, 250), true)
+	await _drag(0, Vector2(150, 250))
+	await wait(0.2)
+	var e: Vector2 = TouchControls.BUTTONS["interact"].center
+	await _touch(1, e, true)  # the E button, while the thumb holds the stick
+	var x0: float = w.player.global_position.x
+	await wait(0.4)
+	check(w.player.global_position.x > x0 + 15.0, "still running while E is held")
+	await _touch(1, e, false)
+	await _touch(0, Vector2(150, 250), false)
+
+
 func test_e_button_talks() -> void:
 	var w := await start_session(true, true)
 	w.player.global_position = w.area.mira.global_position + Vector2(0, 14)

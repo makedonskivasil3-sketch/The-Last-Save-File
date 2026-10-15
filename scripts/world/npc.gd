@@ -42,6 +42,8 @@ var _sprite: PixelCharacter
 var _emote := ""
 var _emote_t := 0.0
 var _noticed := false
+## Seconds left frozen by Rue's FREEZE glitch.
+var frozen := 0.0
 
 
 func setup(initial: State) -> void:
@@ -65,6 +67,22 @@ func delete() -> bool:
 	if fx:
 		fx.deletion_hit()
 	Sfx.deletion(npc_id)
+	return true
+
+
+## FREEZE: they stop mid-motion for a moment.
+func freeze(seconds: float) -> void:
+	frozen = maxf(frozen, seconds)
+
+
+## RESTORE: undo a deletion. Back as they were, a little glitchy.
+func restore() -> bool:
+	if state != State.DELETED and state != State.DELETING:
+		return false
+	state = State.NORMAL
+	_col.set_deferred("disabled", false)
+	_noticed = false
+	frozen = 0.6
 	return true
 
 
@@ -110,6 +128,10 @@ func interact() -> Dictionary:
 
 func _process(delta: float) -> void:
 	var s := sprite()
+	if frozen > 0.0:
+		frozen -= delta
+		queue_redraw()
+		return
 	s.update(delta, Vector2.ZERO)
 	s.talking = talking
 	_emote_t = maxf(0.0, _emote_t - delta)
@@ -137,7 +159,11 @@ func _draw() -> void:
 		draw_circle(Vector2(0, 4), hide_radius, Color(0.55, 0.95, 1.0, 0.05))
 	match state:
 		State.NORMAL, State.RESTRICTED:
-			_draw_body(state == State.RESTRICTED)
+			if frozen > 0.0:
+				var k := 2.0 * Settings.glitch_intensity
+				_draw_tinted(Color(1.0, 0.15, 0.5, 0.5), Vector2(-k, 0))
+				_draw_tinted(Color(0.3, 0.95, 1.0, 0.5), Vector2(k, 0))
+			_draw_body(state == State.RESTRICTED or frozen > 0.0)
 		State.DELETING:
 			_draw_deletion(_delete_t)
 		State.DELETED:

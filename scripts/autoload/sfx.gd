@@ -32,11 +32,13 @@ const LEVEL := {
 	"memory_loop": -9.0, "door_lock": -6.0, "denied": -12.0, "flicker": -13.0,
 	"pop": -17.0, "scribble": -16.0, "transition": -15.0, "unload": -5.0,
 	"step": -27.0, "heartbeat": -5.0,
+	"glitch_charge": -10.0, "glitch_fire": -4.0, "phase": -6.0, "glitch_learn": -6.0,
+	"owner_pause": -6.0, "owner_unpause": -7.0,
 }
 ## Loud, sudden or piercing sounds that Reduce flashing / glitch intensity tame.
 const HARSH := ["deletion", "erase_start", "cursor_arrive", "select_loop", "click",
 	"death_erased", "death_overwritten", "death_selected", "stinger", "spotted",
-	"unload", "flicker", "wound_open", "power_off"]
+	"unload", "flicker", "wound_open", "power_off", "glitch_fire"]
 ## Pure glitch texture: scaled straight by glitch intensity.
 const GLITCHY := ["erase_cell", "flicker"]
 ## Each speaker's voice pitch for dialogue blips.
@@ -47,7 +49,8 @@ const PREWARM := ["key_owner_0", "key_owner_1", "key_owner_2", "key_system", "ke
 	"door_lock", "denied", "flicker", "scribble", "stinger", "spotted", "erase_cell_0",
 	"erase_cell_1", "erase_start", "wound_open", "seal", "fragment", "cursor_arrive",
 	"select_loop", "click", "purge_bell", "heartbeat", "death_erased", "death_overwritten",
-	"death_selected", "power_off", "unload", "win", "memory_loop"]
+	"death_selected", "power_off", "unload", "win", "memory_loop", "glitch_charge", "glitch_fire",
+	"phase", "glitch_learn", "owner_pause", "owner_unpause"]
 
 var _cache: Dictionary = {}
 var _queue: Array = []
@@ -422,6 +425,59 @@ func _build(name: String) -> AudioStreamWAV:
 			for i in b.size():
 				b[i] *= 0.6 + 0.4 * sin(TAU * 12.0 * i / S.rate)
 			return S.to_wav(b, true)
+		# Charging a glitch: a buzzing, rising wrongness (loop; pitch set live).
+		"glitch_charge":
+			var b := S.begin(1.0)
+			S.tone(b, 0.0, 1.0, 220.0, 220.0, 0.35, W.SQUARE, 0.0, 0.0)
+			S.tone(b, 0.0, 1.0, 331.0, 331.0, 0.2, W.SAW, 0.0, 0.0)
+			S.crackle(b, 0.0, 1.0, 60.0, 0.25)
+			S.gate(b, 0.0, 1.0, 30.0, 0.7)
+			S.lowpass(b, 0.45)
+			S.loop_crossfade(b, 0.05)
+			S.normalize(b, 0.6)
+			return S.to_wav(b, true)
+		# A glitch landing: reality crunches, skips and comes back wrong.
+		"glitch_fire":
+			var b := S.begin(0.7)
+			S.tone(b, 0.0, 0.5, 1900.0, 140.0, 0.5, W.SQUARE, 0.001, 6.0)
+			S.noise(b, 0.0, 0.35, 0.7, 0.001, 9.0, 0.9)
+			S.tone(b, 0.05, 0.6, 70.0, 45.0, 0.7, W.SINE, 0.002, 6.0)
+			S.crush(b, 0.0, 0.5, 3, 7)
+			S.gate(b, 0.08, 0.3, 45.0, 0.6)
+			S.normalize(b, 0.9)
+			return S.to_wav(b)
+		# Slipping through a wall: a reversed whoosh and a soft pop.
+		"phase":
+			var b := S.begin(0.45)
+			S.noise(b, 0.0, 0.35, 0.6, 0.3, 0.0, 0.08, 0.7, true)
+			S.tone(b, 0.3, 0.15, 400.0, 1600.0, 0.4, W.SINE, 0.002, 30.0)
+			S.normalize(b, 0.8)
+			return S.to_wav(b)
+		# A new glitch learned: a bright, broken arpeggio.
+		"glitch_learn":
+			var b := S.begin(1.2)
+			var notes := [523.3, 659.3, 784.0, 1046.5, 987.8]
+			for i in notes.size():
+				S.tone(b, i * 0.1, 0.6, notes[i], notes[i], 0.3, W.SQUARE, 0.002, 6.0)
+			S.crush(b, 0.0, 1.2, 4, 3)
+			S.lowpass(b, 0.5)
+			S.normalize(b, 0.8)
+			return S.to_wav(b)
+		# The owner's world stopping: everything sags to a halt...
+		"owner_pause":
+			var b := S.begin(1.0)
+			S.tone(b, 0.0, 1.0, 330.0, 55.0, 0.6, W.SAW, 0.002, 2.5)
+			S.noise(b, 0.0, 0.2, 0.5, 0.001, 15.0, 0.4)
+			S.lowpass(b, 0.3)
+			S.normalize(b, 0.8)
+			return S.to_wav(b)
+		# ...and lurching back into motion.
+		"owner_unpause":
+			var b := S.begin(0.6)
+			S.tone(b, 0.0, 0.6, 55.0, 330.0, 0.6, W.SAW, 0.05, 4.0)
+			S.lowpass(b, 0.3)
+			S.normalize(b, 0.8)
+			return S.to_wav(b)
 		# A mouse button. Plastic, close, final.
 		"click":
 			var b := S.begin(0.12)

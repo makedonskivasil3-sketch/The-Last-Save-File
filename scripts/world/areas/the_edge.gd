@@ -56,6 +56,7 @@ func build() -> void:
 	cursor.player = world.player
 	cursor.is_hidden = world.is_player_hidden
 	cursor.selected_player.connect(func() -> void: world.kill("selected"))
+	cursor.lure = world.lure_point
 	cursor.z_index = 20
 	add_child(cursor)
 

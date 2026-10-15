@@ -100,7 +100,7 @@ func area_process(delta: float) -> void:
 	_t += delta
 	if _falling or world.is_talking():
 		return
-	if _on_floor(world.player.global_position):
+	if floor_at(world.player.global_position):
 		_off_floor = 0.0
 		return
 	_off_floor += delta
@@ -108,8 +108,8 @@ func area_process(delta: float) -> void:
 		_fall()
 
 
-## Is there floor under this point right now?
-func _on_floor(p: Vector2) -> bool:
+## Is there floor under this point right now? (PHASE uses it too.)
+func floor_at(p: Vector2) -> bool:
 	for r in ANCHORS:
 		if r.grow(3.0).has_point(p):
 			return true

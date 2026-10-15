@@ -21,6 +21,7 @@ const TIPS := {
 	"quiet": ["A QUIET PLACE", "The owner can't see in here. Awareness slowly cools, but never below what the owner has already done."],
 	"oob": ["THE FLOOR ISN'T THERE", "Only the anchors are solid. Chunks of floor stream in and out: cross while they're there, and get off when they flicker red."],
 	"pip": ["PIP", "Pip follows you and runs ahead toward whatever you need next. Pip yips when Arin is close. The owner can't see Pip."],
+	"glitch": ["GLITCH", "Hold {interact} to corrupt whatever is in the pink brackets. It works, but the owner feels every glitch: each one raises awareness."],
 	"slot": ["SLOT 2", "Stand in the slot to write yourself in. It takes a few seconds, and the cursor selects anything that holds still. Lead it away first."],
 }
 ## Shown in this order after waking.
@@ -88,6 +89,9 @@ func _next_tip() -> String:
 		return "way_out"
 	if _world.hiding_npc() != null and _unseen("hidden"):
 		return "hidden"
+	# The glitch tip waits until you've learned to move.
+	if _world.glitch and not _world.glitch.target.is_empty() and _unseen("glitch") and "move" in Settings.tips_seen:
+		return "glitch"
 	if _world.pip != null and _unseen("pip"):
 		return "pip"
 	var area_tip: String = {"square": "arin", "archive": "quiet", "edge": "slot", "oob": "oob"}.get(_world.area.area_id, "")

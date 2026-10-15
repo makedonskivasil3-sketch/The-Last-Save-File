@@ -56,6 +56,48 @@ func protect(rect: Rect2) -> void:
 			_protected[Vector2i(x, y)] = true
 
 
+## Where the nearest erased cell is (Vector2.INF if none within `radius`).
+func nearest_cell(world_pos: Vector2, radius: float) -> Vector2:
+	var best := Vector2.INF
+	var best_d := radius
+	var c0 := _to_cell(world_pos)
+	var reach := int(ceil(radius / CELL))
+	for x in range(c0.x - reach, c0.x + reach + 1):
+		for y in range(c0.y - reach, c0.y + reach + 1):
+			var c := Vector2i(x, y)
+			if _cells.has(c):
+				var p := _cell_rect(c).get_center()
+				var d := p.distance_to(world_pos)
+				if d < best_d:
+					best_d = d
+					best = p
+	return best
+
+
+## SCRUB: erased cells within `radius` of a point become floor again.
+func scrub(world_pos: Vector2, radius: float) -> int:
+	var c0 := _to_cell(world_pos)
+	var reach := int(ceil(radius / CELL))
+	var removed: Array[Vector2i] = []
+	for x in range(c0.x - reach, c0.x + reach + 1):
+		for y in range(c0.y - reach, c0.y + reach + 1):
+			var c := Vector2i(x, y)
+			if _cells.has(c) and _cell_rect(c).get_center().distance_to(world_pos) <= radius:
+				removed.append(c)
+	for c in removed:
+		_cells.erase(c)
+		_young.erase(c)
+		_frontier.erase(c)
+		_mature.erase(c)
+	for c in removed:
+		for dir in DIRS:
+			if _cells.has(c + dir):
+				_refresh_frontier(c + dir)
+	if not removed.is_empty():
+		_mature_layer.queue_redraw()
+	return removed.size()
+
+
 func seed_at(world_pos: Vector2) -> void:
 	_add(_to_cell(world_pos))
 
