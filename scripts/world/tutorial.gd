@@ -93,6 +93,9 @@ func _next_tip() -> String:
 		return "way_out"
 	if _world.hiding_npc() != null and _unseen("hidden"):
 		return "hidden"
+	# Right after your first glitch: what it cost.
+	if _world.glitches_used >= 1 and _unseen("price"):
+		return "price"
 	# The cracked wall in the first room teaches the first glitch.
 	var cracked: Variant = _world.area.get("cracked")
 	if cracked is CrackedWall and not cracked.is_open() and _unseen("crack") and "move" in Settings.tips_seen \
@@ -122,6 +125,10 @@ func _show(id: String) -> void:
 	Settings.mark_tip_seen(id)
 	if id == "crack":
 		Settings.mark_tip_seen("glitch")  # the same lesson
+		# Somewhere outside the screen, someone leans closer.
+		_world.get_tree().create_timer(2.5).timeout.connect(func() -> void:
+			if is_instance_valid(_world) and _world.ending == "":
+				_world.director.say("...is something in the walls?"))
 	_world.hud.show_tip(_title(id), _body(id))
 	Sfx.ui("ui_move")
 
@@ -150,11 +157,13 @@ func _done(id: String) -> bool:
 
 
 func _title(id: String) -> String:
+	if id == "price":
+		return Story.PRICE_TIP[0]
 	return TIPS[id][0]
 
 
 func _body(id: String) -> String:
-	var text: String = TIPS[id][1]
+	var text: String = Story.PRICE_TIP[1] if id == "price" else TIPS[id][1]
 	for action in ["move", "interact", "pause"]:
 		text = text.replace("{%s}" % action, Settings.glyph(action))
 	return text

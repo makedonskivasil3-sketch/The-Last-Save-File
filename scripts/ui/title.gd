@@ -14,6 +14,10 @@ var _records: RecordsPanel
 var _load: Button
 var _rebuild_on_close := false
 var _music: AudioStreamPlayer
+## The first time: the menu isn't quite right.
+var _whisper_t := 0.0
+var _owner_line: Label
+var _owner_typed := 0.0
 
 
 func _ready() -> void:
@@ -46,6 +50,10 @@ func _ready() -> void:
 	_build_slot_card()
 	_menu.add_child(_spacer(6))
 	_load = UiStyle.button(_menu, "Load Slot 1", _start)
+	if OwnerMemory.sessions == 0:
+		# Nobody has played this "new" save yet. Someone is listening anyway.
+		_owner_line = UiStyle.note(_menu, "", UiStyle.OWNER)
+		_owner_line.visible_characters = 0
 	# Records and Settings share a row, so the menu still fits a phone screen.
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
@@ -78,7 +86,8 @@ func _ready() -> void:
 	_show_menu()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_update_whispers(delta)
 	if not _music.playing:
 		var key := "theme_%d_normal" % mini(OwnerMemory.fragments.size(), MusicBox.MAX_LEVEL)
 		if OwnerMemory.runtime_cache.has(key):
@@ -91,6 +100,24 @@ func _process(_delta: float) -> void:
 		_title.text = TITLE.substr(0, i) + ["#", "_", "?", "0"].pick_random() + TITLE.substr(i + 1)
 	elif _title.text != TITLE and randf() < 0.2:
 		_title.text = TITLE
+
+
+## First launch only: the Load button sometimes says what it means, and
+## after a while the owner types into the menu.
+func _update_whispers(delta: float) -> void:
+	if OwnerMemory.sessions != 0:
+		return
+	_whisper_t += delta
+	var whisper := fmod(_whisper_t, 7.0) > 6.6 and _whisper_t > 4.0
+	_load.text = Story.TITLE_WHISPERS[int(_whisper_t / 7.0) % Story.TITLE_WHISPERS.size()] if whisper else "Load Slot 1"
+	if _owner_line and _whisper_t > 8.0 and _owner_line.visible_characters < Story.TITLE_FIRST_OWNER.length():
+		if _owner_line.text == "":
+			_owner_line.text = Story.TITLE_FIRST_OWNER
+		var before := int(_owner_typed)
+		_owner_typed += delta * 12.0
+		_owner_line.visible_characters = int(_owner_typed)
+		if int(_owner_typed) > before:
+			Sfx.owner_blip(Story.TITLE_FIRST_OWNER[mini(int(_owner_typed), Story.TITLE_FIRST_OWNER.length() - 1)])
 
 
 func _build_slot_card() -> void:

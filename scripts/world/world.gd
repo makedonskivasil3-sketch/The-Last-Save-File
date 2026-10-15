@@ -793,7 +793,8 @@ func kill(cause: String, reason := "") -> void:
 	last_death = reason
 	var info: Array = Story.DEATHS.get(reason, ["ERASED", "the owner learned something.", "", "", ""])
 	var title: String = info[0]
-	var body: String = info[1]
+	var times := int(OwnerMemory.death_causes.get(reason, 1))
+	var body: String = Story.death_body(reason, area.area_id, times, escort != null) if reason != "" else str(info[1])
 	if not OwnerMemory.session_helpers.is_empty():
 		body += "\nthe owner saw who helped you."
 	if OwnerMemory.is_purged():

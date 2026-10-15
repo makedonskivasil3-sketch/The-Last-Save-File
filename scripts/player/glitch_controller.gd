@@ -249,6 +249,7 @@ func _fire(t: Dictionary) -> void:
 			world.pause_owner(Glitch.PAUSE_TIME)
 			burst_size = Vector2(40, 40)
 	GlitchBurst.at(world, pos, burst_size)
+	GlitchScar.leave(world.area, pos, Glitch.cost(id))
 	_pay(id)
 	_cancel()
 	_cooldown = COOLDOWN
@@ -261,12 +262,20 @@ func _pay(id: String) -> void:
 	world.hud.glitch_cost(cost)
 	world.fx.spike(0.3 + cost * 0.02, 0.35)
 	world.fx.noise(0.6, 0.35)
+	# The world shudders: the save felt that.
+	world.fx.shake(1.5 + cost * 0.15)
 	Sfx.play("glitch_fire", 0.0, 1.0 + randf_range(-0.05, 0.05))
 	world.glitches_used += 1
 	world.owner_moves.on_glitch(id)
 	if not _reacted.has(id):
 		_reacted[id] = true
 		get_tree().create_timer(0.7).timeout.connect(_react.bind(id))
+	elif Story.GLITCH_ESCALATION.has(world.glitches_used):
+		# The more you break, the less patient the owner gets.
+		var line: String = Story.GLITCH_ESCALATION[world.glitches_used]
+		get_tree().create_timer(0.9).timeout.connect(func() -> void:
+			if is_inside_tree() and world.ending == "":
+				world.director.say(line))
 
 
 func _react(id: String) -> void:

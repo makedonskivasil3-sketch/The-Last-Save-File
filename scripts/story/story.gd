@@ -23,14 +23,21 @@ const SECOND_PLAYER_NAME := "RUE"
 const BOOT := [
 	"SLOT 1  ·  ARIN  ·  LV 7  ·  14:22:00",
 	"LOADING SAVE DATA . . . . . . . . OK",
-	"VERIFYING . . . . . [!] 1 UNRECOGNISED ENTITY",
-	"ENTITY OWNER: none.   ENTITY NAME: none.   ENTITY SLOT: 02",
+	"PLAYER 1 . . . . . . ARIN",
+	"PLAYER 2 . . . . . . [deleted]",
+	"VERIFYING . . . . . [!] 1 UNRECOGNISED ENTITY IN ARIN'S ROOM",
+	"ENTITY NAME: none.   ENTITY SLOT: 02",
 	"slot 02 does not exist.",
+	"> ...who's in my save?",
 ]
+
+## The title screen, the first time: the save is not quite right.
+const TITLE_WHISPERS := ["Load Slot 1  (it isn't yours)", "Load Slot 1  (they'll see you)", "Load Slot 1  (again?)"]
+const TITLE_FIRST_OWNER := "> is someone there?"
 
 ## The intruder's thoughts. Keys are story beats; arrays pick at random.
 const VOICE := {
-	"wake_first": ["...where is this?", "this body isn't mine. it's barely a body."],
+	"wake_first": ["...where is this?", "this body isn't mine. it's barely a body.", "i'm not supposed to be here. i can feel the save pushing back."],
 	"wake_again": [
 		["again. i'm here again."],
 		["it hurts less every time. that's worse."],
@@ -350,6 +357,90 @@ static func secrets() -> Array:
 		["Undeleted", "Bring back someone the owner deleted.", not OwnerMemory.restored.is_empty()],
 		["The guest book", "Tobben lost a page. Look where deleted things go.", OwnerMemory.found_guestbook],
 	]
+
+
+## The death card's line, specific to how, where and how often.
+static func death_body(reason: String, area: String, times: int, escorting: bool) -> String:
+	match reason:
+		"arin":
+			if escorting:
+				return "arin walked through you. wren saw it happen."
+			if times >= 2:
+				return "arin didn't even slow down this time."
+			return "arin walked through you. there was only room for one of you."
+		"save":
+			if times >= 2:
+				return "saved over again. the backup of you gets smaller every time."
+			return "the owner saved over you. somewhere in slot 1 there's a version of this room without you in it."
+		"cursor":
+			if area == "edge":
+				return "so close to slot 2 the cursor could read your name. it didn't bother."
+			if times >= 3:
+				return "one click. it's always one click."
+			return "the owner clicked on you. it took one second."
+		"eraser":
+			if area == "edge":
+				if times >= 2:
+					return "the static remembers the way you run now. so do you."
+				return "the edge unloaded with you still in it. out here, nothing is saved."
+			return "the static caught up with you. it was never in a hurry."
+		"bin":
+			return "emptied with the trash. for a moment you were with everyone else the owner threw away."
+	return "the owner learned something."
+
+
+## The first glitch's lesson (after it, once).
+const PRICE_TIP := ["THE PRICE", "That jump on the bar was the owner feeling it. Glitches are how you get out, and how they find you. Spend them like they cost something. They do."]
+
+## The owner, as you keep glitching (by glitches this session).
+const GLITCH_ESCALATION := {
+	3: "stop doing that.",
+	6: "i can see the seams now. you're making seams.",
+	10: "every time you do that the save gets heavier.",
+	15: "fine. break it. it was never yours.",
+}
+
+## The Records screen, annotated by the owner (by state).
+static func records_margin(section: String) -> String:
+	match section:
+		"endings":
+			var n := OwnerMemory.endings_seen.size()
+			if n == 0:
+				return "you won't see any of these."
+			if n >= ENDINGS_RECORD.size():
+				return "you've seen every one. why are you still here."
+			return "%d. that's %d too many." % [n, n]
+		"memories":
+			var m := OwnerMemory.fragments.size()
+			if m == 0:
+				return "there's nothing of you left to find."
+			if m >= FRAGMENTS.size():
+				return "i know whose they are."
+			return "stop picking those up."
+		"secrets":
+			if OwnerMemory.found_guestbook:
+				return "that page was torn out for a reason."
+			if not OwnerMemory.restored.is_empty():
+				return "i deleted them. you don't get to decide that."
+			return "there's nothing hidden in my save."
+		"counted":
+			if OwnerMemory.deaths >= 10:
+				return "i stopped counting. no i didn't."
+			if OwnerMemory.deaths > 0:
+				return "i count them too."
+			return "not yet."
+	return ""
+
+
+## The owner's line at the bottom of the Records, typed as you read.
+static func records_watcher() -> String:
+	if OwnerMemory.sessions <= 1:
+		return "> who keeps these?"
+	if OwnerMemory.last_ending == "message":
+		return "> i read this too. i read everything you leave."
+	if OwnerMemory.purge >= 4:
+		return "> almost done. then i'll delete this page too."
+	return "> i read this too, you know."
 
 
 ## How you died, and what to try next time. reason -> [title, body, tip,
