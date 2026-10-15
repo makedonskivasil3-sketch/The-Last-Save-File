@@ -62,6 +62,9 @@ func _playthrough(ending: String, purge: int) -> void:
 	for s in MAX_SESSIONS:
 		_session = s + 1
 		_say("session %d starts (purge %d, memories %d)" % [_session, memory().purge, memory().fragments.size()])
+		if w.purged:
+			result = "purged (the owner won)"
+			break
 		result = await _play_session(w, ending)
 		_release_all()
 		if result != "death":
@@ -267,17 +270,18 @@ func _archive(w: Node, with_bin: bool) -> bool:
 		return false
 	# The Archivist: the pointer to Slot 2.
 	if not w.flags.get("pointer", false):
-		await _go(w, [Vector2(300, 192)], 8.0)
+		await _go(w, [Vector2(320, 172)], 8.0)
 		await press("interact")
+		await frames(4)
 		await _read_dialogue(w)
 	for f in Story.fragments_in("archive"):
 		if not memory().has_fragment(f.id):
-			await _go(w, [Vector2(525, 180), Vector2(525, 100), f.pos], 12.0)
+			await _go(w, [Vector2(360, 170), Vector2(525, 170), Vector2(525, 100), f.pos], 14.0)
 			await _wait_cutscene(w)
 			_step(w, "memory: %s" % f.id)
 	if with_bin and not memory().npc_fates.is_empty():
 		await _bin(w)
-	await _go(w, [Vector2(300, 180), Vector2(110, 180), Vector2(80, 180)], 15.0)
+	await _go(w, [Vector2(525, 170), Vector2(300, 170), Vector2(110, 180), Vector2(80, 180)], 18.0)
 	return await _arrived(w, "square")
 
 
@@ -399,7 +403,11 @@ func _go(w: Node, points: Array, timeout := STEP_TIMEOUT) -> bool:
 				break
 			var n := _avoid(w, d.normalized())
 			if still > 0.5:
-				# Stuck on something: slide along it.
+				# Stuck on something: phase through it if we can, else slide along.
+				if still > 0.8 and w.glitch.target.get("id", "") == "phase":
+					await _glitch(w)
+					still = 0.0
+					continue
 				n = (n + n.orthogonal() * (1.0 if int(_now()) % 2 == 0 else -1.0)).normalized()
 			_steer(w, n)
 			if _should_glitch(w):
@@ -441,7 +449,7 @@ func _should_glitch(w: Node) -> bool:
 	if t.id == "freeze" and t.node is OwnerAvatar:
 		return w.player.global_position.distance_to(t.node.global_position) < 50.0
 	if t.id == "blind" and t.node is OwnerCursor:
-		return w.player.global_position.distance_to(t.node.global_position) < 30.0
+		return w.player.global_position.distance_to(t.node.global_position) < 45.0
 	return false
 
 
