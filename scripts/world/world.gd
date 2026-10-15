@@ -35,6 +35,8 @@ var glitch: GlitchController
 var decoy: Decoy
 ## Glitches fired this session (the owner keeps count, and so do endings).
 var glitches_used := 0
+## The owner's active moves: reloading, saving over you, dragging props.
+var owner_moves: OwnerMoves
 ## Brackets around whatever [E] would act on.
 var _focus_marker: FocusMarker
 ## False until you've woken up: area intros (act cards) wait for it.
@@ -53,6 +55,7 @@ func _ready() -> void:
 	player.z_index = 10
 	_pause_menu = PauseMenu.new()
 	_pause_menu.quit_requested.connect(_quit)
+	_pause_menu.debug_requested.connect(debug)
 	add_child(_pause_menu)
 	_light = CanvasModulate.new()
 	add_child(_light)
@@ -70,6 +73,9 @@ func _ready() -> void:
 	glitch = GlitchController.new()
 	glitch.world = self
 	add_child(glitch)
+	owner_moves = OwnerMoves.new()
+	owner_moves.world = self
+	add_child(owner_moves)
 	if OwnerMemory.found_pip:
 		_spawn_pip()
 	var previous := OwnerMemory.begin_session()
@@ -196,6 +202,7 @@ func _process(delta: float) -> void:
 		hud.close_dialogue()
 	_update_focus()
 	_update_decoy()
+	owner_moves.update(delta)
 	# [E] itself is read by the GlitchController: a tap comes back as tap_interact().
 
 
@@ -207,9 +214,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.is_action_pressed("pause"):
 			get_tree().change_scene_to_file(TITLE_SCENE)
 		return
+	if ending == "" and event is InputEventKey and event.pressed and not event.echo and debug_enabled():
+		var keys := {KEY_F5: "glitches", KEY_F6: "load", KEY_F7: "save", KEY_F8: "drag", KEY_F10: "slot2"}
+		if keys.has(event.keycode):
+			get_viewport().set_input_as_handled()
+			debug(keys[event.keycode])
+			return
 	match ending:
 		"":
 			if event.is_action_pressed("pause"):
+				_pause_menu.debug_available = debug_enabled()
 				get_viewport().set_input_as_handled()
 				_pause_menu.goal = current_goal()
 				_pause_menu.current_area = area.area_id
@@ -271,6 +285,8 @@ func _load_area(next: Area, arrival: String) -> void:
 		area.queue_free()
 	area = next
 	area.world = self
+	if owner_moves:
+		owner_moves.on_area_changed()
 	add_child(area)
 	move_child(area, 0)
 	area.build()
@@ -354,6 +370,47 @@ func current_goal() -> String:
 			if area and area.area_id == "square" and not OwnerMemory.found_pip:
 				goal += " The well looks deeper than it should."
 	return "%s\nMemories recovered: %d / %d" % [goal, OwnerMemory.fragments.size(), Story.FRAGMENTS.size()]
+
+
+# --- debug ------------------------------------------------------------------------
+
+## Debug tools are on in the editor, debug builds, tests, and on the web with
+## ?debug=1 in the address (so they can be used from a phone).
+func debug_enabled() -> bool:
+	if OS.is_debug_build() or OwnerMemory.is_test_mode():
+		return true
+	if OS.has_feature("web"):
+		return str(JavaScriptBridge.eval("window.location.search", true)).contains("debug")
+	return false
+
+
+## F5 "glitches" (unlock all), F6 "load" (load last save), F7 "save" (saving
+## over you), F8 "drag" (the cursor drags the crates), F10 "slot2" (jump to
+## the Edge, next to Slot 2, with the pointer). Also in the pause menu.
+func debug(action: String) -> void:
+	if purged or ending != "":
+		return
+	hud.say("DEBUG: " + action, "system")
+	match action:
+		"glitches":
+			glitch.unlock_all = true
+		"load":
+			owner_moves.load_last_save()
+		"save":
+			owner_moves.start_save_over()
+		"drag":
+			if area.area_id != "square":
+				change_area("square", "well")
+				await get_tree().create_timer(0.8).timeout
+			if director.awareness < OwnerDirector.HUNT:
+				director.add_awareness(OwnerDirector.HUNT + 1.0 - director.awareness)
+			await get_tree().process_frame
+			var sq := area as VillageSquare
+			if sq and sq.cursor and not sq.cursor.is_dragging():
+				sq.cursor.drag(sq.crates, VillageSquare.BLOCK_NORTH)
+		"slot2":
+			flags["pointer"] = true
+			change_area("edge", "slot")
 
 
 # --- glitches --------------------------------------------------------------------

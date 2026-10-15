@@ -266,6 +266,7 @@ func _pay(id: String) -> void:
 	world.fx.noise(0.6, 0.35)
 	Sfx.play("glitch_fire", 0.0, 1.0 + randf_range(-0.05, 0.05))
 	world.glitches_used += 1
+	world.owner_moves.on_glitch(id)
 	if not _reacted.has(id):
 		_reacted[id] = true
 		get_tree().create_timer(0.7).timeout.connect(_react.bind(id))

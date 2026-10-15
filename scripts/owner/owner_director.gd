@@ -69,6 +69,10 @@ func believe_lie(seconds: float) -> void:
 	_lie = maxf(_lie, seconds)
 
 
+func forget_lie() -> void:
+	_lie = 0.0
+
+
 func is_believing_lie() -> bool:
 	return _lie > 0.0
 
@@ -147,6 +151,8 @@ func on_area_entered(area: Area, first_time: bool) -> void:
 	match area.area_id:
 		"square":
 			say("where do you think you're going?" if OwnerMemory.sessions == 1 else "out of the room again. same wall?")
+			if not OwnerMemory.route_spots("square", 1).is_empty():
+				say("i know where you like to walk.")
 		"archive":
 			say("...where did you go?")
 		"oob":
@@ -178,6 +184,7 @@ func _check_thresholds() -> void:
 			if _world.area.erasure and _world.area.erasure.active:
 				_world.area.erasure.interval *= 0.5
 		_world.area.on_owner_event(t)
+		_world.owner_moves.on_threshold(t)
 
 
 func _owner_line(t: float) -> void:

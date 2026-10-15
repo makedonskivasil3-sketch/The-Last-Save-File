@@ -29,6 +29,12 @@ var met_archivist := false
 ## Pip, Rue's fox, found out of bounds. Pip was never in the save, so the
 ## owner can't take it away: once found, Pip stays with you.
 var found_pip := false
+## Where the owner has seen you go in each area, learned when a session ends
+## badly: {"area", "x", "y", "w" (weight)}. Arin's patrol detours through
+## the heaviest spots next time.
+var route_memory: Array[Dictionary] = []
+## This session only: spots the owner noticed you at ({"area", "pos"}).
+var session_spots: Array[Dictionary] = []
 ## Story acts whose title card has been shown (Story.ACTS ids).
 var acts_seen: Array[String] = []
 ## Memory fragments the intruder has recovered (Story.FRAGMENTS ids). These
@@ -94,6 +100,7 @@ func begin_session() -> String:
 	last_exit = "active"
 	session_helpers.clear()
 	session_seam = -1
+	session_spots.clear()
 	_session_closed = false
 	save_memory()
 	return previous
@@ -158,6 +165,8 @@ func wipe() -> void:
 	npc_fates.clear()
 	met_archivist = false
 	found_pip = false
+	route_memory.clear()
+	session_spots.clear()
 	acts_seen.clear()
 	fragments.clear()
 	last_exit = "none"
@@ -180,6 +189,7 @@ func save_memory() -> void:
 		"met_archivist": met_archivist,
 		"found_pip": found_pip,
 		"acts_seen": acts_seen,
+		"route_memory": route_memory,
 		"fragments": fragments,
 		"last_exit": last_exit,
 	}
@@ -206,6 +216,10 @@ func load_memory() -> void:
 	last_exit = str(data.get("last_exit", "none"))
 	met_archivist = bool(data.get("met_archivist", false))
 	found_pip = bool(data.get("found_pip", false))
+	route_memory.clear()
+	for r in data.get("route_memory", []):
+		if r is Dictionary and r.has("x") and r.has("y"):
+			route_memory.append(r)
 	acts_seen.clear()
 	for a in data.get("acts_seen", []):
 		acts_seen.append(str(a))
@@ -236,7 +250,38 @@ func load_memory() -> void:
 
 
 ## A session ended badly: the owner goes through what happened.
+## The owner noticed you here (Arin saw you, or you lingered).
+func note_spot(area: String, pos: Vector2) -> void:
+	if session_spots.size() < 64:
+		session_spots.append({"area": area, "pos": pos})
+
+
+## The heaviest remembered spots in an area, heaviest first.
+func route_spots(area: String, count: int) -> Array[Vector2]:
+	var mine := route_memory.filter(func(r: Dictionary) -> bool: return r.get("area", "") == area)
+	mine.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a.w) > float(b.w))
+	var out: Array[Vector2] = []
+	for r in mine.slice(0, count):
+		out.append(Vector2(float(r.x), float(r.y)))
+	return out
+
+
 func _learn() -> void:
+	# Route memory: cluster this session's spots on a 40-pixel grid.
+	for s in session_spots:
+		var at: Vector2 = s.pos
+		var cell: Vector2 = (at / 40.0).floor() * 40.0 + Vector2(20, 20)
+		var found := false
+		for r in route_memory:
+			if r.area == s.area and Vector2(float(r.x), float(r.y)) == cell:
+				r.w = float(r.w) + 1.0
+				found = true
+				break
+		if not found:
+			route_memory.append({"area": s.area, "x": cell.x, "y": cell.y, "w": 1.0})
+	route_memory.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a.w) > float(b.w))
+	if route_memory.size() > 16:
+		route_memory.resize(16)
 	for npc in session_helpers:
 		npc_fates[npc] = "deleted"
 	if session_seam >= 0 and session_seam not in patched_seams and patched_seams.size() < SEAM_COUNT - 1:

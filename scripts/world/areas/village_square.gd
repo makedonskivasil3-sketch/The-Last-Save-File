@@ -6,7 +6,11 @@ extends Area
 const HOUSE := Rect2(56, 44, 110, 56)
 const WELL := Rect2(306, 158, 28, 20)
 const STALL := Rect2(440, 44, 96, 34)
-const CRATES := Rect2(64, 230, 40, 26)
+## The crate stack: the owner's cursor can drag it to block a road.
+const CRATES := Rect2(64, 222, 40, 40)
+## Where a dragged crate stack blocks the north road and the east road.
+const BLOCK_NORTH := Vector2(320, 58)
+const BLOCK_EAST := Vector2(580, 180)
 const BOARD_POS := Vector2(240, 40)
 const EAST_GAP := Vector2(160, 200)
 const NORTH_GAP := Vector2(300, 340)
@@ -45,6 +49,7 @@ var wren: Npc
 var tobben: Npc
 var board: Note
 var north_exit: Exit
+var crates: DragProp
 ## Climb into the well: the way out of bounds.
 var well: Passage
 
@@ -77,8 +82,11 @@ func build() -> void:
 		{"side": "right", "from": EAST_GAP.x, "to": EAST_GAP.y},
 		{"side": "top", "from": NORTH_GAP.x, "to": NORTH_GAP.y},
 	])
-	for r in [HOUSE, WELL, STALL, CRATES]:
+	for r in [HOUSE, WELL, STALL]:
 		add_solid(r)
+	crates = DragProp.new()
+	crates.setup(CRATES)
+	add_child(crates)
 
 	add_exit(Rect2(bounds.end.x, EAST_GAP.x, 8, EAST_GAP.y - EAST_GAP.x), "archive", "west")
 	north_exit = add_exit(
@@ -138,7 +146,7 @@ func build() -> void:
 	tobben.on_talk = _tobben_reports
 
 	arin = OwnerAvatar.new()
-	arin.route = ROUTE
+	arin.route = learned_route()
 	arin.position = ROUTE[0]
 	# Even at the worst, Arin stays slower than you (90): you can always run.
 	arin.speed = 38.0 + OwnerMemory.purge * 4.0
@@ -148,6 +156,27 @@ func build() -> void:
 	arin.touched_player.connect(func() -> void: world.kill("overwritten"))
 	arin.lure = world.lure_point
 	add_child(arin)
+
+
+## Arin's patrol: the usual loop, plus detours through the spots where the
+## owner has seen you before (one more each session, up to three).
+func learned_route() -> Array[Vector2]:
+	var route: Array[Vector2] = ROUTE.duplicate()
+	var spots := OwnerMemory.route_spots(area_id, clampi(OwnerMemory.sessions - 1, 0, 3))
+	for spot in spots:
+		var p := spot.clamp(bounds.position + Vector2(16, 16), bounds.end - Vector2(16, 16))
+		# Insert after the nearest corner of the loop.
+		var best := 0
+		for i in route.size():
+			if route[i].distance_to(p) < route[best].distance_to(p):
+				best = i
+		route.insert(best + 1, p)
+	return route
+
+
+## Where a dragged prop blocks the roads out (the owner picks the one you're near).
+func block_points() -> Array[Vector2]:
+	return [BLOCK_NORTH, BLOCK_EAST]
 
 
 func catch_up() -> void:
@@ -293,8 +322,6 @@ func _draw() -> void:
 	draw_rect(STALL, Color("4f3a2c"))
 	for i in 6:
 		draw_rect(Rect2(STALL.position + Vector2(i * 16, -6), Vector2(16, 8)), Color("8a3a3a") if i % 2 == 0 else Color("c8b8a0"))
-	draw_rect(CRATES, Color("5a4632"))
-	draw_rect(CRATES, Color("3a2a20"), false, 1.0)
 	draw_walls([
 		{"side": "right", "from": EAST_GAP.x, "to": EAST_GAP.y},
 		{"side": "top", "from": NORTH_GAP.x, "to": NORTH_GAP.y},

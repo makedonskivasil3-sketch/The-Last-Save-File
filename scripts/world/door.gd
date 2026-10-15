@@ -49,6 +49,14 @@ func force_open(seconds: float) -> void:
 	_flash = 1.0
 
 
+## The owner reloads: the glitched-open door is shut again.
+func relock() -> void:
+	if forced > 0.0:
+		forced = 0.0
+		_col.set_deferred("disabled", false)
+		_flash = 1.0
+
+
 func is_forced_open() -> bool:
 	return forced > 0.0
 

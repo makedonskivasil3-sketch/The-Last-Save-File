@@ -33,7 +33,8 @@ func _init() -> void:
 	bounds = Rect2(24, 36, 592, 256)
 	awareness_rate = 1.5
 	tint = Color(0.85, 0.9, 1.0)
-	entries = {"south": Vector2(320, 274)}
+	# "slot": the debug jump, a few steps from Slot 2.
+	entries = {"south": Vector2(320, 274), "slot": SLOT_POS + Vector2(-40, 40)}
 
 
 func build() -> void:

@@ -19,6 +19,11 @@ var blinded := 0.0
 ## Held still (the owner's world is paused).
 var paused := false
 
+## DRAG: fetching a prop, then carrying it to _drag_to ("" when not dragging).
+var _drag_phase := ""
+var _drag_prop: DragProp
+var _drag_to := Vector2.ZERO
+
 var _goal := Vector2.ZERO
 var _select := 0.0
 var _tracking := false
@@ -40,6 +45,45 @@ func _ready() -> void:
 	_whine = Sfx.loop_player("select_loop", self)
 
 
+## The owner grabs a prop and drags it to `to` (to block your way).
+func drag(prop: DragProp, to: Vector2) -> void:
+	_drag_prop = prop
+	_drag_to = to
+	_drag_phase = "fetch"
+	_select = 0.0
+
+
+func is_dragging() -> bool:
+	return _drag_phase != ""
+
+
+func _drag_step(delta: float) -> void:
+	if not is_instance_valid(_drag_prop):
+		_drag_phase = ""
+		return
+	match _drag_phase:
+		"fetch":
+			var to := _drag_prop.global_position - position
+			position += to.normalized() * minf(speed * 1.6 * delta, to.length())
+			if to.length() < 3.0:
+				_drag_phase = "carry"
+				_drag_prop.held = true
+				Sfx.play("click")
+		"carry":
+			var to := _drag_to - _drag_prop.global_position
+			var step := to.normalized() * minf(speed * 0.9 * delta, to.length())
+			# Never drop it onto Rue: wait while she's in the way.
+			var next := Rect2(_drag_prop.global_position + step - _drag_prop.size * 0.5, _drag_prop.size).grow(5.0)
+			if is_instance_valid(player) and next.has_point(player.global_position):
+				return
+			_drag_prop.global_position += step
+			position = _drag_prop.global_position
+			if to.length() < 1.0:
+				_drag_prop.held = false
+				_drag_phase = ""
+				Sfx.play("door_lock", -6.0, 1.4)
+
+
 ## BLIND: the pointer loses you for a while.
 func blind(seconds: float) -> void:
 	blinded = maxf(blinded, seconds)
@@ -52,6 +96,12 @@ func _physics_process(delta: float) -> void:
 		_whine.volume_db = -80.0
 		return
 	blinded = maxf(0.0, blinded - delta)
+	if _drag_phase != "":
+		_drag_step(delta)
+		_tracking = false
+		_select = 0.0
+		_whine.volume_db = -80.0
+		return
 	var decoy: Vector2 = lure.call() if lure.is_valid() else Vector2.INF
 	var visible_target: bool = blinded <= 0.0 and decoy == Vector2.INF and is_instance_valid(player) \
 			and not (is_hidden.is_valid() and is_hidden.call(player.global_position))

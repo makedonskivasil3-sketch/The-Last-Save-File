@@ -56,6 +56,12 @@ func protect(rect: Rect2) -> void:
 			_protected[Vector2i(x, y)] = true
 
 
+## Is this point already void (a settled, lethal cell)?
+func is_void(world_pos: Vector2) -> bool:
+	var c := _to_cell(world_pos + Vector2(0, 2))
+	return _cells.has(c) and not _young.has(c)
+
+
 ## Where the nearest erased cell is (Vector2.INF if none within `radius`).
 func nearest_cell(world_pos: Vector2, radius: float) -> Vector2:
 	var best := Vector2.INF

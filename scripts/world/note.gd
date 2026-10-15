@@ -15,6 +15,8 @@ var player: Node2D
 var falsified := false
 ## What it says when falsified.
 var lie := "ALL CLEAR.\nNOTHING TO SEE HERE."
+## What it said before it lied (a reload puts it back).
+var _truth := ""
 
 var _label: Label
 var _pending := ""
@@ -41,9 +43,18 @@ func set_text_now(value: String) -> void:
 
 ## FALSIFY: the note lies, right now, in front of you.
 func falsify() -> void:
+	_truth = text
 	falsified = true
 	set_text_now(lie)
 	_smudge = 0.8
+
+
+## The owner reloads: the note says what it said before.
+func unfalsify() -> void:
+	if falsified:
+		falsified = false
+		set_text_now(_truth)
+		_smudge = 0.8
 
 
 ## Queue a rewrite. It only lands once the player is far enough away.

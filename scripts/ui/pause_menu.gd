@@ -4,6 +4,8 @@ extends CanvasLayer
 ## so the menu says so before letting you go.
 
 signal quit_requested(to_title: bool)
+## A debug tool was picked (World.debug()).
+signal debug_requested(action: String)
 
 var _root: Control
 var _main: VBoxContainer
@@ -13,6 +15,10 @@ var _settings: SettingsPanel
 var _map_box: VBoxContainer
 var _map: MapView
 var _map_back: Button
+var _debug_box: VBoxContainer
+var _debug_button: Button
+## Set by World before open(): show the Debug button.
+var debug_available := false
 var _resume: Button
 var _pending_to_title := false
 var _confirm_label: Label
@@ -44,6 +50,7 @@ func _ready() -> void:
 	_goal_label = UiStyle.note(_main, "", UiStyle.TEXT)
 	_resume = UiStyle.button(_main, "Resume", close, "ui_back")
 	UiStyle.button(_main, "Map", _show_map)
+	_debug_button = UiStyle.button(_main, "Debug", func() -> void: _show_only(_debug_box); (_debug_box.get_child(1) as Button).grab_focus())
 	UiStyle.button(_main, "Settings", _show_settings)
 	UiStyle.button(_main, "Quit to title", _ask_quit.bind(true))
 	UiStyle.button(_main, "Quit game", _ask_quit.bind(false))
@@ -60,6 +67,13 @@ func _ready() -> void:
 	_map.custom_minimum_size = Vector2(400, 170)
 	_map_box.add_child(_map)
 	_map_back = UiStyle.button(_map_box, "Back", _show_main, "ui_back")
+
+	_debug_box = UiStyle.centered_panel(_root, 260)
+	UiStyle.heading(_debug_box, "DEBUG", UiStyle.OWNER, 14)
+	for pair in [["Unlock all glitches", "glitches"], ["Owner: load last save", "load"], ["Owner: save over you", "save"],
+			["Owner: drag the crates", "drag"], ["Jump to Slot 2", "slot2"]]:
+		UiStyle.button(_debug_box, pair[0], _debug.bind(pair[1]))
+	UiStyle.button(_debug_box, "Back", _show_main, "ui_back")
 
 	_settings_box = UiStyle.centered_panel(_root, 480)
 	_settings = SettingsPanel.new()
@@ -90,20 +104,26 @@ func _unhandled_input(event: InputEvent) -> void:
 		return  # the settings panel handles its own back
 	if event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
-		if _panel_of(_confirm).visible or _panel_of(_map_box).visible:
+		if _panel_of(_confirm).visible or _panel_of(_map_box).visible or _panel_of(_debug_box).visible:
 			_show_main()
 		else:
 			close()
 
 
 func _show_only(box: VBoxContainer) -> void:
-	for b in [_main, _confirm, _settings_box, _map_box]:
+	for b in [_main, _confirm, _settings_box, _map_box, _debug_box]:
 		_panel_of(b).visible = b == box
 
 
 func _show_main() -> void:
 	_show_only(_main)
+	_debug_button.visible = debug_available
 	_resume.grab_focus()
+
+
+func _debug(action: String) -> void:
+	close()
+	debug_requested.emit(action)
 
 
 func _show_map() -> void:
