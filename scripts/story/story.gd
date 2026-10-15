@@ -187,6 +187,87 @@ const EPILOGUE_TRUE := [
 const EPILOGUE_PIP := "a small orange fox curls up at the bottom of the screen. nobody saved it. it came anyway."
 
 
+## --- Slot 2: the choice and the three endings ----------------------------------
+
+const SLOT2_QUESTION := "SLOT 2  ·  EMPTY.  Whose name goes here?"
+const SLOT2_ESCAPE := "Write yourself in"
+const SLOT2_ESCAPE_NAMED := "Write RUE"
+const SLOT2_WREN := "Give Slot 2 to Wren"
+const SLOT2_MESSAGE := "Leave the slot to the owner, with a message"
+const MESSAGE_QUESTION := "What do you write?"
+const MESSAGES := [
+	"i'm sorry i stopped coming.",
+	"you can keep the save. i just wanted to be remembered.",
+	"please don't delete me again.",
+]
+
+## Ending ids: "escape" (take the slot), "wren" (give it to her),
+## "message" (hand it back to the owner).
+const ENDING_TITLES := {
+	"escape": "SAVED TO SLOT 2",
+	"wren": "SAVED TO SLOT 2  ·  WREN",
+	"message": "SLOT 2  ·  A MESSAGE",
+}
+
+
+## The letterboxed epilogue for an ending (memories and Pip change details).
+static func epilogue(ending: String, found: int, pip: bool, message := 0) -> Array:
+	var full := found >= FRAGMENTS.size()
+	var lines: Array = []
+	match ending:
+		"wren":
+			lines = [
+				"NEW GAME  ·  SLOT 2  ·  WREN",
+				"a girl with pigtails stands at the start of a whole new world. nobody has ever deleted anything here.",
+				"WREN: aren't you coming?",
+				"(no. it only fits one. go.)",
+			]
+			if full:
+				lines.append("(i know my name now. i don't need a slot to keep it.)")
+			lines.append("the owner finds a save they don't remember making. they leave it alone.")
+		"message":
+			lines = [
+				"you write it into the empty slot, one letter at a time:",
+				"\"%s\"" % MESSAGES[clampi(message, 0, MESSAGES.size() - 1)],
+				"somewhere outside the screen, the owner reads it for a long time.",
+			]
+			if full:
+				lines.append_array(["> ...rue?", "> i didn't know you were still in there."])
+				lines.append(["> i stopped waiting. i shouldn't have.", "> i kept your controller. it's still under the couch.", "> i won't. i promise."][clampi(message, 0, 2)])
+				lines.append("> i'm going to call you. the real you.")
+			else:
+				lines.append_array(["> who wrote this.", "> ...i'm not going to delete it."])
+			lines.append("the eraser stops. the cursor goes still. for the first time, the save is quiet.")
+		_:
+			if full:
+				lines = EPILOGUE_TRUE.duplicate()
+			else:
+				lines = ["you wrote yourself into the last save file.", "you load in somewhere the owner has never looked."]
+	if pip:
+		lines.append(EPILOGUE_PIP if ending != "wren" else "a small orange fox jumps into the new game after her. she'll need someone to hide behind.")
+	return lines
+
+
+## The end card's text.
+static func ending_text(ending: String, found: int) -> String:
+	match ending:
+		"wren":
+			return "you gave the last save file away.\nyou're still out here, in someone else's save.\nbut someone is safe because of you."
+		"message":
+			if found >= FRAGMENTS.size():
+				return "you didn't take the slot. you gave it back, with your name on it.\nsomewhere, a phone is ringing."
+			return "you didn't take the slot. you gave the owner a reason to stop.\n(memories recovered: %d of %d)" % [found, FRAGMENTS.size()]
+	return win_text(found)
+
+
+## What the owner says when you come back after an ending.
+const ENDING_RETURN := {
+	"escape": ["there's a second slot. you hid in it.", "i found it. you're back where i can see you."],
+	"wren": ["there's a new save in slot 2. a girl. i don't remember making her.", "i'm leaving her alone. you, i'm not."],
+	"message": ["i read your message.", "i still don't know what to do with you. so i'm just going to watch."],
+}
+
+
 static func fragment(id: String) -> Dictionary:
 	for f in FRAGMENTS:
 		if f.id == id:

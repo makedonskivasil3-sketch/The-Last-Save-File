@@ -47,7 +47,7 @@ func build() -> void:
 	add_sign(Vector2((SOUTH_GAP.x + SOUTH_GAP.y) * 0.5, bounds.end.y - 12), "ASHVALE", Vector2.DOWN)
 	slot = SlotTwo.new()
 	slot.position = SLOT_POS
-	slot.reached.connect(world.win)
+	slot.reached.connect(world.reach_slot2)
 	add_child(slot)
 
 	cursor = OwnerCursor.new()

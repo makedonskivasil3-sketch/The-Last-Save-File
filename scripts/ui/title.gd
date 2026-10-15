@@ -29,7 +29,9 @@ func _ready() -> void:
 
 	_menu = UiStyle.centered_panel(self, 300)
 	_title = UiStyle.heading(_menu, TITLE, UiStyle.TEXT, 22)
-	UiStyle.note(_menu, "you are not supposed to be here.", UiStyle.OWNER)
+	# After the message ending, the tagline changes.
+	var tagline := "someone is waiting." if OwnerMemory.last_ending == "message" else "you are not supposed to be here."
+	UiStyle.note(_menu, tagline, UiStyle.OWNER)
 	_menu.add_child(_spacer(6))
 	_build_slot_card()
 	_menu.add_child(_spacer(6))
@@ -87,8 +89,17 @@ func _build_slot_card() -> void:
 		var two := Label.new()
 		var who := Story.SECOND_PLAYER_NAME if OwnerMemory.fragments.size() >= Story.FRAGMENTS.size() else "???"
 		two.text = "SLOT 2   ·   %s   ·   LV 1   ·   00:00:%02d" % [who, mini(OwnerMemory.wins, 59)]
+		var color := UiStyle.INTRUDER
+		# What's in slot 2 depends on the last ending.
+		match OwnerMemory.last_ending:
+			"wren":
+				two.text = "SLOT 2   ·   WREN   ·   LV 1   ·   NEW GAME"
+				color = Color("a8d890")
+			"message":
+				two.text = "SLOT 2   ·   (a message for you)"
+				color = Color("f0e0c8")
 		two.add_theme_font_size_override("font_size", 10)
-		two.add_theme_color_override("font_color", UiStyle.INTRUDER)
+		two.add_theme_color_override("font_color", color)
 		v.add_child(two)
 
 	var status := _slot_status()
@@ -112,7 +123,7 @@ func _slot_status() -> String:
 		"crash":
 			parts.append("this save was not closed properly.")
 		"escape", "win":
-			parts.append("something was written to slot 2.")
+			parts.append({"wren": "a save the owner doesn't remember making.", "message": "the owner read it."}.get(OwnerMemory.last_ending, "something was written to slot 2."))
 	if OwnerMemory.purge > 0:
 		parts.append("[!] purge %d/%d" % [OwnerMemory.purge, OwnerMemory.MAX_PURGE])
 	return "   ·   ".join(parts)

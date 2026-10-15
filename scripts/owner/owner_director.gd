@@ -218,8 +218,8 @@ func _intro(previous_exit: String) -> void:
 			say("you vanished without quitting.")
 			say("i went through every file. found your traces.")
 		"win", "escape":
-			say("there's a second slot. you hid in it.")
-			say("i found it. you're back where i can see you.")
+			for line in Story.ENDING_RETURN.get(OwnerMemory.last_ending if OwnerMemory.last_ending != "" else "escape", []):
+				say(line)
 	if not OwnerMemory.npc_fates.is_empty() and previous_exit in ["death", "quit", "crash"]:
 		say("and i know who helped you.")
 	# The owner starts to recognise who you are.

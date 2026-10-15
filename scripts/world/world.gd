@@ -717,7 +717,42 @@ func kill(cause: String) -> void:
 		get_tree().reload_current_scene()
 
 
-func win() -> void:
+## Rue finished writing into Slot 2: the world holds still while you decide
+## whose name goes there.
+func reach_slot2() -> void:
+	if ending != "" or _cutscene:
+		return
+	_cutscene = true
+	player.frozen = true
+	director.paused = true
+	area.set_owner_paused(true)
+	hud.close_dialogue()
+	hud.set_glitch_prompt("")
+	owner_moves.save_progress = -1.0
+	owner_moves.wren_delete = -1.0
+	var full := OwnerMemory.fragments.size() >= Story.FRAGMENTS.size()
+	var options: Array = [Story.SLOT2_ESCAPE_NAMED if full else Story.SLOT2_ESCAPE]
+	var ids: Array[String] = ["escape"]
+	if escort and escort.is_present():
+		options.append(Story.SLOT2_WREN)
+		ids.append("wren")
+	options.append(Story.SLOT2_MESSAGE)
+	ids.append("message")
+	var pick := await hud.choose(Story.SLOT2_QUESTION, options)
+	if not is_inside_tree():
+		return
+	var message := 0
+	if ids[pick] == "message":
+		message = await hud.choose(Story.MESSAGE_QUESTION, Story.MESSAGES)
+		if not is_inside_tree():
+			return
+	_cutscene = false
+	win(ids[pick], message)
+
+
+## An ending: "escape" (Rue takes Slot 2), "wren" (Wren gets it), or
+## "message" (the slot goes back to the owner, with one of Story.MESSAGES).
+func win(chosen := "escape", message := 0) -> void:
 	if ending != "":
 		return
 	ending = "win"
@@ -727,39 +762,48 @@ func win() -> void:
 	hud.clear_queue()
 	hud.set_prompt("")
 	hud.set_status("")
+	hud.set_glitch_prompt("")
 	area.erasure.active = false
-	fx.play_win()
-	player.dissolve("rescued")
-	Sfx.play("win", 0.0, 1.0, 0.0)
-	OwnerMemory.record_win()
+	match chosen:
+		"wren":
+			# She goes in; you stay.
+			fx.play_win()
+			if escort:
+				GlitchBurst.at(self, escort.global_position, Vector2(20, 30), 1.0)
+				escort.visible = false
+			Sfx.play("win", -2.0, 1.15, 0.0)
+		"message":
+			# Nobody goes in. The save just... stops fighting.
+			fx.memory(true)
+			Sfx.play("fragment", 0.0, 0.8, 0.0)
+		_:
+			fx.play_win()
+			player.dissolve("rescued")
+			Sfx.play("win", 0.0, 1.0, 0.0)
+	var found := OwnerMemory.fragments.size()
+	OwnerMemory.record_win(chosen)
 	await get_tree().create_timer(1.5).timeout
 	if not is_inside_tree():
 		return
-	var found := OwnerMemory.fragments.size()
-	# The epilogue: the load menu, if you remember everything; Pip, if Pip came.
-	var epilogue: Array = []
-	if found >= Story.FRAGMENTS.size():
-		epilogue.append_array(Story.EPILOGUE_TRUE)
-	if OwnerMemory.found_pip:
-		epilogue.append(Story.EPILOGUE_PIP)
-	if not epilogue.is_empty():
-		if pip:
-			pip.visible = false  # it's in the slot with you now
-		# Calm, pale and clear: the owner isn't fighting any more.
-		fx.base_glitch = 0.0
-		fx.awareness_target = 0.0
-		fx.memory(true)
-		drone.tension = 0.0
-		await hud.cinematic("EPILOGUE", epilogue, Hud.SELF_COLOR, 1.0)
-		if not is_inside_tree():
-			return
-	var title := "SAVED TO SLOT 2"
-	if found >= Story.FRAGMENTS.size():
+	var epilogue := Story.epilogue(chosen, found, OwnerMemory.found_pip, message)
+	if pip:
+		pip.visible = false  # in the slot, or gone with Wren
+	# Calm, pale and clear: the owner isn't fighting any more.
+	fx.base_glitch = 0.0
+	fx.awareness_target = 0.0
+	fx.memory(true)
+	drone.tension = 0.0
+	await hud.cinematic("EPILOGUE", epilogue, Hud.SELF_COLOR, 1.0)
+	if not is_inside_tree():
+		return
+	var title: String = Story.ENDING_TITLES[chosen]
+	if chosen == "escape" and found >= Story.FRAGMENTS.size():
 		title = "SAVED TO SLOT 2 · %s" % Story.SECOND_PLAYER_NAME
+	var colors := {"escape": Color("8cf2ff"), "wren": Color("a8d890"), "message": Color("f0e0c8")}
 	hud.show_overlay(
 		title,
-		Story.win_text(found) + "\n\n— end of the current build —\n\n[%s] title screen" % Settings.glyph("confirm"),
-		Color("8cf2ff"))
+		Story.ending_text(chosen, found) + "\n\n— end of the current build —\n\n[%s] title screen" % Settings.glyph("confirm"),
+		colors[chosen])
 	_win_card_shown = true
 
 

@@ -95,7 +95,10 @@ func test_reaching_slot_two_wins() -> void:
 	await wait(0.5)
 	check(w.ending == "", "touching Slot 2 isn't enough: you write yourself in")
 	check(w.area.slot.is_writing(), "standing in the slot writes you in")
-	await wait_until(func() -> bool: return w.ending == "win", 4.0, "writing yourself into Slot 2")
+	await wait_until(func() -> bool: return w.hud.is_choosing(), 4.0, "writing yourself into Slot 2")
+	await frames(3)
+	await press("interact")  # the first choice: write yourself in
+	await wait_until(func() -> bool: return w.ending == "win", 3.0, "the escape ending")
 	check_eq(memory().wins, 1, "win recorded")
 	check_eq(memory().last_exit, "win", "session closed as a win")
 

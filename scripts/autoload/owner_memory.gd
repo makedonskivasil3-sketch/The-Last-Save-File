@@ -32,6 +32,10 @@ var found_pip := false
 ## Wren saw the Edge with you: she's logged as cut content now, and the
 ## owner can never delete her again.
 var wren_saved := false
+## How the last game ended at Slot 2: "escape", "wren" or "message" ("" if
+## never), and every ending reached so far.
+var last_ending := ""
+var endings_seen: Array[String] = []
 ## Where the owner has seen you go in each area, learned when a session ends
 ## badly: {"area", "x", "y", "w" (weight)}. Arin's patrol detours through
 ## the heaviest spots next time.
@@ -149,10 +153,18 @@ func record_quit() -> void:
 	_close_session("quit")
 
 
-func record_win() -> void:
+## Reached Slot 2 and chose an ending ("escape", "wren" or "message").
+func record_win(ending := "escape") -> void:
 	if _session_closed:
 		return
 	wins += 1
+	last_ending = ending
+	if ending not in endings_seen:
+		endings_seen.append(ending)
+	if ending == "message":
+		# Reconciliation: the owner stops the purge and lets everyone back.
+		purge = 0
+		npc_fates.clear()
 	_close_session("win")
 
 
@@ -169,6 +181,8 @@ func wipe() -> void:
 	met_archivist = false
 	found_pip = false
 	wren_saved = false
+	last_ending = ""
+	endings_seen.clear()
 	route_memory.clear()
 	session_spots.clear()
 	acts_seen.clear()
@@ -193,6 +207,8 @@ func save_memory() -> void:
 		"met_archivist": met_archivist,
 		"found_pip": found_pip,
 		"wren_saved": wren_saved,
+		"last_ending": last_ending,
+		"endings_seen": endings_seen,
 		"acts_seen": acts_seen,
 		"route_memory": route_memory,
 		"fragments": fragments,
@@ -222,6 +238,10 @@ func load_memory() -> void:
 	met_archivist = bool(data.get("met_archivist", false))
 	found_pip = bool(data.get("found_pip", false))
 	wren_saved = bool(data.get("wren_saved", false))
+	last_ending = str(data.get("last_ending", ""))
+	endings_seen.clear()
+	for e in data.get("endings_seen", []):
+		endings_seen.append(str(e))
 	route_memory.clear()
 	for r in data.get("route_memory", []):
 		if r is Dictionary and r.has("x") and r.has("y"):
