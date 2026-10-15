@@ -33,6 +33,9 @@ var tutorial_tips := true
 var tips_seen: Array = []
 ## Whether the last input came from a gamepad (for button prompts).
 var using_gamepad := false
+## Whether the last input was a touch (phones, tablets): prompts then name
+## the on-screen buttons, and TouchControls shows them.
+var using_touch := false
 
 var _path := PATH
 
@@ -46,9 +49,16 @@ func _ready() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if event is InputEventJoypadButton or (event is InputEventJoypadMotion and absf(event.axis_value) > 0.5):
+	if event is InputEventScreenTouch:
+		using_touch = true
+		using_gamepad = false
+	elif event is InputEventJoypadButton or (event is InputEventJoypadMotion and absf(event.axis_value) > 0.5):
 		using_gamepad = true
-	elif event is InputEventKey or event is InputEventMouseButton:
+		using_touch = false
+	elif event is InputEventKey:
+		using_gamepad = false
+		using_touch = false
+	elif event is InputEventMouseButton and event.device != InputEvent.DEVICE_ID_EMULATION:
 		using_gamepad = false
 
 
@@ -77,8 +87,10 @@ func glyph(action: String) -> String:
 		"confirm":
 			return "A" if using_gamepad else "ENTER"
 		"pause":
-			return "START" if using_gamepad else "ESC"
+			return "II" if using_touch else ("START" if using_gamepad else "ESC")
 		"move":
+			if using_touch:
+				return "Drag on the left side of the screen"
 			return "LEFT STICK" if using_gamepad else "WASD / ARROWS"
 	return action.to_upper()
 

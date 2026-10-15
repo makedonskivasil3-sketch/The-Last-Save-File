@@ -49,6 +49,11 @@ out. The whole story, as a readable script, is in **[docs/STORY_SCRIPT.md](docs/
 | Esc | Start | Pause menu (Resume · Settings · Quit). Quitting counts, and the menu warns you first. |
 | Hold F9 | | Wipe the owner's memory (debug / "new game") |
 
+**On a phone or tablet** (in the browser): turn it sideways. Drag anywhere on the left side to
+move (a joystick appears under your thumb), tap **E** (bottom right) to interact or advance text,
+and **II** (top right) to pause. Menus are tapped directly. The controls appear as soon as you
+touch the screen (`scripts/ui/touch_controls.gd`).
+
 Menus work with mouse, keyboard or gamepad. **Settings** (title screen or pause menu) is in two
 columns: *Sound* (master, music, effects), *Picture* (fullscreen, CRT curvature, screen effects),
 *Comfort* (glitch intensity, reduce flashing, **large text**) and *Help* (**tutorial tips**), plus
@@ -411,6 +416,7 @@ Tests run with `--test-mode`, which points the owner's memory and the settings a
 | `test_story.gd` | Boot sequence, flashbacks, fragments persisting, endings |
 | `test_effects.gd` | Every death style, owner events, the win sequence, reduce flashing |
 | `test_performance.gd` | Worst-case frame budget (fully hunted square) and leak checks across area changes |
+| `test_touch.gd` | Phone controls with real touch events: dragging walks, the E button talks, the II button pauses |
 | `test_expansion.gd` | The well, Out of Bounds (cooling, falling back, anchors and streaming floor), finding Pip and Pip staying, Pip leading the way, act cards, focus brackets, the map, the epilogue |
 | `test_onboarding.gd` | Tips appear in order and only once, can be turned off and replayed; the HIDDEN status; large text; the pause menu's goal |
 | `test_character.gd` | Rue starts as missing texture, each fragment restores the right part, Rue startles at thresholds |

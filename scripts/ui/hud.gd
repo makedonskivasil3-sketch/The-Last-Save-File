@@ -494,6 +494,8 @@ func hide_overlay() -> void:
 
 func _process(delta: float) -> void:
 	_playtime += delta
+	# On phones the on-screen E button sits bottom right: keep the prompt clear of it.
+	_prompt.position.x = 640 - SAFE.x - 176 - (72.0 if Settings.using_touch else 0.0)
 	_update_slot()
 	_meter.value = _awareness
 	_trim_console()  # text size may have changed

@@ -18,6 +18,9 @@ func _ready() -> void:
 	Sfx.prewarm()  # build the common sounds while the title is up
 	($ScreenFX/Effect as ScreenFx).shake_world = false  # no world layer here
 	get_tree().paused = false
+	var touch := TouchControls.new()
+	touch.buttons_enabled = false
+	add_child(touch)
 
 	var bg := ColorRect.new()
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -35,7 +38,11 @@ func _ready() -> void:
 	UiStyle.button(_menu, "Quit", func() -> void: get_tree().quit())
 	_menu.add_child(_spacer(4))
 	UiStyle.note(_menu, "Contains flashing and glitch effects. Both can be reduced in Settings.")
-	UiStyle.note(_menu, "Move: WASD / arrows / stick   ·   Interact: E / A   ·   Pause: Esc / Start")
+	var phone := OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios") or Settings.using_touch
+	if phone:
+		UiStyle.note(_menu, "Move: drag on the left side   ·   Interact: the E button   ·   Pause: II")
+	else:
+		UiStyle.note(_menu, "Move: WASD / arrows / stick   ·   Interact: E / A   ·   Pause: Esc / Start")
 
 	_settings_box = UiStyle.centered_panel(self, 480)
 	_settings = SettingsPanel.new()

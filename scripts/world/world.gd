@@ -51,6 +51,7 @@ func _ready() -> void:
 	_light = CanvasModulate.new()
 	add_child(_light)
 	hud.dialogue_closed.connect(func() -> void: _talking_to = null)
+	add_child(TouchControls.new())
 	_focus_marker = FocusMarker.new()
 	_focus_marker.z_index = 15
 	add_child(_focus_marker)
