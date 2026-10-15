@@ -141,3 +141,66 @@ func test_the_title_theme_is_built_in_the_background() -> void:
 	check(not title._music.playing, "the title appears without waiting for the theme")
 	await wait_until(func() -> bool: return title._music.playing, 5.0, "the theme")
 	check(title._music.stream != null, "then the theme plays")
+
+
+func test_closing_a_dialogue_with_the_phone_e_button_does_not_reopen_it() -> void:
+	# The on-screen E button sends action events (not keys).
+	var w := await start_session(true, true)
+	await interact_with(w, w.area.mira)
+	check(w.hud.is_dialogue_open(), "talking to Mira")
+	for i in 30:
+		if not w.hud.is_dialogue_open():
+			break
+		await press("interact")
+		await frames(2)
+	await frames(5)
+	check(not w.hud.is_dialogue_open(), "the last E closes it, and it stays closed")
+
+
+func test_closing_pips_line_does_not_reopen_it() -> void:
+	memory().found_pip = true
+	var w := await start_session()
+	await wait_until(func() -> bool: return w.pip != null, 3.0, "Pip")
+	await wait(1.0)
+	w.player.global_position = w.pip.global_position + Vector2(8, 0)
+	await frames(3)
+	check(w._focused == w.pip, "Pip is right there")
+	# Thumb taps on the phone's E button: down a few frames, up a few frames.
+	var opened := false
+	var reopened := false
+	for k in 6:
+		var was_open: bool = w.hud.is_dialogue_open()
+		await _tap(3)
+		var now_open: bool = w.hud.is_dialogue_open()
+		if now_open:
+			opened = true
+		if was_open and now_open and k > 0 and w.hud._dialogue_lines.size() == 1 and _closed_between:
+			reopened = true
+	check(opened, "talking to Pip")
+	check(not reopened, "the tap that closes Pip's line doesn't open it again")
+
+
+var _closed_between := false
+
+
+## One tap of the E button as an action event, held for `hold` frames;
+## notes whether the dialogue was closed at any point during it.
+func _tap(hold: int) -> void:
+	_closed_between = false
+	var w: Node = scene()
+	var down := InputEventAction.new()
+	down.action = "interact"
+	down.pressed = true
+	Input.parse_input_event(down)
+	for f in hold:
+		await frames(1)
+		if not w.hud.is_dialogue_open():
+			_closed_between = true
+	var up := InputEventAction.new()
+	up.action = "interact"
+	up.pressed = false
+	Input.parse_input_event(up)
+	for f in 3:
+		await frames(1)
+		if not w.hud.is_dialogue_open() and f == 0:
+			_closed_between = true

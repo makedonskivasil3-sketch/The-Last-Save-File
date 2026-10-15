@@ -516,7 +516,7 @@ and the CRT/corruption look is a single screen shader.
 
 ## Tests
 
-The suite lives in `tests/` and runs headless in about 1.5 minutes. CI runs it on every push and
+The suite lives in `tests/` and runs headless in about 7 minutes. CI runs it on every push and
 pull request **before** building; a failing test or any Godot script error blocks the build and
 the web deploy.
 
@@ -530,6 +530,19 @@ godot --path . -s res://tests/run_tests.gd -- --test-mode --screenshots=/tmp/sho
 
 Tests run with `--test-mode`, which points the owner's memory and the settings at separate
 `test_*` files, so running them never touches your real progress.
+
+**The playthrough bot** (`tests/bot_playthrough.gd`, not part of the normal run) plays the whole
+game with real input the way a careful player would: phases through the cracked wall, waits for the
+seam, crosses the streaming floor out of bounds to Pip, gets the pointer from the Archivist,
+restores whoever is in the Recycle Bin (sheltering from the sweeps), collects every memory at the
+Edge, lures the cursor and picks an ending. It glitches when it should (breaking saves, freezing
+Arin up close) and, like a person, tries again after each death, keeping what the save keeps. It
+prints a `BOT` line per step and a summary (sessions, game time, deaths and why, glitches, reloads).
+
+```bash
+tests/run.sh --bots --speed=2                 # every bot run, at 2x game speed
+tests/run.sh --bots --speed=2 --filter=purge_3
+```
 
 | File | Covers |
 | --- | --- |

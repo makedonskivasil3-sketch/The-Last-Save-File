@@ -55,6 +55,10 @@ var _overlay_tip: Label
 ## Whether the last dialogue was read to its end (vs. walked away from or
 ## closed by something else).
 var dialogue_finished := false
+## The frame the HUD last used an interact press (advancing or closing a
+## dialogue, picking a choice): that press must not also count as a tap on
+## the world, or closing a chat would reopen it.
+var interact_used_frame := -10
 var _finishing := false
 var _hint: Label
 ## "hold [E]  FREEZE +6": what holding interact would do right now.
@@ -437,6 +441,7 @@ func _update_choice() -> void:
 	if Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("confirm"):
 		var focused := get_viewport().gui_get_focus_owner()
 		if focused is Button and focused.get_parent() == _choice_list:
+			interact_used_frame = Engine.get_process_frames()
 			_chosen.emit(focused.get_index())
 
 
@@ -505,6 +510,7 @@ func _update_dialogue(delta: float) -> void:
 	if Engine.get_process_frames() == _dialogue_opened_frame:
 		return  # the press that opened the box doesn't also advance it
 	if Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("confirm"):
+		interact_used_frame = Engine.get_process_frames()
 		if _dialogue_text.visible_characters >= 0 and _dialogue_text.visible_characters < total:
 			_dialogue_text.visible_characters = -1  # finish the line first
 		elif _dialogue_index < _dialogue_lines.size() - 1:

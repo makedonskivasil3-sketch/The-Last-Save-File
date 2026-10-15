@@ -60,7 +60,8 @@ func _process(delta: float) -> void:
 		_update_prompt()
 		queue_redraw()
 		return
-	if Input.is_action_just_pressed("interact"):
+	# A press the HUD just used (closing a chat, picking a choice) isn't ours.
+	if Input.is_action_just_pressed("interact") and Engine.get_process_frames() - world.hud.interact_used_frame > 1:
 		_pressing = true
 		_held = 0.0
 		_charge = 0.0
