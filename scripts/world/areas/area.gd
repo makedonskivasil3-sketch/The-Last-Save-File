@@ -66,15 +66,17 @@ func entry_point(arrival: String) -> Vector2:
 
 
 ## Erasure grows in this area; seeded where you died here before.
-func start_erasure(extra_seeds: Array[Vector2] = []) -> void:
+## seed_deaths: also seed where you died here before (the owner remembers).
+func start_erasure(extra_seeds: Array[Vector2] = [], seed_deaths := true) -> void:
 	if erasure == null or erasure.active:
 		return
 	erasure.active = true
 	# Faster with every purge, but always something you can outrun.
 	erasure.interval = maxf(0.2, 0.45 - 0.04 * OwnerMemory.purge)
 	erasure.burst = 1 + OwnerMemory.purge / 3
-	for p in OwnerMemory.deaths_in(area_id):
-		erasure.seed_at(p)
+	if seed_deaths:
+		for p in OwnerMemory.deaths_in(area_id):
+			erasure.seed_at(p)
 	for p in extra_seeds:
 		erasure.seed_at(p)
 	world.fx.eraser_starts()

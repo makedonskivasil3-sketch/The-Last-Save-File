@@ -158,8 +158,11 @@ func _take_wren(w: Node) -> bool:
 	for i in 4:
 		await _go(w, [wren.global_position + Vector2(14, 0)], 10.0)
 		await press("interact")
+		await frames(3)
+		var opened: bool = w.hud.is_dialogue_open()
 		await _read_dialogue(w)
 		await frames(3)
+		_say("talked to Wren (%d): opened %s, focus %s, asked %s, choosing %s" % [i, opened, w._focused, w.area._wren_asked, w.hud.is_choosing()])
 		if w.hud.is_choosing():
 			await press("interact")  # "Take her with you"
 			await frames(3)
@@ -344,12 +347,19 @@ func _edge(w: Node, ending: String) -> String:
 	# Lure the cursor far from the slot, then sprint.
 	var cursor: OwnerCursor = w.area.cursor
 	var lure := 0
-	await _go(w, [Vector2(320, 262), Vector2(160, 262)], 10.0)
-	while w.ending == "" and cursor.global_position.distance_to(TheEdge.SLOT_POS) < 260.0 and lure < 20:
-		await _go(w, [Vector2(160, 262 - (lure % 2) * 30)], 1.0)
+	# Kite it to the bottom-left, staying well above the road home.
+	await _go(w, [Vector2(320, 236), Vector2(140, 240)], 10.0)
+	while w.ending == "" and cursor.global_position.distance_to(TheEdge.SLOT_POS) < 300.0 and lure < 30:
+		await _go(w, [Vector2(140, 240 - (lure % 2) * 24)], 1.0)
 		lure += 1
+	# Let it come close (it's slower than us), then run for the slot.
+	var wait_until_close := 0
+	while w.ending == "" and cursor.global_position.distance_to(w.player.global_position) > 70.0 and wait_until_close < 40:
+		_steer(w, Vector2.ZERO)
+		await frames(3)
+		wait_until_close += 1
 	_step(w, "cursor lured (%d)" % lure)
-	await _go(w, [Vector2(320, 262), Vector2(520, 240), Vector2(520, 90), TheEdge.SLOT_POS], 15.0)
+	await _go(w, [Vector2(250, 236), Vector2(420, 236), Vector2(520, 230), Vector2(520, 90), TheEdge.SLOT_POS], 15.0)
 	for i in 60:
 		if w.ending != "" or w.hud.is_choosing():
 			break

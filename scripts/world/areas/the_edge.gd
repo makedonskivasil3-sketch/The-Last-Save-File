@@ -22,9 +22,26 @@ const CURSOR_START := Vector2(540, 84)
 ## (90 px/s) by enough to win a sprint back to the slot.
 const CURSOR_MAX_SPEED := 62.0
 
+## The finale, not a wall. The static waits GRACE seconds after you arrive
+## (longer after you've died to it here), shows where it will start, then
+## spreads slowly and only partly toward you. A little faster with purge and
+## awareness, never faster than MIN_INTERVAL.
+const GRACE := 5.0
+const GRACE_PER_DEATH := 1.5
+const MAX_GRACE := 9.5
+const SEEDS: Array[Vector2] = [Vector2(40, 50), Vector2(600, 280)]
+const BASE_INTERVAL := 1.05
+const MIN_INTERVAL := 0.6
+const HUNT_CHANCE := 0.45
+const MATURE_TIME := 1.1
+
 var cursor: OwnerCursor
 var slot: SlotTwo
+## Seconds left before the static starts (< 0 once it runs).
+var grace := -1.0
 var _t := 0.0
+var _purged_speedup := 1.0
+var _tick := -1
 
 
 func _init() -> void:
@@ -70,16 +87,53 @@ func catch_up() -> void:
 	# The owner is already unloading this place under you.
 	# The owner doesn't know Slot 2 exists, so the eraser never touches it.
 	erasure.protect(Rect2(SLOT_POS - Vector2(14, 14), Vector2(28, 28)))
-	start_erasure([Vector2(40, 50), Vector2(600, 280)])
-	erasure.interval = maxf(0.25, 0.75 - 0.07 * OwnerMemory.purge)
+	erasure.mature_time = MATURE_TIME
+	erasure.hunt_chance = HUNT_CHANCE
+	grace = grace_time()
 	if world.director.has_fired(OwnerDirector.PURGE):
 		cursor.speed = minf(cursor.speed * 1.15, CURSOR_MAX_SPEED)
+
+
+## How long the static waits: longer for every time it got you here lately.
+static func grace_time() -> float:
+	return minf(GRACE + GRACE_PER_DEATH * OwnerMemory.edge_static_deaths, MAX_GRACE)
+
+
+## How fast it spreads right now (seconds per cell).
+func spread_interval() -> float:
+	var base := BASE_INTERVAL - 0.05 * OwnerMemory.purge
+	var anger := lerpf(1.1, 0.9, clampf(world.director.awareness / 100.0, 0.0, 1.0))
+	return maxf(MIN_INTERVAL, base * anger * _purged_speedup)
+
+
+func _begin_static() -> void:
+	grace = -1.0
+	# Never where you died: those spots are marked (ghosts), not trapped.
+	start_erasure(SEEDS, false)
+	erasure.burst = 1
+	erasure.interval = spread_interval()
+	world.hud.set_banner("")
+	world.director.say(["unloading the edge. you shouldn't be out here.", "nothing out here is supposed to exist. including you."].pick_random())
 
 
 func on_owner_event(threshold: float) -> void:
 	if threshold == OwnerDirector.PURGE:
 		cursor.speed = minf(cursor.speed * 1.15, CURSOR_MAX_SPEED)
-		erasure.interval *= 0.6
+		_purged_speedup = 0.85
+
+
+func area_process(delta: float) -> void:
+	if grace >= 0.0:
+		grace -= delta
+		var left := ceili(grace)
+		if left != _tick and left > 0:
+			_tick = left
+			world.hud.set_banner("THE EDGE IS UNLOADING  ·  %d" % left)
+			Sfx.play("key_system", -4.0, 0.7 + 0.08 * (6 - left))
+		if grace <= 0.0:
+			_begin_static()
+	elif erasure.active:
+		erasure.interval = spread_interval()
 
 
 func _process(delta: float) -> void:
@@ -113,6 +167,14 @@ func _draw() -> void:
 	for pos: Vector2 in LABELS:
 		var a := 0.25 + 0.1 * sin(_t * 1.5 + pos.x)
 		draw_string(ThemeDB.fallback_font, pos, LABELS[pos], HORIZONTAL_ALIGNMENT_LEFT, -1, 7, Color(0.55, 0.95, 1.0, a))
+	# Where the static will start: cracks that pulse harder as it nears.
+	if grace >= 0.0:
+		var k := 1.0 - clampf(grace / grace_time(), 0.0, 1.0)
+		for s in SEEDS:
+			var c := Color(1.0, 0.3, 0.2, 0.25 + 0.5 * k * (0.5 + 0.5 * sin(_t * (6.0 + 14.0 * k))))
+			draw_arc(s, 6.0 + 10.0 * k, 0.0, TAU, 20, c, 1.0)
+			draw_line(s + Vector2(-5, -3), s + Vector2(4, 4), c, 1.0)
+			draw_line(s + Vector2(4, -4), s + Vector2(-3, 5), c, 1.0)
 	# Wireframe outline of where the world should be.
 	draw_rect(r, Color(0.55, 0.95, 1.0, 0.25), false, 1.0)
 	draw_rect(Rect2(SOUTH_GAP.x, r.end.y - 2, SOUTH_GAP.y - SOUTH_GAP.x, 4), Color("3a3128"))

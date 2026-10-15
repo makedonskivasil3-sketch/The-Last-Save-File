@@ -789,7 +789,7 @@ func kill(cause: String, reason := "") -> void:
 	player.dissolve(cause)
 	Sfx.play("death_" + cause, 0.0, 1.0, 0.0)
 	drone.tension = 1.0
-	OwnerMemory.record_death(area.area_id, player.global_position, reason)
+	var forgiven := OwnerMemory.record_death(area.area_id, player.global_position, reason)
 	last_death = reason
 	var info: Array = Story.DEATHS.get(reason, ["ERASED", "the owner learned something.", "", "", ""])
 	var title: String = info[0]
@@ -798,7 +798,11 @@ func kill(cause: String, reason := "") -> void:
 		body += "\nthe owner saw who helped you."
 	if OwnerMemory.is_purged():
 		body = "the owner has learned enough."
+	elif forgiven:
+		body += "\nthe edge isn't loaded. the owner didn't see that one. (it didn't count.)"
 	var tip := death_tip(reason)
+	if area.area_id == "edge" and reason == "eraser":
+		tip = "Next time the static waits %d s before it starts. Its cracks show where." % int(TheEdge.grace_time())
 	# Let the death play out on screen before the text slams in.
 	await get_tree().create_timer(0.6).timeout
 	if not is_inside_tree():

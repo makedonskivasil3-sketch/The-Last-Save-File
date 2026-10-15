@@ -158,6 +158,8 @@ const PIP_LINES := [
 
 ## Wren's side story: she wants to see the Edge before she's deleted.
 const WREN_ASK := "I want to see the Edge. Before they delete me. Will you take me with you?"
+## Once she's seen the Edge (and can't be deleted), she asks again.
+const WREN_ASK_SAVED := "The Edge again? There was a slot out there, under the cursor. I want to see it with you. Take me?"
 const WREN_ASK_CHOICES := ["Take her with you", "Not now"]
 const WREN_JOINS := ["Really? Okay. Okay! I'll be quiet. I'll be so quiet."]
 const WREN_DECLINED := ["That's okay. Maybe next time. If there is one."]

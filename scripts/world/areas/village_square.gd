@@ -310,6 +310,10 @@ static func make_wren(parent: Node, pos: Vector2) -> Npc:
 
 func _wren_lines() -> Array:
 	if OwnerMemory.wren_saved:
+		# Saved for good, but she still wants to come: there's a slot out there.
+		if _wren_line >= 1 and world.escort == null:
+			_wren_asked = true
+			return [Story.WREN_ASK_SAVED]
 		var saved: String = Story.WREN_SAVED_LINES[mini(_wren_line, Story.WREN_SAVED_LINES.size() - 1)]
 		_wren_line += 1
 		return [saved]

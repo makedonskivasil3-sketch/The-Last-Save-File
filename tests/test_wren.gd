@@ -86,3 +86,19 @@ func test_a_glitch_saves_her() -> void:
 	w.owner_moves.on_glitch("freeze")
 	check(w.owner_moves.wren_delete < 0.0, "any glitch interrupts her deletion")
 	check(w.escort != null, "and she's still here")
+
+
+func test_a_saved_wren_still_comes_along() -> void:
+	# She saw the Edge last run, then you died before Slot 2: her ending
+	# must still be possible.
+	memory().sessions = 3
+	memory().wren_saved = true
+	var w := await start_session()
+	await go_to(w, "square", "house")
+	w.area.arin.position = Vector2(560, 280)
+	w.area.arin.route = [Vector2(560, 280)] as Array[Vector2]
+	await _ask(w)
+	check(w.hud.is_choosing(), "she asks to come to the Edge again")
+	await press("interact")
+	await frames(3)
+	check(w.escort != null, "and comes along")

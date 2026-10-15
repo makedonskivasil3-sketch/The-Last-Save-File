@@ -20,6 +20,11 @@ var target: Node2D
 var active := false
 ## Seconds between growth ticks.
 var interval := 0.45
+## How long a fresh cell flickers before it's lethal, and how often growth
+## aims at you (vs. spreading anywhere). Areas tune these (the Edge is
+## gentler: it's the finale, not a wall).
+var mature_time := MATURE_TIME
+var hunt_chance := HUNT_CHANCE
 ## Cells grown per tick.
 var burst := 1
 
@@ -138,7 +143,7 @@ func _settle_cells() -> void:
 		return
 	var settled := false
 	for c: Vector2i in _young.keys():
-		if _t - float(_young[c]) >= MATURE_TIME:
+		if _t - float(_young[c]) >= mature_time:
 			_young.erase(c)
 			_mature.append(c)
 			settled = true
@@ -155,7 +160,7 @@ func _grow() -> void:
 	var goal := _to_cell(target.global_position) if is_instance_valid(target) else Vector2i(_cols >> 1, _rows >> 1)
 	var keys: Array = _frontier.keys()
 	var from: Vector2i = keys.pick_random()
-	if randf() < HUNT_CHANCE:
+	if randf() < hunt_chance:
 		# Grow from the edge closest to you.
 		var best := INF
 		for c: Vector2i in keys:
@@ -217,7 +222,7 @@ func _draw() -> void:
 	# black core grows inside it; when the core fills the cell, it's lethal.
 	for c: Vector2i in _young:
 		var r := _cell_rect(c)
-		var age := clampf((_t - float(_young[c])) / MATURE_TIME, 0.0, 1.0)
+		var age := clampf((_t - float(_young[c])) / mature_time, 0.0, 1.0)
 		var blink := 0.5 + 0.5 * sin(_t * 30.0 * flash + c.x * 1.7)
 		draw_rect(r, Color(0.9, 0.12, 0.08, (0.12 + 0.25 * blink) * (0.5 + 0.5 * flash)))
 		draw_rect(r.grow(-1), Color(1.0, 0.3, 0.2, 0.35 + 0.55 * blink), false, 1.0)

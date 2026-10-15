@@ -41,6 +41,10 @@ var last_ending := ""
 var last_death := ""
 ## How often each kind of death got you (records screen).
 var death_causes: Dictionary = {}
+## Deaths to the static at the Edge in a row (each buys a longer grace).
+var edge_static_deaths := 0
+## The Edge's one free death has been used (until you next reach Slot 2).
+var edge_mercy_used := false
 ## Characters you brought back with RESTORE, ever.
 var restored: Array[String] = []
 var endings_seen: Array[String] = []
@@ -154,19 +158,32 @@ func note_seam(seam_id: int) -> void:
 	session_seam = seam_id
 
 
-func record_death(area: String, at: Vector2, reason := "") -> void:
+## Returns true when the death was forgiven: the first death at the Edge
+## (the world isn't loaded out there; the owner didn't see it) doesn't add
+## to the purge. That mercy comes back when you reach Slot 2.
+func record_death(area: String, at: Vector2, reason := "") -> bool:
 	if _session_closed:
-		return
+		return false
 	last_death = reason
 	if reason != "":
 		death_causes[reason] = int(death_causes.get(reason, 0)) + 1
+	# The static at the Edge waits a little longer each time it gets you there.
+	if area == "edge" and reason == "eraser":
+		edge_static_deaths += 1
+	elif area != "edge":
+		edge_static_deaths = 0
+	var forgiven := area == "edge" and not edge_mercy_used
+	if forgiven:
+		edge_mercy_used = true
 	deaths += 1
-	purge += 1
+	if not forgiven:
+		purge += 1
 	deaths_log.append({"area": area, "x": at.x, "y": at.y, "session": sessions})
 	if deaths_log.size() > MAX_REMEMBERED_DEATHS:
 		deaths_log.pop_front()
 	_learn()
 	_close_session("death")
+	return forgiven
 
 
 func record_quit() -> void:
@@ -186,6 +203,8 @@ func record_win(ending := "escape") -> void:
 	last_ending = ending
 	if ending not in endings_seen:
 		endings_seen.append(ending)
+	edge_mercy_used = false
+	edge_static_deaths = 0
 	# Taking the slot remembering everything is its own ending: RUE.
 	if ending == "escape" and fragments.size() >= Story.FRAGMENTS.size() and "rue" not in endings_seen:
 		endings_seen.append("rue")
@@ -212,6 +231,8 @@ func wipe() -> void:
 	found_guestbook = false
 	last_ending = ""
 	last_death = ""
+	edge_static_deaths = 0
+	edge_mercy_used = false
 	death_causes.clear()
 	restored.clear()
 	session_recalled.clear()
@@ -245,6 +266,8 @@ func save_memory() -> void:
 		"last_ending": last_ending,
 		"endings_seen": endings_seen,
 		"last_death": last_death,
+		"edge_static_deaths": edge_static_deaths,
+		"edge_mercy_used": edge_mercy_used,
 		"death_causes": death_causes,
 		"restored": restored,
 		"acts_seen": acts_seen,
@@ -282,6 +305,8 @@ func load_memory() -> void:
 	for e in data.get("endings_seen", []):
 		endings_seen.append(str(e))
 	last_death = str(data.get("last_death", ""))
+	edge_static_deaths = int(data.get("edge_static_deaths", 0))
+	edge_mercy_used = bool(data.get("edge_mercy_used", false))
 	var causes: Variant = data.get("death_causes", {})
 	death_causes = causes if causes is Dictionary else {}
 	restored.clear()

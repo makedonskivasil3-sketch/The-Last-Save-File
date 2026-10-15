@@ -25,11 +25,11 @@ func test_wipe_resets_everything() -> void:
 func test_death_records_area_position_and_purge() -> void:
 	var m := memory()
 	m.begin_session()
-	m.record_death("edge", Vector2(120, 80))
+	m.record_death("archive", Vector2(120, 80))
 	check_eq(m.deaths, 1, "death counted")
 	check_eq(m.purge, 1, "purge rises")
 	check_eq(m.last_exit, "death", "last exit")
-	check_eq(m.deaths_in("edge"), [Vector2(120, 80)] as Array[Vector2], "death position remembered per area")
+	check_eq(m.deaths_in("archive"), [Vector2(120, 80)] as Array[Vector2], "death position remembered per area")
 	check(m.deaths_in("room").is_empty(), "other areas unaffected")
 
 
