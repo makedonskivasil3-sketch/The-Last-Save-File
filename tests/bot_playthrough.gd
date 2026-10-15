@@ -373,7 +373,13 @@ func _edge(w: Node, ending: String) -> String:
 	var options: Array = []
 	for b in w.hud._choice_list.get_children():
 		options.append(b.text)
-	var want: int = {"escape": 0, "wren": 1, "message": options.size() - 1}.get(ending, 0)
+	# By name: hidden options can shift the list.
+	var label: String = {"escape": "Write", "wren": "Wren", "message": "message"}.get(ending, "Write")
+	var want := 0
+	for i in options.size():
+		if str(options[i]).contains(label):
+			want = i
+			break
 	for i in want:
 		await press("ui_down")
 	await press("interact")
@@ -385,7 +391,8 @@ func _edge(w: Node, ending: String) -> String:
 			break
 		await press("interact")
 		await wait(0.25)
-	return "ending:" + memory().last_ending
+	var got: String = memory().last_ending
+	return "ending:" + ("escape" if got == "rue" else got)
 
 
 # --- moving --------------------------------------------------------------------------

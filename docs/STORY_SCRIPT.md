@@ -498,3 +498,59 @@ The first time you talk to someone in a run, they may remember your last ones
 
 After Wren's ending the note reads **WHO IS WREN? I DIDN'T MAKE HER.**; after the message,
 **I READ IT. ...THANK YOU?**
+
+## The owner's notes (one a run, from the second)
+
+Shown on the console as the run starts (`OWNER'S NOTE · ...`) and kept in the Archive's book *THE OWNER*.
+
+1. there's something in arin's room again. i'm not imagining it.
+2. we used to play this on the couch at mum's. two controllers. i don't know why i'm writing that down.
+3. she moved in the summer. said she'd visit every weekend. she came twice.
+4. i kept her save for two years. i'd walk arin past the spot where her character used to stand.
+5. the night i deleted slot 2 i told myself it was for space. the card wasn't even half full.
+6. she sent a message once. 'still have my save?' i didn't answer. i'd already deleted it. i couldn't say so.
+7. i didn't delete her because i hated her. i deleted her because the empty slot was easier than the waiting.
+8. if that's you in there, i don't know what i want. i want you gone. i want you to stay.
+
+Each may add one line about last run: tearing holes in the save (8+ glitches), putting people back
+(Wren saved, someone restored), looking for Slot 2 (4+ memories), "almost done" (purge 4+).
+
+**The Recycle Bin, owner_draft.txt:** *"hey. i know it's been ages. yes i still have your sa"* (the draft
+stops mid-word; it went in the bin the same night as slot2.sav).
+
+## The false memory
+
+After two real memories, in the square: **MEMORY · YOU LEFT FIRST** (almost the right cyan).
+*you packed the second controller first. you didn't look at the screen. / you never asked about the
+save. not once. not even when you left. / you wanted to be forgotten. so i forgot you. /
+[ this memory has no signature. it isn't yours. ]*
+**SYSTEM:** MEMORY REJECTED · NO SIGNATURE · **THE OWNER:** > that's how i remember it.
+
+## Side stories
+
+**Mira's note.** *"Pin it up. Maybe they'll remember I can talk. That I'm not just a line."* The board:
+**MIRA WAS HERE. I TALK. I REMEMBER. — M** · **THE OWNER:** > ...mira wrote this?
+Lost (you died carrying it): *"MIRA WAS HERE. I TALK. I REMEM"* in the bin.
+
+**Tobben's guest book.** *you write in the blank line. R. U. E.* · **TOBBEN:** ...there. Two names.
+Like it used to be. I'd forgotten I forgot. · **THE OWNER:** > ...who wrote her name in the book.
+
+**Pip, by memories:** a stranger's sniff · one yellow pixel of raincoat · the exact weight against your
+leg · *PIP · RUE'S · LV 31. it was always your fox.*
+
+## Slot 2: the recap and the final exchanges
+
+Before the choice, the owner, over every run: *SLOT 2 · ATTEMPT 7 / > 4 times i deleted you. and you
+still came back. / > i reloaded 3 times. you remembered every one. / > you brought the girl. of course
+you did. / > mira's note is still on the board. i didn't take it down. / > ...go on, then. whose name
+goes in it.*
+
+| Ending | The last exchange |
+| --- | --- |
+| Escape | > what are you doing in slot 2. / > that slot is SUPPOSED to be empty. / (not anymore.) |
+| RUE | > what are you doing in slot 2. / (you know what i'm doing. you've always known.) / > ...rue? / (hi.) |
+| Wren | > who is that. i didn't make her. / WREN: I'll keep it warm. Your slot. In case. / (go. it only fits one.) |
+| Message | > you're not taking it? / (no. it's yours. i just wanted you to read something first.) / > ...i'm reading. |
+| Never loaded | (nobody saw me come. nobody will see me go.) / (the map runs out. i keep walking.) / > ...huh. the save feels lighter. weird. |
+| Slot 1 overwritten | > no. no no no. not slot 1. not arin. / > STOP. that's fourteen hours. that's all i have left of / (you had two slots. now you have one. now you know.) |
+

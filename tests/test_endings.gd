@@ -8,6 +8,7 @@ func _at_slot(with_wren := false) -> Node:
 		w.debug("wren")
 	w.debug("slot2")
 	await wait_until(func() -> bool: return w.area.area_id == "edge" and not w._transitioning, 3.0, "at the Edge")
+	w.flags["seen_by_arin"] = true  # an ordinary run: no hidden ending
 	if with_wren:
 		w.escort.global_position = w.player.global_position
 	return w
@@ -92,3 +93,60 @@ func _title_text() -> String:
 	for n in s.find_children("*", "Label", true, false):
 		out += (n as Label).text + "\n"
 	return out
+
+
+func test_the_careful_find_a_hidden_way_out() -> void:
+	var w := await _at_slot()
+	w.flags["seen_by_arin"] = false
+	memory().session_glitches = 0
+	w.reach_slot2()
+	await until_choosing(w)
+	var options := _choices(w)
+	check(options.has(Story.SLOT2_UNSEEN), "never seen, barely glitched: walk off the map")
+	w.hud._chosen.emit(options.find(Story.SLOT2_UNSEEN))
+	await _finish(w)
+	check_eq(memory().last_ending, "unseen", "NEVER LOADED")
+	get_tree_change_to_title()
+	await frames(5)
+	check(_title_text().contains("you were never here"), "the title forgets you too")
+
+
+func test_the_reckless_take_everything() -> void:
+	var w := await _at_slot()
+	w.director.add_awareness(100.0)
+	memory().session_glitches = 12
+	w.reach_slot2()
+	await until_choosing(w)
+	var options := _choices(w)
+	check(options.has(Story.SLOT2_OVERWRITE), "full awareness, ten glitches: overwrite Slot 1")
+	w.hud._chosen.emit(options.find(Story.SLOT2_OVERWRITE))
+	await _finish(w)
+	check_eq(memory().last_ending, "overwrite", "SLOT 1 OVERWRITTEN")
+	check(w.hud._overlay_title.text == Story.ENDING_TITLES.overwrite, "its own end card")
+	get_tree_change_to_title()
+	await frames(5)
+	check(_title_text().contains("you took everything"), "and its own title")
+
+
+func test_rue_is_the_only_complete_theme() -> void:
+	check_eq(Story.theme_level("rue", 5), 5, "the RUE ending plays the whole theme")
+	for e in ["escape", "wren", "message", "unseen", "overwrite"]:
+		check(Story.theme_level(e, 5) < 5, "%s doesn't" % e)
+
+
+func test_every_ending_has_its_own_exchange_and_aftermath() -> void:
+	for e in Story.ENDING_TITLES:
+		check(Story.FINAL_EXCHANGE.has(e) and not Story.FINAL_EXCHANGE[e].is_empty(), "%s: a final exchange" % e)
+		check(Story.TITLE_AFTER.has(e), "%s: a title aftermath" % e)
+		check(Story.ENDING_COLORS.has(e), "%s: its colour" % e)
+		check(not Story.epilogue(e, 3, false).is_empty(), "%s: an epilogue" % e)
+
+
+func test_the_epilogue_remembers_who_you_helped() -> void:
+	memory().wren_saved = true
+	memory().mira_quest = "pinned"
+	memory().guestbook_restored = true
+	var lines := "\n".join(Story.epilogue("escape", 3, false))
+	check(lines.contains("wren waves"), "Wren, safe")
+	check(lines.contains("MIRA WAS HERE"), "Mira's note")
+	check(lines.contains("two names"), "the guest book")

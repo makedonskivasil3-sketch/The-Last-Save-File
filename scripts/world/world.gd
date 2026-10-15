@@ -848,6 +848,16 @@ func death_tip(reason: String) -> String:
 	return tip.replace("{interact}", Settings.glyph("interact"))
 
 
+## Careful: Arin never saw you this run, and you glitched at most once.
+func is_unseen_run() -> bool:
+	return not flags.get("seen_by_arin", false) and OwnerMemory.session_glitches <= 1
+
+
+## Reckless: the owner at full awareness, and ten glitches this run.
+func is_reckless_run() -> bool:
+	return director.awareness >= OwnerDirector.PURGE and OwnerMemory.session_glitches >= 10
+
+
 ## Rue finished writing into Slot 2: the world holds still while you decide
 ## whose name goes there.
 func reach_slot2() -> void:
@@ -863,12 +873,19 @@ func reach_slot2() -> void:
 	owner_moves.wren_delete = -1.0
 	var full := OwnerMemory.fragments.size() >= Story.FRAGMENTS.size()
 	var options: Array = [Story.SLOT2_ESCAPE_NAMED if full else Story.SLOT2_ESCAPE]
-	var ids: Array[String] = ["escape"]
+	var ids: Array[String] = ["rue" if full else "escape"]
 	if escort and escort.is_present():
 		options.append(Story.SLOT2_WREN)
 		ids.append("wren")
 	options.append(Story.SLOT2_MESSAGE)
 	ids.append("message")
+	# The hidden ways out, only for the extremes.
+	if is_unseen_run():
+		options.append(Story.SLOT2_UNSEEN)
+		ids.append("unseen")
+	if is_reckless_run():
+		options.append(Story.SLOT2_OVERWRITE)
+		ids.append("overwrite")
 	# Everything you've done, all at once, before you choose.
 	await hud.cinematic("", Story.slot2_recap(escort != null), Hud.OWNER_COLOR, 0.8)
 	if not is_inside_tree():
@@ -890,6 +907,9 @@ func reach_slot2() -> void:
 func win(chosen := "escape", message := 0) -> void:
 	if ending != "":
 		return
+	# Taking the slot remembering everything is RUE.
+	if chosen == "escape" and OwnerMemory.fragments.size() >= Story.FRAGMENTS.size():
+		chosen = "rue"
 	ending = "win"
 	player.frozen = true
 	director.stop()
@@ -899,28 +919,17 @@ func win(chosen := "escape", message := 0) -> void:
 	hud.set_status("")
 	hud.set_glitch_prompt("")
 	area.erasure.active = false
-	match chosen:
-		"wren":
-			# She goes in; you stay.
-			fx.play_win()
-			if escort:
-				GlitchBurst.at(self, escort.global_position, Vector2(20, 30), 1.0)
-				escort.visible = false
-			Sfx.play("win", -2.0, 1.15, 0.0)
-		"message":
-			# Nobody goes in. The save just... stops fighting.
-			fx.memory(true)
-			Sfx.play("fragment", 0.0, 0.8, 0.0)
-		_:
-			fx.play_win()
-			player.dissolve("rescued")
-			Sfx.play("win", 0.0, 1.0, 0.0)
+	_ending_visuals(chosen)
 	var found := OwnerMemory.fragments.size()
+	var epilogue := Story.epilogue(chosen, found, OwnerMemory.found_pip, message)
 	OwnerMemory.record_win(chosen)
 	await get_tree().create_timer(1.5).timeout
 	if not is_inside_tree():
 		return
-	var epilogue := Story.epilogue(chosen, found, OwnerMemory.found_pip, message)
+	# The console, live: the last thing said.
+	await hud.cinematic("", Story.FINAL_EXCHANGE.get(chosen, []), Hud.OWNER_COLOR, 0.85)
+	if not is_inside_tree():
+		return
 	if pip:
 		pip.visible = false  # in the slot, or gone with Wren
 	# Calm, pale and clear: the owner isn't fighting any more.
@@ -931,7 +940,8 @@ func win(chosen := "escape", message := 0) -> void:
 	# The theme, as far as you remember it: complete only in the true ending.
 	var theme := AudioStreamPlayer.new()
 	theme.bus = "Memory"
-	theme.stream = MusicBox.stream(found)
+	var variant: String = {"overwrite": "invert", "unseen": "reverse"}.get(chosen, "normal")
+	theme.stream = MusicBox.stream(Story.theme_level(chosen, found), variant)
 	theme.volume_db = -30.0
 	add_child(theme)
 	theme.play()
@@ -939,15 +949,55 @@ func win(chosen := "escape", message := 0) -> void:
 	await hud.cinematic("EPILOGUE", epilogue, Hud.SELF_COLOR, 1.0)
 	if not is_inside_tree():
 		return
-	var title: String = Story.ENDING_TITLES[chosen]
-	if chosen == "escape" and found >= Story.FRAGMENTS.size():
-		title = "SAVED TO SLOT 2 · %s" % Story.SECOND_PLAYER_NAME
-	var colors := {"escape": Color("8cf2ff"), "wren": Color("a8d890"), "message": Color("f0e0c8")}
 	hud.show_overlay(
-		title,
+		Story.ENDING_TITLES[chosen],
 		Story.ending_text(chosen, found) + "\n\n— end of the current build —\n\n[%s] title screen" % Settings.glyph("confirm"),
-		colors[chosen])
+		Story.ENDING_COLORS[chosen])
 	_win_card_shown = true
+
+
+## How each ending looks the moment you choose it.
+func _ending_visuals(chosen: String) -> void:
+	var flash := Settings.flash_scale()
+	match chosen:
+		"wren":
+			# She goes in; you stay.
+			fx.wash(Color("a8d890"), 0.6 * flash, 1.4)
+			fx.play_win()
+			if escort:
+				GlitchBurst.at(self, escort.global_position, Vector2(20, 30), 1.0)
+				escort.visible = false
+			Sfx.play("win", -2.0, 1.15, 0.0)
+		"message":
+			# Nobody goes in. The save stops fighting: the static freezes.
+			area.erasure.set_process(false)
+			fx.wash(Color("f0c890"), 0.45 * flash, 2.0)
+			fx.memory(true)
+			Sfx.play("fragment", 0.0, 0.8, 0.0)
+		"rue":
+			# Everything comes back at once: white, then your colours.
+			fx.wash(Color.WHITE, 0.9 * flash, 2.2)
+			fx.play_win()
+			player.dissolve("rescued")
+			Sfx.play("win", 0.0, 0.9, 0.0)
+			Sfx.play("glitch_learn", -4.0, 0.8, 0.0)
+		"unseen":
+			# You just... go. The picture greys and you fade out of it.
+			fx.wash(Color(0.25, 0.26, 0.3), 0.7, 3.0)
+			create_tween().tween_property(player, "modulate:a", 0.0, 2.5)
+			Sfx.play("unload", -4.0, 0.6, 0.0)
+		"overwrite":
+			# Red, loud, wrong.
+			fx.wash(Color("ff2040"), 0.8 * flash, 1.6)
+			fx.spike(1.0 * flash, 1.4)
+			fx.noise(1.0, 1.4)
+			fx.shake(6.0 * flash)
+			Sfx.play("death_selected", 0.0, 0.7, 0.0)
+			Sfx.play("purge_bell", 0.0, 0.8, 0.0)
+		_:
+			fx.play_win()
+			player.dissolve("rescued")
+			Sfx.play("win", 0.0, 1.0, 0.0)
 
 
 func _quit(to_title: bool = false) -> void:

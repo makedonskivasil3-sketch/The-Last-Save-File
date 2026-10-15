@@ -220,7 +220,8 @@ func record_quit() -> void:
 	_close_session("quit")
 
 
-## Reached Slot 2 and chose an ending ("escape", "wren" or "message").
+## Reached Slot 2 and chose an ending ("escape", "rue", "wren", "message",
+## or one of the hidden ones: "unseen", "overwrite").
 func record_win(ending := "escape") -> void:
 	if _session_closed:
 		return
@@ -231,6 +232,8 @@ func record_win(ending := "escape") -> void:
 	edge_mercy_used = false
 	edge_static_deaths = 0
 	# Taking the slot remembering everything is its own ending: RUE.
+	if ending == "rue" and "escape" not in endings_seen:
+		endings_seen.append("escape")  # RUE is also the slot, taken
 	if ending == "escape" and fragments.size() >= Story.FRAGMENTS.size() and "rue" not in endings_seen:
 		endings_seen.append("rue")
 	if ending == "message":

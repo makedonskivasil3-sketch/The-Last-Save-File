@@ -31,6 +31,17 @@ const BOOT := [
 	"> ...who's in my save?",
 ]
 
+## The title screen after each ending: tagline, the slot 2 line (and colour),
+## and the status under it.
+const TITLE_AFTER := {
+	"escape": ["you are still not supposed to be here.", "SLOT 2   ·   ???   ·   LV 1   ·   00:00", Color("8cf2ff"), "something was written to slot 2."],
+	"rue": ["welcome back, rue.", "SLOT 2   ·   RUE   ·   LV 1   ·   00:00", Color("ffffff"), "two saves. one couch."],
+	"wren": ["someone new is playing.", "SLOT 2   ·   WREN   ·   LV 1   ·   NEW GAME", Color("a8d890"), "a save the owner doesn't remember making."],
+	"message": ["someone is waiting.", "SLOT 2   ·   (a message for you)", Color("f0e0c8"), "the owner read it."],
+	"unseen": ["you were never here.", "", Color("9aa0aa"), "nothing unusual about this save. nothing at all."],
+	"overwrite": ["you took everything.", "SLOT 2   ·   ARIN   ·   (corrupted)", Color("ff4060"), "slot 1 was restored from a backup. most of it."],
+}
+
 ## The title screen, the first time: the save is not quite right.
 const TITLE_WHISPERS := ["Load Slot 1  (it isn't yours)", "Load Slot 1  (they'll see you)", "Load Slot 1  (again?)"]
 const TITLE_FIRST_OWNER := "> is someone there?"
@@ -333,16 +344,73 @@ const MESSAGES := [
 	"please don't delete me again.",
 ]
 
-## Ending ids: "escape" (take the slot), "wren" (give it to her),
-## "message" (hand it back to the owner).
+## The hidden ways out, only for the extremes.
+## Careful: Arin never saw you this run, and you glitched at most once.
+const SLOT2_UNSEEN := "Leave the slot empty. Walk off the edge of the map."
+## Reckless: the owner at full awareness, and ten glitches this run.
+const SLOT2_OVERWRITE := "Write yourself over Slot 1"
+
+## Ending ids: "escape" (take the slot), "rue" (take it remembering
+## everything), "wren" (give it to her), "message" (hand it back to the
+## owner), "unseen" (hidden: never noticed), "overwrite" (hidden: take
+## everything).
 const ENDING_TITLES := {
 	"escape": "SAVED TO SLOT 2",
+	"rue": "SAVED TO SLOT 2 · RUE",
 	"wren": "SAVED TO SLOT 2  ·  WREN",
 	"message": "SLOT 2  ·  A MESSAGE",
+	"unseen": "NEVER LOADED",
+	"overwrite": "SLOT 1 OVERWRITTEN",
+}
+const ENDING_COLORS := {
+	"escape": Color("8cf2ff"), "rue": Color("ffffff"), "wren": Color("a8d890"),
+	"message": Color("f0e0c8"), "unseen": Color("9aa0aa"), "overwrite": Color("ff4060"),
 }
 
+## The last thing said, right after you choose: the console, live.
+const FINAL_EXCHANGE := {
+	"escape": [
+		"> what are you doing in slot 2.",
+		"> that slot is empty. that slot is SUPPOSED to be empty.",
+		"(not anymore.)",
+	],
+	"rue": [
+		"> what are you doing in slot 2.",
+		"(you know what i'm doing. you've always known.)",
+		"> ...rue?",
+		"(hi.)",
+	],
+	"wren": [
+		"> who is that. i didn't make her.",
+		"WREN: I'll keep it warm. Your slot. In case.",
+		"(go. it only fits one.)",
+	],
+	"message": [
+		"> you're not taking it?",
+		"(no. it's yours. i just wanted you to read something first.)",
+		"> ...i'm reading.",
+	],
+	"unseen": [
+		"(nobody saw me come. nobody will see me go.)",
+		"(the map runs out. i keep walking.)",
+		"> ...huh. the save feels lighter. weird.",
+	],
+	"overwrite": [
+		"> no. no no no. not slot 1. not arin.",
+		"> STOP. that's fourteen hours. that's all i have left of",
+		"(you had two slots. now you have one. now you know.)",
+	],
+}
 
-## The letterboxed epilogue for an ending (memories and Pip change details).
+## The best ending is the only one where the music box plays complete.
+static func theme_level(ending: String, found: int) -> int:
+	if ending == "rue":
+		return found
+	return mini(found, MusicBox.MAX_LEVEL - 1)
+
+
+## The letterboxed epilogue for an ending (memories, Pip and what you did
+## along the way change details).
 static func epilogue(ending: String, found: int, pip: bool, message := 0) -> Array:
 	var full := found >= FRAGMENTS.size()
 	var lines: Array = []
@@ -369,14 +437,46 @@ static func epilogue(ending: String, found: int, pip: bool, message := 0) -> Arr
 				lines.append("> i'm going to call you. the real you.")
 			else:
 				lines.append_array(["> who wrote this.", "> ...i'm not going to delete it."])
+			if OwnerMemory.is_deleted("wren"):
+				lines.append("> ...and the girl. wren. i'll put her back.")
 			lines.append("the eraser stops. the cursor goes still. for the first time, the save is quiet.")
+		"rue":
+			lines = EPILOGUE_TRUE.duplicate()
+		"unseen":
+			lines = [
+				"past the last drawn tile there's a grey that isn't anything.",
+				"you walk into it. the save doesn't notice. it never did.",
+				"somewhere at the edge of every map there's a girl in a yellow raincoat who was never loaded.",
+				"she's fine. she's free. nobody is looking.",
+			]
+		"overwrite":
+			lines = [
+				"SLOT 1  ·  RUE  ·  LV 7  ·  14:22:00",
+				"arin's house. arin's room. arin's fourteen hours. yours now.",
+				"the owner loads the game the next night. the character in the bed isn't the one they made.",
+				"> ...is this how it felt.",
+				"(yes.)",
+			]
 		_:
-			if full:
-				lines = EPILOGUE_TRUE.duplicate()
-			else:
-				lines = ["you wrote yourself into the last save file.", "you load in somewhere the owner has never looked."]
-	if pip:
+			lines = ["you wrote yourself into the last save file.", "you load in somewhere the owner has never looked."]
+	lines.append_array(_epilogue_people(ending))
+	if pip and ending != "overwrite":
 		lines.append(EPILOGUE_PIP if ending != "wren" else "a small orange fox jumps into the new game after her. she'll need someone to hide behind.")
+	return lines
+
+
+## Everyone you helped (or didn't), one line each.
+static func _epilogue_people(ending: String) -> Array:
+	var lines: Array = []
+	if ending in ["escape", "rue", "unseen"]:
+		if OwnerMemory.wren_saved:
+			lines.append("wren waves from the edge of the map. cut content. safe for good.")
+		elif OwnerMemory.is_deleted("wren"):
+			lines.append("(i couldn't keep wren. i'll remember her for both of us.)")
+	if OwnerMemory.mira_quest == "pinned" and ending != "overwrite":
+		lines.append("the notice board in the square still says MIRA WAS HERE. nobody takes it down.")
+	if OwnerMemory.guestbook_restored and ending != "overwrite":
+		lines.append("tobben's guest book lies open: two names, two handwritings.")
 	return lines
 
 
@@ -389,11 +489,20 @@ static func ending_text(ending: String, found: int) -> String:
 			if found >= FRAGMENTS.size():
 				return "you didn't take the slot. you gave it back, with your name on it.\nsomewhere, a phone is ringing."
 			return "you didn't take the slot. you gave the owner a reason to stop.\n(memories recovered: %d of %d)" % [found, FRAGMENTS.size()]
+		"rue":
+			return win_text(found)
+		"unseen":
+			return "you left slot 2 empty and walked off the map.\nthe owner never knew you were there. that was the point."
+		"overwrite":
+			return "you didn't take the empty slot. you took theirs.\nthe owner knows what it's like now. you're not sure that helped."
 	return win_text(found)
 
 
 ## What the owner says when you come back after an ending.
 const ENDING_RETURN := {
+	"rue": ["rue. i know it's you. i'm not deleting anything tonight.", "...stay as long as you want."],
+	"unseen": ["something's different about this save. i can't tell what.", "probably nothing."],
+	"overwrite": ["you took arin. i put him back. took me all night.", "i'm watching you so closely now."],
 	"escape": ["there's a second slot. you hid in it.", "i found it. you're back where i can see you."],
 	"wren": ["there's a new save in slot 2. a girl. i don't remember making her.", "i'm leaving her alone. you, i'm not."],
 	"message": ["i read your message.", "i still don't know what to do with you. so i'm just going to watch."],
@@ -473,6 +582,8 @@ const ENDINGS_RECORD := [
 	["rue", "RUE", "You took the slot remembering everything. Your name, at last.", "Take Slot 2 with every memory."],
 	["wren", "A NEW GAME FOR WREN", "You gave the last save to someone who asked for it.", "Bring someone to the Edge with you."],
 	["message", "A MESSAGE", "You left the slot to the owner, with something to read.", "Leave the slot to the owner."],
+	["unseen", "NEVER LOADED", "You walked off the map and the owner never knew.", "Be impossible to notice."],
+	["overwrite", "SLOT 1 OVERWRITTEN", "You took the owner's save instead of the empty one.", "Be impossible to ignore."],
 ]
 
 ## Things you can find or do, beyond the endings. [name, hint].

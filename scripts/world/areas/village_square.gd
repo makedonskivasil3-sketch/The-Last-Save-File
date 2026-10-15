@@ -303,6 +303,7 @@ func _on_arin_sees(delta: float) -> void:
 	if _seen_for < SIGHT_GRACE:
 		return
 	world.director.add_awareness(SIGHT_RATE * delta)
+	world.flags["seen_by_arin"] = true
 	if not _spotted_once:
 		_spotted_once = true
 		Sfx.play("spotted")

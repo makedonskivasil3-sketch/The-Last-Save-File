@@ -13,7 +13,7 @@ func test_records_count_endings_including_rue() -> void:
 	m.begin_session()
 	m.record_win("escape")
 	check("rue" in m.endings_seen, "taking the slot with every memory is RUE")
-	check(RecordsPanel.progress_line().begins_with("ENDINGS 2/4"), RecordsPanel.progress_line())
+	check(RecordsPanel.progress_line().begins_with("ENDINGS 2/6"), RecordsPanel.progress_line())
 	check(RecordsPanel.progress_line().contains("MEMORIES 5/5"), "memories counted")
 
 
@@ -80,7 +80,7 @@ func test_title_shows_records() -> void:
 	m.save_memory()
 	tree.change_scene_to_file("res://scenes/title.tscn")
 	await frames(5)
-	check(_text().contains("ENDINGS 1/4"), "the save card shows progress")
+	check(_text().contains("ENDINGS 1/6"), "the save card shows progress")
 	var title := scene()
 	title._show_records()
 	await frames(2)

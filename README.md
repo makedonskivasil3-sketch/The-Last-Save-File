@@ -186,25 +186,49 @@ owner saving over you, the cursor's click, the static) and gives one yellow **TI
 try next time. Once you have the glitch that answers that death, the tip names it instead
 (`Story.DEATHS`).
 
-## Wren, and the three endings
+## Side stories, and the endings
 
 **Wren's escort.** Talk to Wren a few times and she asks to see the Edge before they delete her. A
 choice: take her or not. Escorting her is risky: she's slow (she walks your exact footsteps at 2/3 your
 speed), you can't leave an area until she catches up, Arin seeing her raises awareness, the owner
 notices you faster, and from 40% on the owner tries to delete her (a red ring over her; any glitch
-interrupts it). Lose her and she's gone for good. Get her to the Edge and she has her moment there:
-she's logged as *cut content*, and the owner can never delete her again, in any future run.
+interrupts it). Lose her and she's gone for good, with half a sentence ("you said you'd—"). Get her to
+the Edge and she has her moment there: she's *cut content*, safe in every future run, and she'll
+still come along again so her ending stays possible.
 
-**Slot 2.** When Rue finishes writing herself into Slot 2, the world freezes and you choose:
+**Mira's note.** After a couple of talks Mira asks you to pin a note to the square's notice board
+("the owner reads the board"). Pinned, it says MIRA WAS HERE every run after, and the owner notices.
+Die or quit while carrying it and the owner finds it on you: it ends up in the Recycle Bin.
 
-| Choice | Ending |
-| --- | --- |
-| **Write yourself in** (*Write RUE* once you remember) | Escape. With all five memories: the load menu, the owner's cursor hovering over `SLOT 2 · RUE`, and LOAD. Title: `SLOT 2 · RUE`. |
-| **Give Slot 2 to Wren** (only if she's with you) | She gets a new game; Rue stays behind (and Pip goes with her). Title: `SLOT 2 · WREN · NEW GAME`. |
-| **Leave the slot to the owner, with a message** (pick one of three) | The owner reads it and answers (differently by memories and message). The purge resets and everyone deleted comes back. Title: *"someone is waiting."* |
+**Tobben's guest book.** With the torn page from the Recycle Bin, Tobben lets you write RUE back into
+his book: a quiet moment the owner notices, and Tobben reads two names every morning after.
 
-Each ending has its own epilogue, end card, title-screen aftermath, and what the owner says next time.
-The full text is in [docs/STORY_SCRIPT.md](docs/STORY_SCRIPT.md).
+**Pip** knows you as well as you know yourself: the first talk each run changes with your memories,
+up to the old name tag (PIP · RUE'S · LV 31).
+
+**The owner, between runs.** From the second run the owner leaves a note at the start of every run,
+in order: eight pages that tell their side of it (the couch at mum's, the move, the two visits, the
+save kept for two years, the night they deleted it "for space", the unanswered "still have my save?",
+why). Each adds a line about how you played last time. The Archive keeps the pages you've read; the
+Recycle Bin keeps the reply they never sent. After two real memories, the owner plants a **false
+one** in the square ("YOU LEFT FIRST": a shade too warm, its edges flicker red): it plays the theme
+upside down, doesn't count, and costs you.
+
+**Slot 2.** When Rue finishes writing herself in, the world freezes and the owner goes over every
+run (how often they deleted you, reloaded you, Wren, Mira's note, the guest book). Then you choose:
+
+| Choice | Ending | Title afterwards |
+| --- | --- | --- |
+| **Write yourself in** | SAVED TO SLOT 2 | *you are still not supposed to be here.* |
+| **Write RUE** (all five memories) | RUE: the only ending where the music box plays complete | *welcome back, rue.* · `SLOT 2 · RUE` |
+| **Give Slot 2 to Wren** (if she's with you) | She gets a new game; you stay | *someone new is playing.* |
+| **Leave the slot to the owner, with a message** | The owner reads it and answers; the purge resets, everyone comes back | *someone is waiting.* |
+| *Hidden:* **Walk off the edge of the map** (Arin never saw you this run, at most one glitch) | NEVER LOADED | *you were never here.* |
+| *Hidden:* **Write yourself over Slot 1** (the owner at 100%, ten glitches this run) | SLOT 1 OVERWRITTEN | *you took everything.* |
+
+Each has its own last exchange on the console, look (white bloom, green, amber with the static
+frozen, grey fade, red), epilogue (which remembers Wren, Mira's note and the guest book), end card,
+title-screen aftermath and what the owner says next run. Full text: [docs/STORY_SCRIPT.md](docs/STORY_SCRIPT.md).
 
 ## Records, and a world that remembers
 
@@ -213,9 +237,9 @@ named once you've found it and hinted at while you haven't, plus what the owner 
 (runs, deaths, quits, escapes, and what got you most often). The save card shows the short
 version: `ENDINGS 1/4 · MEMORIES 2/5 · SECRETS 1/4`.
 
-| Endings (4) | Secrets (5) |
+| Endings (6) | Secrets (5) |
 | --- | --- |
-| Saved to Slot 2 · **RUE** (take the slot with every memory) · A new game for Wren · A message | Pip · the Archivist · Wren saw the Edge · Undeleted (bring someone back) · the guest book page |
+| Saved to Slot 2 · **RUE** (take the slot with every memory) · A new game for Wren · A message · two hidden ones | Pip · the Archivist · Wren saw the Edge · Undeleted (bring someone back) · the guest book page |
 
 **Lines that change with your last run.** The owner's opening line names what got you last
 time; the room's note does too (or reacts to the ending you chose); and the first time you talk
@@ -560,6 +584,9 @@ tests/run.sh --bots --speed=2 --filter=purge_3
 | `test_records.gd` | Endings (including RUE) and death causes are recorded and survive a reload; the owner and the note recall how you died; Mira and Tobben remember your last runs, once a session; nothing on a first run; the title's progress line and Records screen |
 | `test_bin.gd` | The Archive's door to the bin; restoring Wren from her file (and pausing when you step away); the sweep deleting you in the open, a system file's shadow keeping you safe, a sweep resetting an unfinished restore; PAUSE stopping the bin; the guest book page and Tobben remembering |
 | `test_edge.gd` | The Edge's grace and countdown, the gentler static (and its floor), no traps where you died, longer grace after static deaths, the one forgiven Edge death and what the death card says |
+| `test_phase2.gd` | Death cards by cause, place and repetition; glitch scars and the owner losing patience; THE PRICE tip; the title whispering on first launch; the owner's notes in the Records |
+| `test_story_deep.gd` | The owner's notes (one a run, reacting to how you played, kept in the Archive); the Slot 2 recap; the false memory; the unsent draft |
+| `test_side_stories.gd` | Mira's note pinned (and lost); Tobben's guest book; Pip knowing you; Wren's last words |
 | `test_touch.gd` | Phone controls with real touch events: dragging walks, the E button talks, the II button pauses |
 | `test_expansion.gd` | The well, Out of Bounds (cooling, falling back, anchors and streaming floor), finding Pip and Pip staying, Pip leading the way, act cards, focus brackets, the map, the epilogue |
 | `test_onboarding.gd` | Tips appear in order and only once, can be turned off and replayed; the HIDDEN status; large text; the pause menu's goal |
