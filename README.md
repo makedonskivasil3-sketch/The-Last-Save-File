@@ -569,6 +569,9 @@ the web deploy.
 tests/run.sh                         # everything (uses `godot` on PATH)
 GODOT=/path/to/godot tests/run.sh    # a specific Godot 4.3 binary
 tests/run.sh --filter=story          # only files/methods matching "story"
+# The visual tour: every area and key moment as a screenshot, plus frame times
+# (compare before/after a visual change; see docs/CREATIVE_AUDIT.md §F):
+#   xvfb-run -a -s "-screen 0 1280x720x24" $GODOT --path . -s res://tests/run_tests.gd -- --test-mode --tour --screenshots=/tmp/tour
 # Screenshots of the effects (needs a display, so not headless):
 godot --path . -s res://tests/run_tests.gd -- --test-mode --screenshots=/tmp/shots
 ```
@@ -602,6 +605,7 @@ tests/run.sh --bots --speed=2 --filter=purge_3
 | `test_wren.gd` | Wren asks, comes along and follows; declining; the leash; reaching the Edge saves her for good; the owner deleting her; a glitch saving her |
 | `test_save_safety.gd` | Saves are versioned and backed up; a half-written save recovers from the backup (and the damaged file is kept); wrong-typed values fall back instead of stopping the load; unversioned saves still load; a reset removes the backup |
 | `test_owner_fixes.gd` | The idle save-over (only in the open, only after the owner's warning); closets count as hiding everywhere; no doorways mid-reload; PAUSE carries through a doorway |
+| `test_art.gd` | The frozen afternoon: Arin's room's sunbeam drains as the owner watches, follows awareness, stutters on a reload |
 | `test_house.gd` | UNLOCK on Arin's front door and walking in; the way back out; the second controller (secret, Slot 2 recap, survives a reload); closets hide you while Arin comes home; Arin catches you in the open |
 | `test_polish.gd` | How to Play from the title; the title menu driven by a gamepad (d-pad, B); rumble on a gamepad only with Vibration on |
 | `test_endings.gd` | The Slot 2 choice (two or three options), the escape, Wren and message endings, and the title aftermath |
@@ -668,6 +672,7 @@ scripts/
   world/bin_file.gd            A deleted character's file (stand beside it to restore)
   world/areas/arins_house.gd   Arin's house: the couch, the closets, Arin coming home
   ui/how_to_play_panel.gd      The title's How to Play page (controls for your device)
+  fx/sun_beam.gd               The frozen afternoon: window light that drains as the owner watches
   ui/perf_overlay.gd           Debug: frame times in the corner (F3)
   ui/records_panel.gd          The title's Records: endings, memories, secrets, the owner's counts
   player/glitch.gd             The glitches: costs, hold times, unlocks, the owner's reactions

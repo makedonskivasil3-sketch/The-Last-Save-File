@@ -238,7 +238,9 @@ func _send_arin() -> void:
 	arin.player = world.player
 	arin.is_hidden = world.is_player_hidden
 	arin.touched_player.connect(func() -> void: world.kill("overwritten", "arin"))
-	arin.sees_player.connect(func(d: float) -> void: world.director.add_awareness(12.0 * d))
+	arin.sees_player.connect(func(d: float) -> void:
+		world.director.add_awareness(12.0 * d)
+		world.flags["seen_by_arin"] = true)  # no "unseen" ending once Arin has seen you, here too
 	arin.lure = world.lure_point
 	add_child(arin)
 	world.director.say(Story.FINAL_FIGHT.arin)

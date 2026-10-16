@@ -11,6 +11,8 @@ const SAVE_POS := Vector2(420, 236)
 const BED := Rect2(470, 44, 58, 32)
 const TABLE := Rect2(116, 216, 36, 22)
 const RUG := Rect2(256, 130, 128, 80)
+## The window in the top wall: the afternoon comes in here (SunBeam).
+const WINDOW := Rect2(196, 28, 52, 8)
 ## Gaps in the walls. Each one you use gets patched once the owner catches you.
 const SEAM_SPOTS: Array[Rect2] = [
 	Rect2(88, 170, 12, 22),
@@ -67,8 +69,14 @@ func _init() -> void:
 	entries = {"start": Vector2(320, 270)}
 
 
+var sun: SunBeam
+
+
 func build() -> void:
 	setup_common()
+	sun = SunBeam.new()
+	sun.window = WINDOW
+	add_child(sun)
 	add_boundary([{"side": "top", "from": DOOR_RECT.position.x, "to": DOOR_RECT.end.x}])
 	add_solid(BED)
 	add_solid(TABLE)
@@ -267,12 +275,30 @@ func _build_purged_extras() -> void:
 func _draw() -> void:
 	var r := bounds
 	draw_rect(r, FLOOR)
+	# Floorboards: a seam every 12 px, and the joints between boards staggered.
 	var y := r.position.y + 12.0
+	var row := 0
 	while y < r.end.y:
 		draw_line(Vector2(r.position.x, y), Vector2(r.end.x, y), FLOOR_LINE)
+		var x := r.position.x + float((row * 37) % 70) + 20.0
+		while x < r.end.x:
+			draw_line(Vector2(x, y - 12.0), Vector2(x, y), FLOOR_LINE)
+			x += 70.0 + float((row * 13) % 30)
 		y += 12.0
+		row += 1
+	# Contact shadows: things stand on the floor instead of floating over it.
+	for prop in [BED, TABLE]:
+		draw_rect(Rect2(prop.position + Vector2(2, 3), prop.size), Color(0, 0, 0, 0.28))
 	draw_rect(RUG, RUG_COL)
 	draw_rect(RUG.grow(-4), Color(RUG_COL.lightened(0.08)), false, 1.0)
+	# A worn pattern in the rug: diamonds down the middle, a fringe at the ends.
+	for i in 5:
+		var c := Vector2(RUG.position.x + 20.0 + i * 22.0, RUG.get_center().y)
+		draw_colored_polygon(PackedVector2Array([c + Vector2(0, -6), c + Vector2(6, 0), c + Vector2(0, 6), c + Vector2(-6, 0)]),
+			Color(RUG_COL.lightened(0.12), 0.6))
+	for x in range(int(RUG.position.x) + 2, int(RUG.end.x), 4):
+		draw_line(Vector2(x, RUG.position.y - 2), Vector2(x, RUG.position.y), Color(RUG_COL.lightened(0.1), 0.7))
+		draw_line(Vector2(x, RUG.end.y), Vector2(x, RUG.end.y + 2), Color(RUG_COL.lightened(0.1), 0.7))
 	draw_rect(BED, WOOD)
 	draw_rect(Rect2(BED.position + Vector2(3, 3), BED.size - Vector2(6, 6)), SHEET)
 	draw_rect(Rect2(BED.position + Vector2(BED.size.x - 15, 5), Vector2(10, BED.size.y - 10)), Color("c8b8a0"))

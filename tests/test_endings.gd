@@ -150,3 +150,23 @@ func test_the_epilogue_remembers_who_you_helped() -> void:
 	check(lines.contains("wren waves"), "Wren, safe")
 	check(lines.contains("MIRA WAS HERE"), "Mira's note")
 	check(lines.contains("two names"), "the guest book")
+
+
+func test_after_the_unseen_ending_the_note_knows_nothing() -> void:
+	var m := memory()
+	m.sessions = 2
+	m.wins = 1
+	m.last_exit = "win"
+	m.last_ending = "unseen"
+	var w := await start_session()
+	check(not w.area.note.text.contains("SLOT 2"), "the owner never knew, so the note doesn't either (%s)" % w.area.note.text)
+
+
+func test_arin_at_the_edge_counts_as_being_seen() -> void:
+	var w := await start_session()
+	w.flags["pointer"] = true
+	await go_to(w, "edge", "south")
+	w.area._send_arin()
+	w.area.arin.sees_player.emit(0.1)
+	check(w.flags.get("seen_by_arin", false), "Arin saw you at the Edge")
+	check(not w.is_unseen_run(), "so this run isn't unseen")

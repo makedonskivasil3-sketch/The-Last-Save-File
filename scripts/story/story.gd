@@ -571,6 +571,9 @@ const NOTE_RECALL := {
 	"cursor": "I CLICKED.\nYOU WERE GONE.",
 	"wren": "WHO IS WREN?\nI DIDN'T MAKE HER.",
 	"message": "I READ IT.\n...THANK YOU?",
+	# The unseen ending: the owner never knew you were there, so the note
+	# doesn't either. Nothing in the save remembers you.
+	"unseen": "Welcome home, Arin.\nDon't forget to save!",
 }
 
 

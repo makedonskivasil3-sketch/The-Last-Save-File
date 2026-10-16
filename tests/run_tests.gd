@@ -10,6 +10,11 @@ extends SceneTree
 ##                                              slow, not part of the normal run
 ##   ... -- --test-mode --bots --speed=3         bots at 3x game speed
 ##
+##   ... -- --test-mode --tour --screenshots=DIR  the visual tour (tests/tour_*.gd):
+##                                              every area and key moment as a
+##                                              screenshot, plus frame times
+##                                              (needs a display: xvfb-run)
+##
 ## Use tests/run.sh rather than calling this directly: it also fails the run
 ## if Godot printed any SCRIPT ERROR, which the runner itself can't observe.
 
@@ -43,6 +48,8 @@ func _run() -> void:
 		elif arg == "--bots":
 			prefix = "bot_"
 			_timeout = BOT_TIMEOUT
+		elif arg == "--tour":
+			prefix = "tour_"
 		elif arg.begins_with("--speed="):
 			Engine.time_scale = clampf(float(arg.trim_prefix("--speed=")), 0.25, 8.0)
 
