@@ -161,7 +161,10 @@ func _process(delta: float) -> void:
 func _update_fight(delta: float) -> void:
 	match fight:
 		"":
-			if slot.progress >= FIGHT_AT and not slot._done:
+			# Not while the cursor is already on you: lure it away first still
+			# matters (it clicks you instead).
+			if slot.progress >= FIGHT_AT and not slot._done \
+					and cursor.global_position.distance_to(world.player.global_position) > 40.0:
 				fight = "reach"
 				cursor.paused = true
 				world.director.say(Story.FINAL_FIGHT.notice)
