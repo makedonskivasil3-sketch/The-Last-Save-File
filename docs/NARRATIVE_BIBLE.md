@@ -362,7 +362,7 @@ Side effects: message resets purge to 0 and clears `npc_fates` (OM:243-246). Onl
 
 ## 10. Contradictions, dead branches, repetition (each verified by grep)
 
-### 10.1 Does the owner know Slot 2 exists? (major)
+### 10.1 Does the owner know Slot 2 exists? (major) — RESOLVED 2026-10-16: the cut-content ghost (NARRATIVE_DECISIONS.md)
 - Says **no**: Archivist "a slot the owner never used" archive.gd:104; THE OWNER book "They don't know there's a second slot. If they find out, they'll delete that too." archive.gd:168; final fight "what is SLOT 2" S:166; escape win text "the owner doesn't know this slot exists. not yet." S:773; code comment the_edge.gd:104.
 - Says **yes**: owner deleted slot 2 themself S:141, S:181; BOOT shows "PLAYER 2 . . . [deleted]" S:27; "you're looking for slot 2. it isn't there. i made sure." S:207.
 - CUT CONTENT says slot 2 was cut before ship ("players never use the second one") archive.gd:154, yet Rue made a character there (S:116).
@@ -374,13 +374,13 @@ Side effects: message resets purge to 0 and clears `npc_fates` (OM:243-246). Onl
 - Side effect: **quitting** while escorting Mira does not set "lost" (only `kill` does, W:890-891), contrary to S:303. (She is still deleted via `session_helpers`, OM:486-487.)
 - MIRA_NOTE_LOST says "the owner found it on you" (S:314) and Mira says "they found it on you" (S:591), but in the live flow Mira carries the note herself (S:289-292).
 
-### 10.3 Backstory timing
+### 10.3 Backstory timing — RESOLVED 2026-10-16 for the message/deletion order (message months later, deleted that same night); the hours/levels question (§11.9) stays open
 - "i kept her save for two years" S:180 vs Fragment 5 "a message, months later" followed by deletion (S:139-141) and the draft deleted "the same night as slot2.sav" (recycle_bin.gd:194).
 - Note 6 "i didn't answer. i'd already deleted it." S:182 vs the draft "yes i still have your sa" (recycle_bin.gd:195) and Fragment 5's order (message, then delete).
 - Rue LV 31 / 41 h (recycle_bin.gd:175) vs Arin LV 7 / 14 h, "fourteen hours... all i have left" (S:24, 443; archive.gd:165) although the owner kept playing for years (S:180).
 - LAST PLAYED "the night before the move" (recycle_bin.gd:175) vs "i came back twice" (S:132) — possible, but the visits never played.
 
-### 10.4 Fragment 1 speaker
+### 10.4 Fragment 1 speaker — RESOLVED 2026-10-16: Rue says both lines
 "\"you be arin,\" they said. \"i'll make my own.\"" (S:95) attributes both clauses to "they" — that would make *the other person* the slot-2 maker, inverting roles. Same in SS:90.
 
 ### 10.5 Pronouns

@@ -7,6 +7,10 @@ signal quit_requested(to_title: bool)
 ## A debug tool was picked (World.debug()).
 signal debug_requested(action: String)
 
+## The playtest log page (PlaytestLog, only with ?playtest=1 / --playtest).
+var _log_box: VBoxContainer
+var _log_text: Label
+var _log_back: Button
 var _root: Control
 var _main: VBoxContainer
 var _confirm: VBoxContainer
@@ -52,6 +56,8 @@ func _ready() -> void:
 	UiStyle.button(_main, "Map", _show_map)
 	_debug_button = UiStyle.button(_main, "Debug", func() -> void: _show_only(_debug_box); (_debug_box.get_child(1) as Button).grab_focus())
 	UiStyle.button(_main, "Settings", _show_settings)
+	if PlaytestLog.enabled():
+		UiStyle.button(_main, "Playtest log", _show_playtest_log)
 	UiStyle.button(_main, "Quit to title", _ask_quit.bind(true))
 	UiStyle.button(_main, "Quit game", _ask_quit.bind(false))
 
@@ -60,6 +66,17 @@ func _ready() -> void:
 	_confirm_label = UiStyle.note(_confirm, "", UiStyle.TEXT)
 	UiStyle.button(_confirm, "Stay", _show_main, "ui_back")
 	UiStyle.button(_confirm, "Quit anyway", _do_quit)
+
+	_log_box = UiStyle.centered_panel(_root, 460)
+	UiStyle.heading(_log_box, "PLAYTEST LOG", UiStyle.TEXT, 14)
+	var log_scroll := ScrollContainer.new()
+	log_scroll.custom_minimum_size = Vector2(440, 200)
+	_log_box.add_child(log_scroll)
+	_log_text = UiStyle.note(log_scroll, "", UiStyle.TEXT)
+	_log_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_log_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UiStyle.button(_log_box, "Copy to clipboard", func() -> void: DisplayServer.clipboard_set("\n".join(PlaytestLog.lines)))
+	_log_back = UiStyle.button(_log_box, "Back", _show_main, "ui_back")
 
 	_map_box = UiStyle.centered_panel(_root, 420)
 	UiStyle.heading(_map_box, "MAP", UiStyle.TEXT, 14)
@@ -104,15 +121,21 @@ func _unhandled_input(event: InputEvent) -> void:
 		return  # the settings panel handles its own back
 	if event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
-		if _panel_of(_confirm).visible or _panel_of(_map_box).visible or _panel_of(_debug_box).visible:
+		if _panel_of(_confirm).visible or _panel_of(_map_box).visible or _panel_of(_debug_box).visible or _panel_of(_log_box).visible:
 			_show_main()
 		else:
 			close()
 
 
 func _show_only(box: VBoxContainer) -> void:
-	for b in [_main, _confirm, _settings_box, _map_box, _debug_box]:
+	for b in [_main, _confirm, _settings_box, _map_box, _debug_box, _log_box]:
 		_panel_of(b).visible = b == box
+
+
+func _show_playtest_log() -> void:
+	_log_text.text = "\n".join(PlaytestLog.lines) if not PlaytestLog.lines.is_empty() else "(nothing yet)"
+	_show_only(_log_box)
+	_log_back.grab_focus()
 
 
 func _show_main() -> void:

@@ -76,9 +76,9 @@ Each row gives the reproduction, expected and actual behaviour, the fix and its 
 | 21 | S2 | Console, `hud.gd:722,756` (UX C5) | Long lines are cut off with an ellipsis and there's no backlog | Readable | Wrap and keep a short backlog | — | No | **Next** |
 | 22 | S3 | Screen shake (UX C10) | No separate toggle; only glitch intensity | A shake toggle | `Settings.screen_shake` | — | No | **Next** |
 | 23 | S3 | Choices, `hud.gd` (UX C13) | W/S don't move the choice focus | Movement keys navigate | Map `move_*` to choice focus | — | No | **Next** |
-| 24 | S2 | Web tab close (BAL 5) | **Unverified.** The close request probably isn't sent, so the next launch counts it as a crash (+1 purge) | Decided by the author | Needs a real-browser test, then the author's call (deliberate quit vs interruption) | — | Save/rules | **Author decision** |
+| 24 | S2 | Web tab close (BAL 5) | **Verified in Chromium:** the next launch counts it as a quit (+1 purge) | Author: count it, but warn | `beforeunload` "Leave site?" during a run; How to Play says so | `tests/web/web_check.cjs` (asks first: true) | Rules unchanged | **Fixed** |
 | 25 | S3 | Act order (UX C4, MAP) | The archive is ACT IV but usually reached before OOB (ACT III) | Matches the guided order | Renumbering touches presentation | — | Canon? | **Author decision** |
-| 26 | — | Three narrative questions | See `NARRATIVE_DECISIONS.md` | — | — | — | Canon | **Author decision** |
+| 26 | — | Three narrative questions | See `NARRATIVE_DECISIONS.md` | Author decided 2026-10-16 | Lines rewritten as decided | `tests/test_canon.gd` | Canon (approved) | **Done** |
 
 The remaining confirmed findings and hypotheses are in each doc's issue list:
 - `UX_AUDIT.md`: C6, C7, C9, C11–C16.

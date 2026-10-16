@@ -1,6 +1,13 @@
-# Narrative decisions waiting on the author
+# Narrative decisions
 
-**Nothing in this file has been decided.** It lists, for each of the three open questions, every line and system that depends on the answer, so that once the author decides, all the edits can be made in one consistent pass.
+> **DECIDED by the author on 2026-10-16, and applied:**
+> 1. **Cut-content ghost.** The owner deleted Slot 2 and knows it. What Rue finds at the Edge is the slot's ghost, kept with the cut content, and the owner doesn't know *that* survived. Changed: Archivist (`archive.gd:104`, `:154`, `:168`), the final fight's notice (`FINAL_FIGHT.notice`), the escape text (`win_text`), and an Edge comment.
+> 2. **Message, then delete.** The message came months after the move. The owner started typing "yes", then deleted Slot 2 that same night and sent nothing. Changed: owner notes 4 ("for months") and 6.
+> 3. **Rue says both lines** in Fragment 1: `"you be arin," i said. "i'll make my own."`.
+>
+> `STORY_SCRIPT.md` is updated to match, and `tests/test_canon.gd` keeps these lines from drifting back. The text below is the pre-decision impact report, kept for reference.
+
+**Before the decision:** nothing in this file had been decided. It lists, for each of the three open questions, every line and system that depends on the answer, so that once the author decides, all the edits can be made in one consistent pass.
 
 Line numbers are from commit `fb1ffc9`. `S:` means `scripts/story/story.gd`. The background is in `NARRATIVE_BIBLE.md` §10–§11.
 

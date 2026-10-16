@@ -223,6 +223,8 @@ func _blocker(q: Vector2) -> Object:
 # --- firing --------------------------------------------------------------------------
 
 func _fire(t: Dictionary) -> void:
+	PlaytestLog.mark("glitch", str(t.id))
+	PlaytestLog.mark("FIRST GLITCH", str(t.id), true)
 	var id: String = t.id
 	var node: Variant = t.get("node")
 	var pos: Vector2 = t.pos

@@ -12,7 +12,7 @@ const SECTIONS := [
 	["THE OWNER", "The bar at the top is how aware of you the owner is. It fills when Arin sees you, when you touch things you shouldn't, and every time you glitch. As it climbs, the owner locks doors, reloads saves, sends the cursor and the eraser."],
 	["HIDING", "Stay out of Arin's light cone. Some people will hide you if you stand right beside them, and closets work too. The owner slowly loses track, but never forgets what they've already done."],
 	["GLITCHES", "Hold interact on whatever's in the pink brackets to corrupt it: open a locked door, walk through a thin wall, freeze someone. Each glitch costs awareness. Memories you recover unlock more."],
-	["DYING", "If the owner catches you, the run ends. Next run, the world remembers: who helped you, how you died, what you found. Quitting counts too."],
+	["DYING", "If the owner catches you, the run ends. Next run, the world remembers: who helped you, how you died, what you found. Quitting counts too: in a browser, closing the tab mid-run is quitting (it asks first)."],
 	["PEOPLE", "Talk to everyone more than once. Some of them want something. Some of them want to come with you."],
 ]
 

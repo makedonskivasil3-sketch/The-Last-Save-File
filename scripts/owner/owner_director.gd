@@ -190,6 +190,7 @@ func _check_thresholds() -> void:
 		if awareness < t or _fired.has(t):
 			continue
 		_fired[t] = true
+		PlaytestLog.mark("owner threshold", ["NOTICE", "SUSPECT", "CONTAIN", "SILENCE", "HUNT", "PURGE"][THRESHOLDS.find(t)])
 		_owner_line(t)
 		_world.fx.threshold_pulse(t / 100.0)
 		# A stinger that hits harder the closer the owner gets.

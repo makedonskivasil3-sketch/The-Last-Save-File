@@ -149,6 +149,7 @@ func begin_session() -> String:
 	session_spots.clear()
 	_session_closed = false
 	save_memory()
+	_leave_guard(true)
 	return previous
 
 
@@ -249,6 +250,7 @@ func record_win(ending := "escape") -> void:
 
 ## Debug / "new game": forget everything the owner learned.
 func wipe() -> void:
+	_leave_guard(false)
 	sessions = 0
 	deaths = 0
 	quits = 0
@@ -493,6 +495,25 @@ func _close_session(how: String) -> void:
 	last_exit = how
 	_session_closed = true
 	save_memory()
+	_leave_guard(false)
+
+
+## Web: closing the tab mid-run counts as quitting (the next visit finds the
+## session still "active"), so while a run is open the browser asks first
+## ("Leave site?"). The author's rule: count it, but warn. Desktop builds get
+## a close request instead (record_quit), so this is web-only.
+static func _leave_guard(on: bool) -> void:
+	if not OS.has_feature("web"):
+		return
+	JavaScriptBridge.eval("""
+		if (!window.__tlsfGuard) {
+			window.__tlsfGuard = true;
+			window.addEventListener('beforeunload', function (e) {
+				if (window.__tlsfRunning) { e.preventDefault(); e.returnValue = ''; }
+			});
+		}
+		window.__tlsfRunning = %s;
+	""" % ("true" if on else "false"), true)
 
 
 func _register_input() -> void:

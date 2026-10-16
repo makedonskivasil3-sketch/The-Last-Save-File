@@ -109,6 +109,7 @@ func _ready() -> void:
 ## Waking up: the very first time, the save boots and flags you; every time,
 ## you assemble out of pixels before the owner starts watching.
 func _begin_session(previous: String) -> void:
+	PlaytestLog.mark("session %d started" % OwnerMemory.sessions, "purge %d/%d, last exit: %s" % [OwnerMemory.purge, OwnerMemory.MAX_PURGE, previous])
 	_cutscene = true
 	player.frozen = true
 	if OwnerMemory.sessions == 1 and previous == "none":
@@ -150,6 +151,7 @@ func voice(key: String) -> void:
 
 ## Touching a memory fragment: the world stops while you remember.
 func recover_fragment(m: MemoryFragment) -> void:
+	PlaytestLog.mark("memory touched", m.fragment_id + (" (the planted one)" if m.planted else ""))
 	if ending != "" or _cutscene or _transitioning:
 		return
 	var planted := m.fragment_id == Story.FALSE_FRAGMENT.id
@@ -235,6 +237,8 @@ func _process(delta: float) -> void:
 		if node is Npc:
 			node.talking = node == _talking_to and hud.is_dialogue_open()
 	player.instability = director.awareness / 100.0
+	if player.velocity.length() > 1.0:
+		PlaytestLog.mark("first movement", "", true)
 	var cursor: Variant = area.get("cursor")
 	var watcher: Variant = area.get("arin")
 	player.set_targeted((cursor is OwnerCursor and cursor.is_selecting()) or (watcher is OwnerAvatar and watcher.is_seeing()))
@@ -315,6 +319,9 @@ func change_area(id: String, arrival: String) -> void:
 		return
 	# Decided before _load_area, which marks the area visited.
 	var first := not _visited.has(id)
+	PlaytestLog.mark("entered %s" % id, "first time" if first else "")
+	if id != "room":
+		PlaytestLog.mark("FIRST TIME OUT OF ARIN'S ROOM", "into %s" % id, true)
 	_load_area(_make_area(id), arrival)
 	director.on_area_entered(area, first)
 	_visited[id] = true
@@ -908,6 +915,7 @@ func _interact(node: Node2D) -> void:
 func kill(cause: String, reason := "") -> void:
 	if ending != "" or _transitioning:
 		return
+	PlaytestLog.mark("DIED", "%s (%s) in %s, awareness %d" % [reason, cause, area.area_id, int(director.awareness)])
 	ending = "death"
 	player.frozen = true
 	director.stop()
@@ -1017,6 +1025,7 @@ func reach_slot2() -> void:
 ## An ending: "escape" (Rue takes Slot 2), "wren" (Wren gets it), or
 ## "message" (the slot goes back to the owner, with one of Story.MESSAGES).
 func win(chosen := "escape", message := 0) -> void:
+	PlaytestLog.mark("ENDING", chosen)
 	if ending != "":
 		return
 	# Taking the slot remembering everything is RUE.
@@ -1113,6 +1122,7 @@ func _ending_visuals(chosen: String) -> void:
 
 
 func _quit(to_title: bool = false) -> void:
+	PlaytestLog.mark("QUIT from the pause menu", "to title" if to_title else "closed the game")
 	ending = "quit"
 	player.frozen = true
 	director.stop()

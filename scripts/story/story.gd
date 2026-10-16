@@ -92,7 +92,7 @@ const FRAGMENTS := [
 		"lines": [
 			"a second controller, the cable taped where the dog chewed it.",
 			"two people on one couch. one screen. one save. crisps in the cushions.",
-			"\"you be arin,\" they said. \"i'll make my own.\"",
+			"\"you be arin,\" i said. \"i'll make my own.\"",
 			"[the rest of the evening is too bright to look at]",
 		],
 		"after": "i was here before. not in this room. in front of it.",
@@ -163,7 +163,7 @@ const FALSE_FRAGMENT := {
 
 ## The final confrontation: the owner sees Slot 2 for the first time.
 const FINAL_FIGHT := {
-	"notice": "> what's that. what is SLOT 2. that's not yours.",
+	"notice": "> what's that. SLOT 2? i deleted that.",
 	"grab": "> mine.",
 	"dropped": "> let GO of it—",
 	"placed": "> there. come and get it.",
@@ -177,9 +177,9 @@ const OWNER_NOTES := [
 	"there's something in arin's room again. i'm not imagining it.",
 	"we used to play this on the couch at mum's. two controllers. i don't know why i'm writing that down.",
 	"she moved in the summer. said she'd visit every weekend. she came twice.",
-	"i kept her save for two years. i'd walk arin past the spot where her character used to stand.",
+	"i kept her save for months. i'd walk arin past the spot where her character used to stand.",
 	"the night i deleted slot 2 i told myself it was for space. the card wasn't even half full.",
-	"she sent a message once. 'still have my save?' i didn't answer. i'd already deleted it. i couldn't say so.",
+	"she sent a message once. 'still have my save?' i started typing yes. that same night i deleted it instead, and never sent anything.",
 	"i didn't delete her because i hated her. i deleted her because the empty slot was easier than the waiting.",
 	"if that's you in there, i don't know what i want. i want you gone. i want you to stay.",
 ]
@@ -806,4 +806,4 @@ static func win_text(found: int) -> String:
 		return "slot 2 was yours. it always was.\nyou remember your name now. RUE.\nsomewhere outside the screen, the owner is staring at a save they deleted years ago."
 	if found >= 3:
 		return "you wrote yourself into the last save file.\nyou almost remember whose it was.\n(memories recovered: %d of %d)" % [found, FRAGMENTS.size()]
-	return "you wrote yourself into the last save file.\nthe owner doesn't know this slot exists. not yet.\n(memories recovered: %d of %d)" % [found, FRAGMENTS.size()]
+	return "you wrote yourself into the last save file.\nthe owner doesn't know this slot survived. not yet.\n(memories recovered: %d of %d)" % [found, FRAGMENTS.size()]

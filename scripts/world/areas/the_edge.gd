@@ -101,7 +101,8 @@ func guide_point() -> Vector2:
 
 func catch_up() -> void:
 	# The owner is already unloading this place under you.
-	# The owner doesn't know Slot 2 exists, so the eraser never touches it.
+	# The owner thinks Slot 2 is gone (it's the deleted slot's ghost, kept
+	# with the cut content), so the eraser never touches it.
 	erasure.protect(Rect2(SLOT_POS - Vector2(14, 14), Vector2(28, 28)))
 	erasure.mature_time = MATURE_TIME
 	erasure.hunt_chance = HUNT_CHANCE

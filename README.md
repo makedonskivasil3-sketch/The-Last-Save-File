@@ -572,6 +572,9 @@ the web deploy.
 tests/run.sh                         # everything (uses `godot` on PATH)
 GODOT=/path/to/godot tests/run.sh    # a specific Godot 4.3 binary
 tests/run.sh --filter=story          # only files/methods matching "story"
+# Real-browser check of the web export (audio after a gesture, the save in IndexedDB,
+# what closing the tab mid-run does; needs Playwright and the export served over http):
+#   NODE_PATH=/opt/node-tools/node_modules node tests/web/web_check.cjs http://127.0.0.1:8765/index.html
 # The visual tour: every area and key moment as a screenshot, plus frame times
 # (compare before/after a visual change; see docs/CREATIVE_AUDIT.md §F):
 #   xvfb-run -a -s "-screen 0 1280x720x24" $GODOT --path . -s res://tests/run_tests.gd -- --test-mode --tour --screenshots=/tmp/tour
@@ -613,6 +616,8 @@ tests/run.sh --bots --speed=2 --filter=purge_3
 | `test_experience_fixes.gd` | Experience-polish fixes: first-visit lines, a refused seam stays usable, reading isn't standing still, questions hold the owner, no mashed choices, Wren during Mira's walk, Pip skips the planted memory, area themes, PHASE past the crates, awareness reasons, the reload warning, F9 only where offered, screen shake off, W/S in choices, a medium press still talks |
 | `test_voices.gd` | Procedural voices: distinct timbres, the Voice bus, Rue's motif growing with memories, the owner's voice breaking up, text speed, settings persistence, the heartbeat surviving a music mute |
 | `test_character_tells.gd` | Arin points (not waves), the real Arin stays silent, Rue reacts while targeted |
+| `test_canon.gd` | The author's narrative decisions stay in the text (Fragment 1, the timeline, Slot 2 as the deleted slot's ghost) |
+| `test_playtest_log.gd` | The playtest log is off by default and timestamps the session-sheet moments when on |
 | `test_house.gd` | UNLOCK on Arin's front door and walking in; the way back out; the second controller (secret, Slot 2 recap, survives a reload); closets hide you while Arin comes home; Arin catches you in the open |
 | `test_polish.gd` | How to Play from the title; the title menu driven by a gamepad (d-pad, B); rumble on a gamepad only with Vibration on |
 | `test_endings.gd` | The Slot 2 choice (two or three options), the escape, Wren and message endings, and the title aftermath |
@@ -680,6 +685,8 @@ scripts/
   world/areas/arins_house.gd   Arin's house: the couch, the closets, Arin coming home
   ui/how_to_play_panel.gd      The title's How to Play page (controls for your device)
   fx/sun_beam.gd               The frozen afternoon: window light that drains as the owner watches
+  ui/credits_panel.gd          Title > Credits: the licence, and Godot's licence and third-party notices
+  autoload/playtest_log.gd     Dev-only playtest timestamps (?playtest=1 / --playtest)
   ui/perf_overlay.gd           Debug: frame times in the corner (F3)
   ui/records_panel.gd          The title's Records: endings, memories, secrets, the owner's counts
   player/glitch.gd             The glitches: costs, hold times, unlocks, the owner's reactions
@@ -731,4 +738,10 @@ crossed → deaths, quits, helpers and wins flow back into `OwnerMemory`.
 
 ## License
 
-TBD.
+**All rights reserved.** See [`LICENSE`](LICENSE): the game's code, story, characters, generated art and
+audio, and design may not be copied, modified, distributed or sold without written permission.
+
+The game is built with the [Godot Engine](https://godotengine.org) (MIT licence). Godot's licence and
+all of its third-party notices are shown in full in the in-game **Credits** screen (title → Credits),
+read from the engine itself (`Engine.get_license_text()`, `get_copyright_info()`, `get_license_info()`),
+so they always match the engine version in the build.

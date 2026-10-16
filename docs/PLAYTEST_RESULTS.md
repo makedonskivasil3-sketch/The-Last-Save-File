@@ -2,6 +2,22 @@
 
 **Status: no human playtest has taken place yet.** Nothing in this file is a finding. When a round is run, its results go below, in the template from `PLAYTEST_PLAN.md`.
 
+## Running a session
+
+1. Open the game with **`?playtest=1`** at the end of the address, for example `https://makedonskivasil3-sketch.github.io/The-Last-Save-File/?playtest=1`. A desktop build needs `-- --playtest`.
+2. Start from a clean save: Title → Settings → Reset owner memory.
+3. Watch without helping. The game timestamps:
+   - first movement;
+   - leaving Arin's room;
+   - the first glitch and each glitch after it;
+   - every death (cause, area, awareness);
+   - memories, including the planted one;
+   - the pointer;
+   - each area entered;
+   - the owner's thresholds;
+   - endings and quits.
+4. Afterwards: Pause → **Playtest log** → **Copy to clipboard**, and paste it next to your notes. Nothing is sent anywhere. The log only exists on that device (`user://playtest_log.txt`, and the browser console).
+
 ## Round 1: plan
 
 The method, consent and the session sheet are in `PLAYTEST_PLAN.md`. Instead of the generic sheet, record these for every player:

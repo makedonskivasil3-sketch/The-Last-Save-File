@@ -66,7 +66,7 @@ Don't ask "did you like X?", and don't explain anything until all the answers ar
 ## Developer-side instrumentation
 
 - **In place:** `OwnerMemory` records deaths and causes, glitches, reloads and endings (the Records screen). The bots log their stalls (`tests/bot_playthrough.gd`).
-- **To add (development only):** a timestamped progression log of first movement, room exit, first glitch, first death, Archive, pointer, Edge and ending. It should be written to `user://playtest_log.txt` only when a `--playtest` flag is on, so it is never in release builds by default.
+- **Done (development only):** `PlaytestLog` (`scripts/autoload/playtest_log.gd`), switched on by `?playtest=1` or `-- --playtest`. It is shown under Pause → Playtest log, with a copy button.
 
 ## Report template
 

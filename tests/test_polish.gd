@@ -63,3 +63,17 @@ func _b() -> InputEventJoypadButton:
 	var e := InputEventJoypadButton.new()
 	e.button_index = JOY_BUTTON_B
 	return e
+
+
+func test_credits_carry_the_licences() -> void:
+	tree.change_scene_to_file("res://scenes/title.tscn")
+	await frames(5)
+	var title := scene()
+	title._show_credits()
+	await frames(2)
+	var text := "\n".join(CreditsPanel.credits().map(func(b: Array) -> String: return "%s\n%s" % [b[0], b[1]]))
+	check(text.contains("All rights reserved"), "the game's licence")
+	check(text.contains(Engine.get_license_text().substr(0, 60)), "Godot's MIT licence, from the engine")
+	check(text.contains("FreeType"), "and its third-party components (FreeType renders the text)")
+	await press("ui_cancel")
+	check(title._panel_of(title._menu).visible, "back to the menu")

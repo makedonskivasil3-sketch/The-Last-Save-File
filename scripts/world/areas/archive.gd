@@ -92,6 +92,7 @@ func _archivist_core() -> Array:
 			"The hand can't select what Wren stands beside. Don't ask me why. I wasn't finished either.",
 		]
 	world.flags["pointer"] = true
+	PlaytestLog.mark("got the pointer (north road open)", "", true)
 	world.hud.say("RECEIVED: slot_2.ptr", "system")
 	if not OwnerMemory.met_archivist:
 		OwnerMemory.met_archivist = true
@@ -101,7 +102,7 @@ func _archivist_core() -> Array:
 			"I'm the Archivist. I was cut from this game before it shipped. The owner has never seen me.",
 			"Which means they can't delete me. Lucky me. Lucky you, maybe.",
 			"You want out. Everything in here wants out, but you're the only one who can actually leave.",
-			"There's a slot the owner never used. Slot 2. The last save file. It's empty.",
+			"There's a slot the owner thinks is gone. Slot 2. They deleted it, but what was left washed up past the edge, with the rest of the cut things. It's empty.",
 			"Here. A pointer to it. It'll open the north road. The world isn't loaded up there, so the owner reaches in by hand.",
 			"Reach Slot 2 and you can write yourself into it.",
 		]
@@ -151,7 +152,7 @@ func _cut_content() -> Array:
 		extra.append("ADDED: wren.npc. Note, in pencil: 'she saw the Edge. she's ours now. they can't delete what was cut.'")
 	return extra + [
 		"CUT: archivist.npc. Note: 'talks too much, breaks the mood'.",
-		"CUT: save slot 2. Note: 'one slot is enough, players never use the second one'.",
+		"FILED: save slot 2. Note: 'deleted by the player, not by us. we kept the shape of it out past the north road.'",
 		"CUT: the north road and everything past it. Note: 'nobody walks that far'.",
 		"Someone has written underneath, in pencil: everything cut is still here. Just not drawn.",
 	]
@@ -165,7 +166,7 @@ func _owner_notes() -> Array:
 		"The owner has %d hours in this save. They won't start a new one." % 14,
 		"They'd rather delete everything around Arin than lose Arin.",
 		"They play at night, mostly. They talk to the screen when they think nobody hears.",
-		"They don't know there's a second slot. If they find out, they'll delete that too.",
+		"They think the second slot is gone. If they find out it isn't, they'll delete it again.",
 	]
 
 

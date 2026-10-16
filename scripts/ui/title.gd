@@ -13,6 +13,8 @@ var _records_box: VBoxContainer
 var _records: RecordsPanel
 var _help_box: VBoxContainer
 var _help: HowToPlayPanel
+var _credits_box: VBoxContainer
+var _credits: CreditsPanel
 var _load: Button
 var _rebuild_on_close := false
 var _music: AudioStreamPlayer
@@ -64,6 +66,7 @@ func _ready() -> void:
 	if OwnerMemory.sessions > 0:
 		UiStyle.button(row, "Records", _show_records).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UiStyle.button(row, "Settings", _show_settings).size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UiStyle.button(row, "Credits", _show_credits).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var row2 := HBoxContainer.new()
 	row2.add_theme_constant_override("separation", 6)
 	_menu.add_child(row2)
@@ -94,6 +97,11 @@ func _ready() -> void:
 	_help = HowToPlayPanel.new()
 	_help.closed.connect(_show_menu)
 	_help_box.add_child(_help)
+
+	_credits_box = UiStyle.centered_panel(self, 520)
+	_credits = CreditsPanel.new()
+	_credits.closed.connect(_show_menu)
+	_credits_box.add_child(_credits)
 
 	_show_menu()
 
@@ -219,6 +227,7 @@ func _show_menu() -> void:
 	_panel_of(_settings_box).visible = false
 	_panel_of(_records_box).visible = false
 	_panel_of(_help_box).visible = false
+	_panel_of(_credits_box).visible = false
 	_load.grab_focus()
 
 
@@ -226,6 +235,12 @@ func _show_records() -> void:
 	_panel_of(_menu).visible = false
 	_panel_of(_records_box).visible = true
 	_records.focus_first()
+
+
+func _show_credits() -> void:
+	_panel_of(_menu).visible = false
+	_panel_of(_credits_box).visible = true
+	_credits.focus_first()
 
 
 func _show_help() -> void:

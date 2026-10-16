@@ -87,7 +87,7 @@ photo of a screen. A music box plays.*
 > **MEMORY · THE SECOND CONTROLLER**
 > a second controller, plugged in next to the first.
 > two people on one couch. one screen. one save.
-> "you be arin," they said. "i'll make my own."
+> "you be arin," i said. "i'll make my own."
 
 **RUE:** (i was here before. not in this room. in front of it.)
 **RUE:** (a scarf. red. i picked that colour myself.)
@@ -253,14 +253,14 @@ reads by a soft cyan light. The awareness bar slowly falls: the owner can't see 
 **THE ARCHIVIST:** I'm the Archivist. I was cut from this game before it shipped. The owner has never seen me.
 **THE ARCHIVIST:** Which means they can't delete me. Lucky me. Lucky you, maybe.
 **THE ARCHIVIST:** You want out. Everything in here wants out, but you're the only one who can actually leave.
-**THE ARCHIVIST:** There's a slot the owner never used. Slot 2. The last save file. It's empty.
+**THE ARCHIVIST:** There's a slot the owner thinks is gone. Slot 2. They deleted it, but what was left washed up past the edge, with the rest of the cut things. It's empty.
 **THE ARCHIVIST:** Here. A pointer to it. It'll open the north road. The world isn't loaded up there, so the owner reaches in by hand.
 **THE ARCHIVIST:** Reach Slot 2 and you can write yourself into it.
 *(if Pip is with Rue)* **THE ARCHIVIST:** And you brought the fox. I logged a fox once. "pip.npc: location unknown." Not unknown anymore.
 
 **CONSOLE:** `RECEIVED: slot_2.ptr`
 
-**BOOK · CUT CONTENT:** CUT: save slot 2. Note: 'one slot is enough, players never use the second one'. ... Someone has written underneath, in pencil: everything cut is still here. Just not drawn.
+**BOOK · CUT CONTENT:** FILED: save slot 2. Note: 'deleted by the player, not by us. we kept the shape of it out past the north road.' ... Someone has written underneath, in pencil: everything cut is still here. Just not drawn.
 **BOOK · THE OWNER:** They play at night, mostly. They talk to the screen when they think nobody hears. They don't know there's a second slot. If they find out, they'll delete that too.
 
 > **MEMORY · NEW GAME**
@@ -519,9 +519,9 @@ Shown on the console as the run starts (`OWNER'S NOTE · ...`) and kept in the A
 1. there's something in arin's room again. i'm not imagining it.
 2. we used to play this on the couch at mum's. two controllers. i don't know why i'm writing that down.
 3. she moved in the summer. said she'd visit every weekend. she came twice.
-4. i kept her save for two years. i'd walk arin past the spot where her character used to stand.
+4. i kept her save for months. i'd walk arin past the spot where her character used to stand.
 5. the night i deleted slot 2 i told myself it was for space. the card wasn't even half full.
-6. she sent a message once. 'still have my save?' i didn't answer. i'd already deleted it. i couldn't say so.
+6. she sent a message once. 'still have my save?' i started typing yes. that same night i deleted it instead, and never sent anything.
 7. i didn't delete her because i hated her. i deleted her because the empty slot was easier than the waiting.
 8. if that's you in there, i don't know what i want. i want you gone. i want you to stay.
 
@@ -549,7 +549,7 @@ There. MIRA WAS HERE. Now it's true. MIRA: I'll walk home on my own. I know the 
 Reset: *MIRA: where am I? ...oh. welcome home, arin!* · *(she looked right at me. she didn't know me.)*
 Lost (you died with her out): *"MIRA WAS HERE. I TALK. I REMEM"* in the bin.
 
-**The final confrontation (Slot 2, halfway).** > what's that. what is SLOT 2. that's not yours. / > mine. /
+**The final confrontation (Slot 2, halfway).** > what's that. SLOT 2? i deleted that. / > mine. /
 (BLIND) > let GO of it— / > there. come and get it. / > arin. go and get it. / > stop. stop. please.
 
 **Tobben's guest book.** *you write in the blank line. R. U. E.* · **TOBBEN:** ...there. Two names.
