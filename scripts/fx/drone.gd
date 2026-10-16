@@ -36,7 +36,7 @@ func _ready() -> void:
 	volume_db = -15.0
 	play()
 	_heart = AudioStreamPlayer.new()
-	_heart.bus = "Music"
+	_heart.bus = "SFX"  # a threat cue: muting the music mustn't silence it
 	add_child(_heart)
 
 

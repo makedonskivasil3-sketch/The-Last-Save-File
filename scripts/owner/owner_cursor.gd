@@ -95,6 +95,11 @@ func _drag_step(delta: float) -> void:
 
 
 ## BLIND: the pointer loses you for a while.
+## It's settling on you right now (the click is coming).
+func is_selecting() -> bool:
+	return _select > 0.0
+
+
 func blind(seconds: float) -> void:
 	blinded = maxf(blinded, seconds)
 	_select = 0.0

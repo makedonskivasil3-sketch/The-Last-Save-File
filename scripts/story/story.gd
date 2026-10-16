@@ -681,6 +681,10 @@ static func death_body(reason: String, area: String, times: int, escorting: bool
 	return "the owner learned something."
 
 
+## Said once you're one glitch away from the owner reloading (OwnerMoves).
+const RELOAD_WARNING := "do that again and i'm loading the autosave."
+
+
 ## The purge ending (OwnerMemory.MAX_PURGE): the owner has learned enough,
 ## and the intruder can't load into Slot 1 any more.
 const PURGED_TITLE := "PURGED"

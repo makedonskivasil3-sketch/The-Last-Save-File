@@ -66,8 +66,11 @@ var moving := false
 var talking := false
 ## "", "sway", "hop", "wave", "read".
 var idle_style := ""
-## Wave/raise one arm (Tobben greeting, Arin pointing).
+## Wave/raise one arm (Tobben greeting).
 var waving := false
+## Point: one arm held out, still, on the side you're facing (Arin, when it
+## sees you). A wave says hello; a point says found you.
+var pointing := false
 ## Expression and pose (all default off):
 ## crouch: duck down a pixel (hiding). glance: eyes look -1 left / +1 right
 ## while facing the camera. hug: arms pulled in. shiver: tremble.
@@ -200,6 +203,8 @@ func draw(ci: CanvasItem, opts: Dictionary = {}) -> void:
 					arm_dy = (1.0 if (step < 2) == (x == 0) else -1.0)
 				if waving and x == 7:
 					arm_dy = -3.0 - roundf(absf(sin(_t * 8.0)) * 2.0)
+				if pointing and x == (0 if facing.x < 0.0 else 7):
+					arm_dy = -2.0
 				var arm_x := x
 				if hug and not moving:
 					arm_x = 1 if x == 0 else 6  # arms wrapped around yourself

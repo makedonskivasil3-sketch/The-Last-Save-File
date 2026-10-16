@@ -196,17 +196,22 @@ func on_owner_event(event: float) -> void:
 
 func interact_extra(node: Node2D) -> void:
 	if node == note:
-		world.director.add_awareness(4.0)
+		world.director.notice(4.0, "read the owner's note")
 	elif node == save_point:
 		world.fx.spike(0.3, 0.4)
 		if world.director.awareness >= OwnerDirector.NOTICE:
 			world.director.say("don't touch that.")
-		world.director.add_awareness(15.0)
+		world.director.notice(15.0, "touched the save point")
 
 
 func _on_seam(s: Seam) -> void:
-	OwnerMemory.note_seam(s.id)
 	world.change_area("square", "house")
+	if not world._transitioning:
+		# Refused (waiting for Mira, mid-reload): the seam stays open for the
+		# next try instead of being used up, which could strand you here.
+		s._used = false
+		return
+	OwnerMemory.note_seam(s.id)
 
 
 func _mira_lines() -> Array:
@@ -234,7 +239,7 @@ func on_dialogue_closed(who: Node) -> void:
 	if not world.hud.dialogue_finished or world.ending != "":
 		return
 	world.player.frozen = true
-	var pick := await world.hud.choose(Story.MIRA_ASK_Q, Story.MIRA_ASK_CHOICES)
+	var pick := await world.choose_safely(Story.MIRA_ASK_Q, Story.MIRA_ASK_CHOICES)
 	if not is_inside_tree():
 		return
 	world.player.frozen = false
@@ -270,6 +275,7 @@ func _build_purged_extras() -> void:
 	arin.accent_color = Color("c0392b")
 	arin.hair_color = Color("2a2a30")
 	arin.lines_provider = func() -> Array: return ["..."]
+	arin.mute = true
 
 
 func _draw() -> void:

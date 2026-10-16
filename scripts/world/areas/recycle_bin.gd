@@ -164,7 +164,7 @@ func _check_sweep(from_x: float, to_x: float) -> void:
 
 func _on_restored(id: String) -> void:
 	world.note_restored(id)
-	world.director.add_awareness(10.0)
+	world.director.notice(10.0, "a file came back")
 	world.director.say({"wren": "wren? i deleted you.", "mira": "mira. who put you back."}.get(id, "who restored that."))
 	world.voice("bin_restored")
 

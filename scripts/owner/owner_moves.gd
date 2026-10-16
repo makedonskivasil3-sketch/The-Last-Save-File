@@ -138,6 +138,10 @@ func on_glitch(_id: String) -> void:
 		_next_save = _clock + SAVE_EVERY
 		return
 	_glitches_since_load += 1
+	# One glitch before the owner reloads, they say so: the rule is fair once heard.
+	if _glitches_since_load == GLITCHES_PER_LOAD - 1 and _load_cd <= 0.0 \
+			and world.director.awareness >= OwnerDirector.NOTICE and _owner_watching():
+		world.director.say(Story.RELOAD_WARNING)
 	if _glitches_since_load >= GLITCHES_PER_LOAD and _load_cd <= 0.0 \
 			and world.director.awareness >= OwnerDirector.NOTICE and _owner_watching():
 		get_tree().create_timer(1.0).timeout.connect(func() -> void:

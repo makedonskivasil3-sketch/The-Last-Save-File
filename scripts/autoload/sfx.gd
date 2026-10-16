@@ -6,6 +6,9 @@ extends Node
 ##   Memory  flashback music (unmuffled)      <- Settings.music_volume
 ##   SFX     the world: deletions, eraser, deaths, typing, voices <- Settings.sfx_volume
 ##   UI      menus; keeps playing while paused <- Settings.sfx_volume
+##   Voice   voice blips and console typing     <- Settings.voice_volume
+##           (its own small pool, so a long typed line can never cut off a
+##           stinger or a death playing in the SFX pool)
 ## SFX and Music each carry a low-pass filter that muffle() switches on (pause,
 ## flashbacks); SFX also has a little reverb so the save feels like a space.
 ##
@@ -17,7 +20,7 @@ extends Node
 ## Sounds are rendered lazily on first use; prewarm() queues the common ones so
 ## they're built a few per frame during calm moments (title screen, waking).
 
-const BUSES := ["Music", "Memory", "SFX", "UI"]
+const BUSES := ["Music", "Memory", "SFX", "UI", "Voice"]
 const POOL_SIZE := 14
 
 ## Mix level per sound (dB). Anything not listed plays at 0 dB.
@@ -36,6 +39,7 @@ const LEVEL := {
 	"owner_pause": -6.0, "owner_unpause": -7.0,
 	"wind": -18.0, "bird": -20.0, "murmur": -24.0, "archive_hum": -16.0, "page_turn": -18.0,
 	"air": -20.0, "owner_voice": -16.0, "cursor_hum": -10.0,
+	"voice_warm": -15.0, "voice_air": -17.0, "voice_paper": -15.0, "voice_chirp": -18.0,
 }
 ## Loud, sudden or piercing sounds that Reduce flashing / glitch intensity tame.
 const HARSH := ["deletion", "erase_start", "cursor_arrive", "select_loop", "click",
@@ -45,6 +49,32 @@ const HARSH := ["deletion", "erase_start", "cursor_arrive", "select_loop", "clic
 const GLITCHY := ["erase_cell", "flicker"]
 ## Each speaker's voice pitch for dialogue blips.
 const VOICES := {"MIRA": 1.25, "WREN": 1.65, "TOBBEN": 0.78, "THE ARCHIVIST": 0.62, "ARIN": 1.0}
+## Procedural voices (docs/AUDIO_DIRECTION.md). Per speaker: the syllable
+## sound, base pitch, an interval pattern cycled syllable by syllable, how
+## sparse (a sound every n-th letter), the minimum gap in ms, and how fast
+## their text appears (x the base rate). Silence is part of a voice: Wren and
+## the Archivist leave gaps; the real Arin never speaks at all.
+const VOICE_PROFILES := {
+	# Warm, open intervals that lift: curious, wanting the ordinary.
+	"MIRA": {"sound": "voice_warm", "pitch": 1.2, "pattern": [1.0, 1.26, 1.12], "every": 1, "gap": 55, "pace": 1.05},
+	# Airy and distant, rising and unfinished: always leaning toward the Edge.
+	"WREN": {"sound": "voice_air", "pitch": 1.45, "pattern": [1.0, 1.12, 1.33], "every": 2, "gap": 70, "pace": 0.9},
+	# Measured, the same note again and again, then a small drop: a ledger.
+	"TOBBEN": {"sound": "voice", "pitch": 0.78, "pattern": [1.0, 1.0, 1.0, 0.94], "every": 1, "gap": 60, "pace": 0.92},
+	# Low, soft, with a page in it; speaks rarely and slowly.
+	"THE ARCHIVIST": {"sound": "voice_paper", "pitch": 0.62, "pattern": [1.0, 0.89], "every": 2, "gap": 85, "pace": 0.8},
+	"ARIN": {"sound": "voice", "pitch": 1.0, "pattern": [1.0], "every": 1, "gap": 45, "pace": 1.0},
+	# A small creature, not a notification: quick upward chirps, sparse.
+	"PIP": {"sound": "voice_chirp", "pitch": 1.0, "pattern": [1.0, 1.2, 1.1], "every": 3, "gap": 90, "pace": 1.1},
+}
+## Rue's thoughts: a fragile motif, two notes at first. Each recovered memory
+## restores one more (up to five), so her voice becomes a phrase.
+const RUE_MOTIF := [1.0, 1.19, 0.89, 1.5, 1.33]
+## 0..1, set by the owner's director: how hard the owner is looking. Their
+## voice clips and breaks up near the top; Rue's wavers.
+var owner_strain := 0.0
+var _syllable := 0
+var _rue_note := 0
 ## Built a few per frame when prewarm() is called, most-needed first.
 const PREWARM := ["key_owner_0", "key_owner_1", "key_owner_2", "key_system", "key_self", "voice",
 	"ui_move", "ui_confirm", "ui_back", "pause", "pop", "step_0", "step_1", "transition",
@@ -53,6 +83,8 @@ const PREWARM := ["key_owner_0", "key_owner_1", "key_owner_2", "key_system", "ke
 	"select_loop", "click", "purge_bell", "heartbeat", "death_erased", "death_overwritten",
 	"death_selected", "power_off", "unload", "win", "memory_loop", "glitch_charge", "glitch_fire",
 	"phase", "glitch_learn", "owner_pause", "owner_unpause", "owner_voice", "cursor_hum",
+	"voice_warm", "voice_air", "voice_paper", "voice_chirp",
+	"deletion_mira", "deletion_wren", "deletion_tobben",
 	"wind", "bird", "murmur", "archive_hum", "page_turn", "air"]
 
 ## Microseconds of building per frame (a 60 fps frame is 16,667).
@@ -61,6 +93,8 @@ const BUILD_BUDGET := 4000
 var _cache: Dictionary = {}
 var _queue: Array = []
 var _pool: Array[AudioStreamPlayer] = []
+var _voice_pool: Array[AudioStreamPlayer] = []
+var _next_voice := 0
 var _ui_pool: Array[AudioStreamPlayer] = []
 var _next := 0
 var _next_ui := 0
@@ -85,6 +119,11 @@ func _ready() -> void:
 		p.process_mode = Node.PROCESS_MODE_ALWAYS
 		add_child(p)
 		_ui_pool.append(p)
+	for i in 4:
+		var p := AudioStreamPlayer.new()
+		p.bus = "Voice"
+		add_child(p)
+		_voice_pool.append(p)
 
 
 ## Queue the common sounds to be built a few per frame.
@@ -161,6 +200,9 @@ func play(name: String, volume_db: float = 0.0, pitch: float = 1.0, jitter: floa
 	if bus == "UI":
 		p = _ui_pool[_next_ui]
 		_next_ui = (_next_ui + 1) % _ui_pool.size()
+	elif bus == "Voice":
+		p = _voice_pool[_next_voice]
+		_next_voice = (_next_voice + 1) % _voice_pool.size()
 	else:
 		p = _pool[_next]
 		_next = (_next + 1) % _pool.size()
@@ -185,11 +227,20 @@ func type_key(kind: String) -> void:
 	_last_key = now
 	match kind:
 		"owner":
-			play("key_owner_%d" % (randi() % 3), 0.0, 1.0, 0.06)
+			play("key_owner_%d" % (randi() % 3), 0.0, 1.0, 0.06, "Voice")
 		"self":
-			play("key_self", 0.0, 1.0, 0.08)
+			rue_note()
 		_:
-			play("key_system", 0.0, 1.0, 0.05)
+			play("key_system", 0.0, 1.0, 0.05, "Voice")
+
+
+## One note of Rue's motif (her thoughts typing out): as many notes as she
+## has memories back (two at first), wavering as the owner closes in.
+func rue_note() -> void:
+	var notes := mini(2 + OwnerMemory.fragments.size(), RUE_MOTIF.size())
+	_rue_note = (_rue_note + 1) % notes
+	var waver := 1.0 + randf_range(-0.035, 0.035) * owner_strain
+	play("key_self", 0.0, RUE_MOTIF[_rue_note] * waver, 0.0, "Voice")
 
 
 ## The owner "speaks" their lines: a low, slightly wrong voice blip per
@@ -203,16 +254,34 @@ func owner_blip(letter: String) -> void:
 	var pitch := 0.8 + float(code % 7) * 0.035
 	if letter.to_lower() in ["a", "e", "i", "o", "u"]:
 		pitch += 0.12
-	play("owner_voice", 0.0, pitch, 0.02)
+	# Orderly while calm. Near the hunt the voice clips: syllables drop out
+	# and the rest sag, a system losing its composure.
+	if owner_strain > 0.6:
+		if randf() < (owner_strain - 0.6) * 1.25:
+			return
+		pitch *= 1.0 - (owner_strain - 0.6) * 0.3
+	play("owner_voice", 0.0, pitch, 0.02, "Voice")
 
 
-## A dialogue blip in the speaker's voice.
+## A dialogue blip in the speaker's voice (VOICE_PROFILES).
 func voice_blip(speaker: String) -> void:
+	var v: Dictionary = VOICE_PROFILES.get(speaker, {})
 	var now := Time.get_ticks_msec()
-	if now - _last_key < 45:
+	if now - _last_key < int(v.get("gap", 45)):
 		return
 	_last_key = now
-	play("voice", 0.0, VOICES.get(speaker, 1.1), 0.07)
+	_syllable += 1
+	var every := int(v.get("every", 1))
+	if _syllable % every != 0:
+		return  # a gap: some voices leave space between sounds
+	var pattern: Array = v.get("pattern", [1.0])
+	var pitch: float = float(v.get("pitch", VOICES.get(speaker, 1.1))) * float(pattern[(_syllable / every) % pattern.size()])
+	play(str(v.get("sound", "voice")), 0.0, pitch, 0.03, "Voice")
+
+
+## How fast this speaker's words appear (x the base rate).
+static func voice_pace(speaker: String) -> float:
+	return float(VOICE_PROFILES.get(speaker, {}).get("pace", 1.0))
 
 
 ## A cell of the room turning to void: tiny ticks, rate-limited.
@@ -324,6 +393,34 @@ func _build(name: String) -> AudioStreamWAV:
 			S.tone(b, 0.0, 0.09, 660.0, 610.0, 0.3, W.SINE, 0.012, 35.0)
 			S.noise(b, 0.0, 0.06, 0.05, 0.01, 40.0, 0.05)
 			S.normalize(b, 0.5)
+			return S.to_wav(b)
+		# Mira: a soft triangle with a little lift at the start.
+		"voice_warm":
+			var b := S.begin(0.07)
+			S.tone(b, 0.0, 0.07, 300.0, 330.0, 0.45, W.TRIANGLE, 0.006, 35.0)
+			S.tone(b, 0.0, 0.05, 600.0, 640.0, 0.1, W.SINE, 0.006, 45.0)
+			S.lowpass(b, 0.4)
+			S.normalize(b, 0.6)
+			return S.to_wav(b)
+		# Wren: a breathy sine, more air than tone, fading upward.
+		"voice_air":
+			var b := S.begin(0.09)
+			S.tone(b, 0.0, 0.09, 520.0, 600.0, 0.3, W.SINE, 0.015, 28.0)
+			S.noise(b, 0.0, 0.08, 0.12, 0.01, 30.0, 0.2)
+			S.normalize(b, 0.5)
+			return S.to_wav(b)
+		# The Archivist: a low soft note with the scratch of a page.
+		"voice_paper":
+			var b := S.begin(0.1)
+			S.tone(b, 0.0, 0.1, 200.0, 185.0, 0.4, W.SINE, 0.01, 25.0)
+			S.noise(b, 0.0, 0.03, 0.2, 0.002, 80.0, 0.6, -1.0, true)
+			S.normalize(b, 0.55)
+			return S.to_wav(b)
+		# Pip: a quick upward chirp, like a small animal, not a beep.
+		"voice_chirp":
+			var b := S.begin(0.06)
+			S.tone(b, 0.0, 0.06, 900.0, 1500.0, 0.4, W.SINE, 0.003, 50.0, Vector2(30.0, 0.02))
+			S.normalize(b, 0.55)
 			return S.to_wav(b)
 		# Dialogue blip (pitched per speaker at play time).
 		"voice":

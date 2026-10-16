@@ -128,16 +128,23 @@ func _draw() -> void:
 		var ang := _facing.angle() - view_angle * 0.5 + view_angle * i / 8.0
 		pts.append(Vector2.from_angle(ang) * view_distance)
 	draw_colored_polygon(pts, Color(VIEW_COL, a))
-	_sprite.waving = _seeing  # points at you
+	_sprite.pointing = _seeing  # points at you: still, not a friendly wave
 	if stunned > 0.0:
 		_draw_frozen()
 		return
 	_sprite.draw(self)
 	if _seeing:
-		# An alert bubble, owner-orange.
-		var y := float(PixelCharacter.FEET_Y - _sprite.height()) - 12.0 + sin(Time.get_ticks_msec() * 0.015)
-		draw_rect(Rect2(-4, y, 8, 9), Color(0.95, 0.93, 0.88))
-		draw_string(ThemeDB.fallback_font, Vector2(-1.5, y + 7.5), "!", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, VIEW_COL)
+		# A warning triangle, owner-coloured: a different shape from the
+		# villagers' friendly white "!" bubbles, not just a different colour.
+		var y := float(PixelCharacter.FEET_Y - _sprite.height()) - 13.0 + sin(Time.get_ticks_msec() * 0.015)
+		draw_colored_polygon(PackedVector2Array([Vector2(0, y), Vector2(6, y + 10), Vector2(-6, y + 10)]), VIEW_COL)
+		draw_polyline(PackedVector2Array([Vector2(0, y - 1), Vector2(7, y + 11), Vector2(-7, y + 11), Vector2(0, y - 1)]), Color(0.1, 0.03, 0.03), 1.0)
+		draw_rect(Rect2(-0.5, y + 3, 1, 4), Color(0.1, 0.03, 0.03))
+		draw_rect(Rect2(-0.5, y + 8, 1, 1), Color(0.1, 0.03, 0.03))
+
+
+func is_seeing() -> bool:
+	return _seeing
 
 
 ## Frozen mid-step: colour-split copies hang either side, and a pause glyph.

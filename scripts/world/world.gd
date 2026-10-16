@@ -30,6 +30,8 @@ var _transitioning := false
 var _visited: Dictionary = {}
 ## True while a story sequence (boot, flashback) has control.
 var _cutscene := false
+## True while choose_safely() holds the owner for a question.
+var _choice_hold := false
 ## Inner-voice beats already used this session.
 var _voiced: Dictionary = {}
 var _tutorial: Tutorial
@@ -203,7 +205,7 @@ func recover_fragment(m: MemoryFragment) -> void:
 		hud.say(restored, "self")
 	_learn_glitch(OwnerMemory.fragments.size())
 	# The owner notices something flicker.
-	director.add_awareness(6.0)
+	director.notice(6.0, "a memory flickered")
 
 
 ## The owner's planted memory: it doesn't count, and it costs you.
@@ -219,7 +221,7 @@ func _took_false_memory(f: Dictionary) -> void:
 	hud.say("MEMORY REJECTED  ·  NO SIGNATURE", "system")
 	hud.say(f.after, "self")
 	director.say("that's how i remember it.")
-	director.add_awareness(20.0)
+	director.notice(20.0, "took the planted memory")
 	owner_moves.start_save_over()
 
 
@@ -233,6 +235,11 @@ func _process(delta: float) -> void:
 		if node is Npc:
 			node.talking = node == _talking_to and hud.is_dialogue_open()
 	player.instability = director.awareness / 100.0
+	var cursor: Variant = area.get("cursor")
+	var watcher: Variant = area.get("arin")
+	player.set_targeted((cursor is OwnerCursor and cursor.is_selecting()) or (watcher is OwnerAvatar and watcher.is_seeing()))
+	# Reading or answering isn't "standing still" for the owner's save-over.
+	player.reading = hud.is_dialogue_open() or hud.is_choosing()
 	var helper := hiding_npc()
 	player.sheltered = is_hidden_now()
 	if helper:
@@ -306,8 +313,9 @@ func change_area(id: String, arrival: String) -> void:
 	await hud.fade(true, 0.25).finished
 	if not is_inside_tree() or ending != "":
 		return
-	_load_area(_make_area(id), arrival)
+	# Decided before _load_area, which marks the area visited.
 	var first := not _visited.has(id)
+	_load_area(_make_area(id), arrival)
 	director.on_area_entered(area, first)
 	_visited[id] = true
 	if first:
@@ -532,7 +540,7 @@ func mira_pins_note() -> void:
 	player.frozen = false
 	director.paused = false
 	_cutscene = false
-	director.add_awareness(5.0)
+	director.notice(5.0, "a note on the board")
 	director.say("...mira wrote this?")
 
 
@@ -584,7 +592,13 @@ func _wren_sees_edge() -> void:
 
 ## Debug tools are on in the editor, debug builds, tests, and on the web with
 ## ?debug=1 in the address (so they can be used from a phone).
+## Tests switch the debug tools off to check what a release build does.
+var debug_forced_off := false
+
+
 func debug_enabled() -> bool:
+	if debug_forced_off:
+		return false
 	if OS.is_debug_build() or OwnerMemory.is_test_mode():
 		return true
 	if OS.has_feature("web"):
@@ -719,7 +733,23 @@ func resume_owner() -> void:
 
 
 func is_owner_paused() -> bool:
-	return director.owner_paused > 0.0
+	return director.owner_paused > 0.0 or _choice_hold
+
+
+## A question asked in the middle of play (Wren, Mira, Tobben): Rue can't
+## move while it's open, so the owner holds still too, like PAUSE, instead of
+## killing someone who is reading. Awareness holds as well.
+func choose_safely(question: String, options: Array) -> int:
+	var hold := not is_owner_paused()
+	if hold:
+		_choice_hold = true
+		area.set_owner_paused(true)
+	var pick := await hud.choose(question, options)
+	if hold and is_inside_tree():
+		_choice_hold = false
+		if not is_owner_paused() and area:
+			area.set_owner_paused(false)
+	return pick
 
 
 ## Where Pip should lead: a memory still in this area, else the area's goal.
@@ -727,7 +757,7 @@ func guide_target() -> Vector2:
 	if area == null:
 		return Vector2.INF
 	for c in area.get_children():
-		if c is MemoryFragment:
+		if c is MemoryFragment and not c.planted:  # Pip won't lead you to the owner's lie
 			return c.global_position
 	return area.guide_point()
 
@@ -865,7 +895,8 @@ func _interact(node: Node2D) -> void:
 		hud.say(str(result), "system")
 	var cost: Variant = node.get("awareness_cost")
 	if cost is float and cost > 0.0:
-		director.add_awareness(cost)
+		var who: Variant = node.get("display_name")
+		director.notice(cost, "talking to %s" % who if who is String and who != "" else "you touched something")
 	if area.has_method("interact_extra"):
 		area.interact_extra(node)
 
@@ -1145,6 +1176,10 @@ func restore_intruder() -> void:
 
 ## Hold F9 to make the owner forget everything (a "new game" for the intruder).
 func _handle_wipe(delta: float) -> void:
+	# Only where it's offered (the purge screen) or in debug builds: holding
+	# a key mid-run must never wipe a player's progress by accident.
+	if not (purged or debug_enabled()):
+		return
 	if Input.is_action_pressed("wipe_memory"):
 		_wipe_hold += delta
 		hud.set_hint("restoring intruder… %d%%" % int(100.0 * _wipe_hold / WIPE_HOLD_TIME))

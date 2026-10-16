@@ -49,6 +49,7 @@ var _running := false
 func start(world: World, previous_exit: String) -> void:
 	_world = world
 	awareness = minf(OwnerMemory.purge * START_PER_PURGE, START_CAP)
+	Sfx.owner_strain = awareness / 100.0
 	# Thresholds already passed at session start are baked into the world's
 	# initial state; don't replay their events.
 	for t in [NOTICE, SUSPECT, CONTAIN, SILENCE]:
@@ -94,10 +95,21 @@ func say(text: String) -> void:
 	_world.hud.say(text, "owner")
 
 
+## A one-off jump the player should be able to explain: the meter shows
+## "+N · why" (like a glitch's price). Continuous gains (being seen, an
+## escort in view) show through the meter and the watcher's "!" instead.
+func notice(amount: float, why: String) -> void:
+	if not _running or amount <= 0.0:
+		return
+	add_awareness(amount)
+	_world.hud.glitch_cost(amount, why)
+
+
 func add_awareness(amount: float) -> void:
 	if not _running:
 		return
 	awareness = clampf(awareness + amount, 0.0, 100.0)
+	Sfx.owner_strain = awareness / 100.0
 	_world.hud.set_awareness(awareness / 100.0)
 	_world.drone.tension = awareness / 100.0
 	_world.fx.awareness_target = awareness / 100.0
@@ -112,6 +124,8 @@ func _process(delta: float) -> void:
 		if owner_paused <= 0.0:
 			_world.resume_owner()
 		return
+	if _world.is_owner_paused():
+		return  # holding for a question (World.choose_safely)
 	_lie = maxf(0.0, _lie - delta)
 	var rate := (BASE_RATE + RATE_PER_PURGE * OwnerMemory.purge) * _world.area.awareness_rate
 	if _lie > 0.0 and rate > 0.0:
@@ -128,7 +142,7 @@ func _process(delta: float) -> void:
 	if not _idle_warned and not hidden and _world.player.idle_time > IDLE_WARN and awareness >= NOTICE and not _world.is_talking():
 		_idle_warned = true
 		say("you stopped moving. i noticed that too.")
-		add_awareness(IDLE_WARN_COST)
+		notice(IDLE_WARN_COST, "you stood still")
 
 
 ## Lower awareness (hiding, quiet places), down to floor_level() at most.
@@ -137,6 +151,7 @@ func _cool(amount: float) -> void:
 	if awareness <= lowest:
 		return
 	awareness = maxf(lowest, awareness - amount)
+	Sfx.owner_strain = awareness / 100.0
 	_world.hud.set_awareness(awareness / 100.0)
 	_world.drone.tension = awareness / 100.0
 	_world.fx.awareness_target = awareness / 100.0

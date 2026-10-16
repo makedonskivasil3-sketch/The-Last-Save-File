@@ -270,6 +270,9 @@ func _update_haunt(delta: float) -> void:
 ## The world layer (canvas layer 0) twitches; the HUD stays put. Small
 ## constant jitter grows with awareness, plus decaying shake from events.
 func _update_world_transform(delta: float, intensity: float) -> void:
+	if not Settings.screen_shake:
+		get_viewport().canvas_transform = Transform2D.IDENTITY
+		return
 	_jitter_timer -= delta
 	if _jitter_timer <= 0.0:
 		_jitter_timer = randf_range(0.05, 0.25)

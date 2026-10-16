@@ -118,7 +118,13 @@ func go_to(w: Node, area: String, arrival: String) -> void:
 
 
 ## Presses and releases an input action, giving the game a few frames to see it.
-func press(action: String) -> void:
+## Like a person, it waits for a freshly shown choice to accept input
+## (Hud.CHOICE_GRACE_MS); patient = false presses immediately (mashing).
+func press(action: String, patient := true) -> void:
+	var s := scene()
+	if patient and s != null and s.get("hud") is Hud and s.hud.is_choosing():
+		while Time.get_ticks_msec() < s.hud._choice_ready_ms:
+			await tree.process_frame
 	var down := InputEventAction.new()
 	down.action = action
 	down.pressed = true

@@ -120,7 +120,7 @@ func _arin_comes_home() -> void:
 
 
 func _tv() -> Array:
-	world.director.add_awareness(4.0)
+	world.director.notice(4.0, "the tv")
 	return [
 		"the TV is on. it's showing this game.",
 		"on the screen: a little house, a little room, a little someone standing in front of a TV.",
@@ -140,7 +140,7 @@ func _couch() -> Array:
 		return ["just dust now. you have what was under there."]
 	OwnerMemory.found_controller = true
 	OwnerMemory.save_memory()
-	world.director.add_awareness(10.0)
+	world.director.notice(10.0, "under the couch")
 	get_tree().create_timer(1.0).timeout.connect(func() -> void:
 		if is_inside_tree() and world.ending == "":
 			world.director.say("...don't touch that."))

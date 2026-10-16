@@ -27,6 +27,8 @@ var idle_style := ""
 var notice_emote := ""
 ## Set by World while you're talking to them.
 var talking := false
+## Never moves their mouth (the real Arin only says "...").
+var mute := false
 var player: Node2D
 ## Returns Array[String]: the lines for this conversation.
 var lines_provider: Callable
@@ -160,7 +162,7 @@ func _process(delta: float) -> void:
 		queue_redraw()
 		return
 	s.update(delta, _walk_velocity)
-	s.talking = talking
+	s.talking = talking and not mute
 	_emote_t = maxf(0.0, _emote_t - delta)
 	if is_present() and is_instance_valid(player):
 		var d := player.global_position.distance_to(global_position)

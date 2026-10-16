@@ -140,7 +140,7 @@ func build() -> void:
 	add_child(well)
 	interactables.append(well)
 
-	if world.escort == null:  # not when she's already walking with you
+	if world.escort_id() != "wren":  # not when she's already walking with you
 		wren = make_wren(self, Vector2(126, 246))
 		interactables.append(wren)
 		wren.lines_provider = _wren_lines
@@ -234,7 +234,7 @@ func interact_extra(node: Node2D) -> void:
 		world.hud.close_dialogue()
 		world.hud.say("PINNED: mira_note.txt", "system")
 		Sfx.play("seal", -4.0, 1.3)
-		world.director.add_awareness(5.0)
+		world.director.notice(5.0, "a note on the board")
 		get_tree().create_timer(1.2).timeout.connect(func() -> void:
 			if is_inside_tree() and world.ending == "":
 				world.director.say("...mira wrote this?"))
@@ -252,7 +252,7 @@ func on_dialogue_closed(who: Node) -> void:
 	if not world.hud.dialogue_finished or world.ending != "":
 		return
 	world.player.frozen = true
-	var pick := await world.hud.choose(Story.WREN_ASK, Story.WREN_ASK_CHOICES)
+	var pick := await world.choose_safely(Story.WREN_ASK, Story.WREN_ASK_CHOICES)
 	if not is_inside_tree():
 		return
 	world.player.frozen = false
@@ -387,7 +387,7 @@ func _offer_guestbook() -> void:
 	if not OwnerMemory.found_guestbook or OwnerMemory.guestbook_restored or not world.hud.dialogue_finished:
 		return
 	world.player.frozen = true
-	var pick := await world.hud.choose(Story.GUESTBOOK_ASK, Story.GUESTBOOK_CHOICES)
+	var pick := await world.choose_safely(Story.GUESTBOOK_ASK, Story.GUESTBOOK_CHOICES)
 	if not is_inside_tree():
 		return
 	world.player.frozen = false
@@ -424,7 +424,7 @@ func _tobben_report_lands() -> void:
 			world.director.say("tobben says you're gone. good.")
 			return
 		world.director.say("tobben says you were asking questions.")
-		world.director.add_awareness(12.0)
+		world.director.notice(12.0, "tobben told on you")
 
 
 func _draw() -> void:

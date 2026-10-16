@@ -13,6 +13,13 @@ const TEST_PATH := "user://test_settings.cfg"
 var volume := 0.8
 var music_volume := 0.8
 var sfx_volume := 0.9
+## Character voices and typing (the Voice bus).
+var voice_volume := 0.9
+## The world shaking and jittering (events and high awareness). Off keeps
+## every other effect; nothing gameplay-relevant is shown only by shake.
+var screen_shake := true
+## How fast text appears: 0 slow, 1 normal, 2 fast, 3 instant.
+var text_speed := 1
 var fullscreen := false
 ## 0..1 multiplier for screen tearing, chromatic split and grain.
 var glitch_intensity := 1.0
@@ -72,6 +79,12 @@ func mark_tip_seen(id: String) -> void:
 
 
 ## Scale for anything that flashes (screen spikes, blinking, light strobes).
+## Multiplier for how fast text types out (TEXT_SPEEDS), INF = instant.
+const TEXT_SPEEDS := [0.6, 1.0, 1.8, INF]
+func text_rate() -> float:
+	return TEXT_SPEEDS[clampi(text_speed, 0, 3)]
+
+
 func flash_scale() -> float:
 	return 0.3 if reduce_flashing else 1.0
 
@@ -129,6 +142,7 @@ func apply() -> void:
 		_set_bus(bus, music_volume)
 	for bus in ["SFX", "UI"]:
 		_set_bus(bus, sfx_volume)
+	_set_bus("Voice", voice_volume)
 	UiStyle.rescale_text(get_tree())
 	if DisplayServer.get_name() == "headless":
 		return
@@ -150,6 +164,9 @@ func save() -> void:
 	cfg.set_value("audio", "volume", volume)
 	cfg.set_value("audio", "music_volume", music_volume)
 	cfg.set_value("audio", "sfx_volume", sfx_volume)
+	cfg.set_value("audio", "voice_volume", voice_volume)
+	cfg.set_value("accessibility", "text_speed", text_speed)
+	cfg.set_value("accessibility", "screen_shake", screen_shake)
 	cfg.set_value("video", "fullscreen", fullscreen)
 	cfg.set_value("accessibility", "glitch_intensity", glitch_intensity)
 	cfg.set_value("accessibility", "reduce_flashing", reduce_flashing)
@@ -172,6 +189,10 @@ func _load() -> void:
 	volume = clampf(float(cfg.get_value("audio", "volume", volume)), 0.0, 1.0)
 	music_volume = clampf(float(cfg.get_value("audio", "music_volume", music_volume)), 0.0, 1.0)
 	sfx_volume = clampf(float(cfg.get_value("audio", "sfx_volume", sfx_volume)), 0.0, 1.0)
+	voice_volume = clampf(float(cfg.get_value("audio", "voice_volume", voice_volume)), 0.0, 1.0)
+	text_speed = clampi(int(cfg.get_value("accessibility", "text_speed", text_speed)), 0, 3)
+	var shake_v: Variant = cfg.get_value("accessibility", "screen_shake", screen_shake)
+	screen_shake = shake_v if shake_v is bool else true
 	fullscreen = bool(cfg.get_value("video", "fullscreen", fullscreen))
 	glitch_intensity = clampf(float(cfg.get_value("accessibility", "glitch_intensity", glitch_intensity)), 0.0, 1.0)
 	reduce_flashing = bool(cfg.get_value("accessibility", "reduce_flashing", reduce_flashing))

@@ -37,6 +37,8 @@ const TRAIL_INTERVAL := 0.05
 @export var speed := 90.0
 
 var frozen := false
+## Set by World while dialogue or a choice is open: idle_time holds.
+var reading := false
 ## Seconds since the player last moved; the owner watches this.
 var idle_time := 0.0
 ## True while someone hides you (set by World): you duck down.
@@ -121,6 +123,13 @@ func restored_parts() -> int:
 	return _restored
 
 
+## Something is aiming at Rue (the cursor settling, Arin pointing): eyes
+## stay wide for as long as it lasts. Called every frame by World.
+func set_targeted(on: bool) -> void:
+	if on:
+		_sprite.startled = maxf(_sprite.startled, 0.2)
+
+
 ## The owner just reacted: jump, eyes wide, a "!" over your head.
 func startle() -> void:
 	_sprite.startled = 0.9
@@ -135,7 +144,10 @@ func _physics_process(delta: float) -> void:
 	var dir := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	velocity = dir * speed
 	move_and_slide()
-	idle_time = idle_time + delta if dir == Vector2.ZERO else 0.0
+	if dir != Vector2.ZERO:
+		idle_time = 0.0
+	elif not reading:
+		idle_time += delta
 
 
 ## Play the end-of-life (or rescue) animation for this cause, or

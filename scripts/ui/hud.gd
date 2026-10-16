@@ -7,6 +7,11 @@ signal dialogue_closed
 ## choose() picked an option (index).
 signal _chosen(index: int)
 
+## A choice ignores input for this long after it appears, so a press still
+## mashing through the dialogue can't pick an answer (or an ending) by accident.
+const CHOICE_GRACE_MS := 450
+var _choice_ready_ms := 0
+
 const OWNER_COLOR := Color("e0704f")
 const SYSTEM_COLOR := Color("8a8f98")
 const NPC_COLOR := Color("e8c48a")
@@ -19,7 +24,8 @@ const MAX_LINES := 4
 ## bezel eat the corners.
 const SAFE := Vector2(14, 10)
 const STATUS_COLOR := Color("8cf2ff")
-const TYPE_SPEED := 36.0  # characters per second
+const TYPE_SPEED := 36.0  # characters per second (console), x Settings.text_rate()
+const DIALOGUE_SPEED := 55.0  # characters per second (dialogue box), x pace x text_rate()
 const LINE_PAUSE := 0.5
 
 ## The owner's character. Not you.
@@ -413,12 +419,15 @@ func choose(question: String, options: Array) -> int:
 		b.text = str(options[i])
 		b.focus_mode = Control.FOCUS_ALL
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.pressed.connect(func() -> void: _chosen.emit(i))
+		b.pressed.connect(func() -> void:
+			if Time.get_ticks_msec() >= _choice_ready_ms:  # not the press that ended the dialogue
+				_chosen.emit(i))
 		b.focus_entered.connect(func() -> void: Sfx.ui("ui_move"))
 		_choice_list.add_child(b)
 		if first == null:
 			first = b
 	_choice.visible = true
+	_choice_ready_ms = Time.get_ticks_msec() + CHOICE_GRACE_MS
 	_choice.move_to_front()  # above an end card's dimming overlay, if one is up
 	_choice_frame = Engine.get_process_frames()
 	_console_box.visible = false
@@ -437,8 +446,20 @@ func is_choosing() -> bool:
 
 
 func _update_choice() -> void:
-	if not _choice.visible or Engine.get_process_frames() <= _choice_frame + 1:
+	if not _choice.visible or Engine.get_process_frames() <= _choice_frame + 1 or Time.get_ticks_msec() < _choice_ready_ms:
 		return
+	# W/S (movement keys that aren't also ui_up/ui_down) move the choice too.
+	var step := 0
+	if Input.is_action_just_pressed("move_down") and not Input.is_action_just_pressed("ui_down"):
+		step = 1
+	elif Input.is_action_just_pressed("move_up") and not Input.is_action_just_pressed("ui_up"):
+		step = -1
+	if step != 0:
+		var focused := get_viewport().gui_get_focus_owner()
+		var n := _choice_list.get_child_count()
+		if n > 0:
+			var i := focused.get_index() if focused is Button and focused.get_parent() == _choice_list else 0
+			(_choice_list.get_child((i + step + n) % n) as Button).grab_focus()
 	if Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("confirm"):
 		var focused := get_viewport().gui_get_focus_owner()
 		if focused is Button and focused.get_parent() == _choice_list:
@@ -500,11 +521,15 @@ func _update_dialogue(delta: float) -> void:
 	var total := _dialogue_text.get_total_character_count()
 	if _dialogue_text.visible_characters >= 0 and _dialogue_text.visible_characters < total:
 		var before := int(_dialogue_typed)
-		_dialogue_typed += 55.0 * delta
+		var rate := Settings.text_rate()
+		if is_inf(rate):
+			_dialogue_typed = float(total)  # Text: Instant
+		else:
+			_dialogue_typed += DIALOGUE_SPEED * Sfx.voice_pace(_dialogue_speaker.text) * rate * delta
 		_dialogue_text.visible_characters = mini(int(_dialogue_typed), total)
-		if int(_dialogue_typed) > before:
-			# Each speaker has their own voice blip; books and notes rustle.
-			if _dialogue_speaker.text in Sfx.VOICES:
+		if int(_dialogue_typed) > before and not is_inf(rate):
+			# Each speaker has their own voice (Sfx.VOICE_PROFILES); books and notes rustle.
+			if _dialogue_speaker.text in Sfx.VOICE_PROFILES:
 				Sfx.voice_blip(_dialogue_speaker.text)
 			else:
 				Sfx.type_key("system")
@@ -564,9 +589,12 @@ func cost_preview() -> float:
 	return _meter.preview * 100.0
 
 
-func glitch_cost(amount: float) -> void:
-	var l := _make_label(_meter.get_parent(), _meter.position + Vector2(_meter.size.x - 30, 24), Vector2(40, 14), 12, Color(1.0, 0.35, 0.45))
-	l.text = "+%d" % int(amount)
+func glitch_cost(amount: float, why := "") -> void:
+	var w := 40.0 if why == "" else _meter.size.x
+	# Under the meter's state word, inside the screen, right-aligned.
+	var pos := _meter.position + Vector2(_meter.size.x - w, 24 if why == "" else 40)
+	var l := _make_label(_meter.get_parent(), pos, Vector2(w, 14), 12 if why == "" else 10, Color(1.0, 0.35, 0.45))
+	l.text = "+%d" % int(amount) if why == "" else "+%d  ·  %s" % [int(amount), why]
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	var tw := create_tween().set_parallel()
 	tw.tween_property(l, "position:y", l.position.y - 18.0, 0.9)
@@ -687,11 +715,13 @@ func _update_slot() -> void:
 
 func _update_typing(delta: float) -> void:
 	if _typing:
-		_typed += TYPE_SPEED * delta
+		var rate := Settings.text_rate()
+		var step := 1000000.0 if is_inf(rate) else TYPE_SPEED * rate * delta
+		_typed += step
 		var full: String = _typing.get_meta("full", _typing.text)
 		var n := mini(int(_typed), full.length())
 		# One key sound per new visible character (the sound rate-limits itself).
-		if n > int(_typed - TYPE_SPEED * delta) and n > 0 and n <= full.length() and full[n - 1] != " ":
+		if not is_inf(rate) and n > int(_typed - step) and n > 0 and n <= full.length() and full[n - 1] != " ":
 			if _typing.get_meta("kind", "") == "owner":
 				Sfx.owner_blip(full[n - 1])  # the owner "speaks"
 			else:

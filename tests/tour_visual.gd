@@ -168,3 +168,31 @@ func test_tour_slot_two() -> void:
 	await press("interact")
 	await wait(4.0)
 	await _measure("32_ending")
+
+
+func test_tour_settings() -> void:
+	tree.change_scene_to_file("res://scenes/title.tscn")
+	await wait(1.0)
+	scene()._show_settings()
+	await wait(0.3)
+	await _measure("50_settings", 5)
+	settings().large_text = true
+	settings().apply()
+	await wait(0.3)
+	await _measure("51_settings_large_text", 5)
+	settings().large_text = false
+	settings().apply()
+
+
+func test_tour_tells() -> void:
+	var w := await start_session()
+	await go_to(w, "square", "house")
+	var arin: OwnerAvatar = w.area.arin
+	w.director.paused = true
+	arin.route = [arin.global_position] as Array[Vector2]
+	w.player.global_position = arin.global_position + arin._facing * 34.0
+	await wait(0.5)
+	await _measure("52_arin_points", 5)
+	w.director.notice(8.0, "talking to MIRA")
+	await wait(0.2)
+	await _measure("53_awareness_reason", 3)

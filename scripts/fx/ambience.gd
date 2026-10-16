@@ -27,7 +27,7 @@ func setup(w: World, id: String) -> void:
 		"archive":
 			_bed = _loop(Sfx.stream("archive_hum"), Sfx.LEVEL["archive_hum"])
 		"edge":
-			_theme = _loop(MusicBox.stream(OwnerMemory.fragments.size(), "reverse"), -14.0)
+			_theme = _loop(MusicBox.stream(_level(), "reverse"), -14.0)
 			_theme.pitch_scale = 0.8
 		"bin":
 			# The archive's hum, lower: a drive spinning somewhere.
@@ -37,11 +37,17 @@ func setup(w: World, id: String) -> void:
 			# A fridge hum, and the TV's game music through the wall.
 			_bed = _loop(Sfx.stream("archive_hum"), Sfx.LEVEL["archive_hum"] - 4.0)
 			_bed.pitch_scale = 1.4
-			_theme = _loop(MusicBox.stream(OwnerMemory.fragments.size()), -20.0)
+			_theme = _loop(MusicBox.stream(_level()), -20.0)
 		"oob":
 			_bed = _loop(Sfx.stream("air"), Sfx.LEVEL["air"])
-			_theme = _loop(MusicBox.stream(OwnerMemory.fragments.size(), "invert"), -12.0)
+			_theme = _loop(MusicBox.stream(_level(), "invert"), -12.0)
 			_theme.pitch_scale = 0.5
+
+
+## The theme's level here: one short of whole. The resolved theme belongs to
+## the RUE ending (and the title after it), never to an area.
+static func _level() -> int:
+	return mini(OwnerMemory.fragments.size(), MusicBox.MAX_LEVEL - 1)
 
 
 func _loop(s: AudioStream, db: float) -> AudioStreamPlayer:

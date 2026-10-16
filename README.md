@@ -55,7 +55,7 @@ move (a joystick appears under your thumb), tap **E** (bottom right) to interact
 and **II** (top right) to pause. Menus are tapped directly. The controls appear as soon as you
 touch the screen (`scripts/ui/touch_controls.gd`).
 
-Menus work with mouse, keyboard or gamepad (d-pad or stick to move, A to pick, B to go back). **How to Play** on the title explains the rules, with the controls for whatever you're holding. With **Vibration** on, phones buzz and gamepads rumble on glitches, saves and deaths. **Settings** (title screen or pause menu) is in two
+Menus work with mouse, keyboard or gamepad (d-pad or stick to move, A to pick, B to go back; W/S also move through choices). Settings also has **Voices** (character voices and typing, separate from Effects), **Text** speed (Slow / Normal / Fast / Instant) and **Screen shake**. **How to Play** on the title explains the rules, with the controls for whatever you're holding. With **Vibration** on, phones buzz and gamepads rumble on glitches, saves and deaths. **Settings** (title screen or pause menu) is in two
 columns: *Sound* (master, music, effects), *Picture* (fullscreen, CRT curvature, screen effects),
 *Comfort* (glitch intensity, reduce flashing, **large text**) and *Help* (**tutorial tips**), plus
 *Reset owner memory* on the title screen. See [Visual effects](#visual-effects) and [Sound](#sound)
@@ -610,6 +610,9 @@ tests/run.sh --bots --speed=2 --filter=purge_3
 | `test_owner_fixes.gd` | The idle save-over (only in the open, only after the owner's warning); closets count as hiding everywhere; no doorways mid-reload; PAUSE carries through a doorway |
 | `test_art.gd` | The frozen afternoon: Arin's room's sunbeam drains as the owner watches, follows awareness, stutters on a reload |
 | `test_purge.gd` | The purge ending: a PURGED card after a quiet beat, saying how it happened; Restore the intruder (asks twice) and Back to the title as real buttons; the death card warns one step before |
+| `test_experience_fixes.gd` | Experience-polish fixes: first-visit lines, a refused seam stays usable, reading isn't standing still, questions hold the owner, no mashed choices, Wren during Mira's walk, Pip skips the planted memory, area themes, PHASE past the crates, awareness reasons, the reload warning, F9 only where offered, screen shake off, W/S in choices, a medium press still talks |
+| `test_voices.gd` | Procedural voices: distinct timbres, the Voice bus, Rue's motif growing with memories, the owner's voice breaking up, text speed, settings persistence, the heartbeat surviving a music mute |
+| `test_character_tells.gd` | Arin points (not waves), the real Arin stays silent, Rue reacts while targeted |
 | `test_house.gd` | UNLOCK on Arin's front door and walking in; the way back out; the second controller (secret, Slot 2 recap, survives a reload); closets hide you while Arin comes home; Arin catches you in the open |
 | `test_polish.gd` | How to Play from the title; the title menu driven by a gamepad (d-pad, B); rumble on a gamepad only with Vibration on |
 | `test_endings.gd` | The Slot 2 choice (two or three options), the escape, Wren and message endings, and the title aftermath |

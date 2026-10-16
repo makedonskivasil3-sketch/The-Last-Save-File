@@ -46,6 +46,9 @@ const PAUSE_TIME := 6.0
 const LIE_TIME := 15.0
 ## Phase moves you at most this far.
 const PHASE_RANGE := 46.0
+## ...or this far when it's the owner's dragged crates in front of you (they
+## are 40 px deep; the game promises PHASE gets you past them).
+const PHASE_RANGE_PROP := 62.0
 
 ## The owner, the first time each glitch is used in a session.
 const OWNER_REACTION := {

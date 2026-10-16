@@ -29,6 +29,9 @@ func _ready() -> void:
 	_first = _slider(left, "Master", Settings.volume, func(v: float) -> void: Settings.set_value("volume", v))
 	_slider(left, "Music", Settings.music_volume, func(v: float) -> void: Settings.set_value("music_volume", v))
 	_slider(left, "Effects", Settings.sfx_volume, _on_effects_volume)
+	_slider(left, "Voices", Settings.voice_volume, func(v: float) -> void:
+		Settings.set_value("voice_volume", v)
+		Sfx.voice_blip("MIRA"))  # so you hear the level you're choosing
 	_section(left, "PICTURE")
 	_check(left, "Fullscreen", Settings.fullscreen, func(on: bool) -> void: Settings.set_value("fullscreen", on))
 	_check(left, "CRT curvature", Settings.crt_curvature, func(on: bool) -> void: Settings.set_value("crt_curvature", on))
@@ -41,8 +44,14 @@ func _ready() -> void:
 	_section(right, "COMFORT")
 	_slider(right, "Glitch", Settings.glitch_intensity, func(v: float) -> void: Settings.set_value("glitch_intensity", v))
 	_check(right, "Reduce flashing", Settings.reduce_flashing, func(on: bool) -> void: Settings.set_value("reduce_flashing", on))
+	_check(right, "Screen shake", Settings.screen_shake, func(on: bool) -> void: Settings.set_value("screen_shake", on))
 	_check(right, "Large text", Settings.large_text, func(on: bool) -> void: Settings.set_value("large_text", on))
 	_check(right, "Vibration", Settings.vibration, func(on: bool) -> void: Settings.set_value("vibration", on))
+	var speed_button := Button.new()
+	speed_button.focus_mode = Control.FOCUS_ALL
+	speed_button.pressed.connect(_cycle_text_speed.bind(speed_button))
+	left.add_child(speed_button)  # the left column has the room, even with large text
+	_label_text_speed(speed_button)
 	_section(right, "HELP")
 	_check(right, "Tutorial tips", Settings.tutorial_tips, func(on: bool) -> void: Settings.set_value("tutorial_tips", on))
 	if show_reset:
@@ -75,6 +84,15 @@ func _cycle_effects(b: Button) -> void:
 
 func _label_effects(b: Button) -> void:
 	b.text = "Screen: %s" % ["Off", "Light", "Full"][Settings.screen_effects]
+
+
+func _cycle_text_speed(b: Button) -> void:
+	Settings.set_value("text_speed", (Settings.text_speed + 1) % Settings.TEXT_SPEEDS.size())
+	_label_text_speed(b)
+
+
+func _label_text_speed(b: Button) -> void:
+	b.text = "Text: %s" % ["Slow", "Normal", "Fast", "Instant"][Settings.text_speed]
 
 
 func _on_reset() -> void:

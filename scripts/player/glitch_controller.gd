@@ -20,6 +20,8 @@ const MAGENTA := Color(1.0, 0.25, 0.6)
 const CYAN := Color(0.55, 0.95, 1.0)
 ## PHASE needs a wall (or a gap in the floor) this close in front of you.
 const PHASE_PROBE := 9.0
+## A charge released before this fraction of its hold time counts as a tap.
+const TAP_FRACTION := 0.5
 
 var world: World
 ## Debug: every glitch, whatever your memories.
@@ -74,8 +76,14 @@ func _process(delta: float) -> void:
 				_charge_up(delta)
 		else:
 			# Released: a short press (or a hold with nothing to glitch) is a tap.
+			# Let go early in a charge and it's still a tap (it was a long-ish
+			# press, not a glitch); later, a soft "cancelled" so it's never silent.
 			if _charge <= 0.0:
 				world.tap_interact()
+			elif not target.is_empty() and _charge < float(Glitch.DEFS[target.id].hold) * TAP_FRACTION:
+				world.tap_interact()
+			else:
+				Sfx.play("denied", -10.0, 1.3)
 			_cancel()
 	_update_prompt()
 	queue_redraw()
@@ -182,8 +190,9 @@ func phase_landing() -> Vector2:
 	var dir: Vector2 = world.player.facing()
 	if not _obstacle(p + dir * PHASE_PROBE):
 		return Vector2.INF
+	var reach := Glitch.PHASE_RANGE_PROP if _blocker(p + dir * PHASE_PROBE) is DragProp else Glitch.PHASE_RANGE
 	var d := 12.0
-	while d <= Glitch.PHASE_RANGE:
+	while d <= reach:
 		var q := p + dir * d
 		if not area.bounds.grow(-5.0).has_point(q):
 			return Vector2.INF
@@ -197,12 +206,18 @@ func phase_landing() -> Vector2:
 func _obstacle(q: Vector2) -> bool:
 	if world.area.has_method("floor_at") and not world.area.floor_at(q):
 		return true
+	return _blocker(q) != null
+
+
+## The solid thing at q (null if none).
+func _blocker(q: Vector2) -> Object:
 	var params := PhysicsShapeQueryParameters2D.new()
 	params.shape = _probe_shape
 	params.transform = Transform2D(0.0, q + Vector2(0, 2))
 	params.exclude = [world.player.get_rid()]
 	params.collision_mask = world.player.collision_mask
-	return not world.get_world_2d().direct_space_state.intersect_shape(params, 1).is_empty()
+	var hits := world.get_world_2d().direct_space_state.intersect_shape(params, 1)
+	return null if hits.is_empty() else hits[0].collider
 
 
 # --- firing --------------------------------------------------------------------------
