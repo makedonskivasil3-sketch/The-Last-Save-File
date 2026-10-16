@@ -39,6 +39,9 @@ const DRAG_HOLD := 14.0         # how long a dragged prop blocks the way
 const SPOT_EVERY := 1.5
 const WREN_DELETE_TIME := 5.0
 const WREN_DELETE_EVERY := 30.0
+## Mira, out of her room: the owner tries to reset her, more patiently.
+const MIRA_RESET_TIME := 6.0
+const MIRA_RESET_EVERY := 25.0
 ## A reload never drops you into danger: it skips moments when the cursor or
 ## Arin were this close, and gives you a beat to react afterwards.
 const SAFE_FROM_CURSOR := 64.0
@@ -318,17 +321,21 @@ func _update_save(delta: float) -> void:
 # --- DELETE WREN ---------------------------------------------------------------------
 
 func _update_wren(delta: float, aw: float) -> void:
-	if world.escort == null or OwnerMemory.wren_saved:
+	var who := world.escort_id()
+	# Wren: deleted (unless she's cut content now). Mira: reset, whenever
+	# she's out of her room, however calm the owner is.
+	if who == "" or (who == "wren" and OwnerMemory.wren_saved) or (who == "mira" and world.area.area_id == "room"):
 		wren_delete = -1.0
 		_next_wren = INF
 		return
+	var ring_time := MIRA_RESET_TIME if who == "mira" else WREN_DELETE_TIME
 	if wren_delete >= 0.0:
-		wren_delete += delta / WREN_DELETE_TIME
+		wren_delete += delta / ring_time
 		if wren_delete >= 1.0:
 			wren_delete = -1.0
 			world.lose_escort()
 		return
-	if aw < OwnerDirector.SUSPECT:
+	if who == "wren" and aw < OwnerDirector.SUSPECT:
 		return
 	if _next_wren == INF:
 		_next_wren = _clock + 6.0
@@ -340,8 +347,12 @@ func start_wren_delete() -> void:
 	if world.escort == null or wren_delete >= 0.0:
 		return
 	wren_delete = 0.0
-	_next_wren = _clock + WREN_DELETE_EVERY
-	world.director.say("and you. wren.npc. delete.")
+	if world.escort_id() == "mira":
+		_next_wren = _clock + MIRA_RESET_EVERY
+		world.director.say("mira. back to your room. reset.")
+	else:
+		_next_wren = _clock + WREN_DELETE_EVERY
+		world.director.say("and you. wren.npc. delete.")
 	Sfx.play("stinger", -6.0, 1.3, 0.0)
 
 
@@ -384,7 +395,8 @@ func _note_route(delta: float) -> void:
 
 func _draw() -> void:
 	if wren_delete >= 0.0 and world.escort:
-		_draw_ring(world.escort.global_position + Vector2(0, -34), wren_delete, "DELETE wren.npc ?")
+		var label := "RESET mira.npc ?" if world.escort_id() == "mira" else "DELETE wren.npc ?"
+		_draw_ring(world.escort.global_position + Vector2(0, -34), wren_delete, label)
 	if save_progress < 0.0:
 		return
 	var p: Vector2 = world.player.global_position + Vector2(0, -40)

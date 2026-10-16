@@ -55,6 +55,8 @@ var save_point: SavePoint
 var cracked: CrackedWall
 
 var _mira_line := 0
+## Mira just asked to come along: the choice comes when the dialogue closes.
+var _mira_asked := false
 
 
 func _init() -> void:
@@ -89,14 +91,17 @@ func build() -> void:
 			mira_state = Npc.State.DELETED
 		elif OwnerMemory.purge >= 1:
 			mira_state = Npc.State.RESTRICTED
-	mira = add_npc("mira", MIRA_POS, mira_state)
-	mira.display_name = "MIRA"
-	mira.body_kind = "dress"
-	mira.idle_style = "sway"
-	mira.notice_emote = "!"
-	mira.dark_color = Color("a85a2e")
-	mira.lines_provider = _mira_lines
-	mira.awareness_cost = 8.0
+	if world.escort and world.escort.npc_id == "mira":
+		mira = world.escort  # she's out walking with you
+	else:
+		mira = add_npc("mira", MIRA_POS, mira_state)
+		mira.display_name = "MIRA"
+		mira.body_kind = "dress"
+		mira.idle_style = "sway"
+		mira.notice_emote = "!"
+		mira.dark_color = Color("a85a2e")
+		mira.lines_provider = _mira_lines
+		mira.awareness_cost = 8.0
 
 	save_point = SavePoint.new()
 	save_point.position = SAVE_POS
@@ -171,7 +176,7 @@ func on_owner_event(event: float) -> void:
 				world.fx.spike(0.6, 0.8)
 			world.hud.say("WARNING: wall integrity 97%", "system")
 		OwnerDirector.SILENCE:
-			if mira.delete():
+			if not mira.escorted and mira.delete():
 				world.flags["mira_deleted"] = true
 				world.fx.spike(0.8, 1.2)
 				world.director.say("don't talk to it, mira.")
@@ -197,16 +202,40 @@ func _on_seam(s: Seam) -> void:
 
 
 func _mira_lines() -> Array:
-	# Her request, once she trusts you a little.
-	if mira.state == Npc.State.NORMAL and OwnerMemory.mira_quest == "" and _mira_line >= 2:
-		OwnerMemory.mira_quest = "carried"
-		OwnerMemory.save_memory()
-		world.hud.say("RECEIVED: mira_note.txt", "system")
-		return Story.MIRA_NOTE_GIVE
+	# Reset by the owner: she doesn't know you any more.
+	if OwnerMemory.mira_quest == "reset":
+		var reset: String = Story.MIRA_RESET_LINES[mini(_mira_line, Story.MIRA_RESET_LINES.size() - 1)]
+		_mira_line += 1
+		return [reset]
+	# Her request, once she trusts you a little: take her to the square.
+	if mira.state == Npc.State.NORMAL and OwnerMemory.mira_quest in ["", "carried"] and _mira_line >= 2 \
+			and world.escort == null:
+		_mira_asked = true
+		return Story.MIRA_ASK
 	var lines: Array = MIRA_LINES if mira.state == Npc.State.NORMAL else MIRA_RESTRICTED
 	var line: String = lines[mini(_mira_line, lines.size() - 1)]
 	_mira_line += 1
 	return [line]
+
+
+## Mira asked to come along: now you choose.
+func on_dialogue_closed(who: Node) -> void:
+	if who != mira or not _mira_asked:
+		return
+	_mira_asked = false
+	if not world.hud.dialogue_finished or world.ending != "":
+		return
+	world.player.frozen = true
+	var pick := await world.hud.choose(Story.MIRA_ASK_Q, Story.MIRA_ASK_CHOICES)
+	if not is_inside_tree():
+		return
+	world.player.frozen = false
+	if pick == 0:
+		world.hud.show_dialogue("MIRA", mira.name_color, Story.MIRA_JOINS)
+		world.start_escort(mira)
+	else:
+		_mira_line += 1
+		world.hud.show_dialogue("MIRA", mira.name_color, Story.MIRA_DECLINED)
 
 
 func _note_text() -> String:

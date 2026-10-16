@@ -133,6 +133,8 @@ func _deleted_assets() -> Array:
 		lines.append("mira.npc: wrote on the notice board. Note, in the owner's hand: let her.")
 	elif OwnerMemory.mira_quest == "lost":
 		lines.append("mira.npc: note confiscated. Note: she talks too much.")
+	elif OwnerMemory.mira_quest == "reset":
+		lines.append("mira.npc: reset to defaults. Note, in the owner's hand: better.")
 	if OwnerMemory.guestbook_restored:
 		lines.append("guestbook.txt: modified. 2 names. Note: leave it.")
 	if not OwnerMemory.patched_seams.is_empty():

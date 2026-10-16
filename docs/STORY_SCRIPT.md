@@ -528,9 +528,16 @@ save. not once. not even when you left. / you wanted to be forgotten. so i forgo
 
 ## Side stories
 
-**Mira's note.** *"Pin it up. Maybe they'll remember I can talk. That I'm not just a line."* The board:
-**MIRA WAS HERE. I TALK. I REMEMBER. — M** · **THE OWNER:** > ...mira wrote this?
-Lost (you died carrying it): *"MIRA WAS HERE. I TALK. I REMEM"* in the bin.
+**Mira's walk.** *"I've never been outside this room. Not once. Arin walks past my window every morning. I've
+never seen what's past it. ... Take me there? I want to pin it up myself."* · **THE OWNER:** > mira? what is
+mira doing out of her room. · The ring: *RESET mira.npc ?* · **THE OWNER:** > mira. back to your room. reset.
+At the board: *MIRA: It's so big. ... she pins the note to the board with both hands, very carefully. MIRA:
+There. MIRA WAS HERE. Now it's true. MIRA: I'll walk home on my own. I know the way now. I watched you.*
+Reset: *MIRA: where am I? ...oh. welcome home, arin!* · *(she looked right at me. she didn't know me.)*
+Lost (you died with her out): *"MIRA WAS HERE. I TALK. I REMEM"* in the bin.
+
+**The final confrontation (Slot 2, halfway).** > what's that. what is SLOT 2. that's not yours. / > mine. /
+(BLIND) > let GO of it— / > there. come and get it. / > arin. go and get it. / > stop. stop. please.
 
 **Tobben's guest book.** *you write in the blank line. R. U. E.* · **TOBBEN:** ...there. Two names.
 Like it used to be. I'd forgotten I forgot. · **THE OWNER:** > ...who wrote her name in the book.

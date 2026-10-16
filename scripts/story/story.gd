@@ -226,6 +226,8 @@ static func slot2_recap(escorting: bool) -> Array:
 		lines.append("> mira's note is still on the board. i didn't take it down.")
 	elif OwnerMemory.mira_quest == "lost":
 		lines.append("> mira had something to say. i made sure she didn't.")
+	elif OwnerMemory.mira_quest == "reset":
+		lines.append("> i reset mira. she's happier not knowing you.")
 	if OwnerMemory.guestbook_restored:
 		lines.append("> someone wrote her name back in the guest book.")
 	if OwnerMemory.total_glitches >= 20:
@@ -264,6 +266,34 @@ const PIP_LINES := [
 	"they used to give me treats with the shoulder button.",
 	"your pieces. we have %d. i can smell the rest.",
 	"don't stand still near the hand. i don't like the hand.",
+]
+
+## Mira's walk: she has never left Arin's room. She asks you to take her to
+## the square so she can pin her note to the board herself. Outside her room
+## the owner knows she's out of place: awareness creeps up, and they keep
+## trying to RESET her (a ring; any glitch interrupts). Reset, she never
+## remembers you again.
+const MIRA_ASK := [
+	"Can I tell you something? I've never been outside this room. Not once.",
+	"Arin walks past my window every morning. I've never seen what's past it.",
+	"I wrote a note for the board in the square. The owner reads the board.",
+	"Take me there? I want to pin it up myself.",
+]
+const MIRA_ASK_Q := "Take Mira to the square?"
+const MIRA_ASK_CHOICES := ["Take her with you", "Not now"]
+const MIRA_DECLINED := ["That's alright. It's safer in here. Probably."]
+const MIRA_JOINS := ["Oh! Okay. Okay. Stay close. I don't know the way."]
+const MIRA_PIN_SCENE := [
+	"MIRA: It's so big. Arin walks past my window every day and I never knew it was this big.",
+	"she pins the note to the board with both hands, very carefully.",
+	"MIRA: There. MIRA WAS HERE. Now it's true.",
+	"MIRA: I'll walk home on my own. I know the way now. I watched you.",
+]
+const MIRA_RESET_LAST := "where am I? ...oh. welcome home, arin!"
+const MIRA_RESET_LINES := [
+	"Welcome home, Arin!",
+	"Have we met? You look... no. Sorry. Welcome home, Arin!",
+	"Don't forget to save!",
 ]
 
 ## Mira's request: a note for the square's notice board ("the owner reads
@@ -485,6 +515,8 @@ static func _epilogue_people(ending: String) -> Array:
 			lines.append("(i couldn't keep wren. i'll remember her for both of us.)")
 	if OwnerMemory.mira_quest == "pinned" and ending != "overwrite":
 		lines.append("the notice board in the square still says MIRA WAS HERE. nobody takes it down.")
+	elif OwnerMemory.mira_quest == "reset":
+		lines.append("(mira doesn't remember me. i remember her for both of us.)")
 	if OwnerMemory.guestbook_restored and ending != "overwrite":
 		lines.append("tobben's guest book lies open: two names, two handwritings.")
 	return lines
@@ -547,7 +579,9 @@ static func recall(who: String) -> String:
 	match who:
 		"mira":
 			if OwnerMemory.mira_quest == "pinned":
-				return "You pinned it! The owner stood at the board for a whole minute. They didn't take it down."
+				return "I pinned it. Me! With my own hands, in the square. The owner stood at the board for a whole minute. They didn't take it down."
+			if OwnerMemory.mira_quest == "reset":
+				return ""
 			if OwnerMemory.mira_quest == "lost":
 				return "My note... they found it on you, didn't they. It's alright. I'll write another one. I won't."
 			if "mira" in OwnerMemory.restored:
@@ -604,6 +638,7 @@ static func secrets() -> Array:
 		["Wren saw the Edge", "She wants to see it before she's gone.", OwnerMemory.wren_saved],
 		["Undeleted", "Bring back someone the owner deleted.", not OwnerMemory.restored.is_empty()],
 		["The guest book", "Tobben lost a page. Look where deleted things go.", OwnerMemory.found_guestbook],
+		["Mira saw the square", "Someone has never left her room.", OwnerMemory.mira_quest == "pinned"],
 	]
 
 

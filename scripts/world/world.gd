@@ -288,7 +288,7 @@ func change_area(id: String, arrival: String) -> void:
 		var now := Time.get_ticks_msec()
 		if now - _leash_said > 2500:
 			_leash_said = now
-			hud.say("wait for wren.", "self")
+			hud.say("wait for %s." % escort.npc_id, "self")
 		return
 	_transitioning = true
 	player.frozen = true
@@ -432,7 +432,7 @@ func current_goal() -> String:
 	return "%s\nMemories recovered: %d / %d" % [goal, OwnerMemory.fragments.size(), Story.FRAGMENTS.size()]
 
 
-# --- Wren's escort ----------------------------------------------------------------
+# --- escorts: Wren to the Edge, Mira to the square ----------------------------------
 
 func _on_dialogue_closed() -> void:
 	var who := _talking_to
@@ -456,9 +456,14 @@ func start_escort(npc: Npc) -> void:
 	npc.set_collision_layer_value(1, false)
 	escort = npc
 	_crumbs.clear()
-	OwnerMemory.note_helper("wren")
-	hud.say("wren.npc  ·  following", "system")
-	director.say("where are you taking her?")
+	OwnerMemory.note_helper(npc.npc_id)
+	hud.say("%s.npc  ·  following" % npc.npc_id, "system")
+	director.say("mira? what is mira doing out of her room." if npc.npc_id == "mira" else "where are you taking her?")
+
+
+## Who's walking with you ("" if nobody).
+func escort_id() -> String:
+	return escort.npc_id if escort else ""
 
 
 func _update_escort(delta: float) -> void:
@@ -470,14 +475,61 @@ func _update_escort(delta: float) -> void:
 		if _crumbs.size() > 300:
 			_crumbs.pop_front()
 	escort.follow(_crumbs, p, delta)
+	if escort.npc_id == "mira" and area.area_id != "room":
+		# A bedroom character out of her bedroom: the owner can tell.
+		director.add_awareness(2.5 * delta)
+		var board: Variant = area.get("board")
+		if board is Node2D and escort.global_position.distance_to(board.global_position) < 40.0:
+			mira_pins_note()
 
 
-## The owner got her while she was with you. For good.
+## Mira made it to the notice board: she pins her note herself.
+func mira_pins_note() -> void:
+	if escort == null or escort.npc_id != "mira" or _cutscene:
+		return
+	_cutscene = true
+	player.frozen = true
+	director.paused = true
+	OwnerMemory.mira_quest = "pinned"
+	OwnerMemory.save_memory()
+	await hud.cinematic("MIRA", Story.MIRA_PIN_SCENE, Color("e0a070"), 0.6)
+	if not is_inside_tree():
+		return
+	var board: Variant = area.get("board")
+	if board is Note:
+		board.set_text_now(Story.MIRA_NOTE_TEXT)
+	hud.say("PINNED: mira_note.txt", "system")
+	Sfx.play("seal", -4.0, 1.3)
+	# She walks home on her own.
+	var gone := escort
+	escort = null
+	create_tween().tween_property(gone, "modulate:a", 0.0, 1.2)
+	get_tree().create_timer(1.3).timeout.connect(gone.queue_free)
+	player.frozen = false
+	director.paused = false
+	_cutscene = false
+	director.add_awareness(5.0)
+	director.say("...mira wrote this?")
+
+
+## The owner got her while she was with you. Wren: deleted, for good.
+## Mira: reset to her defaults, for good (she won't remember you).
 func lose_escort() -> void:
 	if escort == null:
 		return
 	var lost := escort
 	escort = null
+	if lost.npc_id == "mira":
+		OwnerMemory.mira_quest = "reset"
+		OwnerMemory.save_memory()
+		hud.say(Story.MIRA_RESET_LAST, "npc", "MIRA")
+		hud.say("mira.npc  ·  reset to defaults", "system")
+		director.say("there. back where you belong.")
+		hud.say("(she looked right at me. she didn't know me.)", "self")
+		fx.spike(0.6 * Settings.flash_scale(), 1.0)
+		create_tween().tween_property(lost, "modulate:a", 0.0, 1.0)
+		get_tree().create_timer(1.1).timeout.connect(lost.queue_free)
+		return
 	# She trusted you. She gets half a sentence.
 	hud.say(Story.WREN_LAST_WORDS, "npc", "WREN")
 	lost.delete()
@@ -493,7 +545,7 @@ func lose_escort() -> void:
 
 ## Wren made it to the Edge: her moment, and she's out of the owner's reach.
 func _wren_sees_edge() -> void:
-	if escort == null or OwnerMemory.wren_saved:
+	if escort == null or escort.npc_id != "wren" or OwnerMemory.wren_saved:
 		return
 	OwnerMemory.wren_saved = true
 	OwnerMemory.npc_fates.erase("wren")
@@ -813,12 +865,14 @@ func kill(cause: String, reason := "") -> void:
 	player.dissolve(cause)
 	Sfx.play("death_" + cause, 0.0, 1.0, 0.0)
 	drone.tension = 1.0
+	if escort_id() == "mira":
+		OwnerMemory.mira_quest = "lost"  # the owner found her out of her room, and her note
 	var forgiven := OwnerMemory.record_death(area.area_id, player.global_position, reason)
 	last_death = reason
 	var info: Array = Story.DEATHS.get(reason, ["ERASED", "the owner learned something.", "", "", ""])
 	var title: String = info[0]
 	var times := int(OwnerMemory.death_causes.get(reason, 1))
-	var body: String = Story.death_body(reason, area.area_id, times, escort != null) if reason != "" else str(info[1])
+	var body: String = Story.death_body(reason, area.area_id, times, escort_id() == "wren") if reason != "" else str(info[1])
 	if not OwnerMemory.session_helpers.is_empty():
 		body += "\nthe owner saw who helped you."
 	if OwnerMemory.is_purged():
@@ -874,7 +928,7 @@ func reach_slot2() -> void:
 	var full := OwnerMemory.fragments.size() >= Story.FRAGMENTS.size()
 	var options: Array = [Story.SLOT2_ESCAPE_NAMED if full else Story.SLOT2_ESCAPE]
 	var ids: Array[String] = ["rue" if full else "escape"]
-	if escort and escort.is_present():
+	if escort and escort.npc_id == "wren" and escort.is_present():
 		options.append(Story.SLOT2_WREN)
 		ids.append("wren")
 	options.append(Story.SLOT2_MESSAGE)
@@ -887,7 +941,7 @@ func reach_slot2() -> void:
 		options.append(Story.SLOT2_OVERWRITE)
 		ids.append("overwrite")
 	# Everything you've done, all at once, before you choose.
-	await hud.cinematic("", Story.slot2_recap(escort != null), Hud.OWNER_COLOR, 0.8)
+	await hud.cinematic("", Story.slot2_recap(escort_id() == "wren"), Hud.OWNER_COLOR, 0.8)
 	if not is_inside_tree():
 		return
 	var pick := await hud.choose(Story.SLOT2_QUESTION, options)

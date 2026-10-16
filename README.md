@@ -196,9 +196,17 @@ interrupts it). Lose her and she's gone for good, with half a sentence ("you sai
 the Edge and she has her moment there: she's *cut content*, safe in every future run, and she'll
 still come along again so her ending stays possible.
 
-**Mira's note.** After a couple of talks Mira asks you to pin a note to the square's notice board
-("the owner reads the board"). Pinned, it says MIRA WAS HERE every run after, and the owner notices.
-Die or quit while carrying it and the owner finds it on you: it ends up in the Recycle Bin.
+**Mira's walk.** Mira has never left Arin's room. After a couple of talks she asks you to take her
+to the square so she can pin her note to the board herself. She keeps up with you, but she's out of
+place: awareness creeps up the whole time she's out of her room, and every ~25 s the owner tries to
+**reset** her (a ring over her; any glitch interrupts it). Get her to the board and she pins it with
+her own hands, then walks home on her own: MIRA WAS HERE stays up every run after. Let the ring fill
+and she's reset to her defaults for good ("Welcome home, Arin!"). Die while she's with you and the
+note is confiscated (it ends up in the Recycle Bin).
+
+**The final confrontation.** Halfway through writing yourself into Slot 2, the owner sees it for the
+first time: the cursor seizes the slot and drags it across the Edge, away from you (BLIND makes it
+let go), then Arin walks up the road and circles it (FREEZE him or slip past). Your progress stays.
 
 **Tobben's guest book.** With the torn page from the Recycle Bin, Tobben lets you write RUE back into
 his book: a quiet moment the owner notices, and Tobben reads two names every morning after.
@@ -237,9 +245,9 @@ named once you've found it and hinted at while you haven't, plus what the owner 
 (runs, deaths, quits, escapes, and what got you most often). The save card shows the short
 version: `ENDINGS 1/4 · MEMORIES 2/5 · SECRETS 1/4`.
 
-| Endings (6) | Secrets (5) |
+| Endings (6) | Secrets (6) |
 | --- | --- |
-| Saved to Slot 2 · **RUE** (take the slot with every memory) · A new game for Wren · A message · two hidden ones | Pip · the Archivist · Wren saw the Edge · Undeleted (bring someone back) · the guest book page |
+| Saved to Slot 2 · **RUE** (take the slot with every memory) · A new game for Wren · A message · two hidden ones | Pip · the Archivist · Wren saw the Edge · Undeleted (bring someone back) · the guest book page · Mira saw the square |
 
 **Lines that change with your last run.** The owner's opening line names what got you last
 time; the room's note does too (or reacts to the ending you chose); and the first time you talk
@@ -598,8 +606,9 @@ tests/run.sh --bots --speed=2 --filter=purge_3
 | `test_edge.gd` | The Edge's grace and countdown, the gentler static (and its floor), no traps where you died, longer grace after static deaths, the one forgiven Edge death and what the death card says |
 | `test_phase2.gd` | Death cards by cause, place and repetition; glitch scars and the owner losing patience; THE PRICE tip; the title whispering on first launch; the owner's notes in the Records |
 | `test_story_deep.gd` | The owner's notes (one a run, reacting to how you played, kept in the Archive); the Slot 2 recap; the false memory; the unsent draft |
-| `test_side_stories.gd` | Mira's note pinned (and lost); Tobben's guest book; Pip knowing you; Wren's last words |
+| `test_side_stories.gd` | Mira's walk (she asks, the owner notices, she pins it herself, a reset that's for good, a glitch saving her, dying with her out); Tobben's guest book; Pip knowing you; Wren's last words |
 | `test_final_pass.gd` | The complete theme held back for RUE; the village warmed by what you put right; the Edge swelling; vibration (and the toggle) |
+| `test_confrontation.gd` | The owner grabbing Slot 2 halfway, BLIND making it let go, Arin coming to guard it, and still finishing |
 | `test_touch.gd` | Phone controls with real touch events: dragging walks, the E button talks, the II button pauses |
 | `test_expansion.gd` | The well, Out of Bounds (cooling, falling back, anchors and streaming floor), finding Pip and Pip staying, Pip leading the way, act cards, focus brackets, the map, the epilogue |
 | `test_onboarding.gd` | Tips appear in order and only once, can be turned off and replayed; the HIDDEN status; large text; the pause menu's goal |

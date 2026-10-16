@@ -97,7 +97,7 @@ func test_the_guest_book_page() -> void:
 	var text: Dictionary = page.interact()
 	check(str(text.lines).contains("RUE"), "two names")
 	check(memory().found_guestbook, "found, for good")
-	check(RecordsPanel.progress_line().contains("SECRETS 1/5"), RecordsPanel.progress_line())
+	check(RecordsPanel.progress_line().contains("SECRETS 1/6"), RecordsPanel.progress_line())
 	memory().begin_session()
 	check(Story.recall("tobben").contains("RUE"), "Tobben remembers the other name")
 
