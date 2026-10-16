@@ -7,6 +7,8 @@ const TITLE_SCENE := "res://scenes/title.tscn"
 const INTERACT_DISTANCE := 22.0
 const TALK_BREAK_DISTANCE := 40.0
 const WIPE_HOLD_TIME := 1.5
+## The purge ending: seconds of quiet before its card and buttons appear.
+const PURGED_CARD_DELAY := 4.0
 ## You can't leave an area without Wren closer than this.
 const ESCORT_LEASH := 70.0
 
@@ -899,6 +901,9 @@ func kill(cause: String, reason := "") -> void:
 		body += "\nthe owner saw who helped you."
 	if OwnerMemory.is_purged():
 		body = "the owner has learned enough."
+	elif OwnerMemory.purge == OwnerMemory.MAX_PURGE - 1:
+		# One step from the purge ending: say so while it can still be avoided.
+		body += "\n" + Story.PURGE_WARNING
 	elif forgiven:
 		body += "\nthe edge isn't loaded. the owner didn't see that one. (it didn't count.)"
 	var tip := death_tip(reason)
@@ -1108,8 +1113,34 @@ func _build_purged() -> void:
 	hud.say("SCAN COMPLETE: 0 UNKNOWN PROCESSES", "system")
 	hud.say("there. clean.", "owner")
 	hud.say("welcome back, arin.", "owner")
-	hud.set_hint("hold F9 to restore the intruder  ·  %s title" % Settings.glyph("pause"))
 	drone.volume_db = -30.0
+	# Let the quiet sink in, then say plainly what happened and how to come back.
+	get_tree().create_timer(PURGED_CARD_DELAY).timeout.connect(_purged_card)
+
+
+## The purge ending's card: what happened, and real buttons (mouse, keys,
+## gamepad, touch) instead of only holding F9.
+func _purged_card() -> void:
+	if not is_inside_tree() or not purged:
+		return
+	hud.show_overlay(Story.PURGED_TITLE, Story.purged_body(), UiStyle.MUTED)
+	while is_inside_tree():
+		var pick := await hud.choose(Story.PURGED_QUESTION, Story.PURGED_CHOICES)
+		if pick == 1:
+			get_tree().change_scene_to_file(TITLE_SCENE)
+			return
+		var sure := await hud.choose(Story.PURGED_CONFIRM, Story.PURGED_CONFIRM_CHOICES)
+		if sure == 0:
+			restore_intruder()
+			return
+
+
+## A new game for the intruder: the owner forgets everything (and so do the
+## Records). The same as Settings > Reset the owner's memory.
+func restore_intruder() -> void:
+	set_process(false)
+	OwnerMemory.wipe()
+	get_tree().reload_current_scene()
 
 
 ## Hold F9 to make the owner forget everything (a "new game" for the intruder).
@@ -1119,9 +1150,7 @@ func _handle_wipe(delta: float) -> void:
 		hud.set_hint("restoring intruder… %d%%" % int(100.0 * _wipe_hold / WIPE_HOLD_TIME))
 		if _wipe_hold >= WIPE_HOLD_TIME:
 			_wipe_hold = 0.0
-			set_process(false)
-			OwnerMemory.wipe()
-			get_tree().reload_current_scene()
+			restore_intruder()
 	elif _wipe_hold > 0.0:
 		_wipe_hold = 0.0
-		hud.set_hint("hold F9 to restore the intruder  ·  %s title" % Settings.glyph("pause") if purged else "")
+		hud.set_hint("")

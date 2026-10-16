@@ -419,6 +419,7 @@ func choose(question: String, options: Array) -> int:
 		if first == null:
 			first = b
 	_choice.visible = true
+	_choice.move_to_front()  # above an end card's dimming overlay, if one is up
 	_choice_frame = Engine.get_process_frames()
 	_console_box.visible = false
 	_prompt.visible = false

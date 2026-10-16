@@ -126,8 +126,11 @@ owner acts on whatever area you're in:
 | Anything | Starts the next session more aware (+10 per purge, never above 35), with the door gone, Mira restricted or removed, a darker world, and a faster Arin, cursor and eraser. All of them stay slower than you, so every session can still be won. |
 
 Every death or quit adds one to **purge progress**. At **6/6** the owner wins: the save is clean,
-the real Arin is back in the room, and you're gone. (Reset from the title screen's Settings, or
-hold F9.)
+the real Arin is back in the room, and you're gone. After a few seconds of quiet a **PURGED** card
+says how it happened, with two buttons (mouse, keys, gamepad or touch): **Restore the intruder**
+(a new game; it asks twice, because the Records are forgotten too) or **Back to the title**. Holding
+F9, or Settings > Reset the owner's memory, does the same. One step before it, the death card and
+the pause menu's Quit both warn you.
 
 The owner's memory is stored at `user://owner_memory.json`:
 
@@ -606,6 +609,7 @@ tests/run.sh --bots --speed=2 --filter=purge_3
 | `test_save_safety.gd` | Saves are versioned and backed up; a half-written save recovers from the backup (and the damaged file is kept); wrong-typed values fall back instead of stopping the load; unversioned saves still load; a reset removes the backup |
 | `test_owner_fixes.gd` | The idle save-over (only in the open, only after the owner's warning); closets count as hiding everywhere; no doorways mid-reload; PAUSE carries through a doorway |
 | `test_art.gd` | The frozen afternoon: Arin's room's sunbeam drains as the owner watches, follows awareness, stutters on a reload |
+| `test_purge.gd` | The purge ending: a PURGED card after a quiet beat, saying how it happened; Restore the intruder (asks twice) and Back to the title as real buttons; the death card warns one step before |
 | `test_house.gd` | UNLOCK on Arin's front door and walking in; the way back out; the second controller (secret, Slot 2 recap, survives a reload); closets hide you while Arin comes home; Arin catches you in the open |
 | `test_polish.gd` | How to Play from the title; the title menu driven by a gamepad (d-pad, B); rumble on a gamepad only with Vibration on |
 | `test_endings.gd` | The Slot 2 choice (two or three options), the escape, Wren and message endings, and the title aftermath |

@@ -681,6 +681,35 @@ static func death_body(reason: String, area: String, times: int, escorting: bool
 	return "the owner learned something."
 
 
+## The purge ending (OwnerMemory.MAX_PURGE): the owner has learned enough,
+## and the intruder can't load into Slot 1 any more.
+const PURGED_TITLE := "PURGED"
+const PURGED_QUESTION := "Slot 1 is clean. There's nothing of you left to load."
+const PURGED_CHOICES := ["Restore the intruder  (a new game: the owner forgets everything)", "Back to the title"]
+const PURGED_CONFIRM := "Restore the intruder? Every ending, memory and secret in the Records is forgotten too."
+const PURGED_CONFIRM_CHOICES := ["Yes, forget everything", "No"]
+## On the death card when one more death or quit would end it.
+const PURGE_WARNING := "one more death or quit, and the owner won't let you back in. ever."
+
+
+static func purged_body() -> String:
+	var counted: Array[String] = []
+	if OwnerMemory.deaths > 0:
+		counted.append("you died %s" % _times(OwnerMemory.deaths))
+	if OwnerMemory.quits > 0:
+		counted.append("you left %s" % _times(OwnerMemory.quits))
+	var lines := ["the owner learned how you move, where you hide and who helps you."]
+	if not counted.is_empty():
+		lines.append("%s. that was enough." % " and ".join(counted))
+	if OwnerMemory.deaths > 0:
+		lines.append("(the marks on the floor are where you fell. they couldn't delete those.)")
+	return "\n".join(lines)
+
+
+static func _times(n: int) -> String:
+	return {1: "once", 2: "twice"}.get(n, "%d times" % n)
+
+
 ## The first glitch's lesson (after it, once).
 const PRICE_TIP := ["THE PRICE", "That jump on the bar was the owner feeling it. Glitches are how you get out, and how they find you. Spend them like they cost something. They do."]
 

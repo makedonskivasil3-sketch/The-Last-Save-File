@@ -139,6 +139,21 @@ func test_tour_deaths() -> void:
 	await _measure("26_death_card_edge_late", 20)
 
 
+func test_tour_purged() -> void:
+	var m := memory()
+	m.sessions = 8
+	m.deaths = 4
+	m.quits = 2
+	m.purge = OwnerMemory.MAX_PURGE
+	m.last_exit = "death"
+	m.save_memory()
+	tree.change_scene_to_file(MAIN_SCENE)
+	await wait(2.0)
+	await _measure("40_purged_quiet", 20)
+	await wait(World.PURGED_CARD_DELAY)
+	await _measure("41_purged_card", 20)
+
+
 func test_tour_slot_two() -> void:
 	var w := await start_session()
 	w.flags["pointer"] = true
