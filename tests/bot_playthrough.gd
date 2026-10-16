@@ -360,11 +360,18 @@ func _edge(w: Node, ending: String) -> String:
 		wait_until_close += 1
 	_step(w, "cursor lured (%d)" % lure)
 	await _go(w, [Vector2(250, 236), Vector2(420, 236), Vector2(520, 230), Vector2(520, 90), TheEdge.SLOT_POS], 15.0)
-	for i in 60:
-		if w.ending != "" or w.hud.is_choosing() or w._cutscene:
-			break
-		_steer(w, Vector2.ZERO)
-		await wait(0.1)
+	# The owner grabs the slot halfway: chase it, blind the cursor if close,
+	# then write while Arin circles.
+	var slot: SlotTwo = w.area.slot
+	var until := _now() + 60.0
+	while w.ending == "" and not w.hud.is_choosing() and not w._cutscene and _now() < until:
+		if w.player.global_position.distance_to(slot.global_position) > 6.0:
+			await _go(w, [slot.global_position], 1.0)
+		else:
+			_steer(w, Vector2.ZERO)
+			if _should_glitch(w):
+				await _glitch(w)
+			await frames(2)
 	if w._cutscene and w.ending == "":
 		await until_choosing(w, 40.0)  # the owner's recap first
 	if not w.hud.is_choosing():

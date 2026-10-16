@@ -16,6 +16,9 @@ const DRAIN := 0.5
 
 ## 0..1 written.
 var progress := 0.0
+## The owner has hold of it (the final confrontation): no writing, but what
+## you've written stays.
+var held := false
 
 var _t := 0.0
 var _done := false
@@ -37,6 +40,8 @@ func _physics_process(delta: float) -> void:
 	for body in get_overlapping_bodies():
 		if body is Player:
 			inside = true
+	if held:
+		return
 	if inside:
 		progress = minf(1.0, progress + delta / WRITE_TIME)
 		# The sound of you typing yourself into the save.

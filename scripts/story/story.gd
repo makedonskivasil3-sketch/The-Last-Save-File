@@ -160,6 +160,16 @@ const FALSE_FRAGMENT := {
 	"after": "that wasn't mine. it felt like mine. it was so close.",
 }
 
+## The final confrontation: the owner sees Slot 2 for the first time.
+const FINAL_FIGHT := {
+	"notice": "> what's that. what is SLOT 2. that's not yours.",
+	"grab": "> mine.",
+	"dropped": "> let GO of it—",
+	"placed": "> there. come and get it.",
+	"arin": "> arin. go and get it.",
+	"almost": "> stop. stop. please.",
+}
+
 ## The owner's notes: one a run (from the second), in order. Read together
 ## they tell the owner's side: why they pressed delete.
 const OWNER_NOTES := [
