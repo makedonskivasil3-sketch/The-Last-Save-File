@@ -97,14 +97,20 @@ func glyph(action: String) -> String:
 	return action.to_upper()
 
 
-## A short buzz on touch screens (if Vibration is on). ms: 10-200.
-## last_buzz is kept for tests.
+## A short buzz on touch screens, or a rumble on a gamepad (if Vibration is
+## on). ms: 10-200. last_buzz is kept for tests.
 var last_buzz := 0
 func buzz(ms: int) -> void:
-	if not vibration or not using_touch:
+	if not vibration or not (using_touch or using_gamepad):
 		return
 	last_buzz = ms
-	Input.vibrate_handheld(ms)
+	if using_touch:
+		Input.vibrate_handheld(ms)
+		return
+	# Longer buzzes are the heavier ones (a death is 160): rumble harder.
+	var strong := clampf(ms / 200.0, 0.0, 1.0)
+	for pad in Input.get_connected_joypads():
+		Input.start_joy_vibration(pad, clampf(0.3 + strong, 0.0, 1.0), strong, ms / 1000.0)
 
 
 func set_value(key: String, value: Variant) -> void:

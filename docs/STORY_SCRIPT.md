@@ -273,6 +273,19 @@ reads by a soft cyan light. The awareness bar slowly falls: the owner can't see 
 
 ---
 
+## ARIN'S HOUSE (behind the front door in the square)
+
+**THE DOOR, BEFORE:** The door is locked from the inside. You came out through a wall. You won't get back in that way. *(a lock is just a flag. flags can be flipped.)*
+**RUE, ON ENTERING:** (arin's house. the real one. well. the one in the game.) (it smells like someone else's dinner.)
+**THE TV:** the TV is on. it's showing this game. on the screen: a little house, a little room, a little someone standing in front of a TV. when you raise your hand, the little someone raises theirs.
+**PHOTO:** two kids on a couch, two controllers, crisps everywhere. one face has been pixelated out. carefully. square by square.
+**PLAYER 2 (door sign):** PLAYER 2. KNOCK FIRST. The room behind it is empty. Someone moved out of this room in a hurry, and nobody moved in.
+**THE COUCH (look under):** dust. a crisp. a cable, taped where the dog chewed it. the second controller. PLAYER 2. *(it's warm. it can't be warm. it's data.)*
+**OWNER:** ...don't touch that.
+**WHEN ARIN COMES HOME:** *(the door. someone's coming in.)* — **OWNER:** arin's home.
+**AT SLOT 2 (recap):** > you found her controller. i never moved it. i couldn't.
+**EPILOGUE (Rue / message):** in a house in ashvale, two controllers are plugged in. both lights are on.
+
 ## THE RECYCLE BIN (east of the Archive)
 
 **THE ARCHIVIST'S BOOK, *DELETED ASSETS*:** Deleted things go east, to the bin. For a while. Then the owner empties it.

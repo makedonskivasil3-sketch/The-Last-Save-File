@@ -11,6 +11,8 @@ var _settings_box: VBoxContainer
 var _settings: SettingsPanel
 var _records_box: VBoxContainer
 var _records: RecordsPanel
+var _help_box: VBoxContainer
+var _help: HowToPlayPanel
 var _load: Button
 var _rebuild_on_close := false
 var _music: AudioStreamPlayer
@@ -62,7 +64,11 @@ func _ready() -> void:
 	if OwnerMemory.sessions > 0:
 		UiStyle.button(row, "Records", _show_records).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UiStyle.button(row, "Settings", _show_settings).size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	UiStyle.button(_menu, "Quit", func() -> void: get_tree().quit())
+	var row2 := HBoxContainer.new()
+	row2.add_theme_constant_override("separation", 6)
+	_menu.add_child(row2)
+	UiStyle.button(row2, "How to Play", _show_help).size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UiStyle.button(row2, "Quit", func() -> void: get_tree().quit()).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_menu.add_child(_spacer(4))
 	UiStyle.note(_menu, "Contains flashing and glitch effects. Both can be reduced in Settings.")
 	var phone := OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios") or Settings.using_touch
@@ -83,6 +89,11 @@ func _ready() -> void:
 	_records = RecordsPanel.new()
 	_records.closed.connect(_show_menu)
 	_records_box.add_child(_records)
+
+	_help_box = UiStyle.centered_panel(self, 480)
+	_help = HowToPlayPanel.new()
+	_help.closed.connect(_show_menu)
+	_help_box.add_child(_help)
 
 	_show_menu()
 
@@ -207,6 +218,7 @@ func _show_menu() -> void:
 	_panel_of(_menu).visible = true
 	_panel_of(_settings_box).visible = false
 	_panel_of(_records_box).visible = false
+	_panel_of(_help_box).visible = false
 	_load.grab_focus()
 
 
@@ -214,6 +226,12 @@ func _show_records() -> void:
 	_panel_of(_menu).visible = false
 	_panel_of(_records_box).visible = true
 	_records.focus_first()
+
+
+func _show_help() -> void:
+	_panel_of(_menu).visible = false
+	_panel_of(_help_box).visible = true
+	_help.focus_first()
 
 
 func _show_settings() -> void:

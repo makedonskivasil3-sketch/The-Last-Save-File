@@ -33,7 +33,10 @@ const GLITCHES_PER_LOAD := 3
 const SAVE_TIME := 4.0          # standing still
 const SAVE_MOVING := 0.3        # fraction of the speed while you move
 const SAVE_EVERY := 35.0
-const IDLE_SAVE := 5.0          # standing still this long under suspicion
+## Standing still this long in the open under suspicion starts a save-over.
+## Longer than OwnerDirector.IDLE_WARN, so the owner says so first; never
+## while you're hidden (hiding is the answer the game teaches).
+const IDLE_SAVE := 8.0
 const DRAG_COOLDOWN := 25.0
 const DRAG_HOLD := 14.0         # how long a dragged prop blocks the way
 const SPOT_EVERY := 1.5
@@ -95,8 +98,7 @@ func update(delta: float) -> void:
 		pass  # standing still in Slot 2 is the point: no save-over there
 	elif save_progress >= 0.0:
 		_update_save(delta)
-	elif (aw >= OwnerDirector.HUNT and _clock >= _next_save) \
-			or (aw >= OwnerDirector.SUSPECT and world.player.idle_time > IDLE_SAVE and _clock >= _next_save - SAVE_EVERY * 0.5):
+	elif (aw >= OwnerDirector.HUNT and _clock >= _next_save) or _idle_save_due(aw):
 		start_save_over()
 	_update_drag(delta)
 	_update_wren(delta, aw)
@@ -168,6 +170,8 @@ func load_last_save(force := false) -> void:
 		return
 	if _load_cd > 0.0 and not force:
 		return  # one reload at a time, however many glitches queued one
+	if not force and not _owner_watching():
+		return  # queued before a PAUSE or a doorway into somewhere the owner can't see
 	rewinding = true
 	OwnerMemory.total_reloads += 1
 	_load_cd = LOAD_COOLDOWN
@@ -188,6 +192,7 @@ func load_last_save(force := false) -> void:
 	world.fx.noise(0.9, 1.0)
 	world.fx.roll_slip(0.2 * flash)
 	world.player.frozen = true
+	var area := world.area
 	# Dragged back through every step you took.
 	var tw := create_tween()
 	var step := REWIND_TIME / maxf(1.0, path.size() - 1)
@@ -196,16 +201,25 @@ func load_last_save(force := false) -> void:
 	await tw.finished
 	if not is_inside_tree() or world.ending != "":
 		return
+	if world.area != area:
+		# The area changed under the reload (it shouldn't: change_area waits).
+		# The snapshot belongs to the old area, so don't apply it.
+		_end_rewind()
+		return
 	_apply(snap)
 	_undo_glitches()
-	_history.resize(target + 1)
-	world.player.frozen = false
-	world.player.velocity = Vector2.ZERO
-	rewinding = false
+	_history.resize(mini(target + 1, _history.size()))
+	_end_rewind()
 	_grace()
 	await get_tree().create_timer(0.8).timeout
 	if is_inside_tree() and world.hud.banner_text().begins_with("◀◀"):
 		world.hud.set_banner("")
+
+
+func _end_rewind() -> void:
+	world.player.frozen = false
+	world.player.velocity = Vector2.ZERO
+	rewinding = false
 
 
 ## The oldest moment within reach that's safe to land in: never the eraser's
@@ -293,6 +307,14 @@ func _is_void(p: Vector2) -> bool:
 
 
 # --- SAVING OVER YOU ----------------------------------------------------------------
+
+## Standing still in the open under suspicion. (_next_save is INF until the
+## first save-over: the idle trigger doesn't wait for a cadence that never began.)
+func _idle_save_due(aw: float) -> bool:
+	if aw < OwnerDirector.SUSPECT or world.player.idle_time <= IDLE_SAVE or world.is_hidden_now():
+		return false
+	return _next_save == INF or _clock >= _next_save - SAVE_EVERY * 0.5
+
 
 func start_save_over() -> void:
 	if save_progress >= 0.0 or rewinding or _writing_slot() or not _owner_watching() or world.ending != "":

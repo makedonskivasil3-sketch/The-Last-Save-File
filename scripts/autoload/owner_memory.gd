@@ -14,6 +14,8 @@ const MAX_PURGE := 6
 const MAX_REMEMBERED_DEATHS := 12
 ## The owner never finds the last seam out of Arin's room.
 const SEAM_COUNT := 5
+## Bump when the save's shape changes, and teach _migrate the old shape.
+const SAVE_VERSION := 1
 
 var sessions: int = 0
 var deaths: int = 0
@@ -48,6 +50,8 @@ var mira_quest: String = ""
 var guestbook_restored: bool = false
 ## Read the torn guest book page in the Recycle Bin.
 var found_guestbook := false
+## Found the second controller under the couch in Arin's house.
+var found_controller := false
 ## How the last game ended at Slot 2: "escape", "wren" or "message" ("" if
 ## never), and every ending reached so far.
 var last_ending := ""
@@ -257,6 +261,7 @@ func wipe() -> void:
 	found_pip = false
 	wren_saved = false
 	found_guestbook = false
+	found_controller = false
 	owner_notes_seen = 0
 	session_glitches = 0
 	last_run_glitches = 0
@@ -283,10 +288,12 @@ func wipe() -> void:
 	session_seam = -1
 	_session_closed = true
 	save_memory()
+	SafeFile.remove_copies(_path)  # a reset shouldn't be undone by the backup
 
 
 func save_memory() -> void:
 	var data := {
+		"version": SAVE_VERSION,
 		"sessions": sessions,
 		"deaths": deaths,
 		"quits": quits,
@@ -299,6 +306,7 @@ func save_memory() -> void:
 		"found_pip": found_pip,
 		"wren_saved": wren_saved,
 		"found_guestbook": found_guestbook,
+		"found_controller": found_controller,
 		"owner_notes_seen": owner_notes_seen,
 		"session_glitches": session_glitches,
 		"last_run_glitches": last_run_glitches,
@@ -319,74 +327,117 @@ func save_memory() -> void:
 		"fragments": fragments,
 		"last_exit": last_exit,
 	}
-	var file := FileAccess.open(_path, FileAccess.WRITE)
-	if file == null:
-		push_warning("OwnerMemory: could not write %s" % _path)
-		return
-	file.store_string(JSON.stringify(data, "\t"))
+	SafeFile.write_atomic(_path, JSON.stringify(data, "\t"))
+
+
+## Brings an older save up to SAVE_VERSION. Files from before versioning are
+## version 0; their only difference (death_positions) is read in load_memory.
+## A save from a NEWER build is read as far as this build understands it.
+func _migrate(data: Dictionary) -> Dictionary:
+	if data.is_empty():
+		return data
+	var version := _int(data, "version", 0)
+	if version > SAVE_VERSION:
+		push_warning("OwnerMemory: save is from a newer version (%d > %d)" % [version, SAVE_VERSION])
+	# (version 0 -> 1: nothing to convert, the reader handles both.)
+	return data
+
+
+# Typed reads: a hand-edited or damaged value falls back to the default
+# instead of stopping the load half-way.
+static func _num(d: Dictionary, key: String) -> bool:
+	return d.get(key) is float or d.get(key) is int
+
+
+static func _int(d: Dictionary, key: String, fallback: int, most := 1 << 30) -> int:
+	return clampi(int(d[key]), 0, most) if _num(d, key) else fallback
+
+
+static func _bool(d: Dictionary, key: String) -> bool:
+	var v: Variant = d.get(key, false)
+	return v if v is bool else false
+
+
+static func _str(d: Dictionary, key: String, fallback: String) -> String:
+	var v: Variant = d.get(key, fallback)
+	return v if v is String else fallback
+
+
+static func _list(d: Dictionary, key: String) -> Array:
+	var v: Variant = d.get(key, [])
+	return v if v is Array else []
+
+
+## A list of unique strings (anything else in it is dropped).
+static func _strings(d: Dictionary, key: String) -> Array[String]:
+	var out: Array[String] = []
+	for v in _list(d, key):
+		if v is String and v not in out:
+			out.append(v)
+	return out
 
 
 func load_memory() -> void:
-	if not FileAccess.file_exists(_path):
+	var read: Array = SafeFile.read_json(_path)
+	var data: Dictionary = _migrate(read[0])
+	if data.is_empty():
 		return
-	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(_path))
-	if typeof(parsed) != TYPE_DICTIONARY:
-		push_warning("OwnerMemory: memory file unreadable, starting fresh")
-		return
-	var data: Dictionary = parsed
-	sessions = int(data.get("sessions", 0))
-	deaths = int(data.get("deaths", 0))
-	quits = int(data.get("quits", 0))
-	wins = int(data.get("wins", 0))
-	purge = int(data.get("purge", 0))
-	last_exit = str(data.get("last_exit", "none"))
-	met_archivist = bool(data.get("met_archivist", false))
-	found_pip = bool(data.get("found_pip", false))
-	wren_saved = bool(data.get("wren_saved", false))
-	found_guestbook = bool(data.get("found_guestbook", false))
-	owner_notes_seen = int(data.get("owner_notes_seen", 0))
-	session_glitches = int(data.get("session_glitches", 0))
-	last_run_glitches = int(data.get("last_run_glitches", 0))
-	total_glitches = int(data.get("total_glitches", 0))
-	total_reloads = int(data.get("total_reloads", 0))
-	false_memory_taken = bool(data.get("false_memory_taken", false))
-	mira_quest = str(data.get("mira_quest", ""))
-	guestbook_restored = bool(data.get("guestbook_restored", false))
-	last_ending = str(data.get("last_ending", ""))
-	endings_seen.clear()
-	for e in data.get("endings_seen", []):
-		endings_seen.append(str(e))
-	last_death = str(data.get("last_death", ""))
-	edge_static_deaths = int(data.get("edge_static_deaths", 0))
-	edge_mercy_used = bool(data.get("edge_mercy_used", false))
+	sessions = _int(data, "sessions", 0)
+	deaths = _int(data, "deaths", 0)
+	quits = _int(data, "quits", 0)
+	wins = _int(data, "wins", 0)
+	purge = _int(data, "purge", 0, MAX_PURGE)
+	last_exit = _str(data, "last_exit", "none")
+	met_archivist = _bool(data, "met_archivist")
+	found_pip = _bool(data, "found_pip")
+	wren_saved = _bool(data, "wren_saved")
+	found_guestbook = _bool(data, "found_guestbook")
+	found_controller = _bool(data, "found_controller")
+	owner_notes_seen = _int(data, "owner_notes_seen", 0)
+	session_glitches = _int(data, "session_glitches", 0)
+	last_run_glitches = _int(data, "last_run_glitches", 0)
+	total_glitches = _int(data, "total_glitches", 0)
+	total_reloads = _int(data, "total_reloads", 0)
+	false_memory_taken = _bool(data, "false_memory_taken")
+	mira_quest = _str(data, "mira_quest", "")
+	guestbook_restored = _bool(data, "guestbook_restored")
+	last_ending = _str(data, "last_ending", "")
+	endings_seen.assign(_strings(data, "endings_seen"))
+	last_death = _str(data, "last_death", "")
+	edge_static_deaths = _int(data, "edge_static_deaths", 0)
+	edge_mercy_used = _bool(data, "edge_mercy_used")
+	death_causes.clear()
 	var causes: Variant = data.get("death_causes", {})
-	death_causes = causes if causes is Dictionary else {}
-	restored.clear()
-	for r in data.get("restored", []):
-		restored.append(str(r))
+	if causes is Dictionary:
+		for k in causes:
+			if causes[k] is float or causes[k] is int:
+				death_causes[str(k)] = maxi(0, int(causes[k]))
+	restored.assign(_strings(data, "restored"))
 	route_memory.clear()
-	for r in data.get("route_memory", []):
-		if r is Dictionary and r.has("x") and r.has("y"):
+	for r in _list(data, "route_memory"):
+		if r is Dictionary and _num(r, "x") and _num(r, "y") and _num(r, "w") and r.get("area") is String:
 			route_memory.append(r)
-	acts_seen.clear()
-	for a in data.get("acts_seen", []):
-		acts_seen.append(str(a))
-	fragments.clear()
-	for f in data.get("fragments", []):
-		fragments.append(str(f))
+	acts_seen.assign(_strings(data, "acts_seen"))
+	fragments.assign(_strings(data, "fragments"))
 	deaths_log.clear()
-	for d in data.get("deaths_log", []):
-		if d is Dictionary and d.has("x") and d.has("y"):
+	for d in _list(data, "deaths_log"):
+		if d is Dictionary and _num(d, "x") and _num(d, "y") and d.get("area") is String:
 			deaths_log.append(d)
 	# Older saves only stored positions in Arin's room.
-	for p in data.get("death_positions", []):
-		if p is Array and p.size() == 2:
+	for p in _list(data, "death_positions"):
+		if p is Array and p.size() == 2 and (p[0] is float or p[0] is int) and (p[1] is float or p[1] is int):
 			deaths_log.append({"area": "room", "x": float(p[0]), "y": float(p[1]), "session": 0})
+	while deaths_log.size() > MAX_REMEMBERED_DEATHS:
+		deaths_log.pop_front()
 	patched_seams.clear()
-	for id in data.get("patched_seams", []):
-		patched_seams.append(int(id))
+	for id in _list(data, "patched_seams"):
+		if (id is float or id is int) and int(id) not in patched_seams and patched_seams.size() < SEAM_COUNT - 1:
+			patched_seams.append(int(id))
+	npc_fates.clear()
 	var fates: Variant = data.get("npc_fates", {})
-	npc_fates = fates if fates is Dictionary else {}
+	if fates is Dictionary:
+		for k in fates:
+			npc_fates[str(k)] = str(fates[k])
 
 	# The last session never closed properly: the game was killed or crashed.
 	# The owner treats that as running away.
@@ -454,6 +505,36 @@ func _register_input() -> void:
 	_add_action("confirm", [KEY_ENTER, KEY_KP_ENTER], [JOY_BUTTON_A])
 	_add_action("pause", [KEY_ESCAPE], [JOY_BUTTON_START])
 	_add_action("wipe_memory", [KEY_F9], [])
+	# Menus with a gamepad: make sure the built-in ui actions take the stick,
+	# the d-pad, A and B (whatever the engine's defaults are).
+	_ensure_pad("ui_up", JOY_BUTTON_DPAD_UP, JOY_AXIS_LEFT_Y, -1.0)
+	_ensure_pad("ui_down", JOY_BUTTON_DPAD_DOWN, JOY_AXIS_LEFT_Y, 1.0)
+	_ensure_pad("ui_left", JOY_BUTTON_DPAD_LEFT, JOY_AXIS_LEFT_X, -1.0)
+	_ensure_pad("ui_right", JOY_BUTTON_DPAD_RIGHT, JOY_AXIS_LEFT_X, 1.0)
+	_ensure_pad("ui_accept", JOY_BUTTON_A)
+	_ensure_pad("ui_cancel", JOY_BUTTON_B)
+
+
+func _ensure_pad(action: StringName, button: JoyButton, axis: JoyAxis = JOY_AXIS_INVALID, direction := 0.0) -> void:
+	if not InputMap.has_action(action):
+		return
+	var has_button := false
+	var has_axis := axis == JOY_AXIS_INVALID
+	for e in InputMap.action_get_events(action):
+		if e is InputEventJoypadButton and (e as InputEventJoypadButton).button_index == button:
+			has_button = true
+		elif e is InputEventJoypadMotion and (e as InputEventJoypadMotion).axis == axis \
+				and signf((e as InputEventJoypadMotion).axis_value) == signf(direction):
+			has_axis = true
+	if not has_button:
+		var pad := InputEventJoypadButton.new()
+		pad.button_index = button
+		InputMap.action_add_event(action, pad)
+	if not has_axis:
+		var motion := InputEventJoypadMotion.new()
+		motion.axis = axis
+		motion.axis_value = direction
+		InputMap.action_add_event(action, motion)
 
 
 func _add_action(action: StringName, keys: Array, buttons: Array, axis: JoyAxis = JOY_AXIS_INVALID, direction := 0.0) -> void:

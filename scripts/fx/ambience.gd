@@ -33,6 +33,11 @@ func setup(w: World, id: String) -> void:
 			# The archive's hum, lower: a drive spinning somewhere.
 			_bed = _loop(Sfx.stream("archive_hum"), Sfx.LEVEL["archive_hum"] - 2.0)
 			_bed.pitch_scale = 0.7
+		"house":
+			# A fridge hum, and the TV's game music through the wall.
+			_bed = _loop(Sfx.stream("archive_hum"), Sfx.LEVEL["archive_hum"] - 4.0)
+			_bed.pitch_scale = 1.4
+			_theme = _loop(MusicBox.stream(OwnerMemory.fragments.size()), -20.0)
 		"oob":
 			_bed = _loop(Sfx.stream("air"), Sfx.LEVEL["air"])
 			_theme = _loop(MusicBox.stream(OwnerMemory.fragments.size(), "invert"), -12.0)

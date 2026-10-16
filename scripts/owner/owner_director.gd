@@ -25,6 +25,10 @@ const START_CAP := 35.0
 ## (per second) instead of rising. It never drops below the last threshold
 ## the owner reacted to, so the world never "un-happens".
 const HIDDEN_COOL_RATE := 2.0
+## Standing still this long (in the open, once noticed) and the owner says so,
+## once a session (+IDLE_WARN_COST). OwnerMoves.IDLE_SAVE follows it.
+const IDLE_WARN := 6.0
+const IDLE_WARN_COST := 5.0
 
 var awareness := 0.0
 ## Held during story sequences: awareness stops rising.
@@ -114,17 +118,17 @@ func _process(delta: float) -> void:
 		rate *= LIE_RATE
 	if _world.escort and rate > 0.0:
 		rate *= 1.4  # a child following an intruder: hard to miss
-	if _world.hiding_npc() != null:
+	if _world.is_hidden_now():
 		rate = -HIDDEN_COOL_RATE
 	if rate < 0.0:
 		_cool(-rate * delta)
 	else:
 		add_awareness(rate * delta)
 	var hidden := _world.player.sheltered
-	if not _idle_warned and not hidden and _world.player.idle_time > 6.0 and awareness >= NOTICE and not _world.is_talking():
+	if not _idle_warned and not hidden and _world.player.idle_time > IDLE_WARN and awareness >= NOTICE and not _world.is_talking():
 		_idle_warned = true
 		say("you stopped moving. i noticed that too.")
-		add_awareness(5.0)
+		add_awareness(IDLE_WARN_COST)
 
 
 ## Lower awareness (hiding, quiet places), down to floor_level() at most.

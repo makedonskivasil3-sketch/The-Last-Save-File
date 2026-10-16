@@ -232,11 +232,14 @@ func _process(delta: float) -> void:
 			node.talking = node == _talking_to and hud.is_dialogue_open()
 	player.instability = director.awareness / 100.0
 	var helper := hiding_npc()
-	player.sheltered = helper != null
-	hud.set_status("HIDDEN  ·  %s covers you" % helper.display_name if helper else "")
+	player.sheltered = is_hidden_now()
+	if helper:
+		hud.set_status("HIDDEN  ·  %s covers you" % helper.display_name)
+	else:
+		hud.set_status("HIDDEN" if player.sheltered else "")
 	if helper:
 		voice("hidden_first")
-	if player.idle_time > 6.0 and director.awareness > OwnerDirector.NOTICE:
+	if player.idle_time > OwnerDirector.IDLE_WARN and director.awareness > OwnerDirector.NOTICE:
 		voice("idle_long")
 	if _talking_to and (not is_instance_valid(_talking_to) or player.global_position.distance_to(_talking_to.global_position) > TALK_BREAK_DISTANCE):
 		hud.close_dialogue()
@@ -282,7 +285,9 @@ func _unhandled_input(event: InputEvent) -> void:
 # --- areas --------------------------------------------------------------------
 
 func change_area(id: String, arrival: String) -> void:
-	if _transitioning or ending != "":
+	# Mid-reload you're being dragged back, not walking: no exits (the exit
+	# retries once you're free, if you're still standing in it).
+	if _transitioning or ending != "" or (owner_moves and owner_moves.rewinding):
 		return
 	if escort and escort.global_position.distance_to(player.global_position) > ESCORT_LEASH:
 		var now := Time.get_ticks_msec()
@@ -304,7 +309,7 @@ func change_area(id: String, arrival: String) -> void:
 	director.on_area_entered(area, first)
 	_visited[id] = true
 	if first:
-		voice({"square": "square_first", "archive": "archive_first", "edge": "edge_first", "oob": "oob_first", "bin": "bin_first"}.get(id, ""))
+		voice({"square": "square_first", "archive": "archive_first", "edge": "edge_first", "oob": "oob_first", "bin": "bin_first", "house": "house_first"}.get(id, ""))
 	await hud.fade(false, 0.3).finished
 	player.frozen = false
 	_transitioning = false
@@ -323,6 +328,7 @@ func _make_area(id: String) -> Area:
 		"edge": return TheEdge.new()
 		"oob": return OutOfBounds.new()
 		"bin": return RecycleBin.new()
+		"house": return ArinsHouse.new()
 	push_error("unknown area %s" % id)
 	return VillageSquare.new()
 
@@ -358,6 +364,9 @@ func _load_area(next: Area, arrival: String) -> void:
 				_wren_sees_edge.call_deferred()
 	if not purged:
 		area.catch_up()
+		# PAUSE carries across a doorway: the new area's owner holds still too.
+		if is_owner_paused():
+			area.set_owner_paused(true)
 		if _ambience:
 			_ambience.queue_free()
 		_ambience = Ambience.new()
@@ -389,10 +398,21 @@ func _base_light() -> Color:
 ## True if something in the area hides this position from the owner.
 ## Whoever hides you is noted: the owner finds out if this session ends badly.
 func is_player_hidden(pos: Vector2) -> bool:
+	if area and area.has_method("hides_player") and area.hides_player(pos):
+		return true
 	var helper := _hider_at(pos)
 	if helper:
 		OwnerMemory.note_helper(helper.npc_id)
 	return helper != null
+
+
+## Is the player hidden right now (by someone or by the area)? No side effects.
+func is_hidden_now() -> bool:
+	if area == null:
+		return false
+	if area.has_method("hides_player") and area.hides_player(player.global_position):
+		return true
+	return hiding_npc() != null
 
 
 ## Who is hiding the player right now (null if nobody). No side effects:
@@ -418,6 +438,8 @@ func current_goal() -> String:
 			goal = "Lead the cursor away, then stand in Slot 2 to write yourself in."
 		"bin":
 			goal = "Stand beside a deleted file to restore them. When the bin empties, get into a system file's cyan shadow."
+		"house":
+			goal = "Look around Arin's house. When the door chimes, get into a closet." if not OwnerMemory.found_controller else "You found what was under the couch. Get back to the square."
 		"oob":
 			goal = "Climb back up at the respawn point." if OwnerMemory.found_pip else "Cross to the far ledge. Something is waiting there."
 		_:

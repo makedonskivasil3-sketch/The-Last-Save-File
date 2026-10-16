@@ -4,6 +4,7 @@ extends Area
 ## around the well. Wren can hide you. Tobben reports you.
 
 const HOUSE := Rect2(56, 44, 110, 56)
+const HOUSE_DOOR := Rect2(98, 96, 26, 6)
 const WELL := Rect2(306, 158, 28, 20)
 const STALL := Rect2(440, 44, 96, 34)
 ## The crate stack: the owner's cursor can drag it to block a road.
@@ -52,6 +53,8 @@ var north_exit: Exit
 var crates: DragProp
 ## Climb into the well: the way out of bounds.
 var well: Passage
+## Arin's front door: locked, but UNLOCK opens it for a few seconds.
+var door: Door
 
 var _wren_line := 0
 ## Wren just asked to come along: the choice comes when the dialogue closes.
@@ -107,8 +110,10 @@ func build() -> void:
 	add_child(board)
 	interactables.append(board)
 
-	var house_door := add_readable("ARIN'S HOUSE", Vector2(111, 104), Readable.Look.SIGN,
-		func() -> Array: return ["The door is locked from the inside.", "You came out through a wall. You won't get back in that way."])
+	door = Door.new()
+	add_child(door)
+	door.setup(HOUSE_DOOR, Door.State.LOCKED)
+	var house_door := add_readable("ARIN'S HOUSE", Vector2(111, 108), Readable.Look.SIGN, _house_door_lines)
 	house_door.prompt = "door"
 
 	add_sign(Vector2(bounds.end.x - 34, EAST_GAP.x - 10), "ARCHIVE", Vector2.RIGHT)
@@ -261,6 +266,10 @@ func on_dialogue_closed(who: Node) -> void:
 
 
 func area_process(delta: float) -> void:
+	# UNLOCK on the front door: walk in while it's glitched open.
+	if door.is_forced_open() and world.player.global_position.distance_to(door.global_position) < 18.0:
+		world.change_area("house", "front")
+		return
 	# Arin sees Wren walking with you: the owner notices.
 	if world.escort and arin.can_see(world.escort.global_position):
 		world.director.add_awareness(8.0 * delta)
@@ -268,6 +277,13 @@ func area_process(delta: float) -> void:
 	arin.paused = world.is_talking() or world.is_owner_paused()
 	if world.player.global_position.distance_to(well.global_position) < 40.0:
 		world.voice("well_look")
+
+
+func _house_door_lines() -> Array:
+	if OwnerMemory.found_controller:
+		return ["Arin's front door. Locked again.", "You know what's under the couch now."]
+	return ["The door is locked from the inside.", "You came out through a wall. You won't get back in that way.",
+		"(a lock is just a flag. flags can be flipped.)"]
 
 
 ## Pip leads: to the Archive first, then down the well (if Pip's still

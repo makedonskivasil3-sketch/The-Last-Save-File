@@ -65,6 +65,7 @@ const VOICE := {
 	"well_look": ["i've been down there before. i know i have."],
 	"oob_first": ["the owner can't see me down here. nobody's ever looked."],
 	"bin_first": ["everything the owner deleted ends up here. for a while.", "so this is where they go."],
+	"house_first": ["arin's house. the real one. well. the one in the game.", "it smells like someone else's dinner."],
 	"bin_restored": ["come back. it's not your turn to be gone."],
 	"oob_fell": ["fell out of the world. again."],
 	"hidden_first": ["she's warm. like a real person.", "stay still. stay small."],
@@ -230,6 +231,8 @@ static func slot2_recap(escorting: bool) -> Array:
 		lines.append("> i reset mira. she's happier not knowing you.")
 	if OwnerMemory.guestbook_restored:
 		lines.append("> someone wrote her name back in the guest book.")
+	if OwnerMemory.found_controller:
+		lines.append("> you found her controller. i never moved it. i couldn't.")
 	if OwnerMemory.total_glitches >= 20:
 		lines.append("> you broke my save %d times to get here." % OwnerMemory.total_glitches)
 	lines.append("> ...go on, then. whose name goes in it.")
@@ -519,6 +522,8 @@ static func _epilogue_people(ending: String) -> Array:
 		lines.append("(mira doesn't remember me. i remember her for both of us.)")
 	if OwnerMemory.guestbook_restored and ending != "overwrite":
 		lines.append("tobben's guest book lies open: two names, two handwritings.")
+	if OwnerMemory.found_controller and ending in ["rue", "message"]:
+		lines.append("in a house in ashvale, two controllers are plugged in. both lights are on.")
 	return lines
 
 
@@ -639,6 +644,7 @@ static func secrets() -> Array:
 		["Undeleted", "Bring back someone the owner deleted.", not OwnerMemory.restored.is_empty()],
 		["The guest book", "Tobben lost a page. Look where deleted things go.", OwnerMemory.found_guestbook],
 		["Mira saw the square", "Someone has never left her room.", OwnerMemory.mira_quest == "pinned"],
+		["The second controller", "Arin's front door is only locked. Look under the couch.", OwnerMemory.found_controller],
 	]
 
 

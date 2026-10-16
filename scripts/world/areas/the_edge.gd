@@ -159,6 +159,10 @@ func _process(delta: float) -> void:
 
 
 func _update_fight(delta: float) -> void:
+	if fight in ["reach", "drag"]:
+		cursor.paused = true  # the owner's hand is on the slot (PAUSE's resume can't let go of it)
+		if world.is_owner_paused():
+			return  # PAUSE holds the hand where it is
 	match fight:
 		"":
 			# Not while the cursor is already on you: lure it away first still

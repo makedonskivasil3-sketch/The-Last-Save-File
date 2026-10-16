@@ -24,6 +24,7 @@ const TIPS := {
 	"crack": ["A THIN WALL", "Something glints behind that crack. Face the wall and hold {interact} to glitch through it. Every glitch costs awareness: the bar jumps."],
 	"glitch": ["GLITCH", "Hold {interact} to corrupt whatever is in the pink brackets. It works, but the owner feels every glitch: each one raises awareness."],
 	"bin": ["THE RECYCLE BIN", "Stand beside a deleted file to restore them. When the bin empties, a line sweeps the room: get into a system file's cyan shadow."],
+	"house": ["ARIN'S HOUSE", "Arin comes home now and then: the door chimes first. Get into a closet before they walk in, and stay there until they leave."],
 	"slot": ["SLOT 2", "Stand in the slot to write yourself in. It takes a few seconds, and the cursor selects anything that holds still. Lead it away first."],
 }
 ## Shown in this order after waking.
@@ -106,7 +107,7 @@ func _next_tip() -> String:
 		return "glitch"
 	if _world.pip != null and _unseen("pip"):
 		return "pip"
-	var area_tip: String = {"square": "arin", "archive": "quiet", "edge": "slot", "oob": "oob", "bin": "bin"}.get(_world.area.area_id, "")
+	var area_tip: String = {"square": "arin", "archive": "quiet", "edge": "slot", "oob": "oob", "bin": "bin", "house": "house"}.get(_world.area.area_id, "")
 	if area_tip != "" and _unseen(area_tip):
 		return area_tip
 	if _world.area.area_id != "room":

@@ -55,7 +55,7 @@ move (a joystick appears under your thumb), tap **E** (bottom right) to interact
 and **II** (top right) to pause. Menus are tapped directly. The controls appear as soon as you
 touch the screen (`scripts/ui/touch_controls.gd`).
 
-Menus work with mouse, keyboard or gamepad. **Settings** (title screen or pause menu) is in two
+Menus work with mouse, keyboard or gamepad (d-pad or stick to move, A to pick, B to go back). **How to Play** on the title explains the rules, with the controls for whatever you're holding. With **Vibration** on, phones buzz and gamepads rumble on glitches, saves and deaths. **Settings** (title screen or pause menu) is in two
 columns: *Sound* (master, music, effects), *Picture* (fullscreen, CRT curvature, screen effects),
 *Comfort* (glitch intensity, reduce flashing, **large text**) and *Help* (**tutorial tips**), plus
 *Reset owner memory* on the title screen. See [Visual effects](#visual-effects) and [Sound](#sound)
@@ -95,6 +95,7 @@ shown once ever; turn *Tutorial tips* off to skip them, or back on to see them a
 | **Out of Bounds · Below Ashvale** | Down the village well (*"they fell in the well once. it was funny."*). The underside of the map: the square hangs upside down overhead, collision boxes glow, debug labels float in the dark. The owner can't see here at all. There's no floor: only a few **anchor** platforms are solid, and chunks of floor stream in and out between them (they flicker red before they go). Step into the void and you drop back to where you came in. **Pip**, Rue's fox, is curled up on the far ledge next to a memory. A respawn pillar takes you back up. |
 | **The Archive · Cut Content** | East of the square. The owner can't see in here: awareness slowly cools. **The Archivist** was cut before the game shipped, so the owner can't delete them; they give you a pointer to Slot 2 that opens the north road. The books are live logs of *your* history: every death (where and when), every deleted character, every patched seam. |
 | **The Recycle Bin** | East of the Archive, where deleted things go (for a while). The owner can see in here, and every ~16 s **empties the bin**: a countdown, then a white line sweeps the room and deletes anything it touches, except whatever stands in the cyan shadow on the far side of a locked **system file**. The files of everyone the owner deleted lie here: stand beside one to **restore** them (3.5 s; stepping away pauses it, and a sweep that crosses a half-restored file starts it over). Also: Rue's old backup save, Rue's last message (it only opens once you remember everything), and the torn page from Tobben's guest book. PAUSE stops the bin. |
+| **Arin's House** | Behind the locked front door in the square: glitch it with **UNLOCK** and walk in. A couch facing a TV that's showing this game, a photo with one face pixelated out, and Player 2's room, emptied, the outlines of furniture still on the floor. The **second controller** is under the couch. Every ~24 s Arin comes home: the door chimes 2.5 s ahead, then Arin walks a loop through the house for 15 s. Get into one of the two **closets** (they hide you). |
 | **The Edge · Not Loaded** | North of the square. Missing textures, wireframe, debug labels, an eraser already running, and the owner's **cursor** reaching in. Hold still under it and you get selected and deleted. Somewhere out here is **Slot 2**: the last save file, with the cursor waiting beside it. Stand in it for 2.4 seconds to write yourself in and win, but the cursor selects anything that holds still for 1.1, so lead it away first. The eraser never touches the slot: the owner doesn't know it exists. **The finale, not a wall:** the static waits 5 s after you arrive (a countdown and pulsing cracks show where it will start; 1.5 s longer for each time it got you there in a row), spreads about a cell a second, only partly toward you, and never where you died before (ghosts mark those spots instead). Your first death out here doesn't add to the purge ("the edge isn't loaded. the owner didn't see that one"); that mercy comes back when you reach Slot 2. |
 
 **The owner's awareness** rises over time (fastest in Arin's room), and with what you do: being
@@ -599,6 +600,10 @@ tests/run.sh --bots --speed=2 --filter=purge_3
 | `test_glitch.gd` | Tap still interacts; every glitch (freeze, falsify, unlock, phase, decoy, pause, restore, blind, scrub), its cost and its unlock |
 | `test_owner_moves.gd` | Load last save (and what it undoes), the 3-glitch reload, saving over you (and a glitch interrupting it), no moves where the owner can't see, the crates dragged across the road, Arin's route memory, debug tools |
 | `test_wren.gd` | Wren asks, comes along and follows; declining; the leash; reaching the Edge saves her for good; the owner deleting her; a glitch saving her |
+| `test_save_safety.gd` | Saves are versioned and backed up; a half-written save recovers from the backup (and the damaged file is kept); wrong-typed values fall back instead of stopping the load; unversioned saves still load; a reset removes the backup |
+| `test_owner_fixes.gd` | The idle save-over (only in the open, only after the owner's warning); closets count as hiding everywhere; no doorways mid-reload; PAUSE carries through a doorway |
+| `test_house.gd` | UNLOCK on Arin's front door and walking in; the way back out; the second controller (secret, Slot 2 recap, survives a reload); closets hide you while Arin comes home; Arin catches you in the open |
+| `test_polish.gd` | How to Play from the title; the title menu driven by a gamepad (d-pad, B); rumble on a gamepad only with Vibration on |
 | `test_endings.gd` | The Slot 2 choice (two or three options), the escape, Wren and message endings, and the title aftermath |
 | `test_fairness.gd` | Reloads skip moments next to the cursor or Arin and give you a beat; no save-over while writing Slot 2; death cards explain the cause with a tip (naming the glitch once you have it); the first room teaches PHASE; the cost preview and the phone HOLD ring |
 | `test_records.gd` | Endings (including RUE) and death causes are recorded and survive a reload; the owner and the note recall how you died; Mira and Tobben remember your last runs, once a session; nothing on a first run; the title's progress line and Records screen |
@@ -618,6 +623,10 @@ tests/run.sh --bots --speed=2 --filter=purge_3
 Writing a test: add `tests/test_<thing>.gd` extending `res://tests/test_case.gd` and give it
 `test_*` methods. They're coroutines, so you can `await start_session()`, `go_to()`, `press()`,
 `interact_with()`, `wait_until()`; record problems with `check()` / `check_eq()`.
+
+## Save data
+
+`user://owner_memory.json` (versioned, `SAVE_VERSION`). Every save is written to `.tmp`, read back, then the old file is rotated to `.bak` and the new one moved into place (`scripts/autoload/safe_file.gd`), so a crash mid-write never loses progress. Loading tries the file, then `.tmp`, then `.bak`; an unreadable file is kept as `.corrupt`. Every value is type-checked on load. Resetting the owner's memory (Settings) removes the backups. Tests use their own file. See `docs/AUDIT.md` for the audit this came out of.
 
 ## Project structure
 
@@ -657,6 +666,8 @@ scripts/
   world/cracked_wall.gd        The first room's thin partition: the first PHASE
   world/areas/recycle_bin.gd   The Recycle Bin: sweeps, shelters, restoring the deleted
   world/bin_file.gd            A deleted character's file (stand beside it to restore)
+  world/areas/arins_house.gd   Arin's house: the couch, the closets, Arin coming home
+  ui/how_to_play_panel.gd      The title's How to Play page (controls for your device)
   ui/perf_overlay.gd           Debug: frame times in the corner (F3)
   ui/records_panel.gd          The title's Records: endings, memories, secrets, the owner's counts
   player/glitch.gd             The glitches: costs, hold times, unlocks, the owner's reactions
