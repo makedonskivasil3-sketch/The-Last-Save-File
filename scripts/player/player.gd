@@ -175,7 +175,7 @@ func _process(delta: float) -> void:
 		if _trail.size() > TRAIL_LENGTH:
 			_trail.pop_back()
 	if _dissolve != "":
-		_dissolve_t += delta
+		_dissolve_t += delta * (3.2 if _dissolve == "materialize" and OwnerMemory.sessions > 1 else 1.0)
 		if _dissolve == "materialize" and _dissolve_t > 1.4:
 			_dissolve = ""
 	_sprite.update(delta, velocity if not frozen else Vector2.ZERO)

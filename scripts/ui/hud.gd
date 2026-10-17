@@ -20,6 +20,9 @@ const SELF_COLOR := Color("8cf2ff")
 const SLOT_COLOR := Color("c8b8a0")
 ## Lines kept in the console (one fewer with large text, so it still fits).
 const MAX_LINES := 4
+const MAX_HISTORY := 200
+## Full console messages that have started appearing, never queued spoilers.
+var console_history: Array[String] = []
 ## Keep text this far from the screen edges: the curved CRT glass and its
 ## bezel eat the corners.
 const SAFE := Vector2(14, 10)
@@ -770,6 +773,9 @@ func _update_typing(delta: float) -> void:
 		_:
 			line.text = msg.text
 			line.add_theme_color_override("font_color", SYSTEM_COLOR)
+	console_history.append(line.text)
+	if console_history.size() > MAX_HISTORY:
+		console_history.pop_front()
 	line.set_meta("full", line.text)
 	line.set_meta("kind", msg.kind)
 	line.visible_characters = 0
