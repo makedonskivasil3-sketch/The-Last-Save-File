@@ -53,19 +53,22 @@ func _ready() -> void:
 	dim.color = Color(0, 0, 0, 0.6)
 	_root.add_child(dim)
 
-	_main = _scrolling_panel(300, 260)
+	_main = UiStyle.centered_panel(_root, 380)
 	UiStyle.heading(_main, "PAUSED", UiStyle.TEXT)
 	UiStyle.note(_main, "the owner is still here.", UiStyle.OWNER)
 	_goal_label = UiStyle.note(_main, "", UiStyle.TEXT)
-	_resume = UiStyle.button(_main, "Resume", close, "ui_back")
-	UiStyle.button(_main, "Map", _show_map)
-	UiStyle.button(_main, "Console history", _show_history)
-	_debug_button = UiStyle.button(_main, "Debug", func() -> void: _show_only(_debug_box); (_debug_box.get_child(1) as Button).grab_focus())
-	UiStyle.button(_main, "Settings", _show_settings)
+	var actions := GridContainer.new()
+	actions.columns = 2
+	_main.add_child(actions)
+	_resume = UiStyle.button(actions, "Resume", close, "ui_back")
+	UiStyle.button(actions, "Map", _show_map)
+	UiStyle.button(actions, "Console history", _show_history)
+	_debug_button = UiStyle.button(actions, "Debug", func() -> void: _show_only(_debug_box); (_debug_box.get_child(1) as Button).grab_focus())
+	UiStyle.button(actions, "Settings", _show_settings)
 	if PlaytestLog.enabled():
-		UiStyle.button(_main, "Playtest log", _show_playtest_log)
-	UiStyle.button(_main, "Quit to title", _ask_quit.bind(true))
-	UiStyle.button(_main, "Quit game", _ask_quit.bind(false))
+		UiStyle.button(actions, "Playtest log", _show_playtest_log)
+	UiStyle.button(actions, "Quit to title", _ask_quit.bind(true))
+	UiStyle.button(actions, "Quit game", _ask_quit.bind(false))
 
 	_confirm = UiStyle.centered_panel(_root, 260)
 	UiStyle.heading(_confirm, "QUIT?", UiStyle.OWNER)
@@ -84,9 +87,9 @@ func _ready() -> void:
 	UiStyle.button(_log_box, "Copy to clipboard", func() -> void: DisplayServer.clipboard_set("\n".join(PlaytestLog.lines)))
 	_log_back = UiStyle.button(_log_box, "Back", _show_main, "ui_back")
 
-	_history_box = _scrolling_panel(480, 260)
+	_history_box = UiStyle.centered_panel(_root, 480)
 	UiStyle.heading(_history_box, "CONSOLE HISTORY", UiStyle.TEXT, 14)
-	UiStyle.note(_history_box, "This run · latest 200 messages · scroll to read", UiStyle.MUTED)
+	UiStyle.note(_history_box, "This run · latest 200 messages", UiStyle.MUTED)
 	_history_text = RichTextLabel.new()
 	_history_text.custom_minimum_size = Vector2(440, 120)
 	_history_text.bbcode_enabled = false
@@ -94,9 +97,11 @@ func _ready() -> void:
 	_history_text.focus_mode = Control.FOCUS_ALL
 	UiStyle.sized(_history_text, 11)
 	_history_box.add_child(_history_text)
-	UiStyle.button(_history_box, "Older ↑", _scroll_history.bind(-120.0))
-	UiStyle.button(_history_box, "Newer ↓", _scroll_history.bind(120.0))
-	_history_back = UiStyle.button(_history_box, "Back", _show_main, "ui_back")
+	var navigation := HBoxContainer.new()
+	_history_box.add_child(navigation)
+	UiStyle.button(navigation, "Older ↑", _scroll_history.bind(-120.0))
+	UiStyle.button(navigation, "Newer ↓", _scroll_history.bind(120.0))
+	_history_back = UiStyle.button(navigation, "Back", _show_main, "ui_back")
 
 	_map_box = UiStyle.centered_panel(_root, 420)
 	UiStyle.heading(_map_box, "MAP", UiStyle.TEXT, 14)
@@ -218,18 +223,3 @@ func _panel_of(box: VBoxContainer) -> Control:
 	while not parent is CenterContainer:
 		parent = parent.get_parent()
 	return parent as Control
-
-
-## Keep pause actions reachable at large text sizes, including playtest/debug.
-func _scrolling_panel(width: float, height: float) -> VBoxContainer:
-	var outer := UiStyle.centered_panel(_root, width)
-	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(width - 32.0, height)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.follow_focus = true
-	outer.add_child(scroll)
-	var content := VBoxContainer.new()
-	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", 6)
-	scroll.add_child(content)
-	return content
