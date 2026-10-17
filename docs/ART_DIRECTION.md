@@ -34,6 +34,20 @@ Rules:
   - Its warmth is driven by the owner's awareness. It is full while calm, starts draining at about 15, and is down to a cold sliver by about 80.
   - On a reload it stutters, toned down by Reduce flashing.
   - It is draw-only (polygons plus 16 one-pixel motes), compatible with the GL Compatibility renderer, and has no lights or shaders.
+- **[in game] Modern pixel lighting (2026-10-17).** The author picked "Modern pixel": keep the pixel art, add real light. All of it lives in `Area` (`scripts/world/areas/area.gd`):
+  - `add_light()` places 2D point lights (`PointLight2D`) with a soft radial falloff. Every solid casts soft shadows (`LightOccluder2D`).
+  - `light_surfaces(ambient, boost)` dims the whole area and brightens its painted surfaces, so pools of light read clearly. Rue carries a faint cyan glow in lit areas.
+  - The lit areas:
+    - Arin's room: desk lamp, daylight under the window, cool bed nook.
+    - The square: a low sun with house shadows, the well lantern, the stall.
+    - Arin's house: flickering TV, a lamp, a cold empty room for Player 2.
+    - The archive: one desk lamp.
+    - The bin: a cyan glow under each system file.
+    - The Edge: a glow around Slot 2.
+  - **Shadows switch off below Full screen effects**, for slower devices. Only relative software-GL frame times have been measured (the visual tour); there are no device measurements.
+  - `add_dust()` adds slow additive motes: in the sunbeam, pollen in the square, dust over the archive desk, loose bits floating up in the bin. Fewer at lower Screen effects.
+  - Characters have a soft ground shadow. Their bob, breathing, hop and sway are eased, not snapped (the art stays on its grid).
+  - The CRT is **lighter while calm**: scanlines, grille and grain are weaker, and they grow with awareness and at the Edge, so the dread still builds.
 - **[target]** The same beam in the square (a low sun over the rooftops) and the house living room, but *not* in Player 2's emptied room. Cold light there tells that story without a word.
 - **[target]** The first time the owner notices you in the room (NOTICE), the beam should visibly shift. That would show the owner reacting on screen within the first minute.
 
@@ -64,6 +78,7 @@ Rules:
 
 ## Typography and UI
 
+- **[in game]** Menus use rounded panels with a soft drop shadow, and rounded buttons (`UiStyle`). The **Journal** (`JournalPanel`) lists every artefact read, colour-coded by kind (memory cyan, note paper, book tan, file green).
 - **[in game]** The fallback font. Owner lines are red-orange and start with `>`. Rue's thoughts are pale blue in parentheses. System lines are grey capitals. Large text is available in Settings.
 
 ## Per area (identity in one screenshot)

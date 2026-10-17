@@ -89,6 +89,13 @@ func build() -> void:
 	])
 	for r in [HOUSE, WELL, STALL]:
 		add_solid(r)
+	# The remembered afternoon, outdoors: a low warm sun that the houses
+	# cast shadows from, a lantern at the well, the stall's awning light.
+	light_surfaces(0.82, 1.2)
+	add_light(Vector2(220, 70), Color(1.0, 0.86, 0.62), 0.75, 560.0, true)
+	add_light(WELL.get_center() + Vector2(0, 14), Color(1.0, 0.75, 0.45), 0.9, 70.0)
+	add_light(STALL.get_center() + Vector2(0, 30), Color(1.0, 0.8, 0.55), 0.8, 90.0)
+	add_dust(bounds.grow(-10), Color(1.0, 0.95, 0.75, 0.4), 30, Vector2(6, -1))  # pollen on the breeze
 	crates = DragProp.new()
 	crates.setup(CRATES)
 	add_child(crates)

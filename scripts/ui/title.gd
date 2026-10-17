@@ -15,6 +15,8 @@ var _help_box: VBoxContainer
 var _help: HowToPlayPanel
 var _credits_box: VBoxContainer
 var _credits: CreditsPanel
+var _journal_box: VBoxContainer
+var _journal: JournalPanel
 var _load: Button
 var _rebuild_on_close := false
 var _music: AudioStreamPlayer
@@ -71,6 +73,8 @@ func _ready() -> void:
 	row2.add_theme_constant_override("separation", 6)
 	_menu.add_child(row2)
 	UiStyle.button(row2, "How to Play", _show_help).size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if not OwnerMemory.journal.is_empty():
+		UiStyle.button(row2, "Journal", _show_journal).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UiStyle.button(row2, "Quit", func() -> void: get_tree().quit()).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_menu.add_child(_spacer(4))
 	UiStyle.note(_menu, "Contains flashing and glitch effects. Both can be reduced in Settings.")
@@ -102,6 +106,11 @@ func _ready() -> void:
 	_credits = CreditsPanel.new()
 	_credits.closed.connect(_show_menu)
 	_credits_box.add_child(_credits)
+
+	_journal_box = UiStyle.centered_panel(self, 560)
+	_journal = JournalPanel.new()
+	_journal.closed.connect(_show_menu)
+	_journal_box.add_child(_journal)
 
 	_show_menu()
 
@@ -228,6 +237,7 @@ func _show_menu() -> void:
 	_panel_of(_records_box).visible = false
 	_panel_of(_help_box).visible = false
 	_panel_of(_credits_box).visible = false
+	_panel_of(_journal_box).visible = false
 	_load.grab_focus()
 
 
@@ -241,6 +251,13 @@ func _show_credits() -> void:
 	_panel_of(_menu).visible = false
 	_panel_of(_credits_box).visible = true
 	_credits.focus_first()
+
+
+func _show_journal() -> void:
+	_panel_of(_menu).visible = false
+	_journal.refresh()
+	_panel_of(_journal_box).visible = true
+	_journal.focus_first.call_deferred()
 
 
 func _show_help() -> void:

@@ -181,7 +181,11 @@ func recover_fragment(m: MemoryFragment) -> void:
 	add_child(music)
 	music.play()
 	create_tween().tween_property(music, "volume_db", Sfx.LEVEL["memory_loop"], 1.0)
+	OwnerMemory.record_read("memory:" + f.id, "memory", f.title, area.display_name, f.lines)
+	var voice := VoiceOver.play(self, "memory_" + f.id)
 	await hud.cinematic(f.title, f.lines, Color("ffb0a0") if planted else Hud.SELF_COLOR, 0.45)
+	if is_instance_valid(voice):
+		voice.queue_free()  # skipped ahead: the recording stops with the text
 	if not is_inside_tree():
 		return
 	fx.memory(false)
@@ -370,6 +374,8 @@ func _load_area(next: Area, arrival: String) -> void:
 	if escort:
 		escort.global_position = player.position + Vector2(-16, 4)
 	_light.color = _base_light()
+	# Rue's own faint glow, only where the area is lit (and so darker).
+	player.glow.enabled = area.ambient < 1.0
 	if _awake:
 		_area_intro()
 	if not purged:
@@ -407,7 +413,8 @@ func _base_light() -> Color:
 	var t := area.tint if area else Color(1, 1, 1)
 	if purged:
 		return Color(1.05, 1.0, 0.95)
-	return t.lerp(t * Color(0.55, 0.5, 0.6), OwnerMemory.purge / float(OwnerMemory.MAX_PURGE))
+	var a := area.ambient if area else 1.0
+	return Color(t.lerp(t * Color(0.55, 0.5, 0.6), OwnerMemory.purge / float(OwnerMemory.MAX_PURGE)) * a, 1.0)
 
 
 # --- queries used by areas and the owner -------------------------------------
@@ -898,6 +905,7 @@ func _interact(node: Node2D) -> void:
 	if result is Dictionary:
 		hud.show_dialogue(result.speaker, result.color, result.lines)
 		_talking_to = node
+		_keep_in_journal(node, result)
 	elif str(result) != "":
 		hud.say(str(result), "system")
 	var cost: Variant = node.get("awareness_cost")
@@ -906,6 +914,17 @@ func _interact(node: Node2D) -> void:
 		director.notice(cost, "talking to %s" % who if who is String and who != "" else "you touched something")
 	if area.has_method("interact_extra"):
 		area.interact_extra(node)
+
+
+## Notes, books and files go in the artefact journal (signs and props don't).
+func _keep_in_journal(node: Node2D, result: Dictionary) -> void:
+	var kind := ""
+	if node is Note:
+		kind = "note"
+	elif node is Readable and node.look != Readable.Look.SIGN:
+		kind = "book" if node.look == Readable.Look.BOOK else "file"
+	if kind != "" and OwnerMemory.record_read("%s:%s" % [area.area_id, result.speaker], kind, str(result.speaker), area.display_name, result.lines):
+		hud.say("KEPT IN JOURNAL  ·  %s%s" % [result.speaker, "  (pause to re-read)" if OwnerMemory.journal.size() == 1 else ""], "system")
 
 
 # --- endings ------------------------------------------------------------------

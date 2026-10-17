@@ -24,6 +24,85 @@ var entries: Dictionary = {}
 
 var _body: StaticBody2D
 
+## Lighting ("modern pixel", docs/ART_DIRECTION.md). An area that adds
+## lights sets `ambient` below 1: World dims the whole area by it, and the
+## PointLight2Ds bring warmth and colour back where they shine. Solids cast
+## soft shadows from lights that have shadows on. Rue carries a faint glow of
+## her own in lit areas, so she's never lost in the dark.
+var ambient := 1.0
+var lights: Array[PointLight2D] = []
+## Lit areas paint their floors brighter (their daylight colours) and let
+## `ambient` dim them: set with light_surfaces().
+func light_surfaces(ambient_level: float, surface_boost: float) -> void:
+	ambient = ambient_level
+	self_modulate = Color(surface_boost, surface_boost, surface_boost)
+static var _light_tex: Texture2D
+
+
+## A soft round light (radius in px) at pos.
+func add_light(pos: Vector2, color: Color, energy := 1.0, radius := 120.0, shadows := false) -> PointLight2D:
+	var l := PointLight2D.new()
+	l.texture = light_texture()
+	l.texture_scale = radius / 64.0
+	l.color = color
+	l.energy = energy
+	l.position = pos
+	l.shadow_enabled = shadows and Settings.screen_effects >= 2
+	if shadows:
+		l.shadow_filter = Light2D.SHADOW_FILTER_PCF5
+		l.shadow_filter_smooth = 3.0
+		l.shadow_color = Color(0, 0, 0, 0.55)
+	add_child(l)
+	lights.append(l)
+	return l
+
+
+## Slow motes drifting through `rect` (dust in a sunbeam, pollen, loose data).
+## Unshaded so they glow in the dark; their count drops with Screen effects.
+func add_dust(rect: Rect2, color: Color, amount := 24, drift := Vector2(4, -3)) -> CPUParticles2D:
+	var p := CPUParticles2D.new()
+	p.position = rect.get_center()
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	p.emission_rect_extents = rect.size * 0.5
+	p.amount = maxi(4, roundi(amount * (0.5 if Settings.screen_effects < 2 else 1.0)))
+	p.lifetime = 6.0
+	p.preprocess = 6.0
+	p.direction = drift.normalized() if drift != Vector2.ZERO else Vector2.UP
+	p.spread = 60.0
+	p.gravity = Vector2.ZERO
+	p.initial_velocity_min = drift.length() * 0.4
+	p.initial_velocity_max = drift.length()
+	p.scale_amount_min = 1.0
+	p.scale_amount_max = 1.6
+	var fade := Gradient.new()
+	fade.offsets = PackedFloat32Array([0.0, 0.25, 0.75, 1.0])
+	fade.colors = PackedColorArray([Color(color, 0.0), color, color, Color(color, 0.0)])
+	p.color_ramp = fade
+	var mat := CanvasItemMaterial.new()
+	mat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
+	mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	p.material = mat
+	p.z_index = 5
+	add_child(p)
+	return p
+
+
+## The shared falloff texture: bright centre, smooth fade to nothing.
+static func light_texture() -> Texture2D:
+	if _light_tex == null:
+		var g := Gradient.new()
+		g.offsets = PackedFloat32Array([0.0, 0.35, 1.0])
+		g.colors = PackedColorArray([Color(1, 1, 1, 1), Color(1, 1, 1, 0.45), Color(1, 1, 1, 0)])
+		var t := GradientTexture2D.new()
+		t.gradient = g
+		t.width = 128
+		t.height = 128
+		t.fill = GradientTexture2D.FILL_RADIAL
+		t.fill_from = Vector2(0.5, 0.5)
+		t.fill_to = Vector2(1.0, 0.5)
+		_light_tex = t
+	return _light_tex
+
 
 ## Lay out walls, props and characters. `world` is already set.
 func build() -> void:
@@ -109,6 +188,12 @@ func add_solid(rect: Rect2) -> void:
 	col.shape = shape
 	col.position = rect.get_center()
 	_body.add_child(col)
+	# Furniture and walls cast shadows from lights that have them.
+	var occ := LightOccluder2D.new()
+	var poly := OccluderPolygon2D.new()
+	poly.polygon = PackedVector2Array([rect.position, Vector2(rect.end.x, rect.position.y), rect.end, Vector2(rect.position.x, rect.end.y)])
+	occ.occluder = poly
+	add_child(occ)
 
 
 ## Walls around `bounds`, leaving gaps. Each gap: {"side": "top"|"bottom"|"left"|"right", "from": float, "to": float}.

@@ -70,8 +70,20 @@ var _phase_t := 1.0
 var _startle_mark := 0.0
 
 
+## A faint cyan glow of Rue's own (World turns it on in lit areas).
+var glow: PointLight2D
+
+
 func _ready() -> void:
 	refresh_look(false)
+	glow = PointLight2D.new()
+	glow.texture = Area.light_texture()
+	glow.texture_scale = 0.75
+	glow.color = Color(0.55, 0.95, 1.0)
+	glow.energy = 0.35
+	glow.position = Vector2(0, -6)
+	glow.enabled = false
+	add_child(glow)
 	# Positional sound (Arin's footsteps, the cursor's hum) is heard from Rue.
 	var ear := AudioListener2D.new()
 	add_child(ear)

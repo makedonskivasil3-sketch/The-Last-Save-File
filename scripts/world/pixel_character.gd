@@ -168,16 +168,25 @@ func draw(ci: CanvasItem, opts: Dictionary = {}) -> void:
 	# Everything below is in template pixels with the feet at y = 0; the
 	# canvas transform scales it up and places it.
 	ci.draw_set_transform(offset + Vector2(0, FEET_Y), 0.0, Vector2(SCALE, SCALE))
+	if solid == null and alpha > 0.5:
+		# A soft ground shadow: characters stand on the floor, under the lights.
+		var pts := PackedVector2Array()
+		for i in 12:
+			var a := TAU * i / 12.0
+			pts.append(Vector2(cos(a) * 4.6, sin(a) * 1.4 + 0.2))
+		ci.draw_colored_polygon(pts, Color(0, 0, 0, 0.32 * alpha))
 	var top := -float(rows.size() + 2)
 	var head_rows: int = template.head_rows
 	var back := facing == Vector2.UP
 
-	# Idle motion: breathing head-bob, a hop, a sway.
-	var breath := 1.0 if fmod(_t, 1.8) < 0.35 and not moving else 0.0
+	# Idle motion: breathing head-bob, a hop, a sway. Eased rather than
+	# snapped: the art stays on its pixel grid, the motion between doesn't.
+	var breath := pow(maxf(0.0, sin(_t * TAU / 1.8)), 6.0) if not moving else 0.0
 	var step := floori(_walk * 2.0) % 4 if moving else 0
-	var bounce := -1.0 if moving and (step == 1 or step == 3) else 0.0
-	var hop := -roundf(sin(minf(_hop / 0.45, 1.0) * PI) * 3.0) if _hop > 0.0 else 0.0
-	var sway := roundf(sin(_t * 1.4) * 0.6) if idle_style == "sway" and not moving else 0.0
+	# Highest in the middle of each step frame (1 and 3).
+	var bounce := -(0.5 + 0.5 * cos((_walk - 0.75) * PI * 2.0)) if moving else 0.0
+	var hop := -sin(minf(_hop / 0.45, 1.0) * PI) * 3.0 if _hop > 0.0 else 0.0
+	var sway := sin(_t * 1.4) * 0.6 if idle_style == "sway" and not moving else 0.0
 	var base := Vector2(-4, top + bounce + hop + (1.0 if crouch else 0.0))
 	if shiver and not moving:
 		base.x += float(floori(_t * 30.0) % 2) * 0.5

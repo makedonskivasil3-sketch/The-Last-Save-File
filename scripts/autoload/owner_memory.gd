@@ -50,6 +50,12 @@ var mira_quest: String = ""
 var guestbook_restored: bool = false
 ## Read the torn guest book page in the Recycle Bin.
 var found_guestbook := false
+## The artefact journal: everything Rue has read (notes, books, files,
+## memories), oldest first. Each entry is {id, kind, title, area, lines}.
+## A note the owner rewrote keeps every version Rue saw.
+var journal: Array[Dictionary] = []
+const MAX_JOURNAL := 80
+const MAX_JOURNAL_LINES := 16
 ## Found the second controller under the couch in Arin's house.
 var found_controller := false
 ## How the last game ended at Slot 2: "escape", "wren" or "message" ("" if
@@ -248,6 +254,35 @@ func record_win(ending := "escape") -> void:
 	_close_session("win")
 
 
+## Keep what Rue just read in the journal. Reading it again updates it; a
+## text that changed since (the owner rewrote it) is added below the old one.
+## Returns true the first time this id is read.
+func record_read(id: String, kind: String, title: String, area: String, lines: Array) -> bool:
+	var text: Array[String] = []
+	for l in lines:
+		if str(l) != "":
+			text.append(str(l))
+	if text.is_empty():
+		return false
+	for e in journal:
+		if e.id == id:
+			var old: Array = e.lines
+			if kind == "note":
+				for l in text:
+					if l not in old and old.size() < MAX_JOURNAL_LINES:
+						old.append(l)
+			else:
+				e.lines = text.slice(0, MAX_JOURNAL_LINES)
+			e.title = title
+			save_memory()
+			return false
+	if journal.size() >= MAX_JOURNAL:
+		return false
+	journal.append({"id": id, "kind": kind, "title": title, "area": area, "lines": text.slice(0, MAX_JOURNAL_LINES)})
+	save_memory()
+	return true
+
+
 ## Debug / "new game": forget everything the owner learned.
 func wipe() -> void:
 	_leave_guard(false)
@@ -264,6 +299,7 @@ func wipe() -> void:
 	wren_saved = false
 	found_guestbook = false
 	found_controller = false
+	journal.clear()
 	owner_notes_seen = 0
 	session_glitches = 0
 	last_run_glitches = 0
@@ -309,6 +345,7 @@ func save_memory() -> void:
 		"wren_saved": wren_saved,
 		"found_guestbook": found_guestbook,
 		"found_controller": found_controller,
+		"journal": journal,
 		"owner_notes_seen": owner_notes_seen,
 		"session_glitches": session_glitches,
 		"last_run_glitches": last_run_glitches,
@@ -395,6 +432,14 @@ func load_memory() -> void:
 	wren_saved = _bool(data, "wren_saved")
 	found_guestbook = _bool(data, "found_guestbook")
 	found_controller = _bool(data, "found_controller")
+	journal.clear()
+	for e in _list(data, "journal"):
+		if e is Dictionary and e.get("id") is String and e.get("title") is String and e.get("lines") is Array and journal.size() < MAX_JOURNAL:
+			var lines: Array[String] = []
+			for l in e.lines:
+				if l is String and lines.size() < MAX_JOURNAL_LINES:
+					lines.append(l)
+			journal.append({"id": e.id, "kind": _str(e, "kind", "file"), "title": e.title, "area": _str(e, "area", ""), "lines": lines})
 	owner_notes_seen = _int(data, "owner_notes_seen", 0)
 	session_glitches = _int(data, "session_glitches", 0)
 	last_run_glitches = _int(data, "last_run_glitches", 0)
