@@ -163,7 +163,7 @@ func on_door_approached() -> void:
 		return
 	say("nope.")
 	# Jumping to CONTAIN fires every threshold on the way, in order; the room locks the door.
-	add_awareness(maxf(0.0, CONTAIN - awareness) + 2.0)
+	notice(maxf(0.0, CONTAIN - awareness) + 2.0, "approached the door")
 
 
 func on_area_entered(area: Area, first_time: bool) -> void:
@@ -186,17 +186,13 @@ func on_area_entered(area: Area, first_time: bool) -> void:
 
 
 func _check_thresholds() -> void:
+	var highest := 0.0
 	for t in THRESHOLDS:
 		if awareness < t or _fired.has(t):
 			continue
 		_fired[t] = true
 		PlaytestLog.mark("owner threshold", ["NOTICE", "SUSPECT", "CONTAIN", "SILENCE", "HUNT", "PURGE"][THRESHOLDS.find(t)])
-		_owner_line(t)
-		_world.fx.threshold_pulse(t / 100.0)
-		# A stinger that hits harder the closer the owner gets.
-		Sfx.play("stinger", -6.0 + t / 100.0 * 6.0, 1.05 - t / 400.0, 0.0)
-		_world.hud.awareness_jolt()
-		_world.player.startle()
+		highest = t
 		if t == SUSPECT:
 			_world.flicker_lights()
 		if t == HUNT:
@@ -207,6 +203,15 @@ func _check_thresholds() -> void:
 				_world.area.erasure.interval *= 0.5
 		_world.area.on_owner_event(t)
 		_world.owner_moves.on_threshold(t)
+
+	# Apply every consequence immediately, but announce only the highest new
+	# state. A door approach must not stack three stingers and startles.
+	if highest > 0.0:
+		_owner_line(highest)
+		_world.fx.threshold_pulse(highest / 100.0)
+		Sfx.play("stinger", -6.0 + highest / 100.0 * 6.0, 1.05 - highest / 400.0, 0.0)
+		_world.hud.awareness_jolt()
+		_world.player.startle()
 
 
 func _owner_line(t: float) -> void:

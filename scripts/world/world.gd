@@ -70,6 +70,7 @@ var _win_card_shown := false
 func _ready() -> void:
 	player.z_index = 10
 	_pause_menu = PauseMenu.new()
+	_pause_menu.console_hud = hud
 	_pause_menu.quit_requested.connect(_quit)
 	_pause_menu.debug_requested.connect(debug)
 	add_child(_pause_menu)
@@ -119,7 +120,7 @@ func _begin_session(previous: String) -> void:
 	fx.spike(0.6, 1.0)  # loading into a save you don't belong in
 	player.dissolve("materialize")
 	Sfx.play("fragment", -4.0, 0.5, 0.0)  # pieces of you, pulled together
-	await get_tree().create_timer(1.4).timeout
+	await get_tree().create_timer(1.4 if OwnerMemory.sessions == 1 else 0.45).timeout
 	if not is_inside_tree() or ending != "":
 		return
 	player.frozen = false

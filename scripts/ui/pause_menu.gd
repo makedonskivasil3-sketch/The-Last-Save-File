@@ -7,6 +7,11 @@ signal quit_requested(to_title: bool)
 ## A debug tool was picked (World.debug()).
 signal debug_requested(action: String)
 
+## Session console history, available without playtest mode.
+var _history_box: VBoxContainer
+var _history_text: RichTextLabel
+var _history_back: Button
+var console_hud: Hud
 ## The playtest log page (PlaytestLog, only with ?playtest=1 / --playtest).
 var _log_box: VBoxContainer
 var _log_text: Label
@@ -48,18 +53,22 @@ func _ready() -> void:
 	dim.color = Color(0, 0, 0, 0.6)
 	_root.add_child(dim)
 
-	_main = UiStyle.centered_panel(_root, 260)
+	_main = UiStyle.centered_panel(_root, 380)
 	UiStyle.heading(_main, "PAUSED", UiStyle.TEXT)
 	UiStyle.note(_main, "the owner is still here.", UiStyle.OWNER)
 	_goal_label = UiStyle.note(_main, "", UiStyle.TEXT)
-	_resume = UiStyle.button(_main, "Resume", close, "ui_back")
-	UiStyle.button(_main, "Map", _show_map)
-	_debug_button = UiStyle.button(_main, "Debug", func() -> void: _show_only(_debug_box); (_debug_box.get_child(1) as Button).grab_focus())
-	UiStyle.button(_main, "Settings", _show_settings)
+	var actions := GridContainer.new()
+	actions.columns = 2
+	_main.add_child(actions)
+	_resume = UiStyle.button(actions, "Resume", close, "ui_back")
+	UiStyle.button(actions, "Map", _show_map)
+	UiStyle.button(actions, "Console history", _show_history)
+	_debug_button = UiStyle.button(actions, "Debug", func() -> void: _show_only(_debug_box); (_debug_box.get_child(1) as Button).grab_focus())
+	UiStyle.button(actions, "Settings", _show_settings)
 	if PlaytestLog.enabled():
-		UiStyle.button(_main, "Playtest log", _show_playtest_log)
-	UiStyle.button(_main, "Quit to title", _ask_quit.bind(true))
-	UiStyle.button(_main, "Quit game", _ask_quit.bind(false))
+		UiStyle.button(actions, "Playtest log", _show_playtest_log)
+	UiStyle.button(actions, "Quit to title", _ask_quit.bind(true))
+	UiStyle.button(actions, "Quit game", _ask_quit.bind(false))
 
 	_confirm = UiStyle.centered_panel(_root, 260)
 	UiStyle.heading(_confirm, "QUIT?", UiStyle.OWNER)
@@ -77,6 +86,22 @@ func _ready() -> void:
 	_log_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UiStyle.button(_log_box, "Copy to clipboard", func() -> void: DisplayServer.clipboard_set("\n".join(PlaytestLog.lines)))
 	_log_back = UiStyle.button(_log_box, "Back", _show_main, "ui_back")
+
+	_history_box = UiStyle.centered_panel(_root, 480)
+	UiStyle.heading(_history_box, "CONSOLE HISTORY", UiStyle.TEXT, 14)
+	UiStyle.note(_history_box, "This run · latest 200 messages", UiStyle.MUTED)
+	_history_text = RichTextLabel.new()
+	_history_text.custom_minimum_size = Vector2(440, 120)
+	_history_text.bbcode_enabled = false
+	_history_text.selection_enabled = true
+	_history_text.focus_mode = Control.FOCUS_ALL
+	UiStyle.sized(_history_text, 11)
+	_history_box.add_child(_history_text)
+	var navigation := HBoxContainer.new()
+	_history_box.add_child(navigation)
+	UiStyle.button(navigation, "Older ↑", _scroll_history.bind(-120.0))
+	UiStyle.button(navigation, "Newer ↓", _scroll_history.bind(120.0))
+	_history_back = UiStyle.button(navigation, "Back", _show_main, "ui_back")
 
 	_map_box = UiStyle.centered_panel(_root, 420)
 	UiStyle.heading(_map_box, "MAP", UiStyle.TEXT, 14)
@@ -121,15 +146,28 @@ func _unhandled_input(event: InputEvent) -> void:
 		return  # the settings panel handles its own back
 	if event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
-		if _panel_of(_confirm).visible or _panel_of(_map_box).visible or _panel_of(_debug_box).visible or _panel_of(_log_box).visible:
+		if _panel_of(_confirm).visible or _panel_of(_map_box).visible or _panel_of(_debug_box).visible or _panel_of(_log_box).visible or _panel_of(_history_box).visible:
 			_show_main()
 		else:
 			close()
 
 
 func _show_only(box: VBoxContainer) -> void:
-	for b in [_main, _confirm, _settings_box, _map_box, _debug_box, _log_box]:
+	for b in [_main, _confirm, _settings_box, _map_box, _debug_box, _log_box, _history_box]:
 		_panel_of(b).visible = b == box
+
+
+func _show_history() -> void:
+	_history_text.text = "\n\n".join(console_hud.console_history) if console_hud and not console_hud.console_history.is_empty() else "(nothing yet)"
+	_show_only(_history_box)
+	_history_text.scroll_to_line(0)
+	_history_back.grab_focus()
+	PlaytestLog.mark("console history opened")
+
+
+func _scroll_history(amount: float) -> void:
+	var bar := _history_text.get_v_scroll_bar()
+	bar.value += amount
 
 
 func _show_playtest_log() -> void:
@@ -181,4 +219,7 @@ func _do_quit() -> void:
 
 ## centered_panel() returns the VBox inside PanelContainer inside CenterContainer.
 func _panel_of(box: VBoxContainer) -> Control:
-	return box.get_parent().get_parent() as Control
+	var parent := box.get_parent()
+	while not parent is CenterContainer:
+		parent = parent.get_parent()
+	return parent as Control
