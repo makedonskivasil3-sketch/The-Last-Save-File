@@ -21,7 +21,13 @@ func _ready() -> void:
 	# large text: sound and picture on the left, comfort and help on the right.
 	var columns := HBoxContainer.new()
 	columns.add_theme_constant_override("separation", 16)
-	add_child(columns)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size.y = 232
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.follow_focus = true
+	add_child(scroll)
+	columns.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(columns)
 	var left := _column(columns)
 	var right := _column(columns)
 
@@ -54,6 +60,9 @@ func _ready() -> void:
 	_label_text_speed(speed_button)
 	_section(right, "HELP")
 	_check(right, "Tutorial tips", Settings.tutorial_tips, func(on: bool) -> void: Settings.set_value("tutorial_tips", on))
+	var narration := _check(right, "Spoken narration", Settings.narration, func(on: bool) -> void: Settings.set_value("narration", on))
+	narration.disabled = not Narration.available()
+	narration.tooltip_text = "Reads dialogue and story scenes using an English system voice. Uses Master and Voices volume." if not narration.disabled else "No English system voice is available. Install a system voice and restart the game. Text and character sounds remain available."
 	if show_reset:
 		_reset_button = UiStyle.button(right, "Reset owner memory", _on_reset)
 

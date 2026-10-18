@@ -361,6 +361,9 @@ func _load_area(next: Area, arrival: String) -> void:
 	add_child(area)
 	move_child(area, 0)
 	area.build()
+	var atmosphere := AreaAtmosphere.new()
+	atmosphere.area = area
+	area.add_child(atmosphere)
 	_visited[area.area_id] = true
 	player.position = area.entry_point(arrival)
 	player.velocity = Vector2.ZERO
@@ -871,6 +874,7 @@ func flicker_lights() -> void:
 # --- interaction --------------------------------------------------------------
 
 func _update_focus() -> void:
+	var previous := _focused
 	_focused = null
 	_focus_marker.target = null
 	if hud.is_dialogue_open():
@@ -884,6 +888,12 @@ func _update_focus() -> void:
 		if d < best:
 			best = d
 			_focused = node
+	# Keep a valid target until another is meaningfully closer. This stops
+	# adjacent notes and characters flickering between prompts as you move.
+	if is_instance_valid(previous) and previous in area.interactables and previous.can_interact():
+		var distance := player.global_position.distance_to(previous.global_position)
+		if distance < INTERACT_DISTANCE and distance <= best + 6.0:
+			_focused = previous
 	# Pip trots at your heels: Pip is only what E talks to when nothing
 	# else is in reach (or Pip would steal every pillar, door and note).
 	if _focused == null and pip and pip.can_interact() \

@@ -15,12 +15,20 @@ var area_id := ""
 var _bed: AudioStreamPlayer
 var _theme: AudioStreamPlayer
 var _next_event := 2.0
+var _memory_theme: AudioStreamPlayer
+var _memory_level := -1
 
 
 ## Build the bed for an area (call once, right after creating it).
 func setup(w: World, id: String) -> void:
 	world = w
 	area_id = id
+	if id in ["square", "archive"]:
+		_memory_theme = AudioStreamPlayer.new()
+		_memory_theme.bus = "Music"
+		_memory_theme.volume_db = -60.0
+		add_child(_memory_theme)
+		MusicBox.prewarm(_level())
 	match id:
 		"square":
 			_bed = _loop(Sfx.stream("wind"), Sfx.LEVEL["wind"])
@@ -83,6 +91,7 @@ func village_life() -> float:
 func _process(delta: float) -> void:
 	if world == null or world.ending != "":
 		return
+	_update_memory_theme(delta)
 	if area_id == "edge" and _theme and world.area.erasure != null and world.area.erasure.active:
 		# The backwards theme swells once the Edge starts unloading.
 		_theme.volume_db = move_toward(_theme.volume_db, -8.0, 4.0 * delta)
@@ -103,3 +112,23 @@ func _process(delta: float) -> void:
 			_next_event = randf_range(4.0, 9.0)
 		_:
 			_next_event = 10.0
+
+
+## A restrained musical thread in remembered and safe places. Build only in
+## the existing background budget; never synthesize synchronously in a chase.
+func _update_memory_theme(delta: float) -> void:
+	if _memory_theme == null:
+		return
+	var level := _level()
+	var key := "theme_%d_normal" % level
+	if _memory_level != level:
+		MusicBox.prewarm(level)
+		if OwnerMemory.runtime_cache.has(key):
+			_memory_theme.stream = OwnerMemory.runtime_cache[key]
+			_memory_theme.volume_db = -60.0
+			_memory_theme.play()
+			_memory_level = level
+	var target := -25.0 if area_id == "archive" else -29.0 - world.director.awareness * 0.12
+	if world.hud.is_dialogue_open() or world.hud.is_cinematic():
+		target -= 8.0
+	_memory_theme.volume_db = move_toward(_memory_theme.volume_db, target, delta * 12.0)

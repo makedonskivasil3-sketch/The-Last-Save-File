@@ -48,6 +48,11 @@ func _init() -> void:
 
 func build() -> void:
 	setup_common()
+	var sunlight := SunBeam.new()
+	sunlight.window = Rect2(112, 38, 54, 5)
+	sunlight.throw = Vector2(64, 138)
+	sunlight.spread = 26.0
+	add_child(sunlight)
 	add_boundary([{"side": "bottom", "from": FRONT_GAP.x, "to": FRONT_GAP.y}])
 	for r in [COUCH, TV, TABLE]:
 		add_solid(r)

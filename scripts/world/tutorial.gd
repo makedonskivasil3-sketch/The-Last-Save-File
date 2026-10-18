@@ -39,6 +39,7 @@ const GAP := 1.2
 
 var _world: World
 var _current := ""
+var _shown_area := ""
 var _shown_for := 0.0
 var _gap := 1.0
 var _moved := 0.0
@@ -59,6 +60,8 @@ func _process(delta: float) -> void:
 	if _world == null or not Settings.tutorial_tips:
 		_dismiss()
 		return
+	if _current != "" and _shown_area != _world.area.area_id:
+		_dismiss()  # a warning about the room must not follow you into a safe area
 	var hud := _world.hud
 	# Tips wait while you talk, remember, or the session is ending.
 	if _world.ending != "" or _world.in_cutscene() or hud.is_dialogue_open() or hud.is_cinematic():
@@ -90,7 +93,7 @@ func _next_tip() -> String:
 	if _world.has_focus() and _unseen("interact"):
 		return "interact"
 	var door: Variant = _world.area.get("door")
-	if door is Door and door.state != Door.State.OPEN and _unseen("way_out"):
+	if _world.area.area_id == "room" and door is Door and door.state != Door.State.OPEN and _unseen("way_out"):
 		return "way_out"
 	if _world.hiding_npc() != null and _unseen("hidden"):
 		return "hidden"
@@ -120,6 +123,7 @@ func _next_tip() -> String:
 
 func _show(id: String) -> void:
 	_current = id
+	_shown_area = _world.area.area_id
 	_shown_for = 0.0
 	if id == "move":
 		_moved = 0.0

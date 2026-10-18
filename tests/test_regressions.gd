@@ -134,11 +134,19 @@ func test_restored_mira_brings_the_village_sound_back() -> void:
 
 
 func test_the_title_theme_is_built_in_the_background() -> void:
+	# Flush a partial job left by another scene before simulating a cold cache.
+	# Two frames is not a cold-start boundary: a fast machine can finish the
+	# background job by then. Inspect _ready synchronously instead.
+	Sfx.finish_job("theme_0_normal")
 	memory().runtime_cache.clear()
-	tree.change_scene_to_file("res://scenes/title.tscn")
-	await frames(2)
-	var title := scene()
+	var previous := scene()
+	if previous:
+		previous.queue_free()
+	var title: Control = load("res://scenes/title.tscn").instantiate()
+	tree.root.add_child(title)
+	tree.current_scene = title
 	check(not title._music.playing, "the title appears without waiting for the theme")
+	check(not memory().runtime_cache.has("theme_0_normal"), "ready queues synthesis instead of blocking on it")
 	await wait_until(func() -> bool: return title._music.playing, 5.0, "the theme")
 	check(title._music.stream != null, "then the theme plays")
 

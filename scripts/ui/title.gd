@@ -40,10 +40,7 @@ func _ready() -> void:
 	touch.buttons_enabled = false
 	add_child(touch)
 
-	var bg := ColorRect.new()
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg.color = Color(0.02, 0.016, 0.024)
-	add_child(bg)
+	add_child(SaveVista.new())
 
 	_menu = UiStyle.centered_panel(self, 300)
 	_title = UiStyle.heading(_menu, TITLE, UiStyle.TEXT, 22)
@@ -115,10 +112,10 @@ func _process(delta: float) -> void:
 			_music.play()
 	# The title glitches more the further the purge has gone.
 	var chance := (0.01 + OwnerMemory.purge * 0.02) * Settings.flash_scale()
-	if randf() < chance:
+	if randf() < 1.0 - pow(1.0 - clampf(chance, 0.0, 1.0), delta * 60.0):
 		var i := randi() % TITLE.length()
 		_title.text = TITLE.substr(0, i) + ["#", "_", "?", "0"].pick_random() + TITLE.substr(i + 1)
-	elif _title.text != TITLE and randf() < 0.2:
+	elif _title.text != TITLE and randf() < 1.0 - pow(0.8, delta * 60.0):
 		_title.text = TITLE
 
 

@@ -16,6 +16,10 @@ run/main_scene="res://scenes/title.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 config/icon="res://icon.svg"
 
+[audio]
+
+general/text_to_speech=true
+
 [autoload]
 
 OwnerMemory="*res://scripts/autoload/owner_memory.gd"

@@ -543,6 +543,23 @@ Tagging a version (`git tag v0.2.0 && git push --tags`) also publishes the zips 
 under *Settings → Secrets and variables → Actions → Variables* add `ENABLE_PAGES` = `true`. The
 next push deploys the web build to `https://<user>.github.io/The-Last-Save-File/`.
 
+### Presentation and narration
+
+The load menu now shows a living save-file skyline. The village and house share the
+remembered afternoon light; sparse dust gives each area depth without covering threat tells.
+The memory theme plays softly in the village and Archive, receding during conversation
+and as the owner becomes more dangerous.
+
+**Settings → Spoken narration** optionally reads character dialogue and story scenes using an
+English system voice. It is off by default, follows **Master** and **Voices** volume, and stops
+when you advance dialogue or leave a scene. Story scenes wait for speech to finish, and you
+can still advance them manually. A compatible system speech service and English voice are
+required (on Linux, Speech Dispatcher and an English voice); the option is disabled when no
+voice is available. Text and the existing procedural character voices remain available.
+This is system speech, not recorded voice acting. Settings scroll with touch/mouse and follow
+keyboard/gamepad focus, keeping Back visible when Large text is enabled.
+See [the polish notes](docs/POLISH_NOTES.md) for fixes and validation.
+
 ### From the Godot editor
 
 1. Install [Godot 4.3+](https://godotengine.org/download) (standard build, no .NET needed).

@@ -32,6 +32,8 @@ const LINE_PAUSE := 0.5
 var character_name := "ARIN"
 var unknown_processes := 0
 
+var narrator: Narration
+
 var _slot: Label
 var _meter: AwarenessMeter
 ## Owner lines in the console, kept so they can corrupt themselves later.
@@ -106,6 +108,8 @@ var _cinematic := false
 
 
 func _ready() -> void:
+	narrator = Narration.new()
+	add_child(narrator)
 	var root := Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -344,6 +348,7 @@ func is_cinematic() -> bool:
 
 
 func _cinematic_line(line: String) -> void:
+	narrator.speak(line)
 	_cine_text.text = line
 	_cine_text.visible_characters = 0
 	_cine_hint.text = ""
@@ -356,7 +361,8 @@ func _cinematic_line(line: String) -> void:
 		if get_tree().paused:
 			continue
 		var shown := int(typed)
-		typed += 40.0 * get_process_delta_time()
+		var rate := Settings.text_rate()
+		typed = float(line.length()) if is_inf(rate) else typed + 40.0 * rate * get_process_delta_time()
 		_cine_text.visible_characters = int(typed)
 		if int(typed) > shown:
 			Sfx.type_key("self" if _cine_text.get_theme_color("font_color") == SELF_COLOR else "system")
@@ -365,15 +371,18 @@ func _cinematic_line(line: String) -> void:
 	_cine_hint.text = "[%s]" % Settings.glyph("interact")
 	var wait := 2.4 + line.length() * 0.045
 	var held_frame := Engine.get_process_frames()
-	while wait > 0.0:
+	var speech_timeout := 60.0
+	while wait > 0.0 or (narrator.is_speaking() and speech_timeout > 0.0):
 		await get_tree().process_frame
 		if not is_inside_tree():
 			return  # the session ended mid-line (quit to title)
 		if get_tree().paused:
 			continue
 		wait -= get_process_delta_time()
+		speech_timeout -= get_process_delta_time()
 		if Engine.get_process_frames() > held_frame and _advance_pressed():
 			break
+	narrator.stop()
 
 
 func _advance_pressed() -> bool:
@@ -399,6 +408,7 @@ func show_dialogue(speaker: String, color: Color, lines: Array) -> void:
 func close_dialogue() -> void:
 	if not _dialogue.visible:
 		return
+	narrator.stop()
 	dialogue_finished = _finishing
 	_finishing = false
 	_dialogue.visible = false
@@ -509,6 +519,7 @@ func fade(to_black: bool, duration: float = 0.25) -> Tween:
 
 func _show_dialogue_line() -> void:
 	_dialogue_text.text = str(_dialogue_lines[_dialogue_index])
+	narrator.speak(_dialogue_text.text, _dialogue_speaker.text)
 	_dialogue_text.visible_characters = 0
 	_dialogue_typed = 0.0
 	var last := _dialogue_index == _dialogue_lines.size() - 1
@@ -529,7 +540,9 @@ func _update_dialogue(delta: float) -> void:
 		_dialogue_text.visible_characters = mini(int(_dialogue_typed), total)
 		if int(_dialogue_typed) > before and not is_inf(rate):
 			# Each speaker has their own voice (Sfx.VOICE_PROFILES); books and notes rustle.
-			if _dialogue_speaker.text in Sfx.VOICE_PROFILES:
+			if Settings.narration and narrator.supported:
+				pass  # system speech replaces the synthetic syllables
+			elif _dialogue_speaker.text in Sfx.VOICE_PROFILES:
 				Sfx.voice_blip(_dialogue_speaker.text)
 			else:
 				Sfx.type_key("system")

@@ -83,6 +83,11 @@ func _init() -> void:
 
 func build() -> void:
 	setup_common()
+	var sunlight := SunBeam.new()
+	sunlight.window = Rect2(100, 98, 24, 3)
+	sunlight.throw = Vector2(110, 160)
+	sunlight.spread = 52.0
+	add_child(sunlight)
 	add_boundary([
 		{"side": "right", "from": EAST_GAP.x, "to": EAST_GAP.y},
 		{"side": "top", "from": NORTH_GAP.x, "to": NORTH_GAP.y},
