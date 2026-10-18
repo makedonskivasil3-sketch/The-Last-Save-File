@@ -413,6 +413,7 @@ func _go(w: Node, points: Array, timeout := STEP_TIMEOUT) -> bool:
 		var left := timeout
 		var last: Vector2 = w.player.global_position
 		var still := 0.0
+		var cutscene_for := 0.0
 		while left > 0.0:
 			if w.ending != "" or w.area.area_id != area_id or w._transitioning:
 				if w.ending == "":
@@ -422,10 +423,19 @@ func _go(w: Node, points: Array, timeout := STEP_TIMEOUT) -> bool:
 			_heartbeat(w, p)
 			if w._cutscene or w.hud.is_dialogue_open():
 				_steer(w, Vector2.ZERO)
-				if w.hud.is_dialogue_open():
+				# Read like a player: story text waits for a press (manual advance).
+				if w.hud.is_dialogue_open() or w.hud.is_cinematic():
 					await press("interact")
+					await wait(0.1)
 				await frames(1)
+				cutscene_for += tree.root.get_process_delta_time()
+				if cutscene_for > 120.0:
+					_stalls += 1
+					_say("stall: a scene in %s never ended" % area_id)
+					_release_all()
+					return false
 				continue
+			cutscene_for = 0.0
 			var d: Vector2 = p - w.player.global_position
 			if d.length() < 5.0:
 				break
