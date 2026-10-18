@@ -118,18 +118,21 @@ void fragment() {
 
 	// 9. Scanlines (one per game pixel row) and an aperture grille.
 	float scan = 0.5 + 0.5 * cos(uv.y * game_size.y * 6.28318);
-	col *= mix(1.0, 0.68 + 0.32 * scan, 0.55);
+	// Light while things are calm, so the lit scene reads cleanly; the
+	// tube shows its age as the owner closes in.
+	float tube = 0.25 + a * 0.35 + edge_mode * 0.2;
+	col *= mix(1.0, 0.68 + 0.32 * scan, tube);
 	if (quality >= 2) {
 		float triad = mod(FRAGCOORD.x, 3.0);
 		vec3 mask = triad < 1.0 ? vec3(1.0, 0.82, 0.82) : (triad < 2.0 ? vec3(0.82, 1.0, 0.82) : vec3(0.82, 0.82, 1.0));
-		col *= mix(vec3(1.0), mask, 0.22);
+		col *= mix(vec3(1.0), mask, tube * 0.35);
 	}
 	// A faint bright band rolling through: the refresh you can almost see.
 	col *= 1.0 + 0.05 * smoothstep(0.06, 0.0, abs(fract(uv.y - t * 0.07) - 0.5));
 
 	// 10. Grain, alive, heavier as things get worse.
 	float g = hash(FRAGCOORD.xy * 0.71 + fract(t * 7.13) * 431.0) - 0.5;
-	col += g * (0.035 + a * 0.06 + glitch * 0.15 + noise_burst * 0.3 + edge_mode * 0.04) * max(intensity, 0.35);
+	col += g * (0.02 + a * 0.07 + glitch * 0.15 + noise_burst * 0.3 + edge_mode * 0.04) * max(intensity, 0.35);
 
 	// 11. Cursor arrival: thin bright vertical lines and a sweeping static band.
 	if (noise_burst > 0.0 && quality >= 2) {

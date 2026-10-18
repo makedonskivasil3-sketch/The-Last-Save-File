@@ -79,8 +79,10 @@ static func centered_panel(parent: Control, width: float) -> VBoxContainer:
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(center)
 	var panel := PanelContainer.new()
-	var box := _box(BG, Color(1, 1, 1, 0.1))
+	var box := _box(BG, Color(1, 1, 1, 0.1), 8)
 	box.set_content_margin_all(16)
+	box.shadow_color = Color(0, 0, 0, 0.45)
+	box.shadow_size = 10
 	panel.add_theme_stylebox_override("panel", box)
 	panel.custom_minimum_size.x = width
 	center.add_child(panel)
@@ -122,11 +124,13 @@ static func button(parent: Control, text: String, on_pressed: Callable, sound :=
 	return b
 
 
-static func _box(bg: Color, border: Color) -> StyleBoxFlat:
+static func _box(bg: Color, border: Color, radius := 4) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
 	s.bg_color = bg
 	s.set_border_width_all(1)
 	s.border_color = border
+	s.set_corner_radius_all(radius)
+	s.anti_aliasing = true
 	s.content_margin_left = 10
 	s.content_margin_right = 10
 	s.content_margin_top = 4

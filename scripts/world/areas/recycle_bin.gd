@@ -48,6 +48,8 @@ func build() -> void:
 	add_boundary([{"side": "left", "from": WEST_GAP.x, "to": WEST_GAP.y}])
 	for r in SYSTEM_FILES:
 		add_solid(r)
+		add_light(r.get_center() + Vector2(SHADOW.x * 0.6, 0), Color(0.55, 0.95, 1.0), 0.45, 55.0)
+	add_dust(bounds.grow(-12), Color(0.55, 0.95, 1.0, 0.4), 26, Vector2(0, -5))  # loose bits, floating up
 	add_exit(Rect2(bounds.position.x - 8, WEST_GAP.x, 8, WEST_GAP.y - WEST_GAP.x), "archive", "east")
 	add_sign(Vector2(bounds.position.x + 32, WEST_GAP.x - 10), "ARCHIVE", Vector2.LEFT)
 

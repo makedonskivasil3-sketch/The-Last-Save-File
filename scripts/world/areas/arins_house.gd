@@ -31,6 +31,7 @@ const FLOOR := Color("2b2420")
 const WOOD := Color("4f3a2c")
 
 var arin: OwnerAvatar
+var _tv_light: PointLight2D
 ## Seconds until Arin comes home (counts down; the chime is a warning).
 var next_visit := FIRST_VISIT
 var _visit_left := 0.0
@@ -60,6 +61,12 @@ func build() -> void:
 	add_solid(Rect2(WALL_X - 3, bounds.position.y, 6, DOORWAY.x - bounds.position.y))
 	add_solid(Rect2(WALL_X - 3, DOORWAY.y, 6, bounds.end.y - DOORWAY.y))
 	add_exit(Rect2(FRONT_GAP.x, bounds.end.y, FRONT_GAP.y - FRONT_GAP.x, 8), "square", "house")
+	# Lit by the TV (this game, glowing) and one lamp; Player 2's room gets
+	# only cold light through the doorway.
+	light_surfaces(0.42, 1.6)
+	_tv_light = add_light(TV.get_center() + Vector2(0, 14), Color(0.6, 0.85, 1.0), 1.5, 120.0, true)
+	add_light(Vector2(130, 200), Color(1.0, 0.72, 0.45), 1.3, 110.0, true)
+	add_light(Vector2(460, 150), Color(0.55, 0.65, 0.9), 0.7, 130.0)
 	add_sign(Vector2((FRONT_GAP.x + FRONT_GAP.y) * 0.5, bounds.end.y - 12), "ASHVALE", Vector2.DOWN)
 
 	add_readable("THE TV", Vector2(198, 124), Readable.Look.TERMINAL, _tv)
@@ -84,6 +91,9 @@ func hides_player(pos: Vector2) -> bool:
 
 
 func area_process(delta: float) -> void:
+	if _tv_light:
+		# The TV flickers with the game on it.
+		_tv_light.energy = 1.35 + 0.2 * sin(Time.get_ticks_msec() * 0.004) + randf() * 0.12 * Settings.flash_scale()
 	if world.is_owner_paused():
 		if arin:
 			arin.paused = true

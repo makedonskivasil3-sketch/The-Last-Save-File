@@ -27,11 +27,13 @@ const DOOR_TRIGGER_DISTANCE := 70.0
 const NOOK_WALLS: Array[Rect2] = [Rect2(458, 36, 4, 84), Rect2(458, 116, 86, 4)]
 const CRACK := Vector2(500, 118)
 
-const FLOOR := Color("2a2320")
-const FLOOR_LINE := Color("231d1a")
-const RUG_COL := Color("3d2a2a")
-const WOOD := Color("4f3a2c")
-const SHEET := Color("8a7a68")
+## Surfaces are lit (Area.ambient + lights), so their colours are the
+## daylight colours; the room's dimness comes from the lighting.
+const FLOOR := Color("4a3b30")
+const FLOOR_LINE := Color("3a2e26")
+const RUG_COL := Color("6a4240")
+const WOOD := Color("7a5a40")
+const SHEET := Color("b8a890")
 
 const MIRA_LINES := [
 	"Arin! You're up early.",
@@ -77,6 +79,12 @@ func build() -> void:
 	sun = SunBeam.new()
 	sun.window = WINDOW
 	add_child(sun)
+	# The remembered afternoon: dim room, warm light where it falls.
+	ambient = 0.45
+	add_light(TABLE.get_center() + Vector2(0, -6), Color(1.0, 0.7, 0.4), 1.8, 120.0, true)  # the desk lamp
+	add_light(WINDOW.get_center() + Vector2(14, 70), Color(1.0, 0.86, 0.6), 1.4, 160.0, true)  # daylight off the floor
+	add_light(BED.get_center() + Vector2(0, 34), Color(0.7, 0.78, 1.0), 0.8, 80.0)  # the nook, cooler
+	add_dust(Rect2(WINDOW.position.x - 10, WINDOW.end.y + 6, WINDOW.size.x + 40, 110), Color(1.0, 0.9, 0.7, 0.55), 18, Vector2(3, 2))
 	add_boundary([{"side": "top", "from": DOOR_RECT.position.x, "to": DOOR_RECT.end.x}])
 	add_solid(BED)
 	add_solid(TABLE)

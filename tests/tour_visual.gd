@@ -184,6 +184,21 @@ func test_tour_settings() -> void:
 	settings().apply()
 
 
+func test_tour_journal() -> void:
+	var m := memory()
+	m.sessions = 2
+	var f: Dictionary = Story.FRAGMENTS[0]
+	m.record_read("room:NOTE", "note", "NOTE", "ARIN'S ROOM", ["STAY IN YOUR ROOM.", "I SAW YOU."])
+	m.record_read("archive:SESSION LOG", "book", "SESSION LOG", "THE ARCHIVE", ["session 1: new game.", "session 2: something in arin's room."])
+	m.record_read("memory:" + f.id, "memory", f.title, "ARIN'S ROOM", f.lines)
+	tree.change_scene_to_file("res://scenes/title.tscn")
+	await wait(1.0)
+	await _measure("52_title_journal_button", 5)
+	scene()._show_journal()
+	await wait(0.3)
+	await _measure("53_journal", 5)
+
+
 func test_tour_tells() -> void:
 	var w := await start_session()
 	await go_to(w, "square", "house")

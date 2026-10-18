@@ -34,6 +34,11 @@ func _init() -> void:
 
 func build() -> void:
 	setup_common()
+	# Quiet and safe: one lamp on the Archivist's desk, the shelves fading
+	# into the dark around it.
+	light_surfaces(0.48, 1.6)
+	add_light(DESK.get_center() + Vector2(0, -10), Color(1.0, 0.78, 0.5), 1.6, 170.0, true)
+	add_dust(Rect2(DESK.position.x - 70, DESK.position.y - 120, DESK.size.x + 140, 130), Color(1.0, 0.85, 0.6, 0.45), 20, Vector2(2, -2))
 	add_boundary([{"side": "left", "from": WEST_GAP.x, "to": WEST_GAP.y}, {"side": "right", "from": EAST_GAP.x, "to": EAST_GAP.y}])
 	for s in SHELVES:
 		add_solid(s)

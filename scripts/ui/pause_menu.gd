@@ -19,6 +19,8 @@ var _settings: SettingsPanel
 var _map_box: VBoxContainer
 var _map: MapView
 var _map_back: Button
+var _journal_box: VBoxContainer
+var _journal: JournalPanel
 var _debug_box: VBoxContainer
 var _debug_button: Button
 ## Set by World before open(): show the Debug button.
@@ -54,6 +56,7 @@ func _ready() -> void:
 	_goal_label = UiStyle.note(_main, "", UiStyle.TEXT)
 	_resume = UiStyle.button(_main, "Resume", close, "ui_back")
 	UiStyle.button(_main, "Map", _show_map)
+	UiStyle.button(_main, "Journal", _show_journal)
 	_debug_button = UiStyle.button(_main, "Debug", func() -> void: _show_only(_debug_box); (_debug_box.get_child(1) as Button).grab_focus())
 	UiStyle.button(_main, "Settings", _show_settings)
 	if PlaytestLog.enabled():
@@ -92,6 +95,11 @@ func _ready() -> void:
 		UiStyle.button(_debug_box, pair[0], _debug.bind(pair[1]))
 	UiStyle.button(_debug_box, "Back", _show_main, "ui_back")
 
+	_journal_box = UiStyle.centered_panel(_root, 560)
+	_journal = JournalPanel.new()
+	_journal.closed.connect(_show_main)
+	_journal_box.add_child(_journal)
+
 	_settings_box = UiStyle.centered_panel(_root, 480)
 	_settings = SettingsPanel.new()
 	_settings.closed.connect(_show_main)
@@ -117,7 +125,7 @@ func close() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not visible or _panel_of(_settings_box).visible:
+	if not visible or _panel_of(_settings_box).visible or _panel_of(_journal_box).visible:
 		return  # the settings panel handles its own back
 	if event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
@@ -128,8 +136,14 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _show_only(box: VBoxContainer) -> void:
-	for b in [_main, _confirm, _settings_box, _map_box, _debug_box, _log_box]:
+	for b in [_main, _confirm, _settings_box, _map_box, _debug_box, _log_box, _journal_box]:
 		_panel_of(b).visible = b == box
+
+
+func _show_journal() -> void:
+	_journal.refresh()
+	_show_only(_journal_box)
+	_journal.focus_first.call_deferred()
 
 
 func _show_playtest_log() -> void:

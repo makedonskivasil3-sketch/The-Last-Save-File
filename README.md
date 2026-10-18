@@ -253,6 +253,10 @@ version: `ENDINGS 1/4 · MEMORIES 2/5 · SECRETS 1/4`.
 | --- | --- |
 | Saved to Slot 2 · **RUE** (take the slot with every memory) · A new game for Wren · A message · two hidden ones | Pip · the Archivist · Wren saw the Edge · Undeleted (bring someone back) · the guest book page · Mira saw the square |
 
+**Journal** (pause menu, and the title screen once there's something in it): every note,
+book, file and memory you've read, word for word, so you can read it again. A note the owner
+rewrote keeps every version you saw.
+
 **Lines that change with your last run.** The owner's opening line names what got you last
 time; the room's note does too (or reacts to the ending you chose); and the first time you talk
 to Mira, Tobben or Wren in a run, they may remember: the escape, the message, Wren's fate, that
@@ -318,6 +322,10 @@ in motion:
 | Pip | A small orange fox with a white-tipped tail | Asleep out of bounds until found. Then follows you everywhere, every session, through walls; trots ahead toward the next memory or the way on; yips `!` when Arin is close. The owner can't see Pip. |
 
 ## Visual effects
+
+**Light.** Areas are lit with 2D lights and soft shadows: a desk lamp in Arin's room, a low
+sun over the square, a flickering TV in the house, one lamp in the archive. Dust drifts in the
+light, and characters cast small ground shadows (`docs/ART_DIRECTION.md`).
 
 Everything is still coloured rectangles; the atmosphere comes from one full-screen shader
 (`shaders/save_corruption.gdshader`), one controller (`scripts/fx/screen_fx.gd`) and a handful of
@@ -749,6 +757,10 @@ crossed → deaths, quits, helpers and wins flow back into `OwnerMemory`.
 
 ## Where this could go next
 
+- **Multiplayer** (proposal, not built): intruders sharing one save and one awareness meter,
+  co-op first, betrayal later. See `docs/MULTIPLAYER_DESIGN.md`.
+- **Recorded voices for key lines**: the loader is in (`VoiceOver`); no lines are recorded yet.
+  See `docs/VOICE_SCRIPT.md`.
 - **More out-of-bounds places**: under the Archive, behind the Edge's missing textures.
 - **Life after Slot 2**: playing *from* Slot 2, a save the owner is now hunting for.
 - **The owner's habits**: they learn your *routes* as well as your death spots, and pre-place

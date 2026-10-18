@@ -82,6 +82,10 @@ func build() -> void:
 	slot.position = SLOT_POS
 	slot.reached.connect(world.reach_slot2)
 	add_child(slot)
+	# Slot 2 shines, the one lit thing in an unloaded world (and the light
+	# goes where the owner drags it).
+	var glow := add_light(Vector2.ZERO, Color(0.55, 0.95, 1.0), 1.1, 110.0)
+	glow.reparent(slot, false)
 
 	cursor = OwnerCursor.new()
 	cursor.bounds = bounds
