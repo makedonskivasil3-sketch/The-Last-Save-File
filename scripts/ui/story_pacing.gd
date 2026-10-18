@@ -31,6 +31,9 @@ const SKIP_HOLD := 1.2
 ## when this many more lines are already waiting (no stale backlog).
 const AMBIENT_MAX := 6.0
 const BACKLOG := 3
+## The longest an owner line (they carry the warnings) waits behind the
+## line before it. Owner lines also go ahead of queued thoughts.
+const OWNER_GAP := 0.8
 
 
 static func letters(text: String) -> int:

@@ -320,3 +320,30 @@ func test_subtitle_settings_apply_and_persist() -> void:
 	settings().set_value("subtitle_bg", 0.75)
 	settings().set_value("advance_mode", 0)
 	settings().set_value("voice_delay", 1)
+
+
+func test_owner_warnings_go_ahead_of_thoughts() -> void:
+	var w := await start_session()
+	w.hud.clear_queue()
+	w.hud._typing = null
+	w.hud._pause = 0.0
+	settings().text_speed = 3
+	w.hud.say(LONG, "self")
+	await wait_until(func() -> bool: return w.hud.history.any(func(e: Dictionary) -> bool: return e.text == LONG), 2.0, "the first line")
+	w.hud.say("a second thought.", "self")
+	w.hud.say("do that again and i'm loading the autosave.", "owner")
+	check_eq(w.hud._queue[0].kind, "owner", "the warning goes ahead of the waiting thought")
+	await wait(StoryPacing.OWNER_GAP + 0.4)
+	check(w.hud.history.any(func(e: Dictionary) -> bool: return e.kind == "owner" and e.text.begins_with("do that again")), "the warning is on screen within %.1f s" % (StoryPacing.OWNER_GAP + 0.4))
+	check(not w.hud.history.any(func(e: Dictionary) -> bool: return e.text == "a second thought."), "the thought waits its turn")
+
+
+func test_the_goal_shows_when_it_changes() -> void:
+	var w := await start_session()
+	await wait(0.3)
+	check(w.hud.objective_text().contains("Get out of Arin's room."), "the first goal is on screen without opening a menu")
+	await wait(StoryPacing.reading_time("Get out of Arin's room.") + 5.0)
+	check_eq(w.hud.objective_text(), "", "and fades once read")
+	await go_to(w, "square", "house")
+	await wait(0.6)
+	check(w.hud.objective_text().contains("Explore the village"), "a new area brings its goal back")

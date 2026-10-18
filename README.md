@@ -760,7 +760,7 @@ crossed → deaths, quits, helpers and wins flow back into `OwnerMemory`.
 - **Multiplayer** (proposal, not built): intruders sharing one save and one awareness meter,
   co-op first, betrayal later. See `docs/MULTIPLAYER_DESIGN.md`.
 - **Recorded voices for key lines**: the loader is in (`VoiceOver`); no lines are recorded yet.
-  See `docs/VOICE_SCRIPT.md`.
+  See `docs/ASSET_PRODUCTION.md`.
 - **More out-of-bounds places**: under the Archive, behind the Edge's missing textures.
 - **Life after Slot 2**: playing *from* Slot 2, a save the owner is now hunting for.
 - **The owner's habits**: they learn your *routes* as well as your death spots, and pre-place

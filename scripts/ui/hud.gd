@@ -118,6 +118,8 @@ var _skip_armed := false
 var _skip_requested := false
 var _cine_backing: Panel
 var _cine_portrait: TextureRect
+var _objective: Label
+var _objective_tween: Tween
 var _dialogue_portrait: TextureRect
 var _dialogue_box_style: StyleBoxFlat
 var _console_style: StyleBoxFlat
@@ -145,6 +147,11 @@ func _ready() -> void:
 	_meter.size = Vector2(180, 36)
 	_meter.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_meter)
+
+	# The current goal, under the save header (World shows it when it changes).
+	_objective = _make_label(root, SAFE + Vector2(0, 15), Vector2(400, 12), 9, Color("c8b8a0"))
+	_objective.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_objective.modulate.a = 0.0
 
 	_status = _make_label(root, Vector2(640 - SAFE.x - 220, SAFE.y + 36), Vector2(220, 12), 9, STATUS_COLOR)
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -811,7 +818,18 @@ func _update_dialogue(delta: float) -> void:
 ## kind: "owner", "system", "self" (the intruder's thoughts) or "npc".
 ## speaker is shown for npc lines.
 func say(text: String, kind: String = "owner", speaker: String = "") -> void:
-	_queue.append({"text": text, "kind": kind, "speaker": speaker})
+	var msg := {"text": text, "kind": kind, "speaker": speaker}
+	if kind == "owner":
+		# The owner's lines carry the warnings: they go ahead of thoughts and
+		# system lines still waiting (in order among themselves).
+		var at := _queue.size()
+		for i in _queue.size():
+			if _queue[i].kind != "owner":
+				at = i
+				break
+		_queue.insert(at, msg)
+	else:
+		_queue.append(msg)
 
 
 func clear_queue() -> void:
@@ -879,6 +897,22 @@ func banner_text() -> String:
 func set_status(text: String) -> void:
 	if _status.text != text:
 		_status.text = text
+
+
+## Show the current goal for its reading time plus 3 s, then fade it to a
+## faint reminder (Pause shows it in full).
+func show_objective(text: String) -> void:
+	_objective.text = "▸ " + text
+	if _objective_tween:
+		_objective_tween.kill()
+	_objective_tween = create_tween()
+	_objective_tween.tween_property(_objective, "modulate:a", 1.0, 0.4)
+	_objective_tween.tween_interval(StoryPacing.reading_time(text) + 3.0)
+	_objective_tween.tween_property(_objective, "modulate:a", 0.0, 1.2)
+
+
+func objective_text() -> String:
+	return _objective.text if _objective.modulate.a > 0.05 else ""
 
 
 ## Shows a tutorial tip card (replacing any current one).
@@ -1015,6 +1049,8 @@ func _update_typing(delta: float) -> void:
 	if _cinematic or _dialogue.visible or _choice.visible:
 		return
 	if _pause > 0.0:
+		if not _queue.is_empty() and _queue[0].kind == "owner":
+			_pause = minf(_pause, StoryPacing.OWNER_GAP)  # a warning doesn't wait for a thought
 		_pause -= delta
 		return
 	if _queue.is_empty():

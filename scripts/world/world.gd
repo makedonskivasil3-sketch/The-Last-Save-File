@@ -240,6 +240,7 @@ func _process(delta: float) -> void:
 		_focus_marker.target = null
 		return
 	area.area_process(delta)
+	_update_objective()
 	for node in area.interactables:
 		if node is Npc:
 			node.talking = node == _talking_to and hud.is_dialogue_open()
@@ -494,6 +495,19 @@ func _hider_at(pos: Vector2) -> Npc:
 
 
 ## One line for the pause menu: what to do next, plus memories found.
+## The goal shown under the save header, so a new player always knows what
+## to do next without opening a menu. It appears only when it changes (an
+## area, a clue), never on a timer: guidance, not nagging.
+var _shown_goal := ""
+
+
+func _update_objective() -> void:
+	var goal := current_goal().get_slice("\n", 0)
+	if goal != _shown_goal and not hud.is_dialogue_open() and not hud.is_cinematic() and not hud.is_choosing():
+		_shown_goal = goal
+		hud.show_objective(goal)
+
+
 func current_goal() -> String:
 	var goal := ""
 	match area.area_id if area else "":

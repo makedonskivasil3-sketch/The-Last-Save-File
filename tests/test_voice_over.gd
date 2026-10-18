@@ -1,5 +1,5 @@
 extends "res://tests/test_case.gd"
-## Recorded voice lines are optional (docs/VOICE_SCRIPT.md): a line with no
+## Recorded voice lines are optional (docs/ASSET_PRODUCTION.md): a line with no
 ## file keeps its procedural voice and nothing else changes.
 
 
