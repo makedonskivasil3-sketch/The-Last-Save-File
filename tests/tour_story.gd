@@ -8,7 +8,23 @@ extends "res://tests/tour_visual.gd"
 
 
 func _scene(hud: Hud, title: String, lines: Array, portrait: CharacterArt.Portrait) -> void:
+	# Like the game's own scenes: Rue holds still while it plays.
+	var w := scene()
+	w._cutscene = true
+	w.player.frozen = true
 	await hud.cinematic(title, lines, Hud.SELF_COLOR, 0.5, "", portrait)
+	w._cutscene = false
+	w.player.frozen = false
+
+
+## Finish talking to Mira, answering "Not now" if she asks to come along.
+func _done_talking(w: Node) -> void:
+	await finish_dialogue(w)
+	await frames(3)
+	if w.hud.is_choosing():
+		await press("ui_down")
+		await press("interact")
+	await wait(0.3)
 
 
 func _reveal(w: Node) -> void:
@@ -25,7 +41,7 @@ func test_tour_story() -> void:
 	await press("interact")
 	await wait(0.3)
 	await _measure("60_dialogue_mira", 10)
-	await finish_dialogue(w)
+	await _done_talking(w)
 	# A memory with no memories back yet: Rue's face is still missing.
 	var f := Story.fragment("controller")
 	_scene.call_deferred(w.hud, f.title, f.lines, CharacterArt.rue("remembering", w.player.palette()))
@@ -63,7 +79,7 @@ func test_tour_story_accessible() -> void:
 	await press("interact")
 	await wait(0.3)
 	await _measure("65_dialogue_large_text_effects_off", 10)
-	await finish_dialogue(w)
+	await _done_talking(w)
 	var f := Story.fragment("controller")
 	_scene.call_deferred(w.hud, f.title, f.lines, CharacterArt.rue("remembering", w.player.palette()))
 	await _reveal(w)

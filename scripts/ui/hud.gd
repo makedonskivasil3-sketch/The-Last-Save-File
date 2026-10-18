@@ -427,6 +427,9 @@ func set_portrait(portrait: CharacterArt.Portrait) -> void:
 ## voice_prefix: the scene's id stem; each line's id is voice_id(prefix, text).
 ## portrait: a character portrait shown with the text (CharacterArt), or null.
 func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: float = 0.55, voice_prefix := "", portrait: CharacterArt.Portrait = null) -> void:
+	# A scene owns the screen: no dialogue box under it, no act card over it.
+	close_dialogue()
+	_clear_title()
 	_cinematic = true
 	_skip_requested = false
 	_skip_armed = false
@@ -479,10 +482,10 @@ func is_cinematic() -> bool:
 	return _cinematic
 
 
-func _cine_kind(line: String, color: Color) -> String:
-	if line.begins_with(">"):
-		return "owner"
-	return "self" if color == SELF_COLOR else "system"
+func _cine_kind(line: String, _color: Color) -> String:
+	# Scene lines (memories, epilogues) aren't Rue's in-the-moment thoughts,
+	# so the History shows them plainly, not in thought brackets.
+	return "owner" if line.begins_with(">") else "scene"
 
 
 func _cinematic_line(line: String, vid: String, title: String, base_color: Color) -> void:
@@ -534,6 +537,7 @@ func _cinematic_line(line: String, vid: String, title: String, base_color: Color
 			if pacer.press(frame) == "reveal":
 				_cine_text.visible_characters = -1
 		_cine_hint.text = _skip_text() if _skip_hold > 0.25 else (_continue_text(false) if pacer.is_shown() else "")
+		_fit_cinematic()  # wrapping can change after the font or text settles
 	VoiceOver.stop()
 	narrator.stop()
 	_cine_text.add_theme_color_override("font_color", original_color)
@@ -586,6 +590,7 @@ func show_dialogue(speaker: String, color: Color, lines: Array, voice_prefix := 
 	_dialogue.visible = true
 	_console_box.visible = false
 	_prompt.visible = false
+	_clear_title()
 	_show_dialogue_line()
 
 
@@ -683,6 +688,14 @@ func show_act(act: String, title: String, place: String) -> void:
 
 func is_act_shown() -> bool:
 	return _act_label.text != "" and _area_title.modulate.a > 0.0
+
+
+## An act or area card gives way to dialogue and scenes (one thing to read
+## at a time).
+func _clear_title() -> void:
+	if _area_tween:
+		_area_tween.kill()
+	_area_title.modulate.a = 0.0
 
 
 func _show_title(text: String, hold: float) -> void:
@@ -793,6 +806,7 @@ func _update_dialogue(delta: float) -> void:
 		if _dialogue_typed >= total:
 			_dialogue_text.visible_characters = -1
 			_pacer.reveal(frame)
+			_fit_dialogue()
 		if int(_dialogue_typed) > before and not is_inf(cps) and not VoiceOver.is_playing():
 			# Each speaker has their own voice (Sfx.VOICE_PROFILES); books and notes rustle.
 			if Settings.narration and narrator.supported:
@@ -871,13 +885,16 @@ func cost_preview() -> float:
 func glitch_cost(amount: float, why := "") -> void:
 	var w := 40.0 if why == "" else _meter.size.x
 	# Under the meter's state word, inside the screen, right-aligned.
-	var pos := _meter.position + Vector2(_meter.size.x - w, 24 if why == "" else 40)
+	# Below the state word (lower still with large text), drifting down and
+	# away from it; a reason stays long enough to be read.
+	var pos := _meter.position + Vector2(_meter.size.x - w, (24 if why == "" else 40) * Settings.text_scale())
 	var l := _make_label(_meter.get_parent(), pos, Vector2(w, 14), 12 if why == "" else 10, Color(1.0, 0.35, 0.45))
 	l.text = "+%d" % int(amount) if why == "" else "+%d  ·  %s" % [int(amount), why]
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	var hold := 0.3 if why == "" else StoryPacing.reading_time(why)
 	var tw := create_tween().set_parallel()
-	tw.tween_property(l, "position:y", l.position.y - 18.0, 0.9)
-	tw.tween_property(l, "modulate:a", 0.0, 0.9).set_delay(0.3)
+	tw.tween_property(l, "position:y", l.position.y + 6.0, hold + 0.9)
+	tw.tween_property(l, "modulate:a", 0.0, 0.9).set_delay(hold)
 	tw.chain().tween_callback(l.queue_free)
 	_meter.jolt()
 
