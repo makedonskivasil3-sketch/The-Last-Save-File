@@ -151,8 +151,7 @@ func open() -> void:
 
 
 func close() -> void:
-	if VoiceOver.current() and VoiceOver.current().process_mode == Node.PROCESS_MODE_ALWAYS:
-		VoiceOver.stop()  # a replay from the History page ends with the menu
+	VoiceOver.stop_preview()  # a replay from the History page ends with the menu
 	visible = false
 	get_tree().paused = false
 	Sfx.muffle(false)
@@ -211,7 +210,7 @@ func _build_replay_buttons() -> void:
 		if e.voice == "" or not VoiceOver.has_line(e.voice) or shown >= REPLAY_BUTTONS:
 			continue
 		var label := "▶ %s" % (e.speaker if e.speaker != "" else "line")
-		var b := UiStyle.button(_replay_row, label, func() -> void: VoiceOver.play(self, e.voice, true))
+		var b := UiStyle.button(_replay_row, label, func() -> void: VoiceOver.preview(self, e.voice))
 		b.tooltip_text = e.text
 		shown += 1
 	_replay_row.visible = shown > 0

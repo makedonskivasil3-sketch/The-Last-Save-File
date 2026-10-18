@@ -187,12 +187,14 @@ func on_area_entered(area: Area, first_time: bool) -> void:
 
 func _check_thresholds() -> void:
 	var highest := 0.0
+	var crossed: Array[float] = []
 	for t in THRESHOLDS:
 		if awareness < t or _fired.has(t):
 			continue
 		_fired[t] = true
 		PlaytestLog.mark("owner threshold", ["NOTICE", "SUSPECT", "CONTAIN", "SILENCE", "HUNT", "PURGE"][THRESHOLDS.find(t)])
 		highest = t
+		crossed.append(t)
 		if t == SUSPECT:
 			_world.flicker_lights()
 		if t == HUNT:
@@ -207,14 +209,20 @@ func _check_thresholds() -> void:
 	# Apply every consequence immediately, but announce only the highest new
 	# state. A door approach must not stack three stingers and startles.
 	if highest > 0.0:
-		_owner_line(highest)
+		# The highest state that has a line (SILENCE has none: its warning is
+		# the one below it), so a big jump is never announced in silence.
+		crossed.reverse()
+		for t in crossed:
+			if _owner_line(t):
+				break
 		_world.fx.threshold_pulse(highest / 100.0)
 		Sfx.play("stinger", -6.0 + highest / 100.0 * 6.0, 1.05 - highest / 400.0, 0.0)
 		_world.hud.awareness_jolt()
 		_world.player.startle()
 
 
-func _owner_line(t: float) -> void:
+## Says the owner's line for a threshold. False if that threshold has none.
+func _owner_line(t: float) -> bool:
 	var first := OwnerMemory.sessions == 1
 	match t:
 		NOTICE:
@@ -227,6 +235,9 @@ func _owner_line(t: float) -> void:
 			say("fine. i'll do this myself.")
 		PURGE:
 			say("hold still.")
+		_:
+			return false
+	return true
 
 
 func _intro(previous_exit: String) -> void:

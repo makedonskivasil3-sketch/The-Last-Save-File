@@ -1,17 +1,3 @@
 [remap]
 
-importer="csv_translation"
-type="Translation"
-uid="uid://c7h662i4d3nxp"
-
-[deps]
-
-files=["res://audio/voice/manifest.scene.translation", "res://audio/voice/manifest.speaker.translation", "res://audio/voice/manifest.subtitle.translation", "res://audio/voice/manifest.spoken.translation", "res://audio/voice/manifest.direction.translation", "res://audio/voice/manifest.file.translation", "res://audio/voice/manifest.duration.translation", "res://audio/voice/manifest.status.translation", "res://audio/voice/manifest.licence.translation"]
-
-source_file="res://audio/voice/manifest.csv"
-dest_files=["res://audio/voice/manifest.scene.translation", "res://audio/voice/manifest.speaker.translation", "res://audio/voice/manifest.subtitle.translation", "res://audio/voice/manifest.spoken.translation", "res://audio/voice/manifest.direction.translation", "res://audio/voice/manifest.file.translation", "res://audio/voice/manifest.duration.translation", "res://audio/voice/manifest.status.translation", "res://audio/voice/manifest.licence.translation"]
-
-[params]
-
-compress=true
-delimiter=0
+importer="keep"

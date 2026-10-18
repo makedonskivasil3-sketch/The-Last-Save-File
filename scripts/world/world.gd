@@ -501,7 +501,14 @@ func _hider_at(pos: Vector2) -> Npc:
 var _shown_goal := ""
 
 
+var _goal_check := 0.0
+
+
 func _update_objective() -> void:
+	_goal_check -= get_process_delta_time()
+	if _goal_check > 0.0:
+		return
+	_goal_check = 0.5  # goals change on events, not every frame
 	var goal := current_goal().get_slice("\n", 0)
 	if goal != _shown_goal and not hud.is_dialogue_open() and not hud.is_cinematic() and not hud.is_choosing():
 		_shown_goal = goal

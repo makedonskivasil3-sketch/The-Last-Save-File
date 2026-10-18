@@ -6,7 +6,7 @@ name: Build game
 
 on:
   push:
-    branches: [main, "playtest/first-minutes-fairness", "claude/story-pacing-cast-pass"]
+    branches: [main, "playtest/first-minutes-fairness"]
     tags: ["v*"]
   pull_request:
   workflow_dispatch:

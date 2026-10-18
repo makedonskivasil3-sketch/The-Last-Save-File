@@ -5,6 +5,9 @@ var area: Area
 var elapsed := 0.0
 
 func _process(delta: float) -> void:
+	if is_instance_valid(area) and area.has_dust:
+		set_process(false)  # the area's own lit dust is used instead
+		return
 	elapsed += delta
 	queue_redraw()
 

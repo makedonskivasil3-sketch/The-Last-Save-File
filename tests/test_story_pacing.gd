@@ -347,3 +347,48 @@ func test_the_goal_shows_when_it_changes() -> void:
 	await go_to(w, "square", "house")
 	await wait(0.6)
 	check(w.hud.objective_text().contains("Explore the village"), "a new area brings its goal back")
+
+
+# --- review fixes ------------------------------------------------------------------
+
+func test_a_scene_over_a_conversation_holds_it_without_ending_it() -> void:
+	var w := await start_session()
+	var closed := [0]
+	w.hud.dialogue_closed.connect(func() -> void: closed[0] += 1)
+	w.hud.show_dialogue("MIRA", Hud.NPC_COLOR, ["first line.", "second line."])
+	await frames(2)
+	var done := await _start(w, [SHORT])
+	check(not w.hud.is_dialogue_open(), "the dialogue box is hidden under the scene")
+	check_eq(closed[0], 0, "and the conversation is not ended (no dialogue_closed side effects)")
+	await read_through_cinematic(w)
+	check(done[0], "the scene finishes")
+	check(w.hud.is_dialogue_open(), "the conversation comes back where it was")
+	check_eq(w.hud._dialogue_text.text, "first line.", "on the same line")
+	await finish_dialogue(w)
+
+
+func test_a_big_jump_still_says_a_warning() -> void:
+	var w := await start_session()
+	w.hud.clear_queue()
+	w.director.awareness = OwnerDirector.CONTAIN - 2.0
+	w.director._fired.clear()
+	for t in OwnerDirector.THRESHOLDS:
+		if t < OwnerDirector.CONTAIN:
+			w.director._fired[t] = true
+	w.director.add_awareness(OwnerDirector.SILENCE + 2.0 - w.director.awareness)
+	var owner_lines: Array = w.hud._queue.filter(func(m: Dictionary) -> bool: return m.kind == "owner")
+	check(owner_lines.any(func(m: Dictionary) -> bool: return m.text == "stay where i can see you."), "crossing CONTAIN and SILENCE at once still warns (SILENCE has no line)")
+
+
+func test_replaying_history_keeps_the_paused_story_voice() -> void:
+	VoiceOver.register(Hud.voice_id("test.keep", LONG), _clip(4.0))
+	VoiceOver.register("test.old", _clip(1.0))
+	var w := await start_session()
+	await _start(w, [LONG], "test.keep")
+	var story := VoiceOver.current()
+	w.open_pause()
+	VoiceOver.preview(w._pause_menu, "test.old")
+	await wait(0.2)
+	check(VoiceOver.current() == story and is_instance_valid(story), "the story line keeps its place while a replay plays")
+	w._pause_menu.close()
+	await read_through_cinematic(w)

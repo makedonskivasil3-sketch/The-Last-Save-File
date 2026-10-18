@@ -427,8 +427,11 @@ func set_portrait(portrait: CharacterArt.Portrait) -> void:
 ## voice_prefix: the scene's id stem; each line's id is voice_id(prefix, text).
 ## portrait: a character portrait shown with the text (CharacterArt), or null.
 func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: float = 0.55, voice_prefix := "", portrait: CharacterArt.Portrait = null) -> void:
-	# A scene owns the screen: no dialogue box under it, no act card over it.
-	close_dialogue()
+	# A scene owns the screen: an open dialogue box is hidden and holds its
+	# place (it is NOT closed: closing would end the conversation and run its
+	# side effects mid-scene), and the act card clears.
+	var dialogue_held := _dialogue.visible
+	_dialogue.visible = false
 	_clear_title()
 	_cinematic = true
 	_skip_requested = false
@@ -473,9 +476,13 @@ func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: floa
 	for l in [_cine_title, _cine_text, _cine_hint, _cine_backing]:
 		l.visible = false
 	_show_portrait(null)
-	_console_box.visible = _console.get_child_count() > 0
-	_prompt.visible = true
 	_cinematic = false
+	if dialogue_held and _pacer != null:
+		_dialogue.visible = true  # back to the conversation, where it was
+		_dialogue_opened_frame = Engine.get_process_frames()  # the scene's last press doesn't advance it
+	else:
+		_console_box.visible = _console.get_child_count() > 0
+		_prompt.visible = true
 
 
 func is_cinematic() -> bool:
@@ -791,7 +798,7 @@ func _fit_dialogue() -> void:
 
 
 func _update_dialogue(delta: float) -> void:
-	if not _dialogue.visible or _pacer == null:
+	if not _dialogue.visible or _pacer == null or _cinematic:
 		return
 	var frame := Engine.get_process_frames()
 	var total := _dialogue_text.get_total_character_count()
@@ -1034,6 +1041,10 @@ func _update_slot() -> void:
 
 
 func _update_typing(delta: float) -> void:
+	# Story owns the screen: while a conversation, scene or question is up,
+	# the console waits, including a line it was halfway through typing.
+	if _cinematic or _dialogue.visible or _choice.visible:
+		return
 	if _typing:
 		var rate := Settings.text_rate()
 		var step := 1000000.0 if is_inf(rate) else TYPE_SPEED * rate * delta
@@ -1060,10 +1071,6 @@ func _update_typing(delta: float) -> void:
 			# Time to read it before the next one starts (StoryPacing).
 			_pause = StoryPacing.ambient_time(full, _queue.size())
 			_typing = null
-		return
-	# Story owns the screen: while a conversation, scene or question is up,
-	# the console holds its next line (nothing types into a hidden box).
-	if _cinematic or _dialogue.visible or _choice.visible:
 		return
 	if _pause > 0.0:
 		if not _queue.is_empty() and _queue[0].kind == "owner":

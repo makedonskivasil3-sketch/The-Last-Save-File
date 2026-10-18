@@ -75,6 +75,36 @@ static func play(parent: Node, id: String, while_paused := false) -> AudioStream
 	return player
 
 
+static var _preview: WeakRef = null
+
+
+## Replay a line from the History page while the game is paused. It uses its
+## own player, so the paused story line keeps its place and resumes after.
+static func preview(parent: Node, id: String) -> AudioStreamPlayer:
+	var old: Variant = _preview.get_ref() if _preview else null
+	if is_instance_valid(old):
+		(old as AudioStreamPlayer).queue_free()
+	var stream := stream_for(id)
+	if stream == null or parent == null or not parent.is_inside_tree():
+		return null
+	var player := AudioStreamPlayer.new()
+	player.stream = stream
+	player.bus = "Voice"
+	player.process_mode = Node.PROCESS_MODE_ALWAYS
+	parent.add_child(player)
+	player.finished.connect(player.queue_free)
+	player.play()
+	_preview = weakref(player)
+	return player
+
+
+static func stop_preview() -> void:
+	var old: Variant = _preview.get_ref() if _preview else null
+	if is_instance_valid(old):
+		(old as AudioStreamPlayer).queue_free()
+	_preview = null
+
+
 ## The line that's playing now, or null.
 static func current() -> AudioStreamPlayer:
 	var p: Variant = _current.get_ref() if _current else null
