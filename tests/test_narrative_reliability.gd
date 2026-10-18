@@ -37,6 +37,7 @@ func test_a_warning_is_readable_at_once_behind_slow_typing() -> void:
 	# SAVE_TIME is 4 s standing still: the warning must be readable well inside it.
 	var ok := await wait_until(func() -> bool: return _on_screen(w, "sav"), 1.0, "the save-over warning on screen")
 	check(ok, "the warning was readable within 1 s, not after the thought finished typing")
+	await shot("warning_strip_over_slow_thought")
 	await wait(0.2)
 	check(w.hud.history.any(func(e: Dictionary) -> bool: return e.text.contains("sav") and e.kind == "owner"), "and it is in the History once")
 
@@ -87,6 +88,7 @@ func test_death_advice_waits_for_the_player() -> void:
 		check(false, "the death card stays until the player is ready")
 		return
 	check(_on_screen(w, "retry"), "it says how to continue")
+	await shot("death_card_waits_for_retry")
 	var next := await wait_for_new_session(w)  # presses retry, like a player
 	check(next != null and next != w, "a press retries")
 
@@ -129,6 +131,7 @@ func test_a_save_in_progress_holds_while_you_read_and_resumes_after() -> void:
 	w.hud.show_dialogue("TOBBEN", Color.WHITE, [THOUGHT], "npc.tobben")
 	await frames(2)
 	check(w.hud.is_dialogue_open(), "a conversation is open")
+	await shot("save_ring_held_while_reading")
 	await wait(OwnerMoves.SAVE_TIME)
 	check_eq(w.ending, "", "the ring doesn't fill under the conversation")
 	check(w.owner_moves.save_progress >= 0.0 and w.owner_moves.save_progress < 0.7, "it holds where it was (%.2f)" % w.owner_moves.save_progress)

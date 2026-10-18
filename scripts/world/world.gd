@@ -611,7 +611,7 @@ func mira_pins_note() -> void:
 	director.paused = true
 	OwnerMemory.mira_quest = "pinned"
 	OwnerMemory.save_memory()
-	await hud.cinematic("MIRA", Story.MIRA_PIN_SCENE, Color("e0a070"), 0.6, "mira.pin")
+	await hud.cinematic("MIRA", Story.MIRA_PIN_SCENE, Color("e0a070"), 0.6, "mira.pin", CharacterArt.for_npc(escort, "proud"))
 	if not is_inside_tree():
 		return
 	var board: Variant = area.get("board")
@@ -997,7 +997,8 @@ func _update_focus() -> void:
 func _interact(node: Node2D) -> void:
 	var result: Variant = node.interact()
 	if result is Dictionary:
-		hud.show_dialogue(result.speaker, result.color, result.lines, dialogue_voice_prefix(node, result))
+		var face: CharacterArt.Portrait = CharacterArt.for_npc(node) if node is Npc else null
+		hud.show_dialogue(result.speaker, result.color, result.lines, dialogue_voice_prefix(node, result), face, expressions_for(node, result.lines))
 		_talking_to = node
 		_keep_in_journal(node, result)
 	elif str(result) != "":
@@ -1019,6 +1020,14 @@ static func dialogue_voice_prefix(node: Node, result: Dictionary) -> String:
 	if node is Companion:
 		return "npc.pip"
 	return ""
+
+
+## The portrait expression for each line someone says ("" = their default).
+static func expressions_for(node: Node, lines: Array) -> Array:
+	var out: Array = []
+	for l in lines:
+		out.append(ArinsRoom.mira_expression(str(l)) if node is Npc and node.npc_id == "mira" else "")
+	return out
 
 
 ## Notes, books and files go in the artefact journal (signs and props don't).

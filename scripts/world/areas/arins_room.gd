@@ -57,6 +57,28 @@ static func voice_lines() -> Dictionary:
 	return {"npc.mira": Story.recall_lines("mira") + MIRA_LINES + MIRA_RESTRICTED + Story.MIRA_RESET_LINES + Story.MIRA_ASK + Story.MIRA_JOINS + Story.MIRA_DECLINED}
 
 
+## How Mira looks saying each of her lines (CharacterArt expressions; the
+## rest are "neutral"). docs/CHARACTER_ART.md has her brief.
+static func mira_expression(line: String) -> String:
+	var by_line := {
+		MIRA_LINES[0]: "eager", MIRA_LINES[1]: "concerned", MIRA_LINES[2]: "afraid",
+		MIRA_LINES[3]: "concerned", MIRA_LINES[4]: "determined", MIRA_LINES[5]: "remembering",
+		MIRA_RESTRICTED[0]: "afraid", MIRA_RESTRICTED[1]: "afraid", MIRA_RESTRICTED[2]: "determined",
+		Story.MIRA_JOINS[0]: "eager", Story.MIRA_DECLINED[0]: "relieved",
+	}
+	for l in Story.MIRA_ASK:
+		by_line[l] = "eager"
+	for l in Story.MIRA_RESET_LINES:
+		by_line[l] = "reset"
+	var recall := {"mira_pinned": "relieved", "mira_lost": "concerned", "mira_restored": "remembering",
+		"wren_lost": "concerned", "ended:message": "remembering", "ended:wren": "eager",
+		"ended:escape": "concerned", "died:arin": "afraid"}
+	for entry in Story.RECALL["mira"]:
+		if recall.has(entry[0]):
+			by_line[entry[1]] = recall[entry[0]]
+	return by_line.get(line, "neutral")
+
+
 var purged := false
 var previous_exit := "none"
 var note: Note
@@ -260,11 +282,11 @@ func on_dialogue_closed(who: Node) -> void:
 		return
 	world.player.frozen = false
 	if pick == 0:
-		world.hud.show_dialogue("MIRA", mira.name_color, Story.MIRA_JOINS, "npc.mira")
+		world.hud.show_dialogue("MIRA", mira.name_color, Story.MIRA_JOINS, "npc.mira", CharacterArt.for_npc(mira), World.expressions_for(mira, Story.MIRA_JOINS))
 		world.start_escort(mira)
 	else:
 		_mira_line += 1
-		world.hud.show_dialogue("MIRA", mira.name_color, Story.MIRA_DECLINED, "npc.mira")
+		world.hud.show_dialogue("MIRA", mira.name_color, Story.MIRA_DECLINED, "npc.mira", CharacterArt.for_npc(mira), World.expressions_for(mira, Story.MIRA_DECLINED))
 
 
 func _note_text() -> String:

@@ -99,6 +99,11 @@ var _dialogue_hint: Label
 var _dialogue_lines: Array = []
 ## The voice id of each entry in _dialogue_lines ("" for a continuation page).
 var _dialogue_ids: Array[String] = []
+## The speaker's portrait (null: none) and the expression for each entry in
+## _dialogue_lines; the face talks while the line types and blinks after.
+var _dialogue_face: CharacterArt.Portrait
+var _dialogue_exprs: Array[String] = []
+var _face_t := 0.0
 var _dialogue_index := 0
 var _dialogue_typed := 0.0
 var _dialogue_opened_frame := -1
@@ -619,13 +624,21 @@ func _advance_pressed() -> bool:
 ## Opens the dialogue box. lines: Array of Strings, advanced with interact
 ## (or automatically, Settings.advance_mode). voice_prefix: the scene's id
 ## stem; a line plays voice_id(voice_prefix, text) if it was recorded.
-func show_dialogue(speaker: String, color: Color, lines: Array, voice_prefix := "") -> void:
+## portrait: the speaker's face (CharacterArt), or null; expressions: one per
+## line ("" keeps the portrait's own).
+func show_dialogue(speaker: String, color: Color, lines: Array, voice_prefix := "", portrait: CharacterArt.Portrait = null, expressions: Array = []) -> void:
 	if lines.is_empty():
 		return
 	_dialogue_voice_prefix = voice_prefix
 	var paged := paginate(lines, voice_prefix)
 	_dialogue_lines = paged[0]
 	_dialogue_ids.assign(paged[1])
+	_dialogue_face = portrait if portrait and portrait.texture() else null
+	_dialogue_exprs.clear()
+	for i in paged[2]:
+		var e: String = str(expressions[i]) if i < expressions.size() else ""
+		_dialogue_exprs.append(e if e != "" else (portrait.expression if portrait else ""))
+	_layout_dialogue_face()
 	_dialogue_index = 0
 	_dialogue_typed = 0.0
 	_dialogue_opened_frame = Engine.get_process_frames()
@@ -644,6 +657,8 @@ func close_dialogue() -> void:
 	narrator.stop()
 	VoiceOver.stop()
 	_pacer = null
+	_dialogue_face = null
+	_layout_dialogue_face()
 	dialogue_finished = _finishing
 	_finishing = false
 	_dialogue.visible = false
@@ -772,7 +787,42 @@ func _show_dialogue_line() -> void:
 	_pacer = LinePacer.new(text, StoryPacing.is_auto(), voice_busy)
 	_log_line(_dialogue_speaker.text, text, "npc", _dialogue_voice if recorded else "")
 	_dialogue_hint.text = ""
+	_face_t = 0.0
+	_update_dialogue_face(0.0)
 	_fit_dialogue()
+
+
+## With a portrait the text moves right to make room for it.
+func _layout_dialogue_face() -> void:
+	var x := 44.0 if _dialogue_face else 8.0
+	_dialogue_portrait.visible = _dialogue_face != null
+	_dialogue_speaker.position.x = x
+	_dialogue_text.position.x = x
+	_dialogue_text.size.x = 568.0 - x
+
+
+## The face talks (mouth frames) while the line types or the voice speaks,
+## and blinks now and then while it waits.
+func _update_dialogue_face(delta: float) -> void:
+	if _dialogue_face == null:
+		return
+	_face_t += delta
+	var expr: String = _dialogue_exprs[_dialogue_index] if _dialogue_index < _dialogue_exprs.size() else ""
+	var face := _dialogue_face.with(expr) if expr != "" else _dialogue_face
+	var speaking := (_pacer != null and _pacer.phase == LinePacer.Phase.REVEALING) or VoiceOver.is_playing()
+	var frame := ""
+	if speaking and not Settings.reduce_flashing:
+		frame = "talk" if int(_face_t / 0.12) % 2 == 0 else ""
+	elif fmod(_face_t, 3.2) > 3.05:
+		frame = "blink"
+	_dialogue_portrait.texture = face.texture(frame)
+
+
+## The expression the portrait shows now ("" without one).
+func dialogue_expression() -> String:
+	if _dialogue_face == null or not _dialogue.visible:
+		return ""
+	return _dialogue_exprs[_dialogue_index] if _dialogue_index < _dialogue_exprs.size() else _dialogue_face.expression
 
 
 ## The stable dialogue id of a line: "<scene>.<first 8 hex of md5(text)>".
@@ -781,12 +831,14 @@ func _show_dialogue_line() -> void:
 ## under new words (audio/voice/manifest.csv lists them all).
 ## Lines too long for one box become pages (StoryPacing.pages), each with
 ## its own reading time. A recorded line stays whole (it is one
-## performance). Returns [lines, voice ids]; a continuation page has no id.
+## performance). Returns [lines, voice ids, index of the line each came
+## from]; a continuation page has no id.
 static func paginate(lines: Array, prefix: String) -> Array:
 	var out: Array = []
 	var ids: Array[String] = []
-	for l in lines:
-		var line := str(l)
+	var source: Array[int] = []
+	for n in lines.size():
+		var line := str(lines[n])
 		var id := voice_id(prefix, line)
 		var pages: Array[String] = [line]
 		if not VoiceOver.has_line(id):
@@ -794,7 +846,8 @@ static func paginate(lines: Array, prefix: String) -> Array:
 		for i in pages.size():
 			out.append(pages[i])
 			ids.append(id if i == 0 else "")
-	return [out, ids]
+			source.append(n)
+	return [out, ids, source]
 
 
 static func voice_id(prefix: String, text: String) -> String:
@@ -841,7 +894,7 @@ func _next_dialogue_line() -> void:
 
 ## Grow the dialogue box to fit its text (long lines, large subtitles).
 func _fit_dialogue() -> void:
-	var lines := maxi(2, _dialogue_text.get_line_count())
+	var lines := maxi(2 if _dialogue_face == null else 3, _dialogue_text.get_line_count())
 	var lh := _dialogue_text.get_line_height()
 	var top := 18.0 * Settings.subtitle_scale() if Settings.speaker_labels else 6.0
 	_dialogue_text.position.y = top
@@ -855,6 +908,7 @@ func _fit_dialogue() -> void:
 func _update_dialogue(delta: float) -> void:
 	if not _dialogue.visible or _pacer == null or _cinematic:
 		return
+	_update_dialogue_face(delta)
 	var frame := Engine.get_process_frames()
 	var total := _dialogue_text.get_total_character_count()
 	if _pacer.phase == LinePacer.Phase.REVEALING:
