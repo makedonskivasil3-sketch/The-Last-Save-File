@@ -81,7 +81,7 @@ func build() -> void:
 	add_child(sun)
 	# The remembered afternoon: dim room, warm light where it falls.
 	ambient = 0.45
-	add_light(TABLE.get_center() + Vector2(0, -6), Color(1.0, 0.7, 0.4), 1.8, 120.0, true)  # the desk lamp
+	add_light(Vector2(TABLE.get_center().x, TABLE.position.y - 4), Color(1.0, 0.7, 0.4), 1.8, 120.0, true)  # the desk lamp, on the table (outside its shadow-caster)
 	add_light(WINDOW.get_center() + Vector2(14, 70), Color(1.0, 0.86, 0.6), 1.4, 160.0, true)  # daylight off the floor
 	add_light(BED.get_center() + Vector2(0, 34), Color(0.7, 0.78, 1.0), 0.8, 80.0)  # the nook, cooler
 	add_dust(Rect2(WINDOW.position.x - 10, WINDOW.end.y + 6, WINDOW.size.x + 40, 110), Color(1.0, 0.9, 0.7, 0.55), 18, Vector2(3, 2))

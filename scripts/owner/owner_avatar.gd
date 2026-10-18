@@ -120,6 +120,19 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 
+## The cone's colour, brightened by 1/ambient in lit areas: the scene's
+## dimming (Area.ambient, via the CanvasModulate) must never hide the main
+## stealth tell, so it reads exactly as it did before areas were lit.
+func cone_color(alpha: float) -> Color:
+	var boost := 1.0
+	var n := get_parent()
+	while n and not n is Area:
+		n = n.get_parent()
+	if n is Area and (n as Area).ambient > 0.05:
+		boost = 1.0 / (n as Area).ambient
+	return Color(VIEW_COL.r * boost, VIEW_COL.g * boost, VIEW_COL.b * boost, alpha)
+
+
 func _draw() -> void:
 	# View cone: faint, brighter when it has you.
 	var a := 0.18 if _seeing else 0.06
@@ -127,7 +140,7 @@ func _draw() -> void:
 	for i in 9:
 		var ang := _facing.angle() - view_angle * 0.5 + view_angle * i / 8.0
 		pts.append(Vector2.from_angle(ang) * view_distance)
-	draw_colored_polygon(pts, Color(VIEW_COL, a))
+	draw_colored_polygon(pts, cone_color(a))
 	_sprite.pointing = _seeing  # points at you: still, not a friendly wave
 	if stunned > 0.0:
 		_draw_frozen()

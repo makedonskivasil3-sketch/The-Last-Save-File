@@ -74,3 +74,25 @@ func test_memories_are_kept_and_readable_from_pause() -> void:
 	check(j.is_visible_in_tree(), "the journal opens from pause")
 	check(j.page_text().contains(f.lines[0]), "showing the memory's text")
 	w._pause_menu.close()
+
+
+func test_a_long_entry_scrolls_with_keys_and_gamepad() -> void:
+	var m := memory()
+	var lines: Array = []
+	for i in 16:
+		lines.append("line %d of a long file that goes on for a while." % i)
+	m.record_read("bin:long.txt", "file", "long.txt", "BIN", lines)
+	var w := await start_session()
+	w._pause_menu.open()
+	w._pause_menu._show_journal()
+	await frames(3)
+	var j: JournalPanel = w._pause_menu._journal
+	await press("ui_accept")  # pick the entry: focus moves to its text
+	await frames(2)
+	check(j._text_scroll.has_focus(), "the text takes focus")
+	var before: int = j._text_scroll.scroll_vertical
+	_act("move_down", true)
+	await wait(0.4)
+	_act("move_down", false)
+	check(j._text_scroll.scroll_vertical > before, "and scrolls with down")
+	w._pause_menu.close()

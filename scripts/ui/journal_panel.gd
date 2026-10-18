@@ -43,6 +43,9 @@ func _ready() -> void:
 	_text_scroll = ScrollContainer.new()
 	_text_scroll.custom_minimum_size = Vector2(300, 180)
 	_text_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	# Focusable, so keys and gamepads can scroll a long entry (ScrollContainer
+	# can't take focus by default).
+	_text_scroll.focus_mode = Control.FOCUS_ALL
 	page.add_child(_text_scroll)
 	_body = UiStyle.note(_text_scroll, "", UiStyle.TEXT)
 	_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
