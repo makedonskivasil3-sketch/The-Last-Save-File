@@ -76,7 +76,7 @@ shown once ever; turn *Tutorial tips* off to skip them, or back on to see them a
 - *Bottom left:* the console, on a dark backing so it reads over anything: the owner in orange
   `> like this`, system text in grey, your thoughts in cyan `(like this)`.
 - *Bottom right:* what you can do right now (`[E] talk`).
-- *Pause menu:* your current goal, how many memories you've recovered, and a **Map** of the
+- *Pause menu:* **Console history** keeps the full text of the latest 200 console messages in the current run, including lines clipped on the HUD. Reading it pauses the game; use the scroll bar, mouse wheel, or Older/Newer buttons. Your current goal, how many memories you've recovered, and a **Map** of the
   places you've found (where you are, and which memories each place still holds).
 - *In the world:* **signs** at every way out (crossed out while it's closed), **corner brackets**
   around whatever `[E]` would act on, and, once you've found him, **Pip** running ahead toward

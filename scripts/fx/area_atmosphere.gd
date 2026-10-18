@@ -9,7 +9,7 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _draw() -> void:
-	if not is_instance_valid(area):
+	if not is_instance_valid(area) or area.has_dust:
 		return
 	var b := area.bounds.grow(-8.0)
 	var cold := area.area_id in ["edge", "oob", "bin"]

@@ -31,6 +31,9 @@ var _body: StaticBody2D
 ## her own in lit areas, so she's never lost in the dark.
 var ambient := 1.0
 var lights: Array[PointLight2D] = []
+## Set by add_dust(): the area has its own lit motes, so the generic
+## AreaAtmosphere dust stays out of it (one dust layer per area, not two).
+var has_dust := false
 ## Lit areas paint their floors brighter (their daylight colours) and let
 ## `ambient` dim them: set with light_surfaces().
 func light_surfaces(ambient_level: float, surface_boost: float) -> void:
@@ -60,6 +63,7 @@ func add_light(pos: Vector2, color: Color, energy := 1.0, radius := 120.0, shado
 ## Slow motes drifting through `rect` (dust in a sunbeam, pollen, loose data).
 ## Unshaded so they glow in the dark; their count drops with Screen effects.
 func add_dust(rect: Rect2, color: Color, amount := 24, drift := Vector2(4, -3)) -> CPUParticles2D:
+	has_dust = true
 	var p := CPUParticles2D.new()
 	p.position = rect.get_center()
 	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
