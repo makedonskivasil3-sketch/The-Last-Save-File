@@ -253,6 +253,18 @@ version: `ENDINGS 1/4 · MEMORIES 2/5 · SECRETS 1/4`.
 | --- | --- |
 | Saved to Slot 2 · **RUE** (take the slot with every memory) · A new game for Wren · A message · two hidden ones | Pip · the Archivist · Wren saw the Edge · Undeleted (bring someone back) · the guest book page · Mira saw the square |
 
+**Story at your pace** (`docs/STORY_PACING.md`):
+- Dialogue and story scenes wait for you. The first press shows the whole line; the next press moves on.
+- Settings → Story text adds auto-advance (it waits for reading time *and* any voice), the reading speed, the delay after a voice, subtitle size and backing, and speaker names.
+- Hold interact for a second to skip a scene; it still counts.
+- Pause → **History** keeps everything said this run, with speakers.
+- The game pauses itself when its window loses focus.
+- The current goal shows under the save header whenever it changes.
+
+**Rue's portrait** appears in memories and endings with six expressions. It is drawn from her sprite's own colours, so her face is still missing until her last memory (`docs/CHARACTER_ART.md`).
+
+**Voices:** recorded or generated lines can drop into `audio/voice/` by stable id (`audio/voice/manifest.csv`). None are recorded yet; every line has text and a procedural voice (`docs/VOICE_BIBLE.md`, `docs/ASSET_PRODUCTION.md`).
+
 **Journal** (pause menu, and the title screen once there's something in it): every note,
 book, file and memory you've read, word for word, so you can read it again. A note the owner
 rewrote keeps every version you saw.

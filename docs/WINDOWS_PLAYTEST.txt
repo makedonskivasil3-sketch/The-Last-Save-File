@@ -1,19 +1,29 @@
 THE LAST SAVE FILE — WINDOWS PLAYTEST
 
-Download the TheLastSaveFile-windows artifact from this branch's successful
-GitHub Actions run. Sign into GitHub if the artifact download is unavailable.
-Right-click the ZIP, choose Extract All, then open TheLastSaveFile.exe.
-No Godot installation is needed. This development build is unsigned.
+Download the TheLastSaveFile-windows artifact from this branch's (or pull
+request's) successful GitHub Actions run. Sign into GitHub if the artifact
+download is unavailable. Right-click the ZIP, choose Extract All, then open
+TheLastSaveFile.exe. No Godot installation is needed. This development build
+is unsigned.
 
 Move: WASD / arrows. Interact: E / Space. Hold interact: glitch. Pause: Esc.
+
+Story text waits for you: the first press shows the whole line, the next
+press moves on. Hold E for a second to skip a whole scene (it still counts).
+Pause > History shows everything said this run. Settings > Story text has
+auto-advance, reading speed, subtitle size and backing, and speaker names.
+The game pauses itself if you switch to another window.
+
 In the first room, face the thin partition to PHASE through it.
 The ring around Rue means the cursor is selecting you: move out from under it.
 The owner remembers deaths and quits. Use title Settings > Reset owner memory
-for a fresh start. Spoken narration needs an English system voice and is
-system speech, not recorded voice acting.
+for a fresh start. Spoken narration (off by default) uses an English system
+voice: that is operating-system text-to-speech, not recorded voice acting.
+No recorded voices are included in this build yet.
 
 If Windows blocks launch, record the exact message. Do not disable antivirus
 or run as administrator to work around an unexplained failure.
 
 Feedback: What did you try? What happened? What did you expect?
-Include the branch/commit, Windows version and any error text.
+Was any text too fast, too slow, or hard to read? Include the
+branch/commit, Windows version and any error text.
