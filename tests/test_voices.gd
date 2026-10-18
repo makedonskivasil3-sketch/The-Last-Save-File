@@ -68,7 +68,9 @@ func test_text_speed_setting() -> void:
 	var w := await start_session()
 	await interact_with(w, w.area.mira)
 	await frames(2)
-	check_eq(w.hud._dialogue_text.visible_characters, w.hud._dialogue_text.get_total_character_count(), "Instant shows the whole line at once")
+	var shown: int = w.hud._dialogue_text.visible_characters
+	check(shown == -1 or shown == w.hud._dialogue_text.get_total_character_count(), "Instant shows the whole line at once (-1 = all, in Godot)")
+	check(w.hud._pacer.is_shown(), "and the line counts as fully revealed (the next press advances)")
 	s.text_speed = 1
 
 
