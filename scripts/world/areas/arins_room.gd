@@ -49,6 +49,14 @@ const MIRA_RESTRICTED := [
 	"...the square. Wren. Go.",
 ]
 
+
+
+## Every line Mira can say that is the same in every run, by voice id stem
+## (VoiceManifest), including what she remembers (Story.recall_lines).
+static func voice_lines() -> Dictionary:
+	return {"npc.mira": Story.recall_lines("mira") + MIRA_LINES + MIRA_RESTRICTED + Story.MIRA_RESET_LINES + Story.MIRA_ASK + Story.MIRA_JOINS + Story.MIRA_DECLINED}
+
+
 var purged := false
 var previous_exit := "none"
 var note: Note
@@ -252,11 +260,11 @@ func on_dialogue_closed(who: Node) -> void:
 		return
 	world.player.frozen = false
 	if pick == 0:
-		world.hud.show_dialogue("MIRA", mira.name_color, Story.MIRA_JOINS)
+		world.hud.show_dialogue("MIRA", mira.name_color, Story.MIRA_JOINS, "npc.mira")
 		world.start_escort(mira)
 	else:
 		_mira_line += 1
-		world.hud.show_dialogue("MIRA", mira.name_color, Story.MIRA_DECLINED)
+		world.hud.show_dialogue("MIRA", mira.name_color, Story.MIRA_DECLINED, "npc.mira")
 
 
 func _note_text() -> String:

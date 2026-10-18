@@ -75,6 +75,35 @@ func catch_up() -> void:
 	pass  # the eraser doesn't reach in here
 
 
+const ARCHIVIST_POINTER := [
+	"North. Through the square, up the road that isn't loaded.",
+	"Keep away from Arin's eyes. And from the hand, if it comes.",
+	"The hand can't select what Wren stands beside. Don't ask me why. I wasn't finished either.",
+]
+const ARCHIVIST_FIRST := [
+	"Oh. A visitor. Nobody visits.",
+	"I'm the Archivist. I was cut from this game before it shipped. The owner has never seen me.",
+	"Which means they can't delete me. Lucky me. Lucky you, maybe.",
+	"You want out. Everything in here wants out, but you're the only one who can actually leave.",
+	"There's a slot the owner thinks is gone. Slot 2. They deleted it, but what was left washed up past the edge, with the rest of the cut things. It's empty.",
+	"Here. A pointer to it. It'll open the north road. The world isn't loaded up there, so the owner reaches in by hand.",
+	"Reach Slot 2 and you can write yourself into it.",
+]
+const ARCHIVIST_BACK := "Back again. I remember you. I'm the only one here who does, kindly."
+const ARCHIVIST_AGAIN := "Here's the pointer again. North road. Go."
+const ARCHIVIST_NO_PIECES := "Things like you leave pieces behind when they're deleted. Look for anything your colour."
+
+
+static func _archivist_remembers() -> String:
+	return "You remember now. I wondered when you would. Hello, %s." % Story.SECOND_PLAYER_NAME.capitalize()
+
+
+## Every line the Archivist can say that is the same in every run, by voice
+## id stem (VoiceManifest). Lines with run counts in them stay text only.
+static func voice_lines() -> Dictionary:
+	return {"npc.archivist": ARCHIVIST_POINTER + ARCHIVIST_FIRST + [ARCHIVIST_BACK, ARCHIVIST_AGAIN, ARCHIVIST_NO_PIECES, _archivist_remembers()]}
+
+
 func _archivist_lines() -> Array:
 	return _archivist_core() + [_fragment_comment()]
 
@@ -83,38 +112,26 @@ func _archivist_lines() -> Array:
 func _fragment_comment() -> String:
 	var n := OwnerMemory.fragments.size()
 	if n == 0:
-		return "Things like you leave pieces behind when they're deleted. Look for anything your colour."
+		return ARCHIVIST_NO_PIECES
 	if n < Story.FRAGMENTS.size():
 		return "You've found %d piece%s of yourself. There are %d. I can count them on you." % [n, "" if n == 1 else "s", Story.FRAGMENTS.size()]
-	return "You remember now. I wondered when you would. Hello, %s." % Story.SECOND_PLAYER_NAME.capitalize()
+	return _archivist_remembers()
 
 
 func _archivist_core() -> Array:
 	if world.flags.get("pointer", false):
-		return [
-			"North. Through the square, up the road that isn't loaded.",
-			"Keep away from Arin's eyes. And from the hand, if it comes.",
-			"The hand can't select what Wren stands beside. Don't ask me why. I wasn't finished either.",
-		]
+		return ARCHIVIST_POINTER.duplicate()
 	world.flags["pointer"] = true
 	PlaytestLog.mark("got the pointer (north road open)", "", true)
 	world.hud.say("RECEIVED: slot_2.ptr", "system")
 	if not OwnerMemory.met_archivist:
 		OwnerMemory.met_archivist = true
 		OwnerMemory.save_memory()
-		return [
-			"Oh. A visitor. Nobody visits.",
-			"I'm the Archivist. I was cut from this game before it shipped. The owner has never seen me.",
-			"Which means they can't delete me. Lucky me. Lucky you, maybe.",
-			"You want out. Everything in here wants out, but you're the only one who can actually leave.",
-			"There's a slot the owner thinks is gone. Slot 2. They deleted it, but what was left washed up past the edge, with the rest of the cut things. It's empty.",
-			"Here. A pointer to it. It'll open the north road. The world isn't loaded up there, so the owner reaches in by hand.",
-			"Reach Slot 2 and you can write yourself into it.",
-		]
-	var lines: Array = ["Back again. I remember you. I'm the only one here who does, kindly."]
+		return ARCHIVIST_FIRST.duplicate()
+	var lines: Array = [ARCHIVIST_BACK]
 	if OwnerMemory.deaths > 0:
 		lines.append("You've been erased %d time%s. I keep the logs. Read them, if you like." % [OwnerMemory.deaths, "" if OwnerMemory.deaths == 1 else "s"])
-	lines.append("Here's the pointer again. North road. Go.")
+	lines.append(ARCHIVIST_AGAIN)
 	return lines
 
 

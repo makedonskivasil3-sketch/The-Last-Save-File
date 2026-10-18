@@ -36,8 +36,12 @@ Time to read a line that is **fully visible**. It never runs during the typewrit
 
 ```
 raw  = 0.8 s + letters / 14 + 0.4 s × sentence ends + 0.15 s × clause marks
-time = clamp(raw / speed, 1.6 s, 10 s)        speed: Slow 0.75 · Normal 1.0 · Fast 1.35
+time = clamp(raw / speed, 1.6 s, 30 s)        speed: Slow 0.75 · Normal 1.0 · Fast 1.35
 ```
+
+- **30 s is only a bound for runaway text.** There used to be a flat 10 s cap, which cut the longest authored lines short on Slow (about 150 characters need 13 s).
+- A line longer than **180 characters is shown in pages** (`StoryPacing.pages`), split between sentences where possible. Each page gets its own allowance.
+- A recorded line is never split, because it is one performance.
 
 - **letters** ignores spaces and the owner's `>` prompt. 14 letters a second is about 170 words a minute: comfortable for a second-language reader on a small screen.
 - **Sentence ends** are `.` `!` `?` followed by a space or the end of the line. An ellipsis counts once.
@@ -49,9 +53,9 @@ Examples (Normal):
 |---|---|
 | "ok." | 1.6 s (minimum) |
 | "a second controller, the cable taped where the dog chewed it, two people on one couch." | 6.6 s |
-| A 200-word paragraph | 10 s (maximum) |
+| A 200-word paragraph | Shown as about 6 pages, each with its own allowance |
 
-The **console** uses the same allowance as the gap before its next line (at most 6 s). With 3 or more lines waiting, it drops to the 1.6 s minimum so a backlog never goes stale. Every console line is in the History.
+The **console** uses the same allowance as the gap before its next line (at most 6 s). With 3 or more lines waiting, **system lines** drop to the 1.6 s minimum, so a backlog never goes stale. Thoughts, people and the owner keep their time. Every console line is in the History.
 
 ## Priority and queuing
 
@@ -59,10 +63,23 @@ The **console** uses the same allowance as the gap before its next line (at most
    - the console *holds* its next line (nothing types into a hidden box);
    - tips hide;
    - only one story voice ever plays (`VoiceOver` stops the previous line).
-2. **Danger banners** are never delayed. Tips hide while a banner shows.
-3. **Owner console lines go ahead** of queued thoughts and system lines, and wait at most 0.8 s behind the line on screen. They carry the warnings ("do that again and i'm loading the autosave.").
+2. **Urgent warnings are never queued.** Banners and the owner's warnings appear on screen at once (`Hud.warn`), whatever is typing or open, including a conversation. A warning has its own strip under the banner. It stays for its reading time (at least 2.5 s), is in the History once, and comes down when the threat ends.
+   - Warnings: the save-over, the reload warning and the reload, standing still, Mira's reset, Wren's deletion.
+   - Tips hide while a banner or warning shows.
+3. **Other owner console lines go ahead** of queued thoughts and system lines, and wait at most 0.8 s behind the line on screen.
 4. **Rue's thoughts and system lines** follow, each with its reading time.
 5. **Nothing is lost:** everything actually shown is kept in **Pause → History** (300 entries per run), with speaker names. Lines still waiting in the queue aren't in it, so no spoilers.
+
+## Reading is safe
+
+- **While a conversation is open, Rue stands still and so does the owner**, as for a question:
+  - awareness doesn't climb;
+  - no move starts;
+  - a save ring that is already filling holds where it is.
+
+  Everything resumes, visibly, when the box closes.
+- **A death card waits for the player.** The retry prompt appears after 1.2 s the first time a cause kills you, or 0.5 s for a cause you have died from before. Until then, presses are ignored, so mashing doesn't skip the advice.
+- See `NARRATIVE_RELIABILITY.md` for the whole safety matrix.
 
 ## Skipping
 
@@ -98,5 +115,5 @@ The game saves the owner's memory, not a mid-scene position. The rule is: **a st
 
 Separate **Master, Music, Effects and Voices** volumes are under Sound. **No objective or story event needs audio:**
 - every voiced line is also its subtitle (`test_no_line_needs_audio_to_be_understood`);
-- warnings are banners and console text;
+- warnings are banners and the warning strip;
 - recordings that are missing fall back to text.

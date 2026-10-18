@@ -581,50 +581,79 @@ const NOTE_RECALL := {
 ## something about your last runs ("" if nothing). Checked in order: the
 ## first matching condition wins.
 static func recall(who: String) -> String:
-	var wren_lost: bool = OwnerMemory.npc_fates.get("wren", "") == "deleted"
+	for entry in RECALL.get(who, []):
+		if _recall_holds(entry[0]):
+			return entry[1]
+	return ""
+
+
+## Every line recall() can return for `who` (the voice manifest lists them).
+static func recall_lines(who: String) -> Array:
+	var out: Array = []
+	for entry in RECALL.get(who, []):
+		if entry[1] != "":
+			out.append(entry[1])
+	return out
+
+
+## [condition, line] in order; the first condition that holds wins ("" says
+## nothing). Conditions are read by _recall_holds().
+const RECALL := {
+	"mira": [
+		["mira_pinned", "I pinned it. Me! With my own hands, in the square. The owner stood at the board for a whole minute. They didn't take it down."],
+		["mira_reset", ""],
+		["mira_lost", "My note... they found it on you, didn't they. It's alright. I'll write another one. I won't."],
+		["mira_restored", "I was deleted. Then I wasn't. I remember the dark in between. Thank you."],
+		["wren_lost", "They took Wren. She wanted to see the Edge so badly."],
+		["ended:message", "The owner sat with the game open for an hour last night. Didn't move Arin once. Just watched."],
+		["ended:wren", "There's a new name in the save menu. Wren's. Did you do that?"],
+		["ended:escape", "You got out. I watched the slot fill. So why are you back?"],
+		["died:arin", "Arin came back through the door alone last time. Humming."],
+	],
+	"tobben": [
+		["guestbook_restored", "The book's open on the counter. Two names. I read them every morning. Every morning there are still two."],
+		["found_guestbook", "...Rue. RUE. That was the other name in my guest book. How did I ever forget it?"],
+		["wren_lost", "Wren used to come in every day and buy nothing. I miss her buying nothing."],
+		["wren_saved", "Someone walked Wren to the Edge. That wasn't in anybody's script. Good for her."],
+		["ended:message", "The owner opened my shop menu yesterday. First time in years. Didn't buy anything. Still."],
+		["deaths:3", "You again! I've started a tab for you. Out of guilt."],
+	],
+	"wren": [
+		["ended:message", "Did you write to them? Everything's quieter. Even the static."],
+		["ended:escape", "You got out, and you came back? For me? ...No. Probably not for me."],
+		["died:eraser", "I saw the static take you. It went right past me after. Like I wasn't worth erasing."],
+	],
+}
+
+
+static func _recall_holds(condition: String) -> bool:
 	var ending: String = OwnerMemory.last_ending if OwnerMemory.previous_exit in ["win", "escape"] else ""
 	var died_by: String = OwnerMemory.last_death if OwnerMemory.previous_exit == "death" else ""
-	match who:
-		"mira":
-			if OwnerMemory.mira_quest == "pinned":
-				return "I pinned it. Me! With my own hands, in the square. The owner stood at the board for a whole minute. They didn't take it down."
-			if OwnerMemory.mira_quest == "reset":
-				return ""
-			if OwnerMemory.mira_quest == "lost":
-				return "My note... they found it on you, didn't they. It's alright. I'll write another one. I won't."
-			if "mira" in OwnerMemory.restored:
-				return "I was deleted. Then I wasn't. I remember the dark in between. Thank you."
-			if wren_lost:
-				return "They took Wren. She wanted to see the Edge so badly."
-			if ending == "message":
-				return "The owner sat with the game open for an hour last night. Didn't move Arin once. Just watched."
-			if ending == "wren":
-				return "There's a new name in the save menu. Wren's. Did you do that?"
-			if ending == "escape":
-				return "You got out. I watched the slot fill. So why are you back?"
-			if died_by == "arin":
-				return "Arin came back through the door alone last time. Humming."
-		"tobben":
-			if OwnerMemory.guestbook_restored:
-				return "The book's open on the counter. Two names. I read them every morning. Every morning there are still two."
-			if OwnerMemory.found_guestbook:
-				return "...Rue. RUE. That was the other name in my guest book. How did I ever forget it?"
-			if wren_lost:
-				return "Wren used to come in every day and buy nothing. I miss her buying nothing."
-			if OwnerMemory.wren_saved:
-				return "Someone walked Wren to the Edge. That wasn't in anybody's script. Good for her."
-			if ending == "message":
-				return "The owner opened my shop menu yesterday. First time in years. Didn't buy anything. Still."
-			if OwnerMemory.deaths >= 3:
-				return "You again! I've started a tab for you. Out of guilt."
-		"wren":
-			if ending == "message":
-				return "Did you write to them? Everything's quieter. Even the static."
-			if ending == "escape":
-				return "You got out, and you came back? For me? ...No. Probably not for me."
-			if died_by == "eraser":
-				return "I saw the static take you. It went right past me after. Like I wasn't worth erasing."
-	return ""
+	if condition.begins_with("ended:"):
+		return ending == condition.trim_prefix("ended:")
+	if condition.begins_with("died:"):
+		return died_by == condition.trim_prefix("died:")
+	match condition:
+		"mira_pinned":
+			return OwnerMemory.mira_quest == "pinned"
+		"mira_reset":
+			return OwnerMemory.mira_quest == "reset"
+		"mira_lost":
+			return OwnerMemory.mira_quest == "lost"
+		"mira_restored":
+			return "mira" in OwnerMemory.restored
+		"wren_lost":
+			return OwnerMemory.npc_fates.get("wren", "") == "deleted"
+		"guestbook_restored":
+			return OwnerMemory.guestbook_restored
+		"found_guestbook":
+			return OwnerMemory.found_guestbook
+		"wren_saved":
+			return OwnerMemory.wren_saved
+		"deaths:3":
+			return OwnerMemory.deaths >= 3
+	push_error("unknown recall condition " + condition)
+	return false
 
 
 ## The records screen: every ending, with a hint while it's still unseen.

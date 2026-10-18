@@ -19,6 +19,7 @@ const DIRECTION := {
 	"MIRA": "warm, bright, a little too eager; small breath before big words",
 	"TOBBEN": "slow, low, kind; a shopkeeper who has said the same thing for years",
 	"WREN": "small and quick; questions lift at the end; braver than she sounds",
+	"ARCHIVIST": "dry and papery, quietly amused; has read everything twice and forgiven most of it",
 	"NARRATION": "Rue's inner voice describing what she sees; soft, present tense",
 	"OWNER_AS_RUE": "the owner imitating Rue's memory voice: warm on the surface, slightly too sure",
 }
@@ -42,6 +43,19 @@ static func scenes() -> Array:
 	for ending in Story.FINAL_EXCHANGE:
 		for line in Story.FINAL_EXCHANGE[ending]:
 			out.append(["final." + ending, line])
+	# People: every line that is the same in every run (the areas list them).
+	for lines_by_stem in [ArinsRoom.voice_lines(), VillageSquare.voice_lines(), ArchiveArea.voice_lines()]:
+		for stem in lines_by_stem:
+			for line in lines_by_stem[stem]:
+				out.append([stem, line])
+	for line in Story.PIP_MEETING + Story.PIP_LINES:
+		out.append(["npc.pip", line])
+	for found in [0, 2, 4, Story.FRAGMENTS.size()]:
+		out.append(["npc.pip", Story.pip_moment(found)])
+	# Recaps and epilogues read the save: build them from a new game's state
+	# plus one flag at a time, never from whatever this machine has saved,
+	# and put the live save back afterwards.
+	var live: Dictionary = OwnerMemory.snapshot()
 	for state in _states():
 		_apply(state)
 		for line in Story.slot2_recap(state.get("escorting", false)):
@@ -52,35 +66,27 @@ static func scenes() -> Array:
 					for message in Story.MESSAGES.size():
 						for line in Story.epilogue(ending, found, pip, message):
 							out.append(["epilogue." + ending, line])
-	_apply({})
+	OwnerMemory.restore(live)
 	return out
 
 
-## The saved flags epilogues and the recap read: the base state, then one
-## flag at a time (each extra line depends on a single flag).
+## The saved flags epilogues and the recap read: a new game, then one flag
+## at a time (each extra line depends on a single flag).
 static func _states() -> Array:
 	return [{}, {"wren_saved": true}, {"wren_deleted": true}, {"mira_quest": "pinned"}, {"mira_quest": "lost"},
 		{"mira_quest": "reset"}, {"guestbook_restored": true}, {"found_controller": true}, {"escorting": true}]
 
 
-static var _saved: Dictionary = {}
-
-
-## Set the flags a state names (and put everything back for {}).
+## A new game's state with the flags `state` names.
 static func _apply(state: Dictionary) -> void:
 	var m := OwnerMemory
-	if _saved.is_empty():
-		_saved = {"wren_saved": m.wren_saved, "fates": m.npc_fates.duplicate(), "mira_quest": m.mira_quest,
-			"guestbook_restored": m.guestbook_restored, "found_controller": m.found_controller}
-	m.wren_saved = state.get("wren_saved", _saved.wren_saved)
-	m.npc_fates = _saved.fates.duplicate()
+	m.clear_state()
+	m.wren_saved = state.get("wren_saved", false)
 	if state.get("wren_deleted", false):
 		m.npc_fates["wren"] = "deleted"
-	m.mira_quest = state.get("mira_quest", _saved.mira_quest)
-	m.guestbook_restored = state.get("guestbook_restored", _saved.guestbook_restored)
-	m.found_controller = state.get("found_controller", _saved.found_controller)
-	if state.is_empty():
-		_saved = {}
+	m.mira_quest = state.get("mira_quest", "")
+	m.guestbook_restored = state.get("guestbook_restored", false)
+	m.found_controller = state.get("found_controller", false)
 
 
 ## Who says a line, from how the game writes it.
@@ -109,6 +115,8 @@ static func spoken(line: String) -> String:
 ## A line that can't be prerecorded (numbers that change from run to run)
 ## or isn't speech (the save file's UI text).
 static func voiceable(scene: String, line: String) -> bool:
+	if line.to_lower() == line.to_upper():
+		return false  # "..." and the like: a pause, not a line
 	if scene == "slot2.recap" and line.to_lower() != line.to_upper() and RegEx.create_from_string("\\d").search(line):
 		return false
 	if line == line.to_upper() and line.to_lower() != line:
@@ -132,6 +140,8 @@ static func rows() -> Array:
 			continue
 		seen[id] = true
 		var who := speaker(line)
+		if scene.begins_with("npc.") and scene != "npc.pip":
+			who = scene.trim_prefix("npc.").to_upper()  # the box names them; the line doesn't
 		if who == "NARRATION" and scene.begins_with("memory."):
 			# Memories are Rue remembering; the planted one is the owner's
 			# imitation of her (it should sound almost right).

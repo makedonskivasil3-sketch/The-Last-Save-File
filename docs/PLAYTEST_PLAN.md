@@ -80,3 +80,18 @@ Story understanding (Q6: what fraction got the second-player idea)
 Metrics table vs targets
 Changes we'll make (each tied to an observation above), and what we won't change and why
 ```
+
+## Round focus: narrative reliability (`claude/narrative-reliability`)
+
+Use the same sheet, plus these targeted observations. Run at least one session with **Text reveal: Slow** and **Advance: Auto, Slow**.
+
+| Question | What to watch | What would count as a problem |
+|---|---|---|
+| Is the warning strip noticed during the hunt? | When "saving over you." appears under the banner, does the player move within about 2 s? | The player keeps standing still, or later asks "why did I die?" |
+| Do conversations feel safe or exploitable? | Talking during the hunt. Does the player use talking to wait out the cursor or Arin? | The player says talking is a pause button, or uses it to wait instead of to read |
+| Is the death card read? | Time from card to retry press, and whether they mention the tip | Retry within 1 s of the prompt on a *first* death, every time |
+| Is the 0.5 s repeat fast path fast enough? | Comments on dying repeatedly | "The death screen is slow" |
+| Mira's face | Do players remark on her expressions? Can they say how she feels in the room, and after the walk? | Her portrait is read as Rue, or as the same face every time |
+| Auto mode on Slow | Do long lines leave before they are read? | The player presses for History to re-read a line auto moved past |
+
+**Results: untested.** No session has been run for this round. Results go in `PLAYTEST_RESULTS.md`, with the build hash, when real sessions happen.

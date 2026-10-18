@@ -95,6 +95,12 @@ func say(text: String) -> void:
 	_world.hud.say(text, "owner")
 
 
+## A line that warns of a move about to land on Rue: shown at once
+## (Hud.warn), never queued behind the console.
+func warn(text: String) -> void:
+	_world.hud.warn(text)
+
+
 ## A one-off jump the player should be able to explain: the meter shows
 ## "+N · why" (like a glitch's price). Continuous gains (being seen, an
 ## escort in view) show through the meter and the watcher's "!" instead.
@@ -141,7 +147,7 @@ func _process(delta: float) -> void:
 	var hidden := _world.player.sheltered
 	if not _idle_warned and not hidden and _world.player.idle_time > IDLE_WARN and awareness >= NOTICE and not _world.is_talking():
 		_idle_warned = true
-		say("you stopped moving. i noticed that too.")
+		warn("you stopped moving. i noticed that too.")
 		notice(IDLE_WARN_COST, "you stood still")
 
 
