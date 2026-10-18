@@ -209,3 +209,22 @@ This milestone stayed deliberately narrow. Each item below either has a change b
 | Glitch feedback | source | "+N · why" stays for its reading time under the meter (earlier pass) | No change |
 | Presentation and audio consistency | source | Owner warnings now always use the same strip, colour and blip; death cards share one retry prompt; portraits share one contract | Done in milestones A and C |
 | Extracting HUD/World responsibilities | source | `hud.gd` grew by the warning strip and the portrait animation, each about 40 lines with one entry point (`warn`, `show_dialogue(…, portrait)`) | Not extracted. Splitting it now would move code without making anything safer. Revisit when a third portrait character is added |
+
+## Validation (code at `25f3894`, plus this doc)
+
+Godot 4.3, Linux container.
+
+| Check | Result |
+|---|---|
+| Full suite (`tests/run.sh`) | **309 passed, 0 failed**, exit 0, 684 s. The previous base was 291 |
+| New and changed tests | `test_narrative_reliability` (12), `test_character_presentation` (5), `test_owner_moves` (+1). Each regression was confirmed to fail without its fix |
+| Ending bots (`--bots --speed=2`) | **4 of 4 reached an ending** (asserted: any ending). Escape: 1 session. Message: 1 session. Escape at purge 3: 3 sessions. Wren run: *escape*, after Wren was lost; see the open item above |
+| Windows export | Exit 0. PE32+ x86-64 GUI executable, 84.8 MB. **Not launched on Windows** |
+| Linux export | Exit 0; runs 240 frames headless with no script errors |
+| Exit leaks | The title screen exits with 0 leaked instances. A full test run still prints Godot's "ObjectDB instances leaked" warning once, from scenes freed mid-coroutine by the test harness |
+
+**Not established by any of this:**
+- that the game is enjoyable;
+- that it runs on Windows;
+- that the art is approved;
+- how anything sounds.
