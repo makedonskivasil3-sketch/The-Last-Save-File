@@ -176,12 +176,20 @@ func _draw() -> void:
 		var br := bounds.end - position
 		draw_line(Vector2(tl.x, 0), Vector2(br.x, 0), Color(0.55, 0.8, 1.0, a))
 		draw_line(Vector2(0, tl.y), Vector2(0, br.y), Color(0.55, 0.8, 1.0, a))
-	# Selection box with marching ants, shrinking onto you.
-	if _select > 0.0:
-		var s := 6.0 + 10.0 * (1.0 - _select / SELECT_TIME)
-		var r := Rect2(-Vector2(s, s), Vector2(s, s) * 2.0)
-		draw_rect(r, Color(0.55, 0.8, 1.0, 0.18))
-		_draw_ants(r, Time.get_ticks_msec() * 0.02)
+	# Mark the selected character, not the pointer's offset. A steady ring
+	# stays readable even with screen effects and flashing turned off.
+	if _select > 0.0 and is_instance_valid(player):
+		var center := to_local(player.global_position) + Vector2(0, -5)
+		var progress := _select / SELECT_TIME
+		var color := Color("e0704f")
+		draw_arc(center, 17.0, 0.0, TAU, 40, Color(0, 0, 0, 0.85), 3.0)
+		draw_arc(center, 17.0, -PI * 0.5, -PI * 0.5 + TAU * progress, 40, color, 2.0)
+		var s := 6.0 + 10.0 * (1.0 - progress)
+		var r := Rect2(center - Vector2(s, s), Vector2(s, s) * 2.0)
+		draw_rect(r, Color(color, 0.12))
+		_draw_ants(r, _t * 12.0)
+		draw_string_outline(ThemeDB.fallback_font, center + Vector2(-13, 28), "MOVE", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, 3, Color.BLACK)
+		draw_string(ThemeDB.fallback_font, center + Vector2(-13, 28), "MOVE", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, color)
 	# Afterimages: the pointer smears behind itself in split colour.
 	for i in range(1, _trail.size()):
 		var off := _trail[i] - position

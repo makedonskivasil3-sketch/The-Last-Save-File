@@ -1,0 +1,19 @@
+THE LAST SAVE FILE — WINDOWS PLAYTEST
+
+Download the TheLastSaveFile-windows artifact from this branch's successful
+GitHub Actions run. Sign into GitHub if the artifact download is unavailable.
+Right-click the ZIP, choose Extract All, then open TheLastSaveFile.exe.
+No Godot installation is needed. This development build is unsigned.
+
+Move: WASD / arrows. Interact: E / Space. Hold interact: glitch. Pause: Esc.
+In the first room, face the thin partition to PHASE through it.
+The ring around Rue means the cursor is selecting you: move out from under it.
+The owner remembers deaths and quits. Use title Settings > Reset owner memory
+for a fresh start. Spoken narration needs an English system voice and is
+system speech, not recorded voice acting.
+
+If Windows blocks launch, record the exact message. Do not disable antivirus
+or run as administrator to work around an unexplained failure.
+
+Feedback: What did you try? What happened? What did you expect?
+Include the branch/commit, Windows version and any error text.

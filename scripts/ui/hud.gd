@@ -348,7 +348,11 @@ func is_cinematic() -> bool:
 
 
 func _cinematic_line(line: String) -> void:
-	narrator.speak(line)
+	var owner_line := line.begins_with(">")
+	var original_color := _cine_text.get_theme_color("font_color")
+	if owner_line:
+		_cine_text.add_theme_color_override("font_color", OWNER_COLOR)
+	narrator.speak(line.trim_prefix(">").strip_edges() if owner_line else line, "OWNER" if owner_line else "")
 	_cine_text.text = line
 	_cine_text.visible_characters = 0
 	_cine_hint.text = ""
@@ -364,8 +368,11 @@ func _cinematic_line(line: String) -> void:
 		var rate := Settings.text_rate()
 		typed = float(line.length()) if is_inf(rate) else typed + 40.0 * rate * get_process_delta_time()
 		_cine_text.visible_characters = int(typed)
-		if int(typed) > shown:
-			Sfx.type_key("self" if _cine_text.get_theme_color("font_color") == SELF_COLOR else "system")
+		if int(typed) > shown and not (Settings.narration and narrator.supported):
+			if owner_line and not line.is_empty():
+				Sfx.owner_blip(line[mini(int(typed) - 1, line.length() - 1)])
+			else:
+				Sfx.type_key("self" if original_color == SELF_COLOR else "system")
 		if typed >= line.length() or (Engine.get_process_frames() > start_frame + 1 and _advance_pressed()):
 			_cine_text.visible_characters = -1
 	_cine_hint.text = "[%s]" % Settings.glyph("interact")
@@ -383,6 +390,7 @@ func _cinematic_line(line: String) -> void:
 		if Engine.get_process_frames() > held_frame and _advance_pressed():
 			break
 	narrator.stop()
+	_cine_text.add_theme_color_override("font_color", original_color)
 
 
 func _advance_pressed() -> bool:
@@ -619,6 +627,8 @@ func glitch_cost(amount: float, why := "") -> void:
 ## A big line under the top bar ("" hides it).
 func set_banner(text: String) -> void:
 	_banner.text = text
+	if text != "":
+		hide_tip(true)
 
 
 func banner_text() -> String:
@@ -633,6 +643,8 @@ func set_status(text: String) -> void:
 
 ## Shows a tutorial tip card (replacing any current one).
 func show_tip(title: String, body: String) -> void:
+	if banner_text() != "" or is_choosing():
+		return
 	_tip_title.text = title
 	_tip_body.text = body
 	_tip.visible = true
@@ -642,11 +654,15 @@ func show_tip(title: String, body: String) -> void:
 	_tip_tween.tween_property(_tip, "modulate:a", 1.0, 0.3)
 
 
-func hide_tip() -> void:
+func hide_tip(immediate := false) -> void:
 	if not _tip.visible:
 		return
 	if _tip_tween:
 		_tip_tween.kill()
+	if immediate:
+		_tip.visible = false
+		_tip.modulate.a = 0.0
+		return
 	_tip_tween = create_tween()
 	_tip_tween.tween_property(_tip, "modulate:a", 0.0, 0.3)
 	_tip_tween.tween_callback(func() -> void: _tip.visible = false)

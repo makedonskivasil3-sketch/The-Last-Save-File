@@ -530,12 +530,19 @@ Most of the cost is on the **GPU**: one full-screen CRT pass at window resolutio
 
 ### Just play (no Godot needed)
 
-Every push to `main` builds the game automatically (see `.github/workflows/build.yml`):
+Pushes to `main` and `playtest/first-minutes-fairness` build the game automatically
+(see `.github/workflows/build.yml`):
 
-1. Open the repo's **Actions** tab, then the latest green **Build game** run.
+1. Sign into GitHub, open the repo's **Actions** tab, and select a green **Build game**
+   run for the branch you want to test. For the current playtest, select
+   `playtest/first-minutes-fairness`, rather than an older `main` build.
 2. Under **Artifacts**, download **TheLastSaveFile-windows** (or `-linux` / `-web`).
-3. Unzip and run `TheLastSaveFile.exe`. Windows SmartScreen may warn because the game isn't
-   signed: click **More info → Run anyway**.
+3. Choose **Extract All**, then open `TheLastSaveFile.exe`. The development build is
+   unsigned. If Windows blocks launch, record the exact message and build commit so the
+   cause can be diagnosed; do not disable antivirus or run as administrator as a workaround.
+
+See [the first-minutes review](docs/FIRST_MINUTES_REVIEW.md) for the current fixes,
+validation and staged screenshots. The Windows artifact also includes `PLAY-ME.txt`.
 
 Tagging a version (`git tag v0.2.0 && git push --tags`) also publishes the zips on a **Release** page.
 

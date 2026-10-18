@@ -28,7 +28,7 @@ const TIPS := {
 	"slot": ["SLOT 2", "Stand in the slot to write yourself in. It takes a few seconds, and the cursor selects anything that holds still. Lead it away first."],
 }
 ## Shown in this order after waking.
-const SEQUENCE := ["move", "watched", "quit", "wren"]
+const SEQUENCE := ["move", "watched", "quit"]
 ## A tip stays up at least this long, and at most this long.
 const MIN_TIME := 3.5
 const MAX_TIME := 8.0
@@ -64,9 +64,9 @@ func _process(delta: float) -> void:
 		_dismiss()  # a warning about the room must not follow you into a safe area
 	var hud := _world.hud
 	# Tips wait while you talk, remember, or the session is ending.
-	if _world.ending != "" or _world.in_cutscene() or hud.is_dialogue_open() or hud.is_cinematic():
+	if _world.ending != "" or _world.in_cutscene() or hud.is_dialogue_open() or hud.is_cinematic() or hud.is_choosing() or hud.banner_text() != "":
 		if _current != "":
-			hud.hide_tip()
+			hud.hide_tip(true)
 		return
 	var p := _world.player.global_position
 	_moved += p.distance_to(_last_pos)
@@ -113,6 +113,10 @@ func _next_tip() -> String:
 	var area_tip: String = {"square": "arin", "archive": "quiet", "edge": "slot", "oob": "oob", "bin": "bin", "house": "house"}.get(_world.area.area_id, "")
 	if area_tip != "" and _unseen(area_tip):
 		return area_tip
+	if _world.area.area_id == "square" and _unseen("wren"):
+		var wren: Variant = _world.area.get("wren")
+		if wren is Npc and wren.is_present() and _world.player.global_position.distance_to(wren.global_position) < 80.0:
+			return "wren"
 	if _world.area.area_id != "room":
 		return ""
 	for id in SEQUENCE:
@@ -128,6 +132,8 @@ func _show(id: String) -> void:
 	if id == "move":
 		_moved = 0.0
 	Settings.mark_tip_seen(id)
+	if id == "hidden":
+		Settings.mark_tip_seen("wren")  # already experiencing the shelter lesson
 	if id == "crack":
 		Settings.mark_tip_seen("glitch")  # the same lesson
 		# Somewhere outside the screen, someone leans closer.

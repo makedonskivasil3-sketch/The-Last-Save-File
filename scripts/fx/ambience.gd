@@ -129,6 +129,6 @@ func _update_memory_theme(delta: float) -> void:
 			_memory_theme.play()
 			_memory_level = level
 	var target := -25.0 if area_id == "archive" else -29.0 - world.director.awareness * 0.12
-	if world.hud.is_dialogue_open() or world.hud.is_cinematic():
+	if world.hud.is_dialogue_open() or world.hud.is_cinematic() or world.hud.banner_text() != "":
 		target -= 8.0
 	_memory_theme.volume_db = move_toward(_memory_theme.volume_db, target, delta * 12.0)

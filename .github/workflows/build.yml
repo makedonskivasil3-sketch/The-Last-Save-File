@@ -6,7 +6,7 @@ name: Build game
 
 on:
   push:
-    branches: [main]
+    branches: [main, "playtest/first-minutes-fairness"]
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
@@ -35,9 +35,23 @@ jobs:
           base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
           mkdir -p ~/godot ~/.local/share/godot/export_templates
           curl -fsSL -o /tmp/godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          curl -fsSL -o /tmp/templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          curl -fsSL -o /tmp/SHA512-SUMS.txt "$base/SHA512-SUMS.txt"
+          python3 - <<'PYVERIFY'
+          import hashlib, pathlib
+          sums = {line.split()[-1].lstrip('*'): line.split()[0] for line in pathlib.Path('/tmp/SHA512-SUMS.txt').read_text().splitlines() if line.strip()}
+          version = '${{ env.GODOT_VERSION }}'
+          for path, asset in [('/tmp/godot.zip', f'Godot_v{version}-stable_linux.x86_64.zip'), ('/tmp/templates.tpz', f'Godot_v{version}-stable_export_templates.tpz')]:
+              digest = hashlib.sha512()
+              with open(path, 'rb') as artifact:
+                  for block in iter(lambda: artifact.read(1024 * 1024), b''):
+                      digest.update(block)
+              if digest.hexdigest() != sums[asset]:
+                  raise SystemExit(f'Checksum mismatch: {asset}')
+              print(f'Checksum verified: {asset}')
+          PYVERIFY
           unzip -q /tmp/godot.zip -d ~/godot
           mv ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 ~/godot/godot
-          curl -fsSL -o /tmp/templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
           unzip -q /tmp/templates.tpz -d /tmp/tpl
           mv /tmp/tpl/templates ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
 
@@ -62,6 +76,8 @@ jobs:
       - name: Package
         run: |
           mkdir -p dist
+          cp docs/WINDOWS_PLAYTEST.txt build/windows/PLAY-ME.txt
+          cp LICENSE build/windows/LICENSE.txt
           (cd build/windows && zip -q -r ../../dist/TheLastSaveFile-windows.zip .)
           (cd build/linux && chmod +x TheLastSaveFile.x86_64 && zip -q -r ../../dist/TheLastSaveFile-linux.zip .)
           (cd build/web && zip -q -r ../../dist/TheLastSaveFile-web.zip .)
@@ -91,6 +107,34 @@ jobs:
         with:
           files: dist/*.zip
           generate_release_notes: true
+
+  # Open the requested review only after validation and packaging succeed.
+  # GitHub supplies this job's scoped token; no personal token is stored.
+  open-playtest-pr:
+    # Review permissions must not hide an already validated downloadable build.
+    # A failure remains visible on this job and must be reported separately.
+    continue-on-error: true
+    needs: export
+    if: github.event_name == 'push' && github.ref == 'refs/heads/playtest/first-minutes-fairness'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Open review without merging
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          existing=$(gh pr list --head playtest/first-minutes-fairness --base main --state open --json url --jq '.[0].url // empty')
+          if [ -n "$existing" ]; then
+            echo "$existing"
+          else
+            cp docs/FIRST_MINUTES_PR.md /tmp/playtest-pr.md
+            printf '\nValidated build and Windows download: %s/%s/actions/runs/%s\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" >> /tmp/playtest-pr.md
+            gh pr create --base main --head playtest/first-minutes-fairness --title "Improve first-minute fairness and readable threats" --body-file /tmp/playtest-pr.md
+          fi
 
   # Optional: play in the browser. Turn on by setting Settings → Pages → Source to
   # "GitHub Actions" and adding a repository variable ENABLE_PAGES = true.

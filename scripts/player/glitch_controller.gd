@@ -128,6 +128,12 @@ func find_target() -> Dictionary:
 	if area == null:
 		return {}
 	var p := world.player.global_position
+	# A thin story partition is an explicit PHASE affordance. A friendly NPC
+	# behind Rue must not steal it just because FREEZE has a larger radius.
+	if unlocked("phase") and _blocker(p + world.player.facing() * PHASE_PROBE) is CrackedWall:
+		var landing := phase_landing()
+		if landing != Vector2.INF:
+			return {"id": "phase", "node": null, "pos": landing}
 	var best := {}
 	var best_score := INF
 	var candidates: Array = []
