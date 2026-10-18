@@ -9,6 +9,9 @@ signal debug_requested(action: String)
 
 ## Session console history, available without playtest mode.
 var _history_box: VBoxContainer
+var _replay_row: HBoxContainer
+## How many recorded lines get a replay button on the History page.
+const REPLAY_BUTTONS := 3
 var _history_text: RichTextLabel
 var _history_back: Button
 var console_hud: Hud
@@ -65,7 +68,7 @@ func _ready() -> void:
 	_resume = UiStyle.button(actions, "Resume", close, "ui_back")
 	UiStyle.button(actions, "Map", _show_map)
 	UiStyle.button(actions, "Journal", _show_journal)
-	UiStyle.button(actions, "Console history", _show_history)
+	UiStyle.button(actions, "History", _show_history)
 	_debug_button = UiStyle.button(actions, "Debug", func() -> void: _show_only(_debug_box); (_debug_box.get_child(1) as Button).grab_focus())
 	UiStyle.button(actions, "Settings", _show_settings)
 	if PlaytestLog.enabled():
@@ -91,8 +94,8 @@ func _ready() -> void:
 	_log_back = UiStyle.button(_log_box, "Back", _show_main, "ui_back")
 
 	_history_box = UiStyle.centered_panel(_root, 480)
-	UiStyle.heading(_history_box, "CONSOLE HISTORY", UiStyle.TEXT, 14)
-	UiStyle.note(_history_box, "This run · latest 200 messages", UiStyle.MUTED)
+	UiStyle.heading(_history_box, "HISTORY", UiStyle.TEXT, 14)
+	UiStyle.note(_history_box, "Everything said this run: dialogue, scenes and the console", UiStyle.MUTED)
 	_history_text = RichTextLabel.new()
 	_history_text.custom_minimum_size = Vector2(440, 120)
 	_history_text.bbcode_enabled = false
@@ -100,6 +103,10 @@ func _ready() -> void:
 	_history_text.focus_mode = Control.FOCUS_ALL
 	UiStyle.sized(_history_text, 11)
 	_history_box.add_child(_history_text)
+	# Lines with a recording can be heard again (newest first).
+	_replay_row = HBoxContainer.new()
+	_replay_row.add_theme_constant_override("separation", 4)
+	_history_box.add_child(_replay_row)
 	var navigation := HBoxContainer.new()
 	_history_box.add_child(navigation)
 	UiStyle.button(navigation, "Older ↑", _scroll_history.bind(-120.0))
@@ -144,6 +151,8 @@ func open() -> void:
 
 
 func close() -> void:
+	if VoiceOver.current() and VoiceOver.current().process_mode == Node.PROCESS_MODE_ALWAYS:
+		VoiceOver.stop()  # a replay from the History page ends with the menu
 	visible = false
 	get_tree().paused = false
 	Sfx.muffle(false)
@@ -166,11 +175,46 @@ func _show_only(box: VBoxContainer) -> void:
 
 
 func _show_history() -> void:
-	_history_text.text = "\n\n".join(console_hud.console_history) if console_hud and not console_hud.console_history.is_empty() else "(nothing yet)"
+	_history_text.text = history_text(console_hud.history if console_hud else [])
+	_build_replay_buttons()
 	_show_only(_history_box)
 	_history_text.scroll_to_line(0)
 	_history_back.grab_focus()
 	PlaytestLog.mark("console history opened")
+
+
+## The history as readable text: "SPEAKER  line", one entry per paragraph.
+## Speaker labels follow Settings.speaker_labels.
+static func history_text(entries: Array) -> String:
+	if entries.is_empty():
+		return "(nothing yet)"
+	var out: PackedStringArray = []
+	for e in entries:
+		var text: String = e.text
+		match e.kind:
+			"owner":
+				text = "> " + text
+			"self":
+				text = "(%s)" % text
+		var who: String = e.speaker
+		out.append("%s  %s" % [who, text] if Settings.speaker_labels and who != "" else text)
+	return "\n\n".join(out)
+
+
+func _build_replay_buttons() -> void:
+	for c in _replay_row.get_children():
+		c.queue_free()
+	var shown := 0
+	var entries: Array = console_hud.history if console_hud else []
+	for i in range(entries.size() - 1, -1, -1):
+		var e: Dictionary = entries[i]
+		if e.voice == "" or not VoiceOver.has_line(e.voice) or shown >= REPLAY_BUTTONS:
+			continue
+		var label := "▶ %s" % (e.speaker if e.speaker != "" else "line")
+		var b := UiStyle.button(_replay_row, label, func() -> void: VoiceOver.play(self, e.voice, true))
+		b.tooltip_text = e.text
+		shown += 1
+	_replay_row.visible = shown > 0
 
 
 func _scroll_history(amount: float) -> void:

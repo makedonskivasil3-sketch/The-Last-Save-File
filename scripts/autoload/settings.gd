@@ -22,6 +22,21 @@ var narration := false
 var screen_shake := true
 ## How fast text appears: 0 slow, 1 normal, 2 fast, 3 instant.
 var text_speed := 1
+## Story lines (dialogue box, cinematics): 0 = manual (each press reveals,
+## then advances; the default, so nobody is rushed), 1 = automatic.
+var advance_mode := 0
+## Automatic reading pace (StoryPacing.READ_SPEEDS): 0 slow, 1 normal, 2 fast.
+var auto_speed := 1
+## Pause after a voiced line ends, in auto mode (StoryPacing.VOICE_DELAYS).
+var voice_delay := 1
+## Subtitle text size (dialogue, cinematics, console): 0 normal, 1 large, 2 larger.
+var subtitle_size := 0
+## Opacity of the backing behind subtitles and the console, 0..1.
+var subtitle_bg := 0.75
+## Show who is speaking (name above dialogue, "NAME:" in the console).
+var speaker_labels := true
+## Pause the game when its window loses focus (alt-tab, a phone call).
+var pause_on_focus_loss := true
 var fullscreen := false
 ## 0..1 multiplier for screen tearing, chromatic split and grain.
 var glitch_intensity := 1.0
@@ -89,6 +104,12 @@ func text_rate() -> float:
 
 func flash_scale() -> float:
 	return 0.3 if reduce_flashing else 1.0
+
+
+## Multiplier for subtitle text, on top of text_scale().
+const SUBTITLE_SCALES := [1.0, 1.2, 1.4]
+func subtitle_scale() -> float:
+	return SUBTITLE_SCALES[clampi(subtitle_size, 0, 2)]
 
 
 ## Multiplier for every font size in the HUD and menus.
@@ -169,6 +190,13 @@ func save() -> void:
 	cfg.set_value("audio", "voice_volume", voice_volume)
 	cfg.set_value("accessibility", "narration", narration)
 	cfg.set_value("accessibility", "text_speed", text_speed)
+	cfg.set_value("story", "advance_mode", advance_mode)
+	cfg.set_value("story", "auto_speed", auto_speed)
+	cfg.set_value("story", "voice_delay", voice_delay)
+	cfg.set_value("story", "subtitle_size", subtitle_size)
+	cfg.set_value("story", "subtitle_bg", subtitle_bg)
+	cfg.set_value("story", "speaker_labels", speaker_labels)
+	cfg.set_value("story", "pause_on_focus_loss", pause_on_focus_loss)
 	cfg.set_value("accessibility", "screen_shake", screen_shake)
 	cfg.set_value("video", "fullscreen", fullscreen)
 	cfg.set_value("accessibility", "glitch_intensity", glitch_intensity)
@@ -194,6 +222,13 @@ func _load() -> void:
 	sfx_volume = clampf(float(cfg.get_value("audio", "sfx_volume", sfx_volume)), 0.0, 1.0)
 	voice_volume = clampf(float(cfg.get_value("audio", "voice_volume", voice_volume)), 0.0, 1.0)
 	text_speed = clampi(int(cfg.get_value("accessibility", "text_speed", text_speed)), 0, 3)
+	advance_mode = clampi(int(cfg.get_value("story", "advance_mode", advance_mode)), 0, 1)
+	auto_speed = clampi(int(cfg.get_value("story", "auto_speed", auto_speed)), 0, 2)
+	voice_delay = clampi(int(cfg.get_value("story", "voice_delay", voice_delay)), 0, 3)
+	subtitle_size = clampi(int(cfg.get_value("story", "subtitle_size", subtitle_size)), 0, 2)
+	subtitle_bg = clampf(float(cfg.get_value("story", "subtitle_bg", subtitle_bg)), 0.0, 1.0)
+	speaker_labels = bool(cfg.get_value("story", "speaker_labels", speaker_labels))
+	pause_on_focus_loss = bool(cfg.get_value("story", "pause_on_focus_loss", pause_on_focus_loss))
 	var narration_v: Variant = cfg.get_value("accessibility", "narration", false)
 	narration = narration_v if narration_v is bool else false
 	var shake_v: Variant = cfg.get_value("accessibility", "screen_shake", screen_shake)

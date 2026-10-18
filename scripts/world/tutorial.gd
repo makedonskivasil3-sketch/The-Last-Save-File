@@ -76,7 +76,9 @@ func _process(delta: float) -> void:
 		if not hud.is_tip_shown():
 			hud.show_tip(_title(_current), _body(_current))  # back after a pause
 		_shown_for += delta
-		if _shown_for >= MAX_TIME or (_shown_for >= MIN_TIME and _done(_current)):
+		# Long tips stay up long enough to read (StoryPacing), never less than MAX_TIME.
+		var limit := maxf(MAX_TIME, StoryPacing.reading_time(_body(_current)) * 1.5)
+		if _shown_for >= limit or (_shown_for >= MIN_TIME and _done(_current)):
 			_dismiss()
 		return
 	_gap -= delta

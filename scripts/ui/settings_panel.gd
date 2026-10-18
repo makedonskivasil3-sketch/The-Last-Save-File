@@ -53,11 +53,23 @@ func _ready() -> void:
 	_check(right, "Screen shake", Settings.screen_shake, func(on: bool) -> void: Settings.set_value("screen_shake", on))
 	_check(right, "Large text", Settings.large_text, func(on: bool) -> void: Settings.set_value("large_text", on))
 	_check(right, "Vibration", Settings.vibration, func(on: bool) -> void: Settings.set_value("vibration", on))
+	_check(right, "Pause when unfocused", Settings.pause_on_focus_loss, func(on: bool) -> void: Settings.set_value("pause_on_focus_loss", on))
+	# Story text (docs/STORY_PACING.md): how lines appear, advance and look.
+	_section(left, "STORY TEXT")
 	var speed_button := Button.new()
 	speed_button.focus_mode = Control.FOCUS_ALL
 	speed_button.pressed.connect(_cycle_text_speed.bind(speed_button))
 	left.add_child(speed_button)  # the left column has the room, even with large text
 	_label_text_speed(speed_button)
+	_cycler(left, "advance_mode", ["Advance: Manual", "Advance: Auto"],
+		"Manual: the first press shows the whole line, the next press moves on. Auto: lines move on once read (and spoken).")
+	_cycler(left, "auto_speed", ["Auto reading: Slow", "Auto reading: Normal", "Auto reading: Fast"],
+		"How long auto mode leaves each line on screen. Also paces the console.")
+	_cycler(left, "voice_delay", ["After voice: 0 s", "After voice: 0.5 s", "After voice: 1 s", "After voice: 2 s"],
+		"In auto mode, the pause after a spoken line ends.")
+	_cycler(left, "subtitle_size", ["Subtitles: Normal", "Subtitles: Large", "Subtitles: Larger"], "Size of dialogue, scene and console text.")
+	_slider(left, "Text backing", Settings.subtitle_bg, func(v: float) -> void: Settings.set_value("subtitle_bg", v))
+	_check(left, "Speaker names", Settings.speaker_labels, func(on: bool) -> void: Settings.set_value("speaker_labels", on))
 	_section(right, "HELP")
 	_check(right, "Tutorial tips", Settings.tutorial_tips, func(on: bool) -> void: Settings.set_value("tutorial_tips", on))
 	var narration := _check(right, "Spoken narration", Settings.narration, func(on: bool) -> void: Settings.set_value("narration", on))
@@ -101,7 +113,20 @@ func _cycle_text_speed(b: Button) -> void:
 
 
 func _label_text_speed(b: Button) -> void:
-	b.text = "Text: %s" % ["Slow", "Normal", "Fast", "Instant"][Settings.text_speed]
+	b.text = "Text reveal: %s" % ["Slow", "Normal", "Fast", "Instant"][Settings.text_speed]
+
+
+## A button that cycles an int setting through `labels`.
+func _cycler(parent: Control, key: String, labels: Array, tip: String) -> Button:
+	var b := Button.new()
+	b.focus_mode = Control.FOCUS_ALL
+	b.tooltip_text = tip
+	b.text = labels[clampi(int(Settings.get(key)), 0, labels.size() - 1)]
+	b.pressed.connect(func() -> void:
+		Settings.set_value(key, (int(Settings.get(key)) + 1) % labels.size())
+		b.text = labels[int(Settings.get(key))])
+	parent.add_child(b)
+	return b
 
 
 func _on_reset() -> void:

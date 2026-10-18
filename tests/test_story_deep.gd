@@ -67,7 +67,9 @@ func test_the_false_memory() -> void:
 	w.area.arin.position = Vector2(100, 280)
 	var before: float = w.director.awareness
 	w.recover_fragment(lie)
-	await wait_until(func() -> bool: return not w._cutscene, 30.0, "the false memory")
+	await wait_until(func() -> bool: return w.hud.is_cinematic(), 3.0, "the false memory to start")
+	check(await read_through_cinematic(w), "the false memory can be read through")
+	await wait_until(func() -> bool: return not w._cutscene, 3.0, "the false memory")
 	check(memory().false_memory_taken, "taken")
 	check_eq(memory().fragments.size(), 2, "it doesn't count as yours")
 	check(w.director.awareness >= before + 15.0, "and it costs you")

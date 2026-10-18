@@ -107,6 +107,12 @@ func refresh_look(animate := true) -> void:
 	_restored = count
 
 
+## Rue's colours right now (restored keys are hers, the rest still missing):
+## portraits use it so they always match the sprite.
+func palette() -> Dictionary:
+	return _palette
+
+
 ## Which way Rue is facing (for PHASE).
 func facing() -> Vector2:
 	return _sprite.facing

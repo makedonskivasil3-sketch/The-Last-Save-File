@@ -547,6 +547,9 @@ func _wait_cutscene(w: Node) -> void:
 	await frames(3)
 	var until := _now() + 30.0
 	while (w._cutscene or w.hud.is_cinematic()) and w.ending == "" and _now() < until:
+		if w.hud.is_cinematic():
+			await press("interact")  # read each line, then move on (manual advance)
+			await wait(0.15)
 		await frames(2)
 	await frames(3)
 

@@ -114,7 +114,7 @@ func _begin_session(previous: String) -> void:
 	_cutscene = true
 	player.frozen = true
 	if OwnerMemory.sessions == 1 and previous == "none":
-		await hud.cinematic("", Story.BOOT, Hud.SYSTEM_COLOR, 1.0)
+		await hud.cinematic("", Story.BOOT, Hud.SYSTEM_COLOR, 1.0, "boot")
 		if not is_inside_tree() or ending != "":
 			return
 	fx.spike(0.6, 1.0)  # loading into a save you don't belong in
@@ -182,13 +182,15 @@ func recover_fragment(m: MemoryFragment) -> void:
 	add_child(music)
 	music.play()
 	create_tween().tween_property(music, "volume_db", Sfx.LEVEL["memory_loop"], 1.0)
-	OwnerMemory.record_read("memory:" + f.id, "memory", f.title, area.display_name, f.lines)
-	var voice := VoiceOver.play(self, "memory_" + f.id)
-	await hud.cinematic(f.title, f.lines, Color("ffb0a0") if planted else Hud.SELF_COLOR, 0.45)
-	if is_instance_valid(voice):
-		voice.queue_free()  # skipped ahead: the recording stops with the text
+	# Rue's face, as much of it as is back: remembering, or afraid of the
+	# memory that isn't hers.
+	var face := CharacterArt.rue("afraid" if planted else "remembering", player.palette())
+	await hud.cinematic(f.title, f.lines, Color("ffb0a0") if planted else Hud.SELF_COLOR, 0.45, "memory." + f.id, face)
 	if not is_inside_tree():
 		return
+	# Kept only once it has been lived through: quitting mid-memory changes
+	# nothing (no fragment, no journal entry), so the next run is coherent.
+	OwnerMemory.record_read("memory:" + f.id, "memory", f.title, area.display_name, f.lines)
 	fx.memory(false)
 	Sfx.muffle(false)
 	var out := create_tween()
@@ -268,6 +270,47 @@ func _process(delta: float) -> void:
 	# [E] itself is read by the GlitchController: a tap comes back as tap_interact().
 
 
+## Open the pause menu with what it shows (goal, map, debug).
+func open_pause() -> void:
+	_pause_menu.debug_available = debug_enabled()
+	_pause_menu.goal = current_goal()
+	_pause_menu.current_area = area.area_id
+	_pause_menu.visited_areas = _visited.duplicate()
+	if OwnerMemory.found_pip:
+		_pause_menu.visited_areas["oob"] = true
+	_pause_menu.open()
+
+
+## Paused only because the window lost focus (no menu to close): resumes
+## by itself when focus comes back.
+var _focus_paused := false
+
+
+## Alt-tab, a notification, a phone call: nothing should happen to the
+## story or to Rue while the player is looking away (Settings.pause_on_focus_loss).
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		focus_lost()
+	elif what == NOTIFICATION_APPLICATION_FOCUS_IN:
+		focus_returned()
+
+
+func focus_lost() -> void:
+	if not Settings.pause_on_focus_loss or not is_inside_tree() or get_tree().paused:
+		return
+	if ending == "" and not purged:
+		open_pause()  # the player resumes when ready
+	else:
+		get_tree().paused = true  # an epilogue or end card: hold it
+		_focus_paused = true
+
+
+func focus_returned() -> void:
+	if _focus_paused and is_inside_tree():
+		_focus_paused = false
+		get_tree().paused = false
+
+
 # Menu keys go through _unhandled_input so the pause menu can consume the same
 # press that closes it (otherwise it would reopen in the same frame).
 func _unhandled_input(event: InputEvent) -> void:
@@ -285,14 +328,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	match ending:
 		"":
 			if event.is_action_pressed("pause"):
-				_pause_menu.debug_available = debug_enabled()
 				get_viewport().set_input_as_handled()
-				_pause_menu.goal = current_goal()
-				_pause_menu.current_area = area.area_id
-				_pause_menu.visited_areas = _visited.duplicate()
-				if OwnerMemory.found_pip:
-					_pause_menu.visited_areas["oob"] = true
-				_pause_menu.open()
+				open_pause()
 		"win":
 			if not _win_card_shown:
 				return  # the epilogue is still playing
@@ -542,7 +579,7 @@ func mira_pins_note() -> void:
 	director.paused = true
 	OwnerMemory.mira_quest = "pinned"
 	OwnerMemory.save_memory()
-	await hud.cinematic("MIRA", Story.MIRA_PIN_SCENE, Color("e0a070"), 0.6)
+	await hud.cinematic("MIRA", Story.MIRA_PIN_SCENE, Color("e0a070"), 0.6, "mira.pin")
 	if not is_inside_tree():
 		return
 	var board: Variant = area.get("board")
@@ -1037,7 +1074,7 @@ func reach_slot2() -> void:
 		options.append(Story.SLOT2_OVERWRITE)
 		ids.append("overwrite")
 	# Everything you've done, all at once, before you choose.
-	await hud.cinematic("", Story.slot2_recap(escort_id() == "wren"), Hud.OWNER_COLOR, 0.8)
+	await hud.cinematic("", Story.slot2_recap(escort_id() == "wren"), Hud.OWNER_COLOR, 0.8, "slot2.recap", CharacterArt.rue("determined", player.palette()))
 	if not is_inside_tree():
 		return
 	var pick := await hud.choose(Story.SLOT2_QUESTION, options)
@@ -1078,7 +1115,7 @@ func win(chosen := "escape", message := 0) -> void:
 	if not is_inside_tree():
 		return
 	# The console, live: the last thing said.
-	await hud.cinematic("", Story.FINAL_EXCHANGE.get(chosen, []), Hud.OWNER_COLOR, 0.85)
+	await hud.cinematic("", Story.FINAL_EXCHANGE.get(chosen, []), Hud.OWNER_COLOR, 0.85, "final." + chosen, CharacterArt.rue("determined", player.palette()))
 	if not is_inside_tree():
 		return
 	if pip:
@@ -1097,7 +1134,7 @@ func win(chosen := "escape", message := 0) -> void:
 	add_child(theme)
 	theme.play()
 	create_tween().tween_property(theme, "volume_db", -6.0, 2.0)
-	await hud.cinematic("EPILOGUE", epilogue, Hud.SELF_COLOR, 1.0)
+	await hud.cinematic("EPILOGUE", epilogue, Hud.SELF_COLOR, 1.0, "epilogue." + chosen, CharacterArt.rue("relieved", player.palette()))
 	if not is_inside_tree():
 		return
 	hud.show_overlay(

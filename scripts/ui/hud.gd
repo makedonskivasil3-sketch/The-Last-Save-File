@@ -29,7 +29,6 @@ const SAFE := Vector2(14, 10)
 const STATUS_COLOR := Color("8cf2ff")
 const TYPE_SPEED := 36.0  # characters per second (console), x Settings.text_rate()
 const DIALOGUE_SPEED := 55.0  # characters per second (dialogue box), x pace x text_rate()
-const LINE_PAUSE := 0.5
 
 ## The owner's character. Not you.
 var character_name := "ARIN"
@@ -108,6 +107,27 @@ var _cine_title: Label
 var _cine_text: Label
 var _cine_hint: Label
 var _cinematic := false
+## The pacing of the dialogue line on screen (LinePacer, docs/STORY_PACING.md).
+var _pacer: LinePacer
+var _dialogue_voice := ""
+var _dialogue_voice_prefix := ""
+## Cinematics: the line on screen and the hold-to-skip state.
+var _cine_pacer: LinePacer
+var _skip_hold := 0.0
+var _skip_armed := false
+var _skip_requested := false
+var _cine_backing: Panel
+var _cine_portrait: TextureRect
+var _dialogue_portrait: TextureRect
+var _dialogue_box_style: StyleBoxFlat
+var _console_style: StyleBoxFlat
+var _cine_style: StyleBoxFlat
+const HISTORY_MAX := 300
+## Everything shown this run, oldest first, from every route (dialogue,
+## cinematics, the console): {speaker, text, kind, voice}. The pause menu's
+## History page reads it; lines still waiting in the queue are not in it.
+var history: Array[Dictionary] = []
+signal history_added(entry: Dictionary)
 
 
 func _ready() -> void:
@@ -306,32 +326,133 @@ func _ready() -> void:
 	_cine_text.add_theme_constant_override("outline_size", 4)
 	_cine_hint = _make_label(root, Vector2(0, 326), Vector2(640 - SAFE.x, 12), 9, Color(SYSTEM_COLOR, 0.8))
 	_cine_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	for l in [_cine_title, _cine_text, _cine_hint]:
+	_cine_style = StyleBoxFlat.new()
+	_cine_style.set_corner_radius_all(4)
+	_cine_backing = Panel.new()
+	_cine_backing.add_theme_stylebox_override("panel", _cine_style)
+	_cine_backing.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_cine_backing)
+	root.move_child(_cine_backing, _cine_text.get_index())  # behind the text
+	_cine_portrait = TextureRect.new()
+	_cine_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_cine_portrait.stretch_mode = TextureRect.STRETCH_SCALE
+	_cine_portrait.size = Vector2(64, 64)
+	_cine_portrait.position = Vector2(52, 134)
+	_cine_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_cine_portrait.visible = false
+	root.add_child(_cine_portrait)
+	_dialogue_portrait = TextureRect.new()
+	_dialogue_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_dialogue_portrait.stretch_mode = TextureRect.STRETCH_SCALE
+	_dialogue_portrait.size = Vector2(32, 32)
+	_dialogue_portrait.position = Vector2(6, 6)
+	_dialogue_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dialogue_portrait.visible = false
+	_dialogue.add_child(_dialogue_portrait)
+	for l in [_cine_title, _cine_text, _cine_hint, _cine_backing]:
 		l.visible = false
+	# Subtitles size and back themselves from the story settings, not only
+	# the general Large text toggle.
+	for l in [_dialogue_text, _dialogue_speaker, _cine_text, _cine_title]:
+		l.remove_from_group(UiStyle.TEXT_GROUP)
+	_dialogue_box_style = _dialogue.get_theme_stylebox("panel") as StyleBoxFlat
+	_console_style = _console_box.get_theme_stylebox("panel") as StyleBoxFlat
+	apply_subtitle_style()
+	Settings.changed.connect(apply_subtitle_style)
 
 
+## Subtitle size and backing from Settings (subtitle_size, subtitle_bg,
+## large_text, speaker_labels). Called again whenever a setting changes.
+func apply_subtitle_style() -> void:
+	var k := Settings.text_scale() * Settings.subtitle_scale()
+	for pair in [[_dialogue_text, 11], [_dialogue_speaker, 10], [_cine_text, 12], [_cine_title, 9]]:
+		(pair[0] as Label).add_theme_font_size_override("font_size", roundi(pair[1] * k))
+	var bg := Settings.subtitle_bg
+	if _dialogue_box_style:
+		_dialogue_box_style.bg_color.a = clampf(bg, 0.0, 1.0)
+	if _console_style:
+		_console_style.bg_color.a = bg * 0.7
+	if _cine_style:
+		_cine_style.bg_color = Color(0, 0, 0, bg * 0.6)
+	_dialogue_speaker.visible = Settings.speaker_labels
+	if _dialogue.visible:
+		_fit_dialogue()
+	if _cinematic:
+		_fit_cinematic()
 
-## Plays a letterboxed sequence of typed lines; await it. Each line waits
-## for interact/confirm (or advances by itself after a while).
+
+## Keep a line in the run's history (every route calls this when a line is
+## actually shown). voice: the id of a recording that can be replayed.
+func _log_line(speaker: String, text: String, kind: String, voice := "") -> void:
+	var entry := {"speaker": speaker, "text": text, "kind": kind, "voice": voice}
+	history.append(entry)
+	while history.size() > HISTORY_MAX:
+		history.pop_front()
+	history_added.emit(entry)
+
+
+## Show (or hide, with null) a character portrait beside cinematic text.
+func _show_portrait(portrait: CharacterArt.Portrait) -> void:
+	var tex: Texture2D = portrait.texture() if portrait else null
+	_cine_portrait.texture = tex
+	_cine_portrait.visible = tex != null
+	if tex:
+		_cine_text.position.x = 128
+		_cine_text.size.x = 452
+		_cine_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	else:
+		_cine_text.position.x = 60
+		_cine_text.size.x = 520
+		_cine_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+
+
+## Change the portrait's expression mid-scene (CharacterArt expressions).
+func set_portrait(portrait: CharacterArt.Portrait) -> void:
+	if _cinematic:
+		_show_portrait(portrait)
+
+
+## Plays a letterboxed sequence of story lines; await it. Each line types
+## out, then waits for the player (Settings.advance_mode manual, the
+## default) or advances by itself once read and spoken (auto). Holding
+## interact/confirm skips the rest; every line still goes in the history.
 ## `dim` darkens the world behind the text (0 = see-through, 1 = black).
-func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: float = 0.55) -> void:
+## voice_prefix: the scene's id stem; each line's id is voice_id(prefix, text).
+## portrait: a character portrait shown with the text (CharacterArt), or null.
+func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: float = 0.55, voice_prefix := "", portrait: CharacterArt.Portrait = null) -> void:
 	_cinematic = true
+	_skip_requested = false
+	_skip_armed = false
+	_skip_hold = 0.0
 	_console_box.visible = false
 	_prompt.visible = false
-	_cine_title.text = title
+	_cine_title.text = title if Settings.speaker_labels or title == "EPILOGUE" else ""
 	_cine_text.add_theme_color_override("font_color", color)
-	for l in [_cine_title, _cine_text, _cine_hint]:
+	_show_portrait(portrait)
+	for l in [_cine_title, _cine_text, _cine_hint, _cine_backing]:
 		l.visible = true
 	var tw := create_tween().set_parallel()
 	tw.tween_property(_bars[0], "size:y", 40.0, 0.4)
 	tw.tween_property(_bars[1], "size:y", 40.0, 0.4)
 	tw.tween_property(_bars[1], "position:y", 320.0, 0.4)
 	tw.tween_property(_fade, "color:a", dim, 0.4)
-	await tw.finished
-	for line in lines:
-		await _cinematic_line(str(line))
+	while tw.is_running():
+		await get_tree().process_frame
 		if not is_inside_tree():
 			return
+		if _advance_pressed():
+			_skip_armed = true  # a hold that starts as the scene opens counts
+	for i in lines.size():
+		if _skip_requested:
+			# Skipped lines are still part of the story: keep them readable.
+			_log_line(title, str(lines[i]), _cine_kind(str(lines[i]), color), "")
+			continue
+		await _cinematic_line(str(lines[i]), voice_id(voice_prefix, str(lines[i])), title, color)
+		if not is_inside_tree():
+			return
+	VoiceOver.stop()
+	narrator.stop()
+	_cine_pacer = null
 	_cine_text.text = ""
 	var out := create_tween().set_parallel()
 	out.tween_property(_bars[0], "size:y", 0.0, 0.4)
@@ -339,8 +460,9 @@ func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: floa
 	out.tween_property(_bars[1], "position:y", 360.0, 0.4)
 	out.tween_property(_fade, "color:a", 0.0, 0.5)
 	await out.finished
-	for l in [_cine_title, _cine_text, _cine_hint]:
+	for l in [_cine_title, _cine_text, _cine_hint, _cine_backing]:
 		l.visible = false
+	_show_portrait(null)
 	_console_box.visible = _console.get_child_count() > 0
 	_prompt.visible = true
 	_cinematic = false
@@ -350,60 +472,104 @@ func is_cinematic() -> bool:
 	return _cinematic
 
 
-func _cinematic_line(line: String) -> void:
+func _cine_kind(line: String, color: Color) -> String:
+	if line.begins_with(">"):
+		return "owner"
+	return "self" if color == SELF_COLOR else "system"
+
+
+func _cinematic_line(line: String, vid: String, title: String, base_color: Color) -> void:
 	var owner_line := line.begins_with(">")
 	var original_color := _cine_text.get_theme_color("font_color")
 	if owner_line:
 		_cine_text.add_theme_color_override("font_color", OWNER_COLOR)
-	narrator.speak(line.trim_prefix(">").strip_edges() if owner_line else line, "OWNER" if owner_line else "")
+	var spoken := line.trim_prefix(">").strip_edges() if owner_line else line
+	var recorded := VoiceOver.play(self, vid)
+	if recorded == null:
+		narrator.speak(spoken, "OWNER" if owner_line else "")
+	_log_line("OWNER" if owner_line else title, spoken if owner_line else line, _cine_kind(line, base_color), vid if recorded else "")
 	_cine_text.text = line
 	_cine_text.visible_characters = 0
 	_cine_hint.text = ""
+	_fit_cinematic()
+	var pacer := LinePacer.new(line, StoryPacing.is_auto(), voice_busy)
+	_cine_pacer = pacer
 	var typed := 0.0
 	var start_frame := Engine.get_process_frames()
-	while _cine_text.visible_characters != -1:
+	while not pacer.is_done():
 		await get_tree().process_frame
 		if not is_inside_tree():
 			return  # the session ended mid-line (quit to title)
 		if get_tree().paused:
-			continue
-		var shown := int(typed)
-		var rate := Settings.text_rate()
-		typed = float(line.length()) if is_inf(rate) else typed + 40.0 * rate * get_process_delta_time()
-		_cine_text.visible_characters = int(typed)
-		if int(typed) > shown and not (Settings.narration and narrator.supported):
-			if owner_line and not line.is_empty():
-				Sfx.owner_blip(line[mini(int(typed) - 1, line.length() - 1)])
-			else:
-				Sfx.type_key("self" if original_color == SELF_COLOR else "system")
-		if typed >= line.length() or (Engine.get_process_frames() > start_frame + 1 and _advance_pressed()):
-			_cine_text.visible_characters = -1
-	_cine_hint.text = "[%s]" % Settings.glyph("interact")
-	var wait := 2.4 + line.length() * 0.045
-	var held_frame := Engine.get_process_frames()
-	var speech_timeout := 60.0
-	while wait > 0.0 or (narrator.is_speaking() and speech_timeout > 0.0):
-		await get_tree().process_frame
-		if not is_inside_tree():
-			return  # the session ended mid-line (quit to title)
-		if get_tree().paused:
-			continue
-		wait -= get_process_delta_time()
-		speech_timeout -= get_process_delta_time()
-		if Engine.get_process_frames() > held_frame and _advance_pressed():
+			continue  # paused (menu, lost focus): no typing, no reading time
+		var delta := get_process_delta_time()
+		var frame := Engine.get_process_frames()
+		if _update_skip(delta):
+			_skip_requested = true
 			break
+		if pacer.phase == LinePacer.Phase.REVEALING:
+			var shown := int(typed)
+			var cps := _reveal_rate(40.0, line)
+			typed = float(line.length()) if is_inf(cps) else typed + cps * delta
+			_cine_text.visible_characters = int(typed)
+			if int(typed) > shown and not is_inf(cps) and not VoiceOver.is_playing() and not (Settings.narration and narrator.supported):
+				if owner_line and not line.is_empty():
+					Sfx.owner_blip(line[mini(int(typed) - 1, line.length() - 1)])
+				else:
+					Sfx.type_key("self" if original_color == SELF_COLOR else "system")
+			if typed >= line.length():
+				_cine_text.visible_characters = -1
+				pacer.reveal(frame)
+		else:
+			pacer.tick(delta)
+		# The press that started the scene (or ended the last line) is old news.
+		if frame > start_frame + 1 and _advance_pressed():
+			if pacer.press(frame) == "reveal":
+				_cine_text.visible_characters = -1
+		_cine_hint.text = _skip_text() if _skip_hold > 0.25 else (_continue_text(false) if pacer.is_shown() else "")
+	VoiceOver.stop()
 	narrator.stop()
 	_cine_text.add_theme_color_override("font_color", original_color)
+
+
+## Holding interact/confirm skips the rest of the scene. Only a hold that
+## began during this scene counts (not one carried in from a glitch).
+func _update_skip(delta: float) -> bool:
+	var held := Input.is_action_pressed("interact") or Input.is_action_pressed("confirm")
+	if _advance_pressed():
+		_skip_armed = true
+	if held and _skip_armed:
+		_skip_hold += delta
+	else:
+		_skip_hold = 0.0
+	return _skip_hold >= StoryPacing.SKIP_HOLD
+
+
+func _skip_text() -> String:
+	var n := int(clampf(_skip_hold / StoryPacing.SKIP_HOLD, 0.0, 1.0) * 6.0)
+	return "skipping  " + "■".repeat(n) + "□".repeat(6 - n)
+
+
+## Size the cinematic text block to its lines, with a backing behind it.
+func _fit_cinematic() -> void:
+	var lh := _cine_text.get_line_height()
+	var lines := maxi(1, _cine_text.get_line_count())
+	_cine_text.size.y = lines * lh + 4.0
+	_cine_backing.position = _cine_text.position - Vector2(8, 6)
+	_cine_backing.size = _cine_text.size + Vector2(16, 12)
 
 
 func _advance_pressed() -> bool:
 	return Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("confirm")
 
 
-## Opens the dialogue box. lines: Array of Strings, advanced with interact.
-func show_dialogue(speaker: String, color: Color, lines: Array) -> void:
+## Opens the dialogue box. lines: Array of Strings, advanced with interact
+## (or automatically, Settings.advance_mode). voice_prefix: the scene's id
+## stem; a line plays voice_id(voice_prefix, text) if it was recorded.
+func show_dialogue(speaker: String, color: Color, lines: Array, voice_prefix := "") -> void:
 	if lines.is_empty():
 		return
+	_dialogue_voice_prefix = voice_prefix
 	_dialogue_lines = lines
 	_dialogue_index = 0
 	_dialogue_typed = 0.0
@@ -420,6 +586,8 @@ func close_dialogue() -> void:
 	if not _dialogue.visible:
 		return
 	narrator.stop()
+	VoiceOver.stop()
+	_pacer = null
 	dialogue_finished = _finishing
 	_finishing = false
 	_dialogue.visible = false
@@ -529,27 +697,96 @@ func fade(to_black: bool, duration: float = 0.25) -> Tween:
 
 
 func _show_dialogue_line() -> void:
-	_dialogue_text.text = str(_dialogue_lines[_dialogue_index])
-	narrator.speak(_dialogue_text.text, _dialogue_speaker.text)
+	var text := str(_dialogue_lines[_dialogue_index])
+	_dialogue_text.text = text
+	_dialogue_voice = voice_id(_dialogue_voice_prefix, text)
+	var recorded := VoiceOver.play(self, _dialogue_voice)
+	if recorded == null:
+		narrator.speak(text, _dialogue_speaker.text)
 	_dialogue_text.visible_characters = 0
 	_dialogue_typed = 0.0
-	var last := _dialogue_index == _dialogue_lines.size() - 1
-	_dialogue_hint.text = "[%s] %s" % [Settings.glyph("interact"), "close" if last else "next"]
+	_pacer = LinePacer.new(text, StoryPacing.is_auto(), voice_busy)
+	_log_line(_dialogue_speaker.text, text, "npc", _dialogue_voice if recorded else "")
+	_dialogue_hint.text = ""
+	_fit_dialogue()
+
+
+## The stable dialogue id of a line: "<scene>.<first 8 hex of md5(text)>".
+## Same text, same id, in whatever order or variant a scene shows it; a
+## change to the text makes a new id, so an outdated recording never plays
+## under new words (audio/voice/manifest.csv lists them all).
+static func voice_id(prefix: String, text: String) -> String:
+	if prefix == "":
+		return ""
+	return "%s.%s" % [prefix, text.strip_edges().md5_text().substr(0, 8)]
+
+
+## A story voice is speaking: a recording, or (if on) system speech.
+func voice_busy() -> bool:
+	return VoiceOver.is_playing() or narrator.is_speaking()
+
+
+## Characters per second for the typewriter: the player's text speed, but
+## never slower than a recording needs (text keeps up with the voice).
+func _reveal_rate(base_cps: float, text: String) -> float:
+	var rate := Settings.text_rate()
+	if is_inf(rate):
+		return INF
+	var cps := base_cps * rate
+	var p := VoiceOver.current()
+	if p and p.stream and p.stream.get_length() > 0.1:
+		cps = maxf(cps, text.length() / (p.stream.get_length() * 0.85))
+	return cps
+
+
+## The continue marker: shown only once the whole line is visible.
+func _continue_text(last: bool) -> String:
+	if StoryPacing.is_auto():
+		return "auto  ▸"
+	return "%s  [%s]" % ["close" if last else "▼", Settings.glyph("interact")]
+
+
+func _next_dialogue_line() -> void:
+	VoiceOver.stop()
+	narrator.stop()
+	if _dialogue_index < _dialogue_lines.size() - 1:
+		_dialogue_index += 1
+		_show_dialogue_line()
+	else:
+		_finishing = true  # read to the end, not walked away from
+		close_dialogue()
+
+
+## Grow the dialogue box to fit its text (long lines, large subtitles).
+func _fit_dialogue() -> void:
+	var lines := maxi(2, _dialogue_text.get_line_count())
+	var lh := _dialogue_text.get_line_height()
+	var top := 18.0 * Settings.subtitle_scale() if Settings.speaker_labels else 6.0
+	_dialogue_text.position.y = top
+	_dialogue_text.size.y = lines * lh + 2.0
+	var h := top + _dialogue_text.size.y + 14.0
+	_dialogue.size.y = h
+	_dialogue.position.y = 360 - SAFE.y - h
+	_dialogue_hint.position.y = h - 14.0
 
 
 func _update_dialogue(delta: float) -> void:
-	if not _dialogue.visible:
+	if not _dialogue.visible or _pacer == null:
 		return
+	var frame := Engine.get_process_frames()
 	var total := _dialogue_text.get_total_character_count()
-	if _dialogue_text.visible_characters >= 0 and _dialogue_text.visible_characters < total:
+	if _pacer.phase == LinePacer.Phase.REVEALING:
 		var before := int(_dialogue_typed)
-		var rate := Settings.text_rate()
-		if is_inf(rate):
+		var cps := _reveal_rate(DIALOGUE_SPEED * Sfx.voice_pace(_dialogue_speaker.text), _dialogue_text.text)
+		if is_inf(cps):
 			_dialogue_typed = float(total)  # Text: Instant
 		else:
-			_dialogue_typed += DIALOGUE_SPEED * Sfx.voice_pace(_dialogue_speaker.text) * rate * delta
+			_dialogue_typed += cps * delta
 		_dialogue_text.visible_characters = mini(int(_dialogue_typed), total)
-		if int(_dialogue_typed) > before and not is_inf(rate):
+		if _dialogue_typed >= total:
+			_dialogue_text.visible_characters = -1
+			_pacer.reveal(frame)
+		if int(_dialogue_typed) > before and not is_inf(cps) and not VoiceOver.is_playing():
 			# Each speaker has their own voice (Sfx.VOICE_PROFILES); books and notes rustle.
 			if Settings.narration and narrator.supported:
 				pass  # system speech replaces the synthetic syllables
@@ -557,18 +794,18 @@ func _update_dialogue(delta: float) -> void:
 				Sfx.voice_blip(_dialogue_speaker.text)
 			else:
 				Sfx.type_key("system")
-	if Engine.get_process_frames() == _dialogue_opened_frame:
-		return  # the press that opened the box doesn't also advance it
-	if Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("confirm"):
-		interact_used_frame = Engine.get_process_frames()
-		if _dialogue_text.visible_characters >= 0 and _dialogue_text.visible_characters < total:
-			_dialogue_text.visible_characters = -1  # finish the line first
-		elif _dialogue_index < _dialogue_lines.size() - 1:
-			_dialogue_index += 1
-			_show_dialogue_line()
-		else:
-			_finishing = true  # read to the end, not walked away from
-			close_dialogue()
+	else:
+		_pacer.tick(delta)
+	if _pacer.is_shown():
+		_dialogue_hint.text = _continue_text(_dialogue_index == _dialogue_lines.size() - 1)
+		_dialogue_hint.modulate.a = 1.0 if Settings.reduce_flashing or StoryPacing.is_auto() else 0.55 + 0.45 * absf(sin(Time.get_ticks_msec() * 0.003))
+	if frame != _dialogue_opened_frame and _advance_pressed():
+		# The press that opened the box doesn't also advance it.
+		interact_used_frame = frame
+		if _pacer.press(frame) == "reveal":
+			_dialogue_text.visible_characters = -1  # first press: the whole line, nothing more
+	if _pacer.is_done():
+		_next_dialogue_line()
 
 
 ## kind: "owner", "system", "self" (the intruder's thoughts) or "npc".
@@ -769,8 +1006,13 @@ func _update_typing(delta: float) -> void:
 		if _typed >= full.length():
 			_typing.text = full
 			_typing.visible_characters = -1
+			# Time to read it before the next one starts (StoryPacing).
+			_pause = StoryPacing.ambient_time(full, _queue.size())
 			_typing = null
-			_pause = LINE_PAUSE
+		return
+	# Story owns the screen: while a conversation, scene or question is up,
+	# the console holds its next line (nothing types into a hidden box).
+	if _cinematic or _dialogue.visible or _choice.visible:
 		return
 	if _pause > 0.0:
 		_pause -= delta
@@ -781,7 +1023,8 @@ func _update_typing(delta: float) -> void:
 	var line := Label.new()
 	UiStyle.sized(line, 10)
 	UiStyle.outline(line, 2)
-	line.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	# Long lines wrap; nothing is cut off.
+	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	line.custom_minimum_size.x = 420
 	match msg.kind:
 		"owner":
@@ -797,7 +1040,7 @@ func _update_typing(delta: float) -> void:
 			line.text = "(%s)" % msg.text
 			line.add_theme_color_override("font_color", SELF_COLOR)
 		"npc":
-			line.text = "%s: %s" % [msg.speaker, msg.text]
+			line.text = "%s: %s" % [msg.speaker, msg.text] if Settings.speaker_labels else msg.text
 			line.add_theme_color_override("font_color", NPC_COLOR)
 		_:
 			line.text = msg.text
@@ -805,6 +1048,8 @@ func _update_typing(delta: float) -> void:
 	console_history.append(line.text)
 	if console_history.size() > MAX_HISTORY:
 		console_history.pop_front()
+	var who: String = {"owner": "OWNER", "self": "RUE", "npc": msg.speaker}.get(msg.kind, "")
+	_log_line(who, msg.text, msg.kind)
 	line.set_meta("full", line.text)
 	line.set_meta("kind", msg.kind)
 	line.visible_characters = 0

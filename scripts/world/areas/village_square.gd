@@ -415,7 +415,7 @@ func _offer_guestbook() -> void:
 	music.volume_db = -14.0
 	add_child(music)
 	music.play()
-	await world.hud.cinematic("TOBBEN'S GUEST BOOK", Story.GUESTBOOK_SCENE, Hud.SELF_COLOR, 0.6)
+	await world.hud.cinematic("TOBBEN'S GUEST BOOK", Story.GUESTBOOK_SCENE, Hud.SELF_COLOR, 0.6, "guestbook", CharacterArt.rue("relieved", world.player.palette()))
 	if not is_inside_tree():
 		return
 	music.queue_free()

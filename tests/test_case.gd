@@ -27,6 +27,17 @@ func before_each() -> void:
 	# turns them on.
 	s.tutorial_tips = false
 	s.tips_seen.clear()
+	# Story pacing at its shipped defaults (manual advance).
+	s.text_speed = 1
+	s.advance_mode = 0
+	s.auto_speed = 1
+	s.voice_delay = 1
+	s.subtitle_size = 0
+	s.subtitle_bg = 0.75
+	s.speaker_labels = true
+	s.pause_on_focus_loss = true
+	VoiceOver.clear_registered()
+	VoiceOver.stop()
 	tree.paused = false
 
 
@@ -181,6 +192,17 @@ func hold(action: String, seconds: float) -> void:
 	await wait(seconds)
 	_act(action, false)
 	await frames(2)
+
+
+## Reads through the cinematic on screen like a player: a press reveals a
+## line, the next press moves on. Returns false if it never ends.
+func read_through_cinematic(w: Node, timeout := 30.0) -> bool:
+	var until := Time.get_ticks_msec() + int(timeout * 1000.0)
+	while w.hud.is_cinematic() and Time.get_ticks_msec() < until:
+		await press("interact")
+		await wait(0.1)
+	await wait_until(func() -> bool: return not w.hud.is_cinematic(), 2.0, "the scene to close")
+	return not w.hud.is_cinematic()
 
 
 ## Slot 2: skips the recap (E advances it) until the choice is up.

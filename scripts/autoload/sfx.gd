@@ -101,6 +101,12 @@ var _next_ui := 0
 var _last_key := 0
 var _last_cell := 0
 var _lowpass: Dictionary = {}  # bus name -> AudioEffectLowPassFilter
+## Music and the memory theme dip under recorded speech (VoiceOver), then
+## come back smoothly. bus name -> AudioEffectAmplify.
+var _duck: Dictionary = {}
+var _duck_target := 0.0
+## How far music dips under a recorded line, in dB.
+const SPEECH_DUCK_DB := -9.0
 ## The last few sound names requested (newest last). Cheap; lets tests check
 ## that gameplay events actually make a sound.
 var history: Array[String] = []
@@ -162,6 +168,12 @@ func is_busy() -> bool:
 
 
 func _process(_delta: float) -> void:
+	for bus in _duck:
+		var a: AudioEffectAmplify = _duck[bus]
+		if a.volume_db != _duck_target:
+			# Down in ~0.25 s, back up in ~0.8 s: speech lands clearly, music returns gently.
+			var rate := 36.0 if _duck_target < a.volume_db else 11.0
+			a.volume_db = move_toward(a.volume_db, _duck_target, rate * _delta)
 	if _queue.is_empty() and _jobs.is_empty():
 		return
 	if hold_back.is_valid() and hold_back.call():
@@ -361,6 +373,19 @@ func _make_buses() -> void:
 		AudioServer.add_bus_effect(idx, lp)
 		AudioServer.set_bus_effect_enabled(idx, AudioServer.get_bus_effect_count(idx) - 1, false)
 		_lowpass[bus] = lp
+	for bus in ["Music", "Memory"]:
+		var amp := AudioEffectAmplify.new()
+		AudioServer.add_bus_effect(AudioServer.get_bus_index(bus), amp)
+		_duck[bus] = amp
+
+
+## Recorded speech is playing (true) or has ended (false).
+func duck_for_speech(on: bool) -> void:
+	_duck_target = SPEECH_DUCK_DB if on else 0.0
+
+
+func speech_duck_db() -> float:
+	return (_duck["Music"] as AudioEffectAmplify).volume_db if _duck.has("Music") else 0.0
 
 
 # --- the sounds ---------------------------------------------------------------------
