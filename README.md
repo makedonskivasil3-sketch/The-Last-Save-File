@@ -180,7 +180,7 @@ the owner can't see (the Archive, out of bounds).
 
 | Move | When | What happens |
 | --- | --- | --- |
-| **Load Last Save** | Your 3rd glitch since the last reload (once noticed), or once at 65% | `◀◀ LOADING AUTOSAVE`: Rue is dragged back along her own path ~10 s, Arin and the cursor snap back, and every glitch effect is undone (freezes, blinds, lies, the glitched door, decoys). It never drops you into danger: it skips moments in the void, under the cursor or within Arin's reach, and afterwards the cursor loses you for a beat (Rue flickers) so you can see where you are. |
+| **Load Last Save** | Your 3rd glitch since the last reload (once noticed), or once at 65% | `◀◀ LOADING AUTOSAVE`: Rue is dragged back along her own path ~10 s, Arin and the cursor snap back, and every glitch effect is undone (freezes, blinds, lies, the glitched door, decoys). It never drops you into danger: it skips moments in the void, under the cursor or within Arin's reach, and never drags you back through a doorway, and afterwards the cursor loses you for a beat (Rue flickers) so you can see where you are. |
 | **Saving Over You** | From the hunt, every ~35 s, or when you stand still too long under suspicion | A save ring fills over Rue: fast while you stand still, slowly while you move. **Any glitch interrupts it.** If it fills, you're overwritten. It never starts (and holds still) while you're writing yourself into Slot 2. |
 | **Drag** | In the square during the hunt, when you head for a road | The cursor grabs the crate stack and drags it across that road. Phase through it, or wait for it to be dragged back. |
 | **Route memory** | When a session ends badly | Where Arin saw you is remembered. Next time Arin's patrol detours through those spots (one more each session, up to three), and the owner tells you so. |
@@ -188,7 +188,13 @@ the owner can't see (the Archive, out of bounds).
 **Deaths explain themselves.** The death card says what got you (Arin walking through you, the
 owner saving over you, the cursor's click, the static) and gives one yellow **TIP** line on what to
 try next time. Once you have the glitch that answers that death, the tip names it instead
-(`Story.DEATHS`).
+(`Story.DEATHS`). The card waits for you: **[E] retry** appears after a moment
+(1.2 s the first time a cause kills you, 0.5 s after that) and nothing restarts until you press it.
+
+**Reading is safe.** While a conversation is open Rue stands still and so does the owner: no move
+starts, awareness doesn't climb, and a save ring already filling holds until the box closes. The
+owner's warnings ("saving over you.") appear at once on their own strip under the banner, whatever
+else is on screen (`docs/NARRATIVE_RELIABILITY.md`).
 
 ## Side stories, and the endings
 
@@ -651,7 +657,9 @@ tests/run.sh --bots --speed=2 --filter=purge_3
 | `test_effects.gd` | Every death style, owner events, the win sequence, reduce flashing |
 | `test_performance.gd` | Worst-case frame budget (fully hunted square), leak checks across area changes, themes built in slices (identically), the session prewarming what it needs (no hitch entering the Edge), background building pausing mid-chase, the frame-time overlay |
 | `test_glitch.gd` | Tap still interacts; every glitch (freeze, falsify, unlock, phase, decoy, pause, restore, blind, scrub), its cost and its unlock |
-| `test_owner_moves.gd` | Load last save (and what it undoes), the 3-glitch reload, saving over you (and a glitch interrupting it), no moves where the owner can't see, the crates dragged across the road, Arin's route memory, debug tools |
+| `test_owner_moves.gd` | Load last save (and what it undoes), the 3-glitch reload, saving over you (and a glitch interrupting it), no moves where the owner can't see, the crates dragged across the road, Arin's route memory, debug tools, a reload never landing in a doorway |
+| `test_narrative_reliability.gd` | Warnings readable at once behind Slow typing and backlogs; long lines get their reading time and pages; the death card waits for a press; conversations hold the owner (and a save ring); NPC lines have voice ids in the manifest; the manifest doesn't depend on the save; a memory is one save |
+| `test_character_presentation.gd` | Nobody shows Rue's face as a stand-in; Mira's portrait matches her sprite, has every expression and her own, talks and blinks, and follows her lines |
 | `test_wren.gd` | Wren asks, comes along and follows; declining; the leash; reaching the Edge saves her for good; the owner deleting her; a glitch saving her |
 | `test_save_safety.gd` | Saves are versioned and backed up; a half-written save recovers from the backup (and the damaged file is kept); wrong-typed values fall back instead of stopping the load; unversioned saves still load; a reset removes the backup |
 | `test_owner_fixes.gd` | The idle save-over (only in the open, only after the owner's warning); closets count as hiding everywhere; no doorways mid-reload; PAUSE carries through a doorway |

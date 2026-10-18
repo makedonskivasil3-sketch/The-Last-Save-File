@@ -113,6 +113,7 @@ var history: Array[String] = []
 
 
 func _ready() -> void:
+	get_tree().node_added.connect(_on_node_added)
 	_make_buses()
 	for i in POOL_SIZE:
 		var p := AudioStreamPlayer.new()
@@ -130,6 +131,14 @@ func _ready() -> void:
 		p.bus = "Voice"
 		add_child(p)
 		_voice_pool.append(p)
+
+
+## Every audio player stops as it leaves the tree (a scene change, quitting).
+## Godot 4.3 otherwise keeps the playback of a generated stream alive after
+## its player is freed mid-sound, and reports it as leaked at exit.
+func _on_node_added(node: Node) -> void:
+	if node is AudioStreamPlayer or node is AudioStreamPlayer2D:
+		node.tree_exiting.connect(node.stop)
 
 
 ## Queue the common sounds to be built a few per frame.

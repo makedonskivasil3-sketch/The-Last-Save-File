@@ -439,14 +439,18 @@ func _go(w: Node, points: Array, timeout := STEP_TIMEOUT) -> bool:
 			var d: Vector2 = p - w.player.global_position
 			if d.length() < 5.0:
 				break
-			var n := _avoid(w, d.normalized())
+			var n := _off_exits(w, _avoid(w, d.normalized()), p)
 			if still > 0.5:
 				# Stuck on something: phase through it if we can, else slide along.
 				if still > 0.8 and w.glitch.target.get("id", "") == "phase":
 					await _glitch(w)
 					still = 0.0
 					continue
-				n = (n + n.orthogonal() * (1.0 if int(_now()) % 2 == 0 else -1.0)).normalized()
+				var side := n.orthogonal() * (1.0 if int(_now()) % 2 == 0 else -1.0)
+				# Never sidestep out through a doorway beside the obstacle.
+				if _near_exit(w, w.player.global_position + (n + side).normalized() * 40.0) or _near_exit(w, w.player.global_position + side * 30.0):
+					side = -side
+				n = (n + side).normalized()
 			_steer(w, n)
 			if _should_glitch(w):
 				await _glitch(w)
@@ -463,6 +467,28 @@ func _go(w: Node, points: Array, timeout := STEP_TIMEOUT) -> bool:
 			return false
 	_release_all()
 	return true
+
+
+## Dodging the cursor or Arin must not carry the bot out through a doorway
+## (unless the doorway is where it is going): the nearest heading that
+## doesn't, else standing still.
+func _off_exits(w: Node, n: Vector2, goal: Vector2) -> Vector2:
+	var p: Vector2 = w.player.global_position
+	if n == Vector2.ZERO or _near_exit(w, goal) or not w.area.bounds.grow(-4.0).has_point(goal) \
+			or not _near_exit(w, p + n * 30.0):
+		return n
+	for turn in [0.5, -0.5, 1.0, -1.0, 1.5, -1.5]:
+		var m := n.rotated(turn)
+		if not _near_exit(w, p + m * 30.0):
+			return m
+	return Vector2.ZERO
+
+
+func _near_exit(w: Node, p: Vector2) -> bool:
+	for e: Exit in w.area.exits:
+		if Rect2(e.global_position - e.size / 2.0, e.size).grow(16.0).has_point(p):
+			return true
+	return false
 
 
 func _avoid(w: Node, n: Vector2) -> Vector2:

@@ -184,3 +184,17 @@ func test_a_memory_is_kept_in_one_write() -> void:
 	check_eq(m.save_count - before, 1, "the fragment and its journal page are one save")
 	check(f.id in m.fragments, "the fragment is kept")
 	check(m.journal.any(func(e: Dictionary) -> bool: return e.id == "memory:" + f.id), "and its page")
+
+
+func test_a_conversation_doesnt_bank_the_owner_s_next_move() -> void:
+	var w := await start_session()
+	await go_to(w, "square", "house")
+	w.director.add_awareness(OwnerDirector.HUNT + 1.0 - w.director.awareness)
+	var moves: OwnerMoves = w.owner_moves
+	var left: float = moves._next_save - moves._clock
+	w.hud.show_dialogue("TOBBEN", Color.WHITE, [THOUGHT], "npc.tobben")
+	await wait(4.0)
+	check(moves._next_save - moves._clock > left - 0.1, "the next save-over is as far away after reading as before (%.1f s, was %.1f s)" % [moves._next_save - moves._clock, left])
+	await finish_dialogue(w)
+	await frames(3)
+	check_eq(moves.save_progress, -1.0, "so closing the box doesn't start one at once")

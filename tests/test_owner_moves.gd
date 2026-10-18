@@ -102,3 +102,26 @@ func test_debug_tools() -> void:
 	w.debug("slot2")
 	await wait_until(func() -> bool: return w.area.area_id == "edge", 3.0, "F10 jumps to the Edge")
 	check(w.player.global_position.distance_to(TheEdge.SLOT_POS) < 80.0, "next to Slot 2")
+
+
+## Found by the purge-3 bot: arriving at the Edge and being reloaded within
+## 10 s dragged Rue back onto the doorway she came in by, and the exit took
+## her back to the square. A reload never lands on (or next to) an exit.
+func test_a_reload_never_lands_on_an_exit() -> void:
+	var w := await start_session()
+	await go_to(w, "square", "house")
+	await go_to(w, "edge", "south")
+	w.director.add_awareness(OwnerDirector.NOTICE + 2.0 - w.director.awareness)
+	var exit: Exit = w.area.exits[0]
+	var door: Vector2 = exit.global_position
+	# Standing in the doorway for the first snapshots, then further in.
+	w.player.global_position = door + Vector2(0, -14)
+	await wait(1.0)
+	check_eq(w.area.area_id, "edge", "(standing just inside the doorway doesn't leave)")
+	w.player.global_position = Vector2(320, 200)
+	await wait(1.5)
+	w.owner_moves.load_last_save(true)
+	await wait_until(func() -> bool: return not w.owner_moves.rewinding, 3.0, "the rewind")
+	await wait(0.5)
+	check_eq(w.area.area_id, "edge", "still at the Edge after the reload")
+	check(w.player.global_position.distance_to(door) > OwnerMoves.EXIT_CLEARANCE, "and not in the doorway (%s)" % w.player.global_position)

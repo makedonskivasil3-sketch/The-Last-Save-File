@@ -50,6 +50,9 @@ const MIRA_RESET_EVERY := 25.0
 const SAFE_FROM_CURSOR := 64.0
 const SAFE_FROM_ARIN := 44.0
 const GRACE := 0.8
+## ...and never lands on a doorway (or this close to one): dragged back onto
+## an exit, Rue would leave the area.
+const EXIT_CLEARANCE := 16.0
 ## Where the owner can't see you, there are no moves.
 const BLIND_AREAS := ["archive", "oob"]
 
@@ -85,6 +88,11 @@ func _owner_watching() -> bool:
 ## Called by World every frame while the session runs.
 func update(delta: float) -> void:
 	_clock += delta
+	if world.is_owner_paused():
+		# Held (a conversation, a question, PAUSE): the owner's cadences wait
+		# too, so nothing lands the moment the hold ends.
+		_next_save += delta
+		_next_wren += delta
 	_load_cd = maxf(0.0, _load_cd - delta)
 	_drag_cd = maxf(0.0, _drag_cd - delta)
 	_snapshot(delta)
@@ -239,12 +247,21 @@ func _pick_snapshot() -> int:
 		var s: Dictionary = _history[i]
 		if _clock - float(s.t) > REWIND_BACK:
 			break
+		if _near_exit(s.player):
+			break  # never drag her back through a doorway
 		if _is_void(s.player):
 			continue
 		fallback = i
 		if is_safe(s):
 			safe = i
 	return safe if safe >= 0 else fallback
+
+
+func _near_exit(p: Vector2) -> bool:
+	for e in world.area.exits:
+		if Rect2(e.global_position - e.size / 2.0, e.size).grow(EXIT_CLEARANCE).has_point(p):
+			return true
+	return false
 
 
 ## Would landing in this snapshot put Rue right next to a threat?
