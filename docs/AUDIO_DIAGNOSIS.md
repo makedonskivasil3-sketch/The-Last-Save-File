@@ -120,6 +120,13 @@ The build is audible in the headless browser (title about -29 dBFS, the theme's 
 
 It never raises a volume or unmutes the game's own settings.
 
+**Follow-up, the same day.** On an iPhone (Chrome, which uses Safari's engine) the page said "Sound on" but nothing played. "Sound on" only means the browser's audio is running; it doesn't prove the speaker plays. Two changes:
+- The silent media loop had zero length, so iOS probably ignored it. It is now half a second of real silence, played inline, and audio is resumed again once it plays.
+- On iPhone and iPad the page no longer asks the browser for 44.1 kHz. The device picks its own rate (usually 48 kHz) and Godot mixes at it. Some iOS versions have gone silent at a requested rate the hardware doesn't run at.
+- On iPhone and iPad the badge says plainly what else silences it: the silent switch and the volume.
+
+Checked in Chromium emulating an iPhone 13: no sample rate requested, the hint shown, no errors. That isn't Safari's engine, so it is **not run** on a real iPhone.
+
 | Check | Status |
 |---|---|
 | Browser check: audible, and the page reports "running" after the click | pass (headless Chromium; added to `audio_output_check.cjs`) |
