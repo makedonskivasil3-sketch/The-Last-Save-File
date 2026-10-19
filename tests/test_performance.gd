@@ -94,13 +94,21 @@ func test_building_waits_while_you_are_chased() -> void:
 	var w := await start_session()
 	await wait_until(func() -> bool: return not Sfx.is_busy(), 10.0, "background building")
 	w.owner_moves.start_save_over()  # the owner is saving over you
-	MusicBox.prewarm(5, "invert")
+	# The music-box themes are baked now (instant); what's still synthesised
+	# is the sound effects. One of those, queued mid-chase, must wait.
+	Sfx._cache.erase("win")
+	Sfx._queue.append("win")
 	await frames(10)
 	check(Sfx.is_busy(), "nothing is built mid-chase")
-	check(not memory().runtime_cache.has("theme_5_invert"), "(still queued)")
+	check(not Sfx._cache.has("win"), "(still queued)")
 	# But if it's needed right now, it's built on the spot.
-	check(MusicBox.stream(5, "invert") != null, "asking for it finishes it")
-	check(not Sfx.is_busy(), "and takes it off the queue")
+	check(Sfx.stream("win") != null, "asking for it builds it")
+	Sfx._queue.erase("win")
+	check(not Sfx.is_busy(), "and nothing is left queued")
+	# A baked theme is ready the moment it's asked for, chase or not.
+	memory().runtime_cache.erase("theme_5_invert")
+	MusicBox.prewarm(5, "invert")
+	check(memory().runtime_cache.has("theme_5_invert"), "a baked theme loads at once, no build needed")
 
 
 func test_frame_time_overlay_toggles() -> void:

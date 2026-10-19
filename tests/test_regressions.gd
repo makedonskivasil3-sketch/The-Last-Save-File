@@ -133,7 +133,7 @@ func test_restored_mira_brings_the_village_sound_back() -> void:
 	check(amb != null and is_equal_approx(amb.village_life(), 1.0), "a restored Mira counts as back (life %.2f)" % (amb.village_life() if amb else -1.0))
 
 
-func test_the_title_theme_is_built_in_the_background() -> void:
+func test_the_title_theme_never_blocks_or_waits() -> void:
 	# Flush a partial job left by another scene before simulating a cold cache.
 	# Two frames is not a cold-start boundary: a fast machine can finish the
 	# background job by then. Inspect _ready synchronously instead.
@@ -142,13 +142,17 @@ func test_the_title_theme_is_built_in_the_background() -> void:
 	var previous := scene()
 	if previous:
 		previous.queue_free()
+	# The theme is baked (tools/bake_audio.gd): the title loads it instead of
+	# synthesising it, so it neither blocks nor waits on a background build.
+	var t := Time.get_ticks_usec()
 	var title: Control = load("res://scenes/title.tscn").instantiate()
 	tree.root.add_child(title)
 	tree.current_scene = title
-	check(not title._music.playing, "the title appears without waiting for the theme")
-	check(not memory().runtime_cache.has("theme_0_normal"), "ready queues synthesis instead of blocking on it")
-	await wait_until(func() -> bool: return title._music.playing, 5.0, "the theme")
-	check(title._music.stream != null, "then the theme plays")
+	var ready_ms := (Time.get_ticks_usec() - t) / 1000.0
+	check(not Sfx._jobs.has("theme_0_normal"), "no background synthesis for the title theme")
+	check(memory().runtime_cache.has("theme_0_normal"), "the baked theme is ready in _ready")
+	await wait_until(func() -> bool: return title._music.playing, 1.0, "the theme")
+	check(title._music.stream != null, "and it plays at once (title ready in %.0f ms)" % ready_ms)
 
 
 func test_closing_a_dialogue_with_the_phone_e_button_does_not_reopen_it() -> void:
