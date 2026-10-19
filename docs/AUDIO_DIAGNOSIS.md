@@ -134,6 +134,21 @@ Checked in Chromium emulating an iPhone 13: no sample rate requested, the hint s
 | iPhone or iPad with the silent switch on | not run (no device) |
 | The player's own device | not run: waiting for the player's report |
 
+### 5. "Only the background music, none of the character voices" (iPhone, 2026-10-19)
+
+**What exists.** No character performance is recorded (`docs/VOICE_SEGMENT_WREN.md`: rights blocker). While text types, each character has a short procedural "babble" sound on the Voice bus.
+
+**Checked in the browser** (a debug export that logged each request; not committed):
+- The game requests the babble (`voice_warm` for Mira).
+- The browser starts each sound at the expected gain (0.178, -15 dB).
+- Left and right are balanced.
+
+The babble path works. On a phone speaker, 70 ms syllables under the music are easy to miss, and they aren't speech.
+
+**Change: spoken voices per character.** Settings > Spoken narration (off by default, unchanged) reads every line with the device's text-to-speech. It used one voice for everyone. Now each character has their own pitch and pace (`Narration.CHARACTER_SPEECH`), and their own system voice where the device has three or more English voices. With fewer, everyone shares one voice and the name is read first (`test_presentation.test_each_character_speaks_in_their_own_voice`, pass).
+
+**Not run:** hearing it on an iPhone. Headless Chromium has no system voices.
+
 ## For a person to check
 
 1. **Web:** open the browser build and click once on the title. The two-note music box should be clear over a soft hum.

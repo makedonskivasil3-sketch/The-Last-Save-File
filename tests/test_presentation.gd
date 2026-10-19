@@ -92,3 +92,21 @@ func test_dialogue_sends_the_correct_speaker_and_cancels_on_close() -> void:
 	check_eq(recording.last_text, "WREN: Keep going.", "advancing replaces the previous spoken line")
 	w.hud.close_dialogue()
 	check_eq(recording.last_text, "", "walking away cancels old narration")
+
+
+func test_each_character_speaks_in_their_own_voice() -> void:
+	# Spoken narration (Settings): own pitch and pace for everyone, and their
+	# own system voice where the device has several (an iPhone has many).
+	var many := {}
+	for who in ["", "OWNER", "MIRA", "WREN", "TOBBEN", "THE ARCHIVIST", "ARIN", "PIP"]:
+		var how: Dictionary = Narration.speech_for(who, 12)
+		check(not how.say_name, "%s: with their own voice, no name read out first" % who)
+		many[how.voice] = true
+		check(how.pitch > 0.0 and how.pitch <= 2.0 and how.rate >= 0.5 and how.rate <= 2.0, "%s: a pitch and pace the device accepts" % who)
+	check_eq(many.size(), 8, "eight speakers, eight different voices")
+	check(Narration.speech_for("WREN", 12).pitch > Narration.speech_for("MIRA", 12).pitch, "Wren, the child, speaks higher than Mira")
+	check(Narration.speech_for("THE ARCHIVIST", 12).pitch < Narration.speech_for("TOBBEN", 12).pitch, "the Archivist lowest")
+	var one: Dictionary = Narration.speech_for("MIRA", 1)
+	check_eq(one.voice, 0, "one device voice: everyone shares it")
+	check(one.say_name, "and the name is read out so you know who is talking")
+	check_eq(Narration.speech_for("SOMEONE NEW", 12).voice, Narration.speech_for("", 12).voice, "an unknown speaker uses the narration voice")
