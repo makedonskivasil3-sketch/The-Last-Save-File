@@ -1412,7 +1412,7 @@ func _quit(to_title: bool = false) -> void:
 	if to_title:
 		get_tree().change_scene_to_file(TITLE_SCENE)
 	else:
-		get_tree().quit()
+		OwnerMemory.quit_game()
 
 
 func _build_purged() -> void:

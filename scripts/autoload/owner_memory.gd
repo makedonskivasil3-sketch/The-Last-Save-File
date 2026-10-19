@@ -138,7 +138,31 @@ func _ready() -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
 		record_quit()
-		get_tree().quit()
+		quit_game()
+
+
+## Quitting, from anywhere (the window, the title, the pause menu): first the
+## scene goes (its suspended scenes and questions see they're out of the tree
+## and return), every sound stops and the generated ones are dropped, so the
+## audio server lets go of them. Otherwise Godot reports them as leaked.
+func quit_game(code := 0) -> void:
+	await prepare_quit()
+	get_tree().quit(code)
+
+
+func prepare_quit() -> void:
+	var tree := get_tree()
+	if tree.current_scene:
+		tree.current_scene.queue_free()
+	for p in tree.root.find_children("*", "AudioStreamPlayer", true, false) \
+			+ tree.root.find_children("*", "AudioStreamPlayer2D", true, false):
+		p.stop()
+		p.stream = null
+	runtime_cache.clear()
+	Sfx.release()
+	VoiceOver.clear_registered()
+	for i in 3:
+		await tree.process_frame
 
 
 static func is_test_mode() -> bool:

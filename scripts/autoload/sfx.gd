@@ -151,6 +151,13 @@ func prewarm() -> void:
 ## Background jobs (music box themes): key -> an object with step(budget_usec)
 ## -> bool (true when done). Run after the sound queue, in the same budget.
 var _jobs: Dictionary = {}
+
+
+## Quitting: drop every generated sound (OwnerMemory.prepare_quit).
+func release() -> void:
+	_cache.clear()
+	_queue.clear()
+	_jobs.clear()
 ## Building a sound is one indivisible chunk (up to ~80 ms on the web), so
 ## the game can ask us to hold off while the action is tense: returns true to
 ## wait. Unset (the title, tests) means always build.

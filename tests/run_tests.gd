@@ -72,6 +72,7 @@ func _run() -> void:
 	print("")
 	print("==== %d passed, %d failed (%.1fs) ====" % [_passed, _failed, secs])
 	_cleanup()
+	await root.get_node("OwnerMemory").prepare_quit()
 	quit(1 if _failed > 0 else 0)
 
 

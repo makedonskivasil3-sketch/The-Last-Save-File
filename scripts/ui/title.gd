@@ -72,7 +72,7 @@ func _ready() -> void:
 	UiStyle.button(row2, "How to Play", _show_help).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if not OwnerMemory.journal.is_empty():
 		UiStyle.button(row2, "Journal", _show_journal).size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	UiStyle.button(row2, "Quit", func() -> void: get_tree().quit()).size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UiStyle.button(row2, "Quit", func() -> void: OwnerMemory.quit_game()).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_menu.add_child(_spacer(4))
 	UiStyle.note(_menu, "Contains flashing and glitch effects. Both can be reduced in Settings.")
 	var phone := OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios") or Settings.using_touch
