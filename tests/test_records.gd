@@ -90,7 +90,7 @@ func test_title_shows_records() -> void:
 	await frames(2)
 	var text := _text()
 	check(text.contains("A NEW GAME FOR WREN"), "the ending you saw is named")
-	check(text.contains("Take Slot 2 with every memory."), "the rest give a hint")
+	check(text.contains("Take Slot 2 with every memory, knowing what you are."), "the rest give a hint")
 	check(text.contains("Wren saw the Edge"), "secrets found are listed")
 	await press("ui_cancel")
 	check(title._panel_of(title._menu).visible, "back to the menu")
