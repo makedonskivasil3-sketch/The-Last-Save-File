@@ -17,7 +17,7 @@
 **Presentation draws at window resolution.**
 - The project already used `canvas_items` stretch, so anything drawn as vectors renders at the window's resolution (1280×720 and up) while living in logical coordinates.
 - The new characters (`IllustratedCharacter`) and environments (`Decor`) are vector-drawn.
-- 2D MSAA is on (`rendering/anti_aliasing/quality/msaa_2d=2`).
+- 2D MSAA isn't available: Godot 4.3's Compatibility renderer doesn't support it (it warns and does nothing). Edges are smoothed by drawing at 2× (backdrops) and at window resolution (figures).
 
 **Layers, bottom to top:**
 
@@ -122,7 +122,6 @@ The `scripts/art/decor.gd` kit:
 | The illustrated cast | ~7 ms |
 | Tree canopies | ~0 ms |
 | The calm screen shader | ~0 ms (it no longer does scanlines or colour split at rest) |
-| 2D MSAA | ~3 ms |
 
 **What was done:**
 - Static scenery is painted once into a 2× texture (`Area.set_backdrop`) instead of every frame.
@@ -131,7 +130,6 @@ The `scripts/art/decor.gd` kit:
 **Still a regression here:** about +9 ms in the room and +11 ms in the square on this machine. Next steps if a real device shows it matters:
 - turn off the sun's shadows on low effects;
 - bake each figure's outline into one polygon;
-- drop 2D MSAA on the web.
 
 ## Not done (pending)
 

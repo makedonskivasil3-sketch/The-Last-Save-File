@@ -160,7 +160,6 @@ func set_backdrop(painter: Callable) -> Node2D:
 	vp.size = Vector2i(BACKDROP_SIZE * BACKDROP_SCALE)
 	vp.transparent_bg = true
 	vp.disable_3d = true
-	vp.msaa_2d = Viewport.MSAA_4X
 	vp.render_target_update_mode = SubViewport.UPDATE_ONCE
 	add_child(vp)
 	var b := _Painted.new()

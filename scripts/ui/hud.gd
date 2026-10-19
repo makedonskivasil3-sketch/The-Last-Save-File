@@ -914,7 +914,7 @@ func _reveal_rate(base_cps: float, text: String) -> float:
 ## The continue marker: shown only once the whole line is visible.
 func _continue_text(last: bool) -> String:
 	if StoryPacing.is_auto():
-		return "auto  ▸"
+		return "auto  »"
 	return "%s  [%s]" % ["close" if last else "▼", Settings.glyph("interact")]
 
 
@@ -1137,7 +1137,7 @@ func set_status(text: String) -> void:
 ## Show the current goal for its reading time plus 3 s, then fade it to a
 ## faint reminder (Pause shows it in full).
 func show_objective(text: String, hint := "") -> void:
-	_objective.text = "▸ " + text
+	_objective.text = "· " + text
 	_objective_hint.text = hint
 	if _objective_tween:
 		_objective_tween.kill()
