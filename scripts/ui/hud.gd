@@ -463,6 +463,10 @@ func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: floa
 	# side effects mid-scene), and the act card clears.
 	var dialogue_held := _dialogue.visible
 	_dialogue.visible = false
+	if dialogue_held:
+		# Its line stops with it; it is said again when the conversation returns.
+		VoiceOver.stop()
+		narrator.stop()
 	_clear_title()
 	_cinematic = true
 	_skip_requested = false
@@ -515,11 +519,13 @@ func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: floa
 	if dialogue_held and _pacer != null:
 		_dialogue.visible = true  # back to the conversation, where it was
 		_dialogue_opened_frame = Engine.get_process_frames()  # the scene's last press doesn't advance it
-		# The scene cut the line's voice off: say the line again from the start.
-		if _dialogue_voice != "" and VoiceOver.play(self, _dialogue_voice) != null:
-			_pacer = LinePacer.new(_dialogue_text.text, StoryPacing.is_auto(), voice_busy)
-			_pacer.reveal(Engine.get_process_frames())
-			_dialogue_text.visible_characters = -1
+		# Pick the line up again from its start (typed, and said if recorded),
+		# so a press still coming from the scene can't skip it unread.
+		if _dialogue_voice != "":
+			VoiceOver.play(self, _dialogue_voice)
+		_pacer = LinePacer.new(_dialogue_text.text, StoryPacing.is_auto(), voice_busy)
+		_dialogue_typed = 0.0
+		_dialogue_text.visible_characters = 0
 	else:
 		_console_box.visible = _console.get_child_count() > 0
 		_prompt.visible = true
@@ -960,6 +966,11 @@ func say(text: String, kind: String = "owner", speaker: String = "") -> void:
 		_queue.insert(at, msg)
 	else:
 		_queue.append(msg)
+
+
+## The console is still typing or has lines waiting.
+func is_console_busy() -> bool:
+	return _typing != null or not _queue.is_empty()
 
 
 func clear_queue() -> void:

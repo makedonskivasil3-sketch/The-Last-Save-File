@@ -39,6 +39,8 @@ const TRAIL_INTERVAL := 0.05
 var frozen := false
 ## Set by World while dialogue or a choice is open: idle_time holds.
 var reading := false
+## A tip or a card is on screen: not standing still either, but Rue may walk.
+var reading_card := false
 ## Seconds since the player last moved; the owner watches this.
 var idle_time := 0.0
 ## True while someone hides you (set by World): you duck down.
@@ -165,7 +167,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	if dir != Vector2.ZERO:
 		idle_time = 0.0
-	elif not reading:
+	elif not reading and not reading_card:
 		idle_time += delta
 
 

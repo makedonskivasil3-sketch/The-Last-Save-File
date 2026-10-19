@@ -271,9 +271,10 @@ func _archive(w: Node, with_bin: bool) -> bool:
 		pass
 	if not await _arrived(w, "archive"):
 		return false
-	# The Archivist: the pointer to Slot 2.
+	# The Archivist: the pointer to Slot 2 (kept in the save once given; the
+	# bot still walks the same way past him, the route it knows is clear).
+	await _go(w, [Vector2(320, 172)], 8.0)
 	if not w.flags.get("pointer", false):
-		await _go(w, [Vector2(320, 172)], 8.0)
 		await press("interact")
 		await frames(4)
 		await _read_dialogue(w)
@@ -474,12 +475,15 @@ func _go(w: Node, points: Array, timeout := STEP_TIMEOUT) -> bool:
 ## doesn't, else standing still.
 func _off_exits(w: Node, n: Vector2, goal: Vector2) -> Vector2:
 	var p: Vector2 = w.player.global_position
+	# Look ahead no further than the goal: a waypoint just short of a doorway
+	# must still be reachable.
+	var ahead := minf(30.0, p.distance_to(goal))
 	if n == Vector2.ZERO or _near_exit(w, goal) or not w.area.bounds.grow(-4.0).has_point(goal) \
-			or not _near_exit(w, p + n * 30.0):
+			or not _near_exit(w, p + n * ahead):
 		return n
 	for turn in [0.5, -0.5, 1.0, -1.0, 1.5, -1.5]:
 		var m := n.rotated(turn)
-		if not _near_exit(w, p + m * 30.0):
+		if not _near_exit(w, p + m * ahead):
 			return m
 	return Vector2.ZERO
 

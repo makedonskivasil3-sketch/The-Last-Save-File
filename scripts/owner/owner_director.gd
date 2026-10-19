@@ -40,6 +40,17 @@ var owner_paused := 0.0
 const LIE_RATE := 0.35
 var _lie := 0.0
 
+## The morning after the RUE or message ending the owner keeps their word
+## ("i'm not deleting anything tonight", "i'm just going to watch"): for
+## that session they only watch. Awareness rises slowly and stops short of
+## SILENCE, and the owner makes no moves, until you glitch TRUCE_STRIKES
+## times (each one warned): then it's an ordinary session again.
+const TRUCE_STRIKES := 3
+const TRUCE_RATE := 0.3
+const TRUCE_STRIKE_LINES := ["...careful.", "i said i'd leave you alone. don't make me.", "...right. you're still you."]
+var truce := false
+var _truce_strikes := 0
+
 var _world: World
 var _fired: Dictionary = {}
 var _idle_warned := false
@@ -49,6 +60,7 @@ var _running := false
 func start(world: World, previous_exit: String) -> void:
 	_world = world
 	awareness = minf(OwnerMemory.purge * START_PER_PURGE, START_CAP)
+	truce = previous_exit in ["win", "escape"] and OwnerMemory.last_ending in ["rue", "message"]
 	Sfx.owner_strain = awareness / 100.0
 	# Thresholds already passed at session start are baked into the world's
 	# initial state; don't replay their events.
@@ -101,6 +113,15 @@ func warn(text: String) -> void:
 	_world.hud.warn(text)
 
 
+## A glitch during a truce: warned twice, broken on the third.
+func truce_strike() -> void:
+	_truce_strikes += 1
+	warn(TRUCE_STRIKE_LINES[mini(_truce_strikes, TRUCE_STRIKES) - 1])
+	if _truce_strikes >= TRUCE_STRIKES:
+		truce = false
+		_world.hud.say("TRUCE BROKEN", "system")
+
+
 ## A one-off jump the player should be able to explain: the meter shows
 ## "+N · why" (like a glitch's price). Continuous gains (being seen, an
 ## escort in view) show through the meter and the watcher's "!" instead.
@@ -115,6 +136,8 @@ func add_awareness(amount: float) -> void:
 	if not _running:
 		return
 	awareness = clampf(awareness + amount, 0.0, 100.0)
+	if truce:
+		awareness = minf(awareness, SILENCE - 0.5)  # watching, not acting
 	Sfx.owner_strain = awareness / 100.0
 	_world.hud.set_awareness(awareness / 100.0)
 	_world.drone.tension = awareness / 100.0
@@ -136,6 +159,8 @@ func _process(delta: float) -> void:
 	var rate := (BASE_RATE + RATE_PER_PURGE * OwnerMemory.purge) * _world.area.awareness_rate
 	if _lie > 0.0 and rate > 0.0:
 		rate *= LIE_RATE
+	if truce and rate > 0.0:
+		rate *= TRUCE_RATE
 	if _world.escort and rate > 0.0:
 		rate *= 1.4  # a child following an intruder: hard to miss
 	if _world.is_hidden_now():

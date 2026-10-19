@@ -191,8 +191,15 @@ try next time. Once you have the glitch that answers that death, the tip names i
 (`Story.DEATHS`). The card waits for you: **[E] retry** appears after a moment
 (1.2 s the first time a cause kills you, 0.5 s after that) and nothing restarts until you press it.
 
-**Reading is safe.** While a conversation is open Rue stands still and so does the owner: no move
-starts, awareness doesn't climb, and a save ring already filling holds until the box closes. The
+**Reading is safe.** While a conversation, a question or a scene is open, Rue stands still and so
+does the owner: no move starts, awareness doesn't climb, and a save ring already filling holds until
+it closes. Reading a tip, a card or lines the console is still delivering isn't "standing still"
+either.
+
+**The owner keeps their word.** After the RUE or the message ending, the next run is a truce: the
+owner only watches (awareness rises slowly and stops short of SILENCE, no moves) until you glitch
+three times, each one warned. The goal line says so. A reload is always announced first, and the
+glitch prompt shows `RELOADS` when the next glitch would trigger one. The
 owner's warnings ("saving over you.") appear at once on their own strip under the banner, whatever
 else is on screen (`docs/NARRATIVE_RELIABILITY.md`).
 
@@ -659,7 +666,10 @@ tests/run.sh --bots --speed=2 --filter=purge_3
 | `test_glitch.gd` | Tap still interacts; every glitch (freeze, falsify, unlock, phase, decoy, pause, restore, blind, scrub), its cost and its unlock |
 | `test_owner_moves.gd` | Load last save (and what it undoes), the 3-glitch reload, saving over you (and a glitch interrupting it), no moves where the owner can't see, the crates dragged across the road, Arin's route memory, debug tools, a reload never landing in a doorway |
 | `test_narrative_reliability.gd` | Warnings readable at once behind Slow typing and backlogs; long lines get their reading time and pages; the death card waits for a press; conversations hold the owner (and a save ring); NPC lines have voice ids in the manifest; the manifest doesn't depend on the save; a memory is one save |
-| `test_character_presentation.gd` | Nobody shows Rue's face as a stand-in; Mira's portrait matches her sprite, has every expression and her own, talks and blinks, and follows her lines |
+| `test_character_presentation.gd` | Nobody shows Rue's face as a stand-in; Mira's and Wren's portraits match their sprites, have their own expressions and silhouettes, talk and blink, and follow their lines |
+| `test_verification_probes.gd` | A scene over a recorded conversation says the line again and types it out; the death card ignores presses while paused; Rue can't walk while reading; every scene holds the owner |
+| `test_cohesion_fairness.gd` | Reloads are always announced and previewed; FREEZE means Arin; holds pause the Edge's countdown; reading tips and the start of a run isn't standing still |
+| `test_cohesion_story.gd` | "Not now" doesn't hide Mira's lines; restricted Mira still remembers; the Archivist's pointer is kept; later runs show the way out; the truce after the gentle endings; Wren remembers her ending |
 | `test_wren.gd` | Wren asks, comes along and follows; declining; the leash; reaching the Edge saves her for good; the owner deleting her; a glitch saving her |
 | `test_save_safety.gd` | Saves are versioned and backed up; a half-written save recovers from the backup (and the damaged file is kept); wrong-typed values fall back instead of stopping the load; unversioned saves still load; a reset removes the backup |
 | `test_owner_fixes.gd` | The idle save-over (only in the open, only after the owner's warning); closets count as hiding everywhere; no doorways mid-reload; PAUSE carries through a doorway |

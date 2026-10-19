@@ -96,11 +96,49 @@ const MIRA_GRID := [
 	"..occcccccccccccccccccccccCCCo..",
 ]
 
+## Wren: a child. Round head and short fringe, two pigtails tied with green
+## (d) sticking out at the sides, narrow shoulders, a green pinafore.
+const WREN_GRID := [
+	"................................",
+	"................................",
+	"................................",
+	"................................",
+	"...........oooooooooo...........",
+	".........oohhhhhhhhhhoo.........",
+	"........ohhhhhhhhhhhhhhho.......",
+	".......ohhhhhhhhhhhhhhhhho......",
+	".......ohhhhhhhhhhhhhhhhho......",
+	"......ohhhhhhhhhhhhhhhhhhho.....",
+	"......ohhhHhhhHhhhhHhhhHhho.....",
+	"..oo..ohhHsssHssssHsssHhhho..oo.",
+	".ohho.ohhssssssssssssssShho.ohho",
+	"ohhhdoohhssssssssssssssShhoodhhh",
+	"ohhhddohSssssssssssssssShSoddhhh",
+	".ohhdooSsssssssssssssssssSoodhho",
+	".ohhho.oSssssssssssssssssSo.ohho",
+	"..ohho.oSssssssssssssssssSo.ohho",
+	"..ohhho.oSsssssssssssssSSo.ohho.",
+	"...ohho..oSsssssssssssSSo..ohho.",
+	"...ohho...oSSssssssssSSo...oho..",
+	"....oho....ooSSSSSSSSoo....oo...",
+	".....oo......oSSSSSSo...........",
+	"...........ooccddddccoo.........",
+	".........ooccccddddccccoo.......",
+	"........occcccccddcccccCCo......",
+	".......occccccccddccccccCCo.....",
+	"......occcccccccccccccccCCo.....",
+	"......occcccccccccccccccCCCo....",
+	".....occccccccccccccccccCCCo....",
+	".....occccccccccccccccccCCCo....",
+	".....occccccccccccccccccCCCo....",
+]
+
 ## Who has a portrait: their bust grid (keys as RUE_GRID; d is trim, ribbon
 ## or seams in the clothes-dark colour) and expressions of their own.
 const CAST := {
 	"rue": {"grid": RUE_GRID, "extras": []},
 	"mira": {"grid": MIRA_GRID, "extras": ["eager", "proud", "reset"]},
+	"wren": {"grid": WREN_GRID, "extras": ["brave", "awed"]},
 }
 
 ## Face features per expression, in grid coordinates. Eyes are drawn at
@@ -125,6 +163,12 @@ const FACES := {
 	# Mira's: chin up, eyes closed, a wide smile ("MIRA WAS HERE").
 	"proud": {"lids": [[-1, 1], [0, 2], [1, 2], [2, 1]],
 		"brows": [[10, 11], [11, 11], [12, 11], [19, 11], [20, 11], [21, 11]], "mouth": [[13, 19], [14, 20], [15, 20], [16, 20], [17, 20], [18, 19]], "cheeks": true},
+	# Wren's: brows down, mouth set. Smaller than her courage.
+	"brave": {"eye": [[0, 1], [1, 1], [0, 2], [1, 2]],
+		"brows": [[10, 12], [11, 12], [12, 13], [19, 13], [20, 12], [21, 12]], "mouth": [[14, 19], [15, 19], [16, 19], [17, 19]], "cheeks": true},
+	# Wren's, at the Edge: wide eyes with the slot's cyan in them, mouth open.
+	"awed": {"eye": [[0, -1], [1, -1], [0, 0], [1, 0], [0, 1], [1, 1], [0, 2], [1, 2]], "shine": Color("7ff6ff"),
+		"brows": [[10, 11], [11, 10], [12, 11], [19, 11], [20, 10], [21, 11]], "mouth": [[15, 19], [16, 19], [15, 20], [16, 20]], "cheeks": true},
 	# Mira's, after the owner resets her: wide eyes with no light in them and
 	# a blank, too-wide smile.
 	"reset": {"eye": [[0, 0], [1, 0], [0, 1], [1, 1]], "no_shine": true,
@@ -245,7 +289,7 @@ static func _draw_face(img: Image, face: Dictionary, c: Dictionary) -> void:
 	var s: Color = c.get("s", Color("f0c49c"))
 	var eye_col: Color = c.get("e", Color("2a1612"))
 	var has_face := s.get_luminance() > 0.2  # the void face is near-black
-	var shine := Color("fffaf0") if has_face else eye_col.lightened(0.5)
+	var shine: Color = face.get("shine", Color("fffaf0")) if has_face else eye_col.lightened(0.5)
 	for x0 in [11, 19]:
 		if face.has("lids"):
 			for o in face.lids:

@@ -138,11 +138,15 @@ func find_target() -> Dictionary:
 	var best_score := INF
 	var candidates: Array = []
 	var arin: Variant = area.get("arin")
+	var arin_in_reach := false
 	if arin is OwnerAvatar and arin.stunned <= 0.0:
 		candidates.append(["freeze", arin, arin.global_position, Glitch.DEFS.freeze.range])
+		arin_in_reach = p.distance_to(arin.global_position) <= Glitch.DEFS.freeze.range
 	for node in area.interactables:
 		if node is Npc:
-			if node.is_present() and node.frozen <= 0.0:
+			# With Arin in reach, FREEZE means Arin: never the friend you're
+			# hiding beside.
+			if node.is_present() and node.frozen <= 0.0 and not arin_in_reach:
 				candidates.append(["freeze", node, node.global_position, 40.0])
 			elif node.state == Npc.State.DELETED:
 				candidates.append(["restore", node, node.global_position, Glitch.DEFS.restore.range])
@@ -321,7 +325,10 @@ func _update_prompt() -> void:
 		world.hud.set_glitch_prompt("")
 		return
 	# The label names the price ("PHASE +8"): every glitch costs awareness.
-	world.hud.set_glitch_prompt("hold [%s]  %s" % [Settings.glyph("interact"), Glitch.label(target.id)])
+	var prompt := "hold [%s]  %s" % [Settings.glyph("interact"), Glitch.label(target.id)]
+	if world.owner_moves.next_glitch_reloads():
+		prompt += "  ·  RELOADS"  # the owner said so; the prompt keeps saying so
+	world.hud.set_glitch_prompt(prompt)
 
 
 func _draw() -> void:

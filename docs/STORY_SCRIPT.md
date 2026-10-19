@@ -541,7 +541,7 @@ save. not once. not even when you left. / you wanted to be forgotten. so i forgo
 
 ## Side stories
 
-**Mira's walk.** *"I've never been outside this room. Not once. Arin walks past my window every morning. I've
+**Mira's walk.** *"I've never been outside this room. Not once. Arin walks out that door every morning. I've
 never seen what's past it. ... Take me there? I want to pin it up myself."* · **THE OWNER:** > mira? what is
 mira doing out of her room. · The ring: *RESET mira.npc ?* · **THE OWNER:** > mira. back to your room. reset.
 At the board: *MIRA: It's so big. ... she pins the note to the board with both hands, very carefully. MIRA:

@@ -145,6 +145,8 @@ func on_owner_event(threshold: float) -> void:
 
 func area_process(delta: float) -> void:
 	_update_fight(delta)
+	if world.is_owner_paused():
+		return  # reading, a question, PAUSE: the countdown waits too
 	if grace >= 0.0:
 		grace -= delta
 		var left := ceili(grace)

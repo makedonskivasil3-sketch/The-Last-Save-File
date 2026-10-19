@@ -46,6 +46,22 @@ const TOBBEN_LINES := [
 
 
 
+## How Wren looks saying each of her lines (CharacterArt expressions; the
+## rest are "neutral"). docs/CHARACTER_ART.md has her brief.
+static func wren_expression(line: String) -> String:
+	var by_line := {
+		WREN_LINES[1]: "brave", WREN_LINES[3]: "afraid", WREN_LINES[4]: "relieved",
+		Story.WREN_ASK: "brave", Story.WREN_ASK_SAVED: "awed",
+		Story.WREN_SAVED_LINES[0]: "brave", Story.WREN_SAVED_LINES[1]: "relieved",
+		Story.WREN_JOINS[0]: "relieved", Story.WREN_DECLINED[0]: "concerned",
+	}
+	var recall := {"ended:wren": "awed", "ended:message": "relieved", "ended:escape": "concerned", "died:eraser": "afraid"}
+	for entry in Story.RECALL["wren"]:
+		if recall.has(entry[0]):
+			by_line[entry[1]] = recall[entry[0]]
+	return by_line.get(line, "neutral")
+
+
 ## Every line Wren and Tobben can say that is the same in every run, by voice
 ## id stem (VoiceManifest), including what they remember (Story.recall_lines).
 static func voice_lines() -> Dictionary:
@@ -70,6 +86,8 @@ var door: Door
 var _wren_line := 0
 ## Wren just asked to come along: the choice comes when the dialogue closes.
 var _wren_asked := false
+## As with Mira: after a "not now", two more of her own lines before she asks again.
+var _wren_ask_at := 2
 var _tobben_line := 0
 var _spotted_once := false
 ## Seconds Arin has had you in view without a break, and the frame they last
@@ -280,12 +298,12 @@ func on_dialogue_closed(who: Node) -> void:
 		return
 	world.player.frozen = false
 	if pick == 0:
-		world.hud.show_dialogue("WREN", wren.name_color, Story.WREN_JOINS, "npc.wren")
+		world.hud.show_dialogue("WREN", wren.name_color, Story.WREN_JOINS, "npc.wren", CharacterArt.for_npc(wren), World.expressions_for(wren, Story.WREN_JOINS))
 		world.start_escort(wren)
 		wren = null
 	else:
-		_wren_line += 1  # she'll ask again later
-		world.hud.show_dialogue("WREN", wren.name_color, Story.WREN_DECLINED, "npc.wren")
+		_wren_ask_at = _wren_line + 2  # she'll ask again, after two more of her own lines
+		world.hud.show_dialogue("WREN", wren.name_color, Story.WREN_DECLINED, "npc.wren", CharacterArt.for_npc(wren), World.expressions_for(wren, Story.WREN_DECLINED))
 
 
 func area_process(delta: float) -> void:
@@ -382,14 +400,14 @@ static func make_wren(parent: Node, pos: Vector2) -> Npc:
 func _wren_lines() -> Array:
 	if OwnerMemory.wren_saved:
 		# Saved for good, but she still wants to come: there's a slot out there.
-		if _wren_line >= 1 and world.escort == null:
+		if _wren_line >= _wren_ask_at - 1 and world.escort == null:  # she asks sooner: she has seen it
 			_wren_asked = true
 			return [Story.WREN_ASK_SAVED]
 		var saved: String = Story.WREN_SAVED_LINES[mini(_wren_line, Story.WREN_SAVED_LINES.size() - 1)]
 		_wren_line += 1
 		return [saved]
 	# After a couple of talks she asks to come with you.
-	if _wren_line >= 2 and world.escort == null:
+	if _wren_line >= _wren_ask_at and world.escort == null:
 		_wren_asked = true
 		return [Story.WREN_ASK]
 	var line: String = WREN_LINES[mini(_wren_line, WREN_LINES.size() - 1)]
@@ -436,8 +454,12 @@ func _offer_guestbook() -> void:
 
 
 func _tobben_reports() -> void:
-	# He tells the owner a few seconds later.
-	get_tree().create_timer(4.0).timeout.connect(_tobben_report_lands)
+	# He tells the owner a few seconds after you stop talking, not while you
+	# are still reading him.
+	while is_inside_tree() and world.hud.is_dialogue_open():
+		await get_tree().process_frame
+	if is_inside_tree():
+		get_tree().create_timer(4.0).timeout.connect(_tobben_report_lands)
 
 
 func _tobben_report_lands() -> void:

@@ -68,6 +68,8 @@ var _snap_t := 0.0
 var _clock := 0.0
 var _load_cd := 0.0
 var _glitches_since_load := 0
+## The reload warning has been given since the last load: a reload is never unannounced.
+var _reload_warned := false
 var _loaded_at_silence := false
 var _next_save := INF
 var _save_tick := 0.0
@@ -101,6 +103,9 @@ func update(delta: float) -> void:
 		return
 	var aw := world.director.awareness
 	_note_route(delta)
+	if world.director.truce:
+		queue_redraw()
+		return  # the owner only watches this run
 	# Saving over you.
 	if _writing_slot():
 		pass  # standing still in Slot 2 is the point: no save-over there
@@ -135,6 +140,9 @@ func on_threshold(t: float) -> void:
 ## Every glitch is a provocation: it interrupts a save, and enough of them
 ## make the owner reload.
 func on_glitch(_id: String) -> void:
+	if world.director.truce:
+		world.director.truce_strike()
+		return  # no reloads or interrupted moves to count: none are running
 	if wren_delete >= 0.0:
 		wren_delete = -1.0
 		world.hud.cancel_warning()
@@ -149,15 +157,28 @@ func on_glitch(_id: String) -> void:
 		_next_save = _clock + SAVE_EVERY
 		return
 	_glitches_since_load += 1
-	# One glitch before the owner reloads, they say so: the rule is fair once heard.
-	if _glitches_since_load == GLITCHES_PER_LOAD - 1 and _load_cd <= 0.0 \
-			and world.director.awareness >= OwnerDirector.NOTICE and _owner_watching():
-		world.director.warn(Story.RELOAD_WARNING)
-	if _glitches_since_load >= GLITCHES_PER_LOAD and _load_cd <= 0.0 \
-			and world.director.awareness >= OwnerDirector.NOTICE and _owner_watching():
+	if not _reload_armed():
+		return
+	# The owner always says so before reloading: the glitch that would
+	# reload unwarned (glitches made before they noticed you, say) gets the
+	# warning instead, and the next one reloads. The rule is fair once heard.
+	if _glitches_since_load >= GLITCHES_PER_LOAD and _reload_warned:
 		get_tree().create_timer(1.0).timeout.connect(func() -> void:
 			if is_inside_tree():
 				load_last_save())
+	elif _glitches_since_load >= GLITCHES_PER_LOAD - 1 and not _reload_warned:
+		_reload_warned = true
+		world.director.warn(Story.RELOAD_WARNING)
+
+
+func _reload_armed() -> bool:
+	return _load_cd <= 0.0 and world.director.awareness >= OwnerDirector.NOTICE and _owner_watching()
+
+
+## The next glitch would make the owner reload (the glitch prompt says so).
+func next_glitch_reloads() -> bool:
+	return _reload_armed() and _reload_warned and save_progress < 0.0 and wren_delete < 0.0 \
+			and _glitches_since_load + 1 >= GLITCHES_PER_LOAD
 
 
 # --- LOAD LAST SAVE -----------------------------------------------------------------
@@ -191,6 +212,7 @@ func load_last_save(force := false) -> void:
 	OwnerMemory.total_reloads += 1
 	_load_cd = LOAD_COOLDOWN
 	_glitches_since_load = 0
+	_reload_warned = false
 	if save_progress >= 0.0:
 		save_progress = -1.0
 	var target := _pick_snapshot()

@@ -90,7 +90,7 @@ const ARCHIVIST_FIRST := [
 	"Reach Slot 2 and you can write yourself into it.",
 ]
 const ARCHIVIST_BACK := "Back again. I remember you. I'm the only one here who does, kindly."
-const ARCHIVIST_AGAIN := "Here's the pointer again. North road. Go."
+const ARCHIVIST_AGAIN := "You kept the pointer. Good. North road, when you're ready."
 const ARCHIVIST_NO_PIECES := "Things like you leave pieces behind when they're deleted. Look for anything your colour."
 
 
@@ -118,21 +118,32 @@ func _fragment_comment() -> String:
 	return _archivist_remembers()
 
 
+## A returning visitor (the pointer already in your save) is greeted once.
+var _greeted := false
+
+
 func _archivist_core() -> Array:
 	if world.flags.get("pointer", false):
-		return ARCHIVIST_POINTER.duplicate()
+		if _greeted or not OwnerMemory.met_archivist:
+			return ARCHIVIST_POINTER.duplicate()
+		_greeted = true
+		var back: Array = [ARCHIVIST_BACK]
+		if OwnerMemory.deaths > 0:
+			back.append(_erased_line())
+		back.append(ARCHIVIST_AGAIN)
+		return back
+	# The first meeting: the pointer, kept in the save from now on.
 	world.flags["pointer"] = true
+	_greeted = true
 	PlaytestLog.mark("got the pointer (north road open)", "", true)
 	world.hud.say("RECEIVED: slot_2.ptr", "system")
-	if not OwnerMemory.met_archivist:
-		OwnerMemory.met_archivist = true
-		OwnerMemory.save_memory()
-		return ARCHIVIST_FIRST.duplicate()
-	var lines: Array = [ARCHIVIST_BACK]
-	if OwnerMemory.deaths > 0:
-		lines.append("You've been erased %d time%s. I keep the logs. Read them, if you like." % [OwnerMemory.deaths, "" if OwnerMemory.deaths == 1 else "s"])
-	lines.append(ARCHIVIST_AGAIN)
-	return lines
+	OwnerMemory.met_archivist = true
+	OwnerMemory.save_memory()
+	return ARCHIVIST_FIRST.duplicate()
+
+
+func _erased_line() -> String:
+	return "You've been erased %d time%s. I keep the logs. Read them, if you like." % [OwnerMemory.deaths, "" if OwnerMemory.deaths == 1 else "s"]
 
 
 func _session_log() -> Array:

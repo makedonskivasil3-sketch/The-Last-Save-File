@@ -1,5 +1,7 @@
 # Experience polish: baseline and prioritized issues
 
+> **Historical record.** This audit describes an earlier build. For the current state, see `RELEASE_READINESS.md` (status and validation) and `COHESION_PASS.md` (what was verified, fixed and deferred most recently). Findings marked fixed there supersede the ones here.
+
 The baseline was taken on 2026-10-16 at commit `fb1ffc9` (what's on `main` and the live web build), before any change in this milestone.
 
 The audits behind it are:

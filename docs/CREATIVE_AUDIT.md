@@ -1,5 +1,7 @@
 # Creative audit: The Last Save File
 
+> **Historical record.** This audit describes an earlier build. For the current state, see `RELEASE_READINESS.md` (status and validation) and `COHESION_PASS.md` (what was verified, fixed and deferred most recently). Findings marked fixed there supersede the ones here.
+
 This audit looks at the game as a first-time player, a horror critic, a technical artist and a potential customer would. It was written on 2026-10-16 at commit `c7f0ff8`.
 
 The evidence comes from four sources:
