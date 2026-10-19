@@ -95,3 +95,36 @@ Use the same sheet, plus these targeted observations. Run at least one session w
 | Auto mode on Slow | Do long lines leave before they are read? | The player presses for History to re-read a line auto moved past |
 
 **Results: untested.** No session has been run for this round. Results go in `PLAYTEST_RESULTS.md`, with the build hash, when real sessions happen.
+
+## Round focus: sound and the first fifteen minutes (`claude/review-fixes`)
+
+**Setup:**
+- 3–5 first-time players, about 15 minutes each, then one returning run, about 5 minutes.
+- Half on headphones, half on laptop speakers at their usual volume. Note which.
+- Use the browser build for at least one player.
+
+**Before they start.** Don't mention sound. If, after 2 minutes, they haven't said anything about it, ask once: "Can you hear the game?" Note the answer.
+
+```
+Player: __  Output: headphones / laptop speakers / phone  Build: web / Windows / Linux <hash>
+Heard on the title (music box)? Y/N      Heard in Arin's room? Y/N      Turned volume up? Y/N
+first movement .............. __     door reaction understood? Y/N (what they said)
+first deliberate glitch ..... __ (which)   noticed the meter rise? Y/N
+first memory ................ __     could say whose memory it was? Y/N
+left the room ............... __ (how)
+hid (Wren / closet) ......... __
+first failure ............... __ (cause)   understood the cause? Y/N (their words)
+after retry: noticed a change? Y/N (what)
+willing to explore? (went somewhere optional) Y/N
+point they wanted to stop ... __ (why)
+```
+
+**Afterwards (neutral, in this order, answers written word for word):**
+1. What do you think happened?
+2. What caused that? (Point at their first failure.)
+3. What would you try next?
+4. What felt unclear or unfair?
+
+**Returning run.** Start the same save once more. Watch whether they notice the deleted door, the owner's note and the characters' lines. Ask "What's different?" and write the answer down.
+
+**Results: not run.** Nobody has played this build. Don't fill in this section from bots or from guesses.

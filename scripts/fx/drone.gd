@@ -114,8 +114,31 @@ func _looping(s: AudioStream) -> AudioStreamPlayer:
 func _cached(key: String, builder: Callable) -> AudioStreamWAV:
 	var k := "drone_" + key
 	if not OwnerMemory.runtime_cache.has(k):
-		OwnerMemory.runtime_cache[k] = builder.call()
+		# Deterministic layers are baked (tools/bake_audio.gd): loading one
+		# is ~1 ms; building it was a 65-80 ms hitch on the title.
+		var baked := baked_path(key)
+		if key in BAKED and ResourceLoader.exists(baked):
+			OwnerMemory.runtime_cache[k] = load(baked)
+		else:
+			OwnerMemory.runtime_cache[k] = builder.call()
 	return OwnerMemory.runtime_cache[k]
+
+
+## Layers whose samples are the same every time (no randomness): baked.
+const BAKED := ["hum", "dread"]
+
+
+static func baked_path(key: String) -> String:
+	return "res://audio/baked/drone_%s.res" % key
+
+
+static func build(key: String) -> AudioStreamWAV:
+	match key:
+		"hum":
+			return _build_hum()
+		"dread":
+			return _build_dread()
+	return null
 
 
 # --- layers ------------------------------------------------------------------------
