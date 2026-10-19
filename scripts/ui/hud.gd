@@ -964,8 +964,8 @@ func _update_dialogue(delta: float) -> void:
 			_fit_dialogue()
 		if int(_dialogue_typed) > before and not is_inf(cps) and not VoiceOver.is_playing():
 			# Each speaker has their own voice (Sfx.VOICE_PROFILES); books and notes rustle.
-			if Settings.narration and narrator.supported:
-				pass  # system speech replaces the synthetic syllables
+			if narrator.voicing():
+				pass  # system speech is carrying the line; if it never starts, the syllables do
 			elif _dialogue_speaker.text in Sfx.VOICE_PROFILES:
 				Sfx.voice_blip(_dialogue_speaker.text)
 			else:

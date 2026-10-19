@@ -101,6 +101,38 @@ The `scripts/art/decor.gd` kit:
 | Recycle Bin, Out of Bounds, the Edge | The owner's system spaces. They keep their deliberate digital look (grids, missing textures, sweeps) for contrast with the familiar world; they pick up the new walls |
 | Crate stack (prop) | Illustrated |
 
+## Performance (measured, software renderer only)
+
+**Setup:**
+- **Machine:** Intel Xeon 2.1 GHz cloud container, Xvfb with Mesa llvmpipe (no GPU), 1280×720, effects Full.
+- **Method:** average frame time over 90 frames (`tests/tour_slice.gd`, `tests/tour_visual.gd`).
+- **Caveat:** the software renderer exaggerates per-light and per-shape costs. Real-GPU numbers: **not run**.
+
+| Scene | Before (old pixel art) | Illustrated, first version | After baking backdrops and lean discs |
+|---|---|---|---|
+| Arin's room | ~45 ms | ~74 ms | ~53–56 ms |
+| Village square | ~53 ms | ~86 ms | ~64–68 ms |
+| Bin, Out of Bounds, Edge | ~38–44 ms | ~43–45 ms | unchanged (not redrawn) |
+
+**What the cost is** (square, measured by switching layers off):
+
+| Layer | Cost |
+|---|---|
+| The area's four 2D lights, including the shadow-casting sun (present before this pass) | ~13.5 ms |
+| The illustrated cast | ~7 ms |
+| Tree canopies | ~0 ms |
+| The calm screen shader | ~0 ms (it no longer does scanlines or colour split at rest) |
+| 2D MSAA | ~3 ms |
+
+**What was done:**
+- Static scenery is painted once into a 2× texture (`Area.set_backdrop`) instead of every frame.
+- Figures use 8–12-sided discs instead of `draw_circle`.
+
+**Still a regression here:** about +9 ms in the room and +11 ms in the square on this machine. Next steps if a real device shows it matters:
+- turn off the sun's shadows on low effects;
+- bake each figure's outline into one polygon;
+- drop 2D MSAA on the web.
+
 ## Not done (pending)
 
 - **Production art:** no external artist assets. Everything is drawn in code and needs nothing to be licensed. A finished pass would replace `Decor` and `IllustratedCharacter` drawing with authored art at the same anchor points:

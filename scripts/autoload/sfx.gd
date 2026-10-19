@@ -397,9 +397,18 @@ func _make_buses() -> void:
 		_lowpass[bus] = lp
 
 
-## Recorded speech is playing (true) or has ended (false).
-func duck_for_speech(on: bool) -> void:
-	_duck_target = SPEECH_DUCK_DB if on else 0.0
+## Speech is playing (true) or has ended (false). `source` keeps recorded
+## lines and system narration apart: the music comes back only when neither
+## is speaking.
+func duck_for_speech(on: bool, source := "voice_over") -> void:
+	if on:
+		_duck_sources[source] = true
+	else:
+		_duck_sources.erase(source)
+	_duck_target = SPEECH_DUCK_DB if not _duck_sources.is_empty() else 0.0
+
+
+var _duck_sources: Dictionary = {}
 
 
 func speech_duck_db() -> float:

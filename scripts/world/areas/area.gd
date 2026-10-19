@@ -146,13 +146,36 @@ func set_owner_paused(on: bool) -> void:
 ## Static scenery painted once (Decor), under everything else in the area:
 ## `painter(ci: CanvasItem)` is called when the backdrop first draws. Areas
 ## keep only what moves in their own _draw.
+##
+## The painting is baked once into a texture at twice the logical resolution
+## (an off-screen viewport, rendered once) and shown as one image: the lights
+## then shade one quad instead of thousands of shapes every frame
+## (docs/VISUAL_DIRECTION.md, performance).
+const BACKDROP_SCALE := 2.0
+const BACKDROP_SIZE := Vector2(640, 360)
+
+
 func set_backdrop(painter: Callable) -> Node2D:
+	var vp := SubViewport.new()
+	vp.size = Vector2i(BACKDROP_SIZE * BACKDROP_SCALE)
+	vp.transparent_bg = true
+	vp.disable_3d = true
+	vp.msaa_2d = Viewport.MSAA_4X
+	vp.render_target_update_mode = SubViewport.UPDATE_ONCE
+	add_child(vp)
 	var b := _Painted.new()
 	b.painter = painter
-	b.z_index = -1
-	add_child(b)
-	move_child(b, 0)
-	return b
+	b.scale = Vector2(BACKDROP_SCALE, BACKDROP_SCALE)
+	vp.add_child(b)
+	var img := Sprite2D.new()
+	img.texture = vp.get_texture()
+	img.centered = false
+	img.scale = Vector2(1.0 / BACKDROP_SCALE, 1.0 / BACKDROP_SCALE)
+	img.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	img.z_index = -1
+	add_child(img)
+	move_child(img, 0)
+	return img
 
 
 ## Tree canopies over the play space (Decor.tree): drawn above the cast, and

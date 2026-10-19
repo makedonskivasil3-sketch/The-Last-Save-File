@@ -49,6 +49,7 @@ func _init() -> void:
 
 func build() -> void:
 	setup_common()
+	set_backdrop(_paint)
 	var sunlight := SunBeam.new()
 	sunlight.window = Rect2(112, 38, 54, 5)
 	sunlight.throw = Vector2(64, 138)
@@ -175,42 +176,41 @@ func _player_two() -> Array:
 	]
 
 
-func _draw() -> void:
+func _paint(ci: CanvasItem) -> void:
 	# Arin's house, illustrated: a lived-in living room, and through the
 	# doorway Player 2's room: the same boards, gone cold and bare, with the
 	# pale outlines of furniture that isn't there any more.
 	var r := bounds
-	Decor.planks(self, Rect2(r.position, Vector2(WALL_X - r.position.x, r.size.y)), FLOOR.lightened(0.12), 11.0, 6.0)
+	Decor.planks(ci, Rect2(r.position, Vector2(WALL_X - r.position.x, r.size.y)), FLOOR.lightened(0.12), 11.0, 6.0)
 	var cold := Rect2(WALL_X, r.position.y, r.end.x - WALL_X, r.size.y)
-	Decor.planks(self, cold, Color("3a3d45"), 11.0, 7.0)
-	draw_rect(cold, Color(0.1, 0.12, 0.18, 0.35))
+	Decor.planks(ci, cold, Color("3a3d45"), 11.0, 7.0)
+	ci.draw_rect(cold, Color(0.1, 0.12, 0.18, 0.35))
 	for o in OUTLINES:
-		draw_rect(o, Color(1, 1, 1, 0.05))
-		draw_rect(o, Color(1, 1, 1, 0.16), false, 1.0)
-	draw_rect(Rect2(440, 40, 40, 24), Color(1, 1, 1, 0.05))  # where the poster was
+		ci.draw_rect(o, Color(1, 1, 1, 0.05))
+		ci.draw_rect(o, Color(1, 1, 1, 0.16), false, 1.0)
+	ci.draw_rect(Rect2(440, 40, 40, 24), Color(1, 1, 1, 0.05))  # where the poster was
 	# The living room: rug, couch with cushions, the low table, the TV.
-	Decor.rug(self, Rect2(150, 120, 96, 64), Color("4a3030"), Color("b08a5a"))
-	var couch := Decor.furniture(self, COUCH, Color("6a5a7a"), 5.0)
-	draw_rect(Rect2(COUCH.position + Vector2(0, -6), Vector2(COUCH.size.x, 6)), Color("4a3a5a"))
+	Decor.rug(ci, Rect2(150, 120, 96, 64), Color("4a3030"), Color("b08a5a"))
+	var couch := Decor.furniture(ci, COUCH, Color("6a5a7a"), 5.0)
+	ci.draw_rect(Rect2(COUCH.position + Vector2(0, -6), Vector2(COUCH.size.x, 6)), Color("4a3a5a"))
 	for k in 3:
-		draw_rect(Rect2(couch.position + Vector2(3 + k * 31, 2), Vector2(28, couch.size.y - 4)), Color("7a6a8a"))
-	Decor.furniture(self, TABLE, WOOD.lightened(0.15), 4.0)
-	draw_circle(TABLE.get_center() + Vector2(-8, -3), 2.2, Color("e8dcc4"))
-	draw_rect(Rect2(TV.position + Vector2(-1, -1), TV.size + Vector2(2, 2)), Decor.INK)
-	draw_rect(TV, Color("101014"))
+		ci.draw_rect(Rect2(couch.position + Vector2(3 + k * 31, 2), Vector2(28, couch.size.y - 4)), Color("7a6a8a"))
+	Decor.furniture(ci, TABLE, WOOD.lightened(0.15), 4.0)
+	ci.draw_circle(TABLE.get_center() + Vector2(-8, -3), 2.2, Color("e8dcc4"))
+	ci.draw_rect(Rect2(TV.position + Vector2(-1, -1), TV.size + Vector2(2, 2)), Decor.INK)
+	ci.draw_rect(TV, Color("101014"))
 	# The TV glows with the game.
-	draw_rect(TV.grow(-2), Color(0.55, 0.95, 1.0, 0.3))
+	ci.draw_rect(TV.grow(-2), Color(0.55, 0.95, 1.0, 0.3))
 	# Wardrobes you can hide in: doors you can see into, a gap between them.
 	for c in CLOSETS:
-		var top := Decor.furniture(self, c, WOOD.lightened(0.1), 6.0)
-		draw_rect(top.grow(-3), Color("2b1f18"))
-		draw_line(Vector2(c.get_center().x, top.position.y + 3), Vector2(c.get_center().x, top.end.y - 3), WOOD.lightened(0.25), 1.0)
-		draw_circle(Vector2(c.get_center().x - 2.5, top.get_center().y), 0.8, Color("c8a870"))
-		draw_circle(Vector2(c.get_center().x + 2.5, top.get_center().y), 0.8, Color("c8a870"))
+		var top := Decor.furniture(ci, c, WOOD.lightened(0.1), 6.0)
+		ci.draw_rect(top.grow(-3), Color("2b1f18"))
+		ci.draw_line(Vector2(c.get_center().x, top.position.y + 3), Vector2(c.get_center().x, top.end.y - 3), WOOD.lightened(0.25), 1.0)
+		ci.draw_circle(Vector2(c.get_center().x - 2.5, top.get_center().y), 0.8, Color("c8a870"))
+		ci.draw_circle(Vector2(c.get_center().x + 2.5, top.get_center().y), 0.8, Color("c8a870"))
 	# The inner wall, with its doorway.
 	for seg in [Rect2(WALL_X - 3, r.position.y, 6, DOORWAY.x - r.position.y), Rect2(WALL_X - 3, DOORWAY.y, 6, r.end.y - DOORWAY.y)]:
-		draw_rect(seg, Color("2e2620"))
-		draw_rect(seg, Decor.INK, false, 0.8)
-	wall_face = Color("6a5848")
-	wall_cap = Color("2e2620")
-	draw_walls([{"side": "bottom", "from": FRONT_GAP.x, "to": FRONT_GAP.y}])
+		ci.draw_rect(seg, Color("2e2620"))
+		ci.draw_rect(seg, Decor.INK, false, 0.8)
+	Decor.wall_shadow(ci, bounds, 12.0, 0.3)
+	Decor.walls(ci, bounds, WALL, Color("6a5848"), Color("2e2620"), [{"side": "bottom", "from": FRONT_GAP.x, "to": FRONT_GAP.y}])

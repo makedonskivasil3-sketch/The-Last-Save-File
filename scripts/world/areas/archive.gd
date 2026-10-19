@@ -34,6 +34,7 @@ func _init() -> void:
 
 func build() -> void:
 	setup_common()
+	set_backdrop(_paint)
 	# Quiet and safe: one lamp on the Archivist's desk, the shelves fading
 	# into the dark around it.
 	light_surfaces(0.48, 1.6)
@@ -245,15 +246,15 @@ func _owner_notes() -> Array:
 	]
 
 
-func _draw() -> void:
+func _paint(ci: CanvasItem) -> void:
 	# The Archive, illustrated: old flagstones, tall shelves of unfinished
 	# things, the Archivist's desk on a worn runner. Warm, a little dusty:
 	# the one place that remembers kindly.
 	var r := bounds
-	Decor.cobbles(self, r, FLOOR.lightened(0.16), 16.0, 5.0)
-	Decor.rug(self, Rect2(DESK.position.x - 22, DESK.position.y - 30, DESK.size.x + 44, 56), Color("4a2e30"), Color("a07a50"))
+	Decor.cobbles(ci, r, FLOOR.lightened(0.16), 16.0, 5.0)
+	Decor.rug(ci, Rect2(DESK.position.x - 22, DESK.position.y - 30, DESK.size.x + 44, 56), Color("4a2e30"), Color("a07a50"))
 	for sh in SHELVES:
-		var top := Decor.furniture(self, sh, SHELF, 3.0)
+		var top := Decor.furniture(ci, sh, SHELF, 3.0)
 		# Spines on the shelf's front edge, all slightly different.
 		var x := top.position.x + 1.0
 		var i := 0
@@ -261,17 +262,16 @@ func _draw() -> void:
 			var w := 3.0 + Decor.hash01(x, sh.position.y, 9.0) * 2.0
 			var c: Color = [Color("6b3a2c"), Color("3a4a6a"), Color("5a6a3a"), Color("8a7a68"), Color("7a5a2a")][i % 5]
 			var h := 5.0 + Decor.hash01(x, sh.position.y, 10.0) * 2.0
-			draw_rect(Rect2(x, sh.position.y - h, w, h), c)
-			draw_line(Vector2(x + w * 0.5, sh.position.y - h + 1), Vector2(x + w * 0.5, sh.position.y - 1), Color(c.lightened(0.3), 0.5), 0.5)
+			ci.draw_rect(Rect2(x, sh.position.y - h, w, h), c)
+			ci.draw_line(Vector2(x + w * 0.5, sh.position.y - h + 1), Vector2(x + w * 0.5, sh.position.y - 1), Color(c.lightened(0.3), 0.5), 0.5)
 			x += w + 0.6
 			i += 1
-	var desk := Decor.furniture(self, DESK, Color("6a5040"), 4.0)
-	draw_rect(Rect2(desk.position + Vector2(6, 2), Vector2(12, 7)), Color("e8dcc4"))
-	draw_line(desk.position + Vector2(8, 4), desk.position + Vector2(16, 4), Color("8a7a68"), 0.5)
-	draw_line(desk.position + Vector2(8, 6), desk.position + Vector2(14, 6), Color("8a7a68"), 0.5)
-	Decor.lamp(self, desk.position + Vector2(desk.size.x - 8, desk.size.y * 0.5), Color("f0d090"))
+	var desk := Decor.furniture(ci, DESK, Color("6a5040"), 4.0)
+	ci.draw_rect(Rect2(desk.position + Vector2(6, 2), Vector2(12, 7)), Color("e8dcc4"))
+	ci.draw_line(desk.position + Vector2(8, 4), desk.position + Vector2(16, 4), Color("8a7a68"), 0.5)
+	ci.draw_line(desk.position + Vector2(8, 6), desk.position + Vector2(14, 6), Color("8a7a68"), 0.5)
+	Decor.lamp(ci, desk.position + Vector2(desk.size.x - 8, desk.size.y * 0.5), Color("f0d090"))
 	# Soft light: nothing in here was ever finished.
-	draw_circle(Vector2(320, 190), 60.0, Color(0.55, 0.95, 1.0, 0.03))
-	wall_face = Color("5a4a40")
-	wall_cap = Color("241e1c")
-	draw_walls([{"side": "left", "from": WEST_GAP.x, "to": WEST_GAP.y}, {"side": "right", "from": EAST_GAP.x, "to": EAST_GAP.y}])
+	ci.draw_circle(Vector2(320, 190), 60.0, Color(0.55, 0.95, 1.0, 0.03))
+	Decor.wall_shadow(ci, bounds, 12.0, 0.3)
+	Decor.walls(ci, bounds, WALL, Color("5a4a40"), Color("241e1c"), [{"side": "left", "from": WEST_GAP.x, "to": WEST_GAP.y}, {"side": "right", "from": EAST_GAP.x, "to": EAST_GAP.y}])

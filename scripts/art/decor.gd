@@ -15,6 +15,17 @@ extends RefCounted
 const INK := Color("1b1418")
 
 
+## A filled circle with few sides: draw_circle uses many, and figures and
+## canopies are drawn every frame (docs/VISUAL_DIRECTION.md, performance).
+static func disc(ci: CanvasItem, c: Vector2, r: float, col: Color, n := 12) -> void:
+	var pts := PackedVector2Array()
+	pts.resize(n)
+	for i in n:
+		var a := TAU * i / n
+		pts[i] = c + Vector2(cos(a) * r, sin(a) * r)
+	ci.draw_colored_polygon(pts, col)
+
+
 ## A stable 0..1 value for (x, y, seed): colour variation that never flickers.
 static func hash01(x: float, y: float, s: float = 0.0) -> float:
 	var h := sin(x * 12.9898 + y * 78.233 + s * 37.719) * 43758.5453
@@ -209,12 +220,12 @@ static func plant(ci: CanvasItem, at: Vector2, r: float, leaf: Color, s := 0.0) 
 ## shadow cast down-right.
 static func tree(ci: CanvasItem, at: Vector2, r: float, leaf: Color, s := 0.0, alpha := 1.0) -> void:
 	_blob(ci, at + Vector2(r * 0.35, r * 0.45), Vector2(r * 1.05, r * 0.85), Color(0, 0, 0, 0.28 * alpha), Rect2(-1e6, -1e6, 2e6, 2e6))
-	ci.draw_circle(at, r + 0.8, Color(INK, alpha))
+	disc(ci, at, r + 0.8, Color(INK, alpha))
 	for i in 7:
 		var a := TAU * i / 7.0 + hash01(at.x, at.y, s) * 2.0
-		ci.draw_circle(at + Vector2(cos(a), sin(a)) * r * 0.45, r * 0.62, Color(leaf.darkened(0.1 + 0.08 * float(i % 2)), alpha))
-	ci.draw_circle(at + Vector2(-r * 0.2, -r * 0.25), r * 0.55, Color(leaf, alpha))
-	ci.draw_circle(at + Vector2(-r * 0.35, -r * 0.4), r * 0.28, Color(leaf.lightened(0.15), alpha))
+		disc(ci, at + Vector2(cos(a), sin(a)) * r * 0.45, r * 0.62, Color(leaf.darkened(0.1 + 0.08 * float(i % 2)), alpha))
+	disc(ci, at + Vector2(-r * 0.2, -r * 0.25), r * 0.55, Color(leaf, alpha))
+	disc(ci, at + Vector2(-r * 0.35, -r * 0.4), r * 0.28, Color(leaf.lightened(0.15), alpha))
 
 
 ## A house seen from three-quarters above: a roof (the footprint's top part)

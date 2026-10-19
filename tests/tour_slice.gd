@@ -72,3 +72,48 @@ func test_slice_room_and_square() -> void:
 	w.director.add_awareness(OwnerDirector.HUNT + 2.0 - w.director.awareness)
 	await wait(1.5)
 	await shot("s04_square_hunt")
+
+
+func _avg_ms(n := 90) -> float:
+	await frames(5)
+	var total := 0.0
+	for i in n:
+		var t := Time.get_ticks_usec()
+		await tree.process_frame
+		total += (Time.get_ticks_usec() - t) / 1000.0
+	return total / n
+
+
+func test_slice_frame_times() -> void:
+	var w := await start_session()
+	w.director.paused = true
+	await wait(0.5)
+	print("SLICE room avg %.1f ms" % await _avg_ms())
+	await go_to(w, "square", "house")
+	await wait(0.5)
+	print("SLICE square avg %.1f ms" % await _avg_ms())
+
+
+## Where the square's frame time goes: hide one kind of thing at a time.
+func test_slice_square_breakdown() -> void:
+	var w := await start_session()
+	w.director.paused = true
+	await go_to(w, "square", "house")
+	await wait(0.5)
+	print("SLICE square all %.1f ms" % await _avg_ms())
+	var people: Array = []
+	for n in tree.get_nodes_in_group("canopy_reveal"):
+		if n != w.player:
+			people.append(n)
+	for c in w.area.get_children():
+		if c.get_class() == "Node2D" and c.has_method("_process") and c.get("spots") != null:
+			c.visible = false
+	print("SLICE square no canopies %.1f ms" % await _avg_ms())
+	for n in people:
+		n.visible = false
+	print("SLICE square no canopies or people %.1f ms" % await _avg_ms())
+	for l in w.area.find_children("*", "PointLight2D", true, false):
+		l.visible = false
+	print("SLICE square no lights either %.1f ms" % await _avg_ms())
+	w.fx.visible = false
+	print("SLICE square no screen shader either %.1f ms" % await _avg_ms())

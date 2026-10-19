@@ -149,6 +149,19 @@ The babble path works. On a phone speaker, 70 ms syllables under the music are e
 
 **Not run:** hearing it on an iPhone. Headless Chromium has no system voices.
 
+### 6. Diagnostics and narration made honest (this pass)
+
+**Sound check meters the channel under test.**
+- **Before:** each button read the *Master* meter, so background music alone could make an Effect or Voice test report sound.
+- **Now:** Effect reads the UI bus, Music reads the Music bus and Voice reads the Voice bus.
+- **Tests:** the music test hears the music (positive case) and, with effects at 0 and music playing, the effect test is not reported as heard (`test_sound_check.test_music_playing_cannot_pass_the_effect_test`): pass.
+
+**System narration no longer silences the character sounds without speaking.**
+- **Before:** with narration on, the procedural voice was muted whenever the device *supported* speech, even if an utterance never started.
+- **Now:** Godot's utterance events (started, ended, cancelled) are followed. The procedural voice is muted only while speech has actually started, or for 0.7 s while it may still start. A line that never starts, or is cancelled before starting, goes back to the syllables.
+- **Ducking:** speech that does start dips the music like a recorded line. The duck now tracks its sources (recorded line, narration), so the music returns only when both are quiet.
+- **Test:** `test_sound_check.test_narration_falls_back_and_ducks`: pass. These are simulated events: headless Linux has no speech synthesiser. Hearing it on a device: **not run**.
+
 ## For a person to check
 
 1. **Web:** open the browser build and click once on the title. The two-note music box should be clear over a soft hum.

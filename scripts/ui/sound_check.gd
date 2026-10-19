@@ -15,6 +15,9 @@ var _music_left := 0.0
 var _peak := -200.0
 var _listening := 0.0
 var _narrator: Node
+## The bus the current test plays on: its own meter, not Master's, so music
+## already playing can't make an effect or voice test look heard.
+var _meter_bus := "Master"
 
 
 func _ready() -> void:
@@ -53,7 +56,7 @@ func _button(parent: Control, text: String, action: Callable) -> Button:
 func _test_effect() -> void:
 	Sfx.ui("ui_confirm")
 	Sfx.play("pop", 0.0, 1.0, 0.0, "UI")
-	_report("effects", "sfx_volume", "Effects")
+	_report("effects", "sfx_volume", "Effects", "", "UI")
 
 
 func _test_music() -> void:
@@ -62,7 +65,7 @@ func _test_music() -> void:
 	_music.volume_db = -10.0
 	_music.play()
 	_music_left = 5.0
-	_report("the music box", "music_volume", "Music")
+	_report("the music box", "music_volume", "Music", "", "Music")
 
 
 func _test_voice() -> void:
@@ -77,12 +80,13 @@ func _test_voice() -> void:
 			line += " System narration: speaking now, through the device's own speech, not the game's mixer."
 		else:
 			line += " System narration: no system voice available on this device."
-	_report("a voice", "voice_volume", "Voices", line)
+	_report("a voice", "voice_volume", "Voices", line, "Voice")
 
 
 ## What should be audible right now, and what stops it. Truthful: it names a
 ## volume at zero instead of raising it.
-func _report(what: String, key: String, slider: String, extra := "") -> void:
+func _report(what: String, key: String, slider: String, extra := "", bus := "Master") -> void:
+	_meter_bus = bus
 	var problems: Array = []
 	if Settings.volume <= 0.001:
 		problems.append("Master is at 0")
@@ -118,13 +122,14 @@ func _process(delta: float) -> void:
 	if _listening > 0.0:
 		# The Master meter: what the game's mixer really sent out (desktop;
 		# the web's Sample playback bypasses this meter).
-		_peak = maxf(_peak, maxf(AudioServer.get_bus_peak_volume_left_db(0, 0), AudioServer.get_bus_peak_volume_right_db(0, 0)))
+		var i := maxi(AudioServer.get_bus_index(_meter_bus), 0)
+		_peak = maxf(_peak, maxf(AudioServer.get_bus_peak_volume_left_db(i, 0), AudioServer.get_bus_peak_volume_right_db(i, 0)))
 		_listening -= delta
 		if _listening <= 0.0:
 			if _peak > -60.0:
-				_status.text += " The game's output carried it (peak %.0f dB): if you heard nothing, check the device's volume and output." % _peak
+				_status.text += " The %s channel carried it (peak %.0f dB): if you heard nothing, check the device's volume and output." % [_meter_bus, _peak]
 			else:
-				_status.text += " The game's output stayed silent."
+				_status.text += " The %s channel stayed silent." % _meter_bus
 
 
 ## For tests: the status line.

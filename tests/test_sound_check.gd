@@ -77,3 +77,57 @@ func test_narration_looks_for_voices_again() -> void:
 	var src := FileAccess.get_file_as_string("res://scripts/audio/narration.gd")
 	check(not src.contains("_voices_checked"), "no permanent 'already checked' flag")
 	check(src.contains("supported = available()"), "speak() asks again if no voice was found yet")
+
+
+func test_music_playing_cannot_pass_the_effect_test() -> void:
+	# Each button meters its own channel: the music box already playing on
+	# the Music bus says nothing about whether an effect was heard.
+	var panel := await _panel()
+	var sc: Node = panel.find_child("SoundCheck", true, false)
+	sc._test_music()
+	await wait(1.5)
+	check(sc.status_text().contains("Music channel carried it"), "the meter works: the music test hears the music (%s)" % sc.status_text())
+	settings().set_value("sfx_volume", 0.0)  # effects silenced
+	sc._test_effect()
+	await wait(1.5)
+	check(sc._music.playing, "music is still playing (%s)" % sc.status_text())
+	check(not sc.status_text().contains("channel carried it"), "but the effect test doesn't call that heard (%s)" % sc.status_text())
+	check(sc.status_text().contains("Effects is at 0"), "it names why")
+	settings().set_value("sfx_volume", 0.9)
+	panel.queue_free()
+
+
+func test_narration_falls_back_and_ducks() -> void:
+	var n := Narration.new()
+	tree.root.add_child(n)
+	# Asked to speak, but the device never starts: after a moment the
+	# procedural voice carries the line again.
+	n._owns_speech = true
+	n._asked_at = Time.get_ticks_msec()
+	check(n.voicing(), "just asked: give the device a moment")
+	n._asked_at = Time.get_ticks_msec() - Narration.START_GRACE_MS - 10
+	check(not n.voicing(), "never started: the syllables speak instead")
+	# It starts: the music dips under it, as under a recorded line.
+	n._asked_at = Time.get_ticks_msec()
+	n.utterance_event(DisplayServer.TTS_UTTERANCE_STARTED)
+	check(n.voicing(), "speaking")
+	check(Sfx._duck_target < 0.0, "the music dips under system speech")
+	n.utterance_event(DisplayServer.TTS_UTTERANCE_ENDED)
+	check(not n.voicing(), "finished")
+	check_eq(Sfx._duck_target, 0.0, "and the music comes back")
+	# Cancelled before it could start (how a device that can't speak reports
+	# it): back to the syllables, music not left ducked.
+	n._owns_speech = true
+	n._started = false
+	n._asked_at = Time.get_ticks_msec()
+	n.utterance_event(DisplayServer.TTS_UTTERANCE_CANCELED)
+	check(not n.voicing(), "a line that never started goes back to the syllables")
+	check_eq(Sfx._duck_target, 0.0, "without leaving the music ducked")
+	# A recorded line and system speech at once: the music waits for both.
+	Sfx.duck_for_speech(true)
+	n.utterance_event(DisplayServer.TTS_UTTERANCE_STARTED)
+	n.stop()
+	check(Sfx._duck_target < 0.0, "a recorded line still speaking keeps it down")
+	Sfx.duck_for_speech(false)
+	check_eq(Sfx._duck_target, 0.0, "then it comes back")
+	n.queue_free()

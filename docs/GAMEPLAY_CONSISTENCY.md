@@ -53,3 +53,19 @@ The ordinary escape is open in every stage.
 ## Save compatibility
 
 No saved field was added or renamed, so no migration is needed. Truth pieces already counted under the old rule stay counted. A save made between opening the file and finishing it (the old leak) keeps whatever it recorded.
+
+## The player's journey, phase by phase (what this pass changed)
+
+| Phase | What the player wants | What told them before | What tells them now |
+|---|---|---|---|
+| First launch, the room | Get out; understand who they are | Goal line, owner's note, act card | Same. The screen is clean, so the owner's first distortion is noticed; the prompt sits on the thing itself |
+| Interaction and hiding | Know what [E] does here | A corner prompt, a generic hold label | The prompt above the target; the hold names its price, what it takes and whether it reloads (`ActionPreview`) |
+| First escalation and failure | Know why it happened, and what persists | Death card with a tip (unchanged) | Unchanged. The card sits above the effects, so the tip is never distorted |
+| Escorts | Not to be punished for reading | Exposure accrued while reading or answering | Exposure waits while reading, answering, in scenes and during PAUSE |
+| All memories, the truth | Learn there's more without being told what | The goal pointed only at the exit | A quiet hint line; Pip noses toward whoever has something to say, then the file; the journal says how many have noticed |
+| Shedding | See the cost and its consequences | Prompt could say RELOADS; Arin kept the old patrol; the body could sit in a wall | The prompt says what's taken; Arin forgets at once; the body lies on open floor |
+| Endings and the title | The ending they got is the one remembered | Title could rewrite an escape as RUE | The ending as recorded; the slot shows her name once she remembers it |
+
+**Bot coverage vs human play:**
+- The four bots reach exact endings (escape, message, escape with purge, Wren), and focused tests cover RUE, unseen and overwrite.
+- A human-equivalent playthrough of each ending: **not run**.

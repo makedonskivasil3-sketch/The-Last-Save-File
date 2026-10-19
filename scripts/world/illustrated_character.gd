@@ -327,8 +327,8 @@ func _face(ci: CanvasItem, o: Vector2, side: bool, alpha: float, grey: bool) -> 
 		var at := c + e + look
 		if missing:
 			# No face: two points of light.
-			ci.draw_circle(at, 0.95, Color(eye, 0.35 * alpha))
-			ci.draw_circle(at, 0.55, eye)
+			Decor.disc(ci, at, 0.95, Color(eye, 0.35 * alpha))
+			Decor.disc(ci, at, 0.55, eye)
 			continue
 		if _blink > 0.0 or lids >= 0.95:
 			ci.draw_line(at + Vector2(-0.9, 0), at + Vector2(0.9, 0), eye, 0.5)
@@ -337,7 +337,7 @@ func _face(ci: CanvasItem, o: Vector2, side: bool, alpha: float, grey: bool) -> 
 		var ry := 1.05 * size * (1.0 - lids * 0.55)
 		_ellipse(ci, at + Vector2(0, lids * 0.35), Vector2(rx, ry), eye)
 		if not mood.get("blank", false):
-			ci.draw_circle(at + Vector2(-0.25, -0.4 + lids * 0.3), 0.28, Color(1, 1, 1, 0.9 * alpha))
+			Decor.disc(ci, at + Vector2(-0.25, -0.4 + lids * 0.3), 0.28, Color(1, 1, 1, 0.9 * alpha))
 		# Brows: inner and outer ends lift or drop with the mood.
 		var b: Array = mood.brow
 		var inward := -signf(e.x) if not side else -1.0
@@ -373,8 +373,8 @@ func _book(ci: CanvasItem, o: Vector2, alpha: float) -> void:
 
 static func _ellipse(ci: CanvasItem, c: Vector2, r: Vector2, col: Color) -> void:
 	var pts := PackedVector2Array()
-	for i in 14:
-		var a := TAU * i / 14.0
+	for i in 10:
+		var a := TAU * i / 10.0
 		pts.append(c + Vector2(cos(a) * r.x, sin(a) * r.y))
 	ci.draw_colored_polygon(pts, col)
 
@@ -448,8 +448,8 @@ class _Parts:
 				var a: Vector2 = s[1]
 				var b: Vector2 = s[2]
 				var r: float = float(s[3]) + grow
-				_ci.draw_circle(a, r, c)
-				_ci.draw_circle(b, r, c)
+				Decor.disc(_ci, a, r, c, 8)
+				Decor.disc(_ci, b, r, c, 8)
 				var n := (b - a).normalized().orthogonal() * r
 				if (b - a).length() > 0.01:
 					_ci.draw_colored_polygon(PackedVector2Array([a + n, b + n, b - n, a - n]), c)

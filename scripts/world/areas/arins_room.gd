@@ -123,6 +123,7 @@ func build() -> void:
 	add_boundary([{"side": "top", "from": DOOR_RECT.position.x, "to": DOOR_RECT.end.x}])
 	add_solid(BED)
 	add_solid(TABLE)
+	set_backdrop(_paint)
 
 	door = Door.new()
 	add_child(door)
@@ -324,35 +325,34 @@ func _build_purged_extras() -> void:
 	arin.mute = true
 
 
-func _draw() -> void:
+func _paint(ci: CanvasItem) -> void:
 	# Arin's room, illustrated (docs/VISUAL_DIRECTION.md): warm boards, a
 	# worn rug, the bed in its walled-off nook, the desk with its lamp and
 	# console light. Only the bed and the desk are solid, and only they have
 	# a front face.
-	Decor.planks(self, bounds, FLOOR, 12.0, 1.0)
-	Decor.rug(self, RUG, RUG_COL, Color("c89a6a"))
+	Decor.planks(ci, bounds, FLOOR, 12.0, 1.0)
+	Decor.rug(ci, RUG, RUG_COL, Color("c89a6a"))
 	# Flat things on the floor (never in the way): a book, a sock, a drawing.
-	draw_rect(Rect2(212, 246, 9, 6), Color("6b3a2c"))
-	draw_rect(Rect2(213, 246.6, 3.6, 4.8), Color("e8dcc4"))
-	draw_rect(Rect2(216.8, 246.6, 3.6, 4.8), Color("e8dcc4"))
-	draw_colored_polygon(PackedVector2Array([Vector2(330, 250), Vector2(338, 248), Vector2(340, 252), Vector2(332, 254)]), Color("8aa0c0"))
-	draw_rect(Rect2(150, 120, 16, 12), Color("efe6d6"))
-	draw_line(Vector2(152, 128), Vector2(158, 123), Color("d8463a"), 0.8)
-	draw_circle(Vector2(161, 126), 2.0, Color("e9b44c"))
-	Decor.bed(self, BED, WOOD, Color("5a7a9a"), SHEET)
-	var desk := Decor.furniture(self, TABLE, WOOD, 4.0)
+	ci.draw_rect(Rect2(212, 246, 9, 6), Color("6b3a2c"))
+	ci.draw_rect(Rect2(213, 246.6, 3.6, 4.8), Color("e8dcc4"))
+	ci.draw_rect(Rect2(216.8, 246.6, 3.6, 4.8), Color("e8dcc4"))
+	ci.draw_colored_polygon(PackedVector2Array([Vector2(330, 250), Vector2(338, 248), Vector2(340, 252), Vector2(332, 254)]), Color("8aa0c0"))
+	ci.draw_rect(Rect2(150, 120, 16, 12), Color("efe6d6"))
+	ci.draw_line(Vector2(152, 128), Vector2(158, 123), Color("d8463a"), 0.8)
+	ci.draw_circle(Vector2(161, 126), 2.0, Color("e9b44c"))
+	Decor.bed(ci, BED, WOOD, Color("5a7a9a"), SHEET)
+	var desk := Decor.furniture(ci, TABLE, WOOD, 4.0)
 	# The console on the desk: where the saves live. Its light is the room's
 	# one cold colour.
-	draw_rect(Rect2(desk.position + Vector2(3, 3), Vector2(12, 7)), Decor.INK)
-	draw_rect(Rect2(desk.position + Vector2(4, 4), Vector2(10, 5)), Color("1e2a26"))
-	draw_rect(Rect2(desk.position + Vector2(5, 5), Vector2(3, 1.4)), Color("7fd6a8", 0.9))
-	Decor.lamp(self, desk.position + Vector2(desk.size.x - 7, desk.size.y * 0.5), Color("f0c070"))
-	wall_face = Color("7a6656")
-	wall_cap = Color("2e2620")
-	draw_walls()
+	ci.draw_rect(Rect2(desk.position + Vector2(3, 3), Vector2(12, 7)), Decor.INK)
+	ci.draw_rect(Rect2(desk.position + Vector2(4, 4), Vector2(10, 5)), Color("1e2a26"))
+	ci.draw_rect(Rect2(desk.position + Vector2(5, 5), Vector2(3, 1.4)), Color("7fd6a8", 0.9))
+	Decor.lamp(ci, desk.position + Vector2(desk.size.x - 7, desk.size.y * 0.5), Color("f0c070"))
+	Decor.wall_shadow(ci, bounds, 12.0, 0.3)
+	Decor.walls(ci, bounds, WALL, Color("7a6656"), Color("2e2620"))
 	# On the top wall's face: a framed drawing, and the window frame.
-	draw_rect(Rect2(WINDOW.position.x - 1, WINDOW.position.y - 1, WINDOW.size.x + 2, WINDOW.size.y + 2), Decor.INK)
-	draw_rect(WINDOW, Color("c8e0f0"))
-	draw_line(Vector2(WINDOW.get_center().x, WINDOW.position.y), Vector2(WINDOW.get_center().x, WINDOW.end.y), Decor.INK, 0.8)
-	draw_rect(Rect2(372, 29, 14, 6), Decor.INK)
-	draw_rect(Rect2(373, 30, 12, 4), Color("e8c48a"))
+	ci.draw_rect(Rect2(WINDOW.position.x - 1, WINDOW.position.y - 1, WINDOW.size.x + 2, WINDOW.size.y + 2), Decor.INK)
+	ci.draw_rect(WINDOW, Color("c8e0f0"))
+	ci.draw_line(Vector2(WINDOW.get_center().x, WINDOW.position.y), Vector2(WINDOW.get_center().x, WINDOW.end.y), Decor.INK, 0.8)
+	ci.draw_rect(Rect2(372, 29, 14, 6), Decor.INK)
+	ci.draw_rect(Rect2(373, 30, 12, 4), Color("e8c48a"))

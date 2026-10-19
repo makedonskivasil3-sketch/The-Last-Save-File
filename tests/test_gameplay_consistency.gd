@@ -264,3 +264,29 @@ func test_a_body_is_never_left_in_a_wall_or_off_the_edge() -> void:
 			if q != from:
 				check(w.husk_spot_ok(q, helper), "a clear spot near %s (%s)" % [str(from), str(q)])
 				check(b.grow(-10.0).has_point(q), "inside the area")
+
+
+# --- layout: large text, long lines, the portrait --------------------------------------
+
+func test_dialogue_fits_with_largest_text_and_a_portrait() -> void:
+	settings().set_value("large_text", true)
+	settings().set_value("subtitle_size", 2)
+	var w := await start_session()
+	await interact_with(w, w.area.mira)
+	w.hud.show_dialogue("MIRA", Color("e0a070"), ["I want to see the square. Not the picture of it on my wall: the real one, with the well and the stall and Tobben shouting prices at nobody. Will you take me?"],
+		"npc.mira", CharacterArt.for_npc(w.area.mira))
+	await frames(4)
+	var box: Rect2 = w.hud._dialogue.get_rect()
+	check(box.position.y >= 0.0 and box.end.y <= 360.0, "the box stays on screen (%s)" % str(box))
+	var face: Rect2 = Rect2(w.hud._dialogue_portrait.position, w.hud._dialogue_portrait.size)
+	check(face.end.y <= box.size.y, "the portrait sits inside the box")
+	check(w.hud._dialogue_text.position.x >= face.end.x, "the text starts after the portrait")
+	check(w.hud._dialogue_text.position.x + w.hud._dialogue_text.size.x <= box.size.x, "and ends inside the box")
+	w.hud.close_dialogue()
+	w.hud.show_objective("Explore the village. The road east leads somewhere old.", Progression.HINT_INVESTIGATE)
+	await frames(3)
+	var hint: Label = w.hud._objective_hint
+	check(hint.text == Progression.HINT_INVESTIGATE, "the hint shows under the goal")
+	check(w.hud._objective.position.y + hint.position.y + hint.size.y <= 360.0, "and stays on screen")
+	settings().set_value("large_text", false)
+	settings().set_value("subtitle_size", 0)
