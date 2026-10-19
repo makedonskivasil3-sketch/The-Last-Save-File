@@ -29,6 +29,7 @@ var notice_emote := ""
 var talking := false
 ## Never moves their mouth (the real Arin only says "...").
 var mute := false
+var _fray_said := false
 var player: Node2D
 ## Returns Array[String]: the lines for this conversation.
 var lines_provider: Callable
@@ -121,12 +122,38 @@ func emote(text: String, duration: float = 1.6) -> void:
 
 func sprite() -> PixelCharacter:
 	if _sprite == null:
+		_apply_fray()
 		_sprite = PixelCharacter.new(body_kind, {
 			"h": hair_color, "s": skin_color, "c": dress_color, "d": dark_color,
 			"a": accent_color, "w": Color("d8d0c0"), "l": dark_color.darkened(0.3),
 		})
 		_sprite.idle_style = idle_style
 	return _sprite
+
+
+## Rue took this one's piece (docs/DARK_TRUTH_DESIGN.md): Wren's ribbon,
+## Mira's colour, Tobben's voice.
+func is_frayed() -> bool:
+	return npc_id in OwnerMemory.frayed
+
+
+func _apply_fray() -> void:
+	if not is_frayed():
+		return
+	match npc_id:
+		"wren":
+			accent_color = hair_color  # no ribbon
+		"mira":
+			dress_color = Color("8a8a8a")
+			dark_color = Color("5a5a5a")
+		"tobben":
+			mute = true
+
+
+## Taken just now: redraw without the piece.
+func refresh_fray() -> void:
+	_sprite = null
+	queue_redraw()
 
 
 func hides(pos: Vector2) -> bool:
@@ -143,6 +170,15 @@ func interact_prompt() -> String:
 
 func interact() -> Dictionary:
 	var lines: Array = lines_provider.call()
+	# A piece Rue took (or gave back): said once a session, before anything.
+	if state != State.DELETED:
+		if npc_id in OwnerMemory.returned_pending and Story.FRAY_RETURNED.has(npc_id):
+			OwnerMemory.returned_pending.erase(npc_id)
+			OwnerMemory.save_memory()
+			lines = [Story.FRAY_RETURNED[npc_id]] + lines
+		elif is_frayed() and not _fray_said:
+			_fray_said = true
+			lines = [Story.FRAY_LINES[npc_id] if npc_id in OwnerMemory.session_frayed else Story.FRAY_RECALL[npc_id]] + lines
 	# What they've noticed about what Rue is, once it's time (said once ever),
 	# goes before their usual lines...
 	var truth := Story.truth_line(npc_id) if state != State.DELETED else ""
@@ -158,7 +194,7 @@ func interact() -> Dictionary:
 			lines = [memory] + lines
 	if on_talk.is_valid():
 		on_talk.call()
-	return {"speaker": display_name, "color": name_color, "lines": lines}
+	return {"speaker": Story.TOBBEN_WRITTEN if npc_id == "tobben" and is_frayed() else display_name, "color": name_color, "lines": lines}
 
 
 func _process(delta: float) -> void:

@@ -90,6 +90,20 @@ var fragments: Array[String] = []
 ## and purges.
 var truth_pieces: Array[String] = []
 var knows_truth := false
+## Leaving a body (docs/DARK_TRUTH_DESIGN.md, layer B): whose piece Rue wears
+## (each of them is "frayed" until it's brought back from the bin), how many
+## times she has done it, where she last left a body and in which session,
+## who has had a piece given back but hasn't said so yet, and one-off lines
+## already said ("archivist", "all_frayed", "archivist_back").
+var frayed: Array[String] = []
+var sheds := 0
+var husk_area := ""
+var husk_session := -1
+var returned_pending: Array[String] = []
+var shed_said: Array[String] = []
+## This session only: who was frayed this run (their "afterwards" line, not
+## the "last time" one).
+var session_frayed: Array[String] = []
 ## How the previous session ended: "none", "death", "quit", "crash", "win"
 ## (or "escape" from old saves). While a session is running it is stored as
 ## "active", so if the process is killed the owner finds out next launch.
@@ -157,6 +171,7 @@ func begin_session() -> String:
 	last_exit = "active"
 	session_helpers.clear()
 	session_recalled.clear()
+	session_frayed.clear()
 	session_seam = -1
 	session_spots.clear()
 	_session_closed = false
@@ -257,6 +272,11 @@ func record_win(ending := "escape") -> void:
 		# Reconciliation: the owner stops the purge and lets everyone back.
 		purge = 0
 		npc_fates.clear()
+		# ...and the pieces Rue took go back to their owners.
+		for who in frayed:
+			if who not in returned_pending:
+				returned_pending.append(who)
+		frayed.clear()
 	_close_session("win")
 
 
@@ -306,6 +326,38 @@ func learn_truth_piece(who: String) -> void:
 		save_memory()
 
 
+## Rue left a body and took `who`'s piece. The owner forgets her route and
+## who helped her this run (not how she moves). One save.
+func fray(who: String, area: String) -> void:
+	if who not in frayed:
+		frayed.append(who)
+	if who not in session_frayed:
+		session_frayed.append(who)
+	returned_pending.erase(who)
+	sheds += 1
+	husk_area = area
+	husk_session = sessions
+	route_memory.clear()
+	session_spots.clear()
+	session_helpers.clear()
+	save_memory()
+
+
+## A piece brought back from the bin: they're whole, and will say so.
+func return_piece(who: String) -> void:
+	if who in frayed:
+		frayed.erase(who)
+		session_frayed.erase(who)
+		if who not in returned_pending:
+			returned_pending.append(who)
+		save_memory()
+
+
+## A body left in the run before this one: where ("" if none).
+func last_run_husk() -> String:
+	return husk_area if husk_session >= 0 and husk_session == sessions - 1 else ""
+
+
 ## Rue read her CHARACTER FILE whole.
 func learn_truth() -> void:
 	knows_truth = true
@@ -337,6 +389,13 @@ func clear_state() -> void:
 	found_controller = false
 	truth_pieces.clear()
 	knows_truth = false
+	frayed.clear()
+	sheds = 0
+	husk_area = ""
+	husk_session = -1
+	returned_pending.clear()
+	shed_said.clear()
+	session_frayed.clear()
 	journal.clear()
 	owner_notes_seen = 0
 	session_glitches = 0
@@ -424,6 +483,12 @@ func save_memory() -> void:
 		"fragments": fragments,
 		"truth_pieces": truth_pieces,
 		"knows_truth": knows_truth,
+		"frayed": frayed,
+		"sheds": sheds,
+		"husk_area": husk_area,
+		"husk_session": husk_session,
+		"returned_pending": returned_pending,
+		"shed_said": shed_said,
 		"last_exit": last_exit,
 	}
 	SafeFile.write_atomic(_path, JSON.stringify(data, "\t"))
@@ -528,6 +593,12 @@ func load_memory() -> void:
 	fragments.assign(_strings(data, "fragments"))
 	truth_pieces.assign(_strings(data, "truth_pieces"))
 	knows_truth = _bool(data, "knows_truth")
+	frayed.assign(_strings(data, "frayed").filter(func(id: String) -> bool: return id in Story.SHED_TARGETS))
+	sheds = _int(data, "sheds", 0)
+	husk_area = _str(data, "husk_area", "")
+	husk_session = _int(data, "husk_session", -1)  # (only read with husk_area set)
+	returned_pending.assign(_strings(data, "returned_pending"))
+	shed_said.assign(_strings(data, "shed_said"))
 	deaths_log.clear()
 	for d in _list(data, "deaths_log"):
 		if d is Dictionary and _num(d, "x") and _num(d, "y") and d.get("area") is String:

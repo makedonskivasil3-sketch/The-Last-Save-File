@@ -297,6 +297,8 @@ func on_dialogue_closed(who: Node) -> void:
 func _note_text() -> String:
 	if purged:
 		return "Welcome home, Arin.\nDon't forget to save!"
+	if OwnerMemory.last_run_husk() == "room":
+		return Story.NOTE_BODY
 	match previous_exit:
 		"death":
 			return Story.NOTE_RECALL.get(OwnerMemory.last_death, "I REMEMBER WHERE\nYOU DIED.")

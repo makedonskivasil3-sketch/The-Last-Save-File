@@ -37,6 +37,11 @@ const DEFS := {
 		"how": "hold [E] standing still: pause the owner's world for 6 seconds"},
 }
 
+## Not a glitch: leaving a body (docs/DARK_TRUTH_DESIGN.md) uses the same
+## hold, but costs no awareness and isn't counted. World.can_shed() decides
+## when it's offered (knowing the truth, beside someone, unwatched).
+const SHED := {"name": "LEAVE THIS BODY", "hold": 1.0, "range": 30.0}
+
 ## How long each effect lasts.
 const FREEZE_TIME := 2.0
 const UNLOCK_TIME := 5.0
@@ -77,8 +82,18 @@ static func unlocked_by(count: int) -> String:
 
 
 static func cost(id: String) -> float:
-	return float(DEFS[id].cost)
+	return 0.0 if id == "shed" else float(DEFS[id].cost)
 
 
 static func label(id: String) -> String:
+	if id == "shed":
+		return SHED.name
 	return "%s +%d" % [DEFS[id].name, int(DEFS[id].cost)]
+
+
+static func hold_time(id: String) -> float:
+	return float(SHED.hold if id == "shed" else DEFS[id].hold)
+
+
+static func reach(id: String) -> float:
+	return float(SHED.range if id == "shed" else DEFS[id].range)

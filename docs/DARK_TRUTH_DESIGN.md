@@ -7,7 +7,7 @@
 > - the **RUE ending needs the truth**;
 > - the **real girl learns that Rue exists**.
 >
-> **Layer A is implemented** (§7). Layers B and C are still design only.
+> **Layers A and B are implemented** (§7, §8). Layer C is still design only.
 >
 > Sources are the same as `NARRATIVE_BIBLE.md`: `S:` is `scripts/story/story.gd`, `OM:` is `owner_memory.gd`.
 > The line numbers are approximate; the bible's own numbers are from an older commit.
@@ -215,3 +215,52 @@ Each phase ships with tests that fail without it, and a bot run per ending. Pers
 | Endings: RUE's epilogue ("you're not her… it presses LOAD anyway"), Wren's ("two things nobody plays"), the message ending tells the real girl | `story.gd` | `test_the_message_tells_the_real_girl`, `test_canon.test_rue_is_what_she_left_running` |
 
 **Not done yet:** a portrait or art pass for the reveal (it reuses Rue's *remembering* face); recorded voice for the new lines (they are in the voice manifest's lists, text only); any human playtest of whether the pieces are findable without a guide.
+
+
+## 8. Layer B as built
+
+The lines are the ones the author approved on 2026-10-19 (with the recommendation: **never Pip**, and **nothing to take from the Archivist**).
+
+**When it's offered.** Hold the glitch button beside Wren, Mira or Tobben. The prompt reads LEAVE THIS BODY. It's offered only when all of these hold:
+- Rue knows the truth (the CHARACTER FILE was read whole);
+- that person still has their piece;
+- fewer than two bodies have been left this run;
+- the owner isn't looking: not hunting, no save ring running, and Arin's eyes not on her.
+
+This differs from the design above: it isn't limited to the archive and out of bounds, because the three people who can be taken from never go there. "Unwatched" is the condition instead.
+
+**Not a glitch.** No awareness cost, not counted in `session_glitches`, no owner reaction, and it doesn't touch the truce. (`COHESION_PASS.md` rejected new glitches; this is the author's exception.)
+
+**The question.** The cost is stated first ("Take WREN's ribbon. Wren loses it, and she will remember…"). The question holds the owner, like every other question.
+
+**Taking it:**
+- Rue leaves an EMPTY BODY where she stood.
+- The owner forgets her learned route (`route_memory`, `session_spots`) and who hid her this run (`session_helpers`).
+- Awareness drops by 15, never below the last threshold the owner has reached.
+- She wears the piece: Wren's ribbon becomes her scarf, Mira's colour her coat; Tobben's voice doesn't show.
+- The person loses it: Wren's ribbon, Mira goes grey, Tobben goes mute and his lines are written.
+- They say their line. Rue thinks her line.
+- The owner says "new face. same walk." (the second time a run: "you can change your clothes all night…"), then names the damage. When all three are taken: "you're not hiding from me. you're eating them."
+
+**Later runs:**
+- The owner mentions the body ("you left something in my room." in Arin's room; "…in my save." elsewhere). Arin's room's note reads YOU LEFT A BODY HERE. I KEPT IT.
+- Each person remembers it once a session.
+- The Archivist comments once.
+
+**Giving it back.** The piece lies in the Recycle Bin as `wren_ribbon.asset`, `mira_palette.asset` or `tobben_voice.wav` ("taken by: [no such entity]"). It's restored like a deleted character: stand beside it between sweeps. They're whole again and say so once; the Archivist approves once. The message ending gives every piece back.
+
+**Never Pip.** With Pip beside her when she's asked: "(not pip. never pip.)". The Archivist can be tried; he says there's nothing on him to take.
+
+**Deferred from the design:** Arin standing guard over the body next run, and slower cooling in the bin after two bodies (§2.4). The new lines are text only.
+
+| What | Test |
+|---|---|
+| Not offered without the truth; offered beside Wren, unwatched; not while hunted | `test_shedding.test_not_offered_without_the_truth`, `test_offered_knowing_the_truth_and_only_unwatched` |
+| The cost is previewed, the question holds the owner, "Not her" takes nothing | `test_the_cost_is_shown_and_can_be_refused` |
+| Body, forgetting, awareness floor, not a glitch, lines, what she wears | `test_leaving_a_body` |
+| Two a run | `test_twice_a_run_at_most` |
+| Across runs: the note, the owner, Wren's memory, still worn | `test_the_piece_stays_taken_across_runs` |
+| The bin gives it back; she says so | `test_the_bin_gives_it_back`, `test_given_back_she_says_so` |
+| Tobben writes | `test_tobben_writes_instead` |
+| Never Pip; nothing on the Archivist | `test_never_pip_and_nothing_on_the_archivist` |
+| The message ending returns the pieces | `test_the_message_ending_gives_the_pieces_back` |

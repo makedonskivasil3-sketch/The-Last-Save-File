@@ -64,7 +64,7 @@ This branch therefore carries PR #3's commits as well as its own. Merge PR #3 fi
 **Rejected under these pillars:**
 - a relationship meter (pillar 4 is served by recall lines);
 - random owner disruptions (pillar 1);
-- new glitches (pillar 2 is better served by making the existing ones legible).
+- new glitches (pillar 2 is better served by making the existing ones legible). **Exception, by the author on 2026-10-19:** leaving a body (`DARK_TRUTH_DESIGN.md` §8), which uses the glitch hold but is not a glitch: no awareness cost, previewed, and asked first.
 
 ## 3. Player journey: the problems that mattered
 

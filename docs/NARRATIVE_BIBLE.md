@@ -298,6 +298,7 @@ Side effects: message resets purge to 0 and clears `npc_fates` (OM:243-246). Onl
 | `edge_static_deaths` / `edge_mercy_used` | Edge balance | OM:198-205, 236-237 | the_edge.gd:114-115 |
 | `restored` | NPCs brought back | OM:173-176 | S:204, 592, 644, 712; W:792 |
 | `truth_pieces` / `knows_truth` | who told Rue what she is; whether she read her CHARACTER FILE whole (`DARK_TRUTH_DESIGN.md`) | npc.gd, out_of_bounds.gd, W `reveal_truth` | `Story.truth_line`, `truth_ready`; W `reach_slot2`; S epilogues |
+| `frayed` / `sheds` / `husk_area` / `husk_session` / `returned_pending` / `shed_said` | leaving a body: whose piece Rue wears, how often, where she left a body, pieces given back (`DARK_TRUTH_DESIGN.md` §8) | OM `fray`, `return_piece`; W `_shed`; recycle_bin.gd | npc.gd; player.gd `BORROWED`; owner_director.gd intro; arins_room.gd note; archive.gd |
 | `fragments` | memory ids | OM:159-162 | everywhere (S:206, 707; W:950, 987; archive.gd:79; recycle_bin.gd:205; OD:234) |
 | `acts_seen` | act cards shown | W:382 | W:381 |
 | `route_memory` / `session_spots` | Arin's learned route | OM:453-489 | village_square.gd:176-187; OD:160 |

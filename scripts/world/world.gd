@@ -262,6 +262,86 @@ func reveal_truth() -> void:
 	hud.say(Story.TRUTH_AFTER, "self")
 
 
+# --- leaving a body (docs/DARK_TRUTH_DESIGN.md, layer B) -----------------------
+
+## Bodies left this run.
+var sheds_this_run := 0
+var _pip_refused := false
+
+
+## Whether holding [E] beside `npc` offers LEAVE THIS BODY: Rue knows what she
+## is, they still have their piece (or it's the Archivist, who has nothing
+## to take and says so), she hasn't done it too often this run, and the owner
+## isn't looking: not hunting, no save ring, Arin's eyes not on her.
+func can_shed(npc: Node) -> bool:
+	if not (npc is Npc) or not OwnerMemory.knows_truth or ending != "" or _cutscene:
+		return false
+	if not npc.is_present():
+		return false
+	if npc.npc_id == "archivist":
+		return true
+	if npc.npc_id not in Story.SHED_TARGETS or npc.is_frayed() or sheds_this_run >= Story.SHED_MAX_PER_RUN:
+		return false
+	if director.awareness >= OwnerDirector.HUNT or owner_moves.save_progress >= 0.0:
+		return false
+	var arin: Variant = area.get("arin")
+	if arin is OwnerAvatar and arin.can_see(player.global_position):
+		return false
+	return true
+
+
+## The hold finished: say what it costs, then ask. Nothing happens until she
+## chooses (the question holds the owner).
+func offer_shed(npc: Npc) -> void:
+	if not can_shed(npc):
+		return
+	if npc.npc_id == "archivist":
+		hud.show_dialogue(npc.display_name, npc.name_color, [Story.ARCHIVIST_NOTHING_TO_TAKE], "npc.archivist")
+		return
+	if pip and pip.visible and pip.global_position.distance_to(player.global_position) < 80.0 and not _pip_refused:
+		_pip_refused = true
+		hud.say(Story.PIP_REFUSE, "self")
+	_cutscene = true
+	player.frozen = true
+	var pick := await choose_safely(Story.shed_preview(npc.npc_id), Story.shed_options(npc.npc_id))
+	if not is_inside_tree():
+		return
+	_cutscene = false
+	player.frozen = false
+	if pick == 0 and is_instance_valid(npc):
+		_shed(npc)
+
+
+func _shed(npc: Npc) -> void:
+	var who := npc.npc_id
+	PlaytestLog.mark("left a body", "took %s's %s" % [who, Story.SHED_PIECE[who]], true)
+	# The body she leaves, where she stood.
+	var husk := Husk.new()
+	husk.position = area.to_local(player.global_position)
+	area.add_child(husk)
+	area.interactables.append(husk)
+	OwnerMemory.fray(who, area.area_id)
+	sheds_this_run += 1
+	director.awareness = maxf(director.floor_level(), director.awareness - Story.SHED_COOL)
+	director.add_awareness(0.0)  # refresh the meter and the mood
+	npc.refresh_fray()
+	player.refresh_look()
+	GlitchBurst.at(self, player.global_position, Vector2(18, 28), 0.6)
+	fx.noise(0.5, 0.4)
+	Sfx.play("unload", -4.0, 0.8, 0.0)
+	# What they say as it's taken, and what she thinks.
+	hud.show_dialogue(Story.TOBBEN_WRITTEN if who == "tobben" else npc.display_name, npc.name_color, Story.FRAY_TAKEN[who],
+		"npc." + who, CharacterArt.for_npc(npc), World.expressions_for(npc, Story.FRAY_TAKEN[who]))
+	hud.say(Story.shed_thought(who, OwnerMemory.sheds, OwnerMemory.frayed.size()), "self")
+	# The owner notices the walk, then the damage.
+	director.say(Story.OWNER_SECOND_SHED if sheds_this_run >= 2 else Story.OWNER_NEW_FACE)
+	director.say(Story.OWNER_FRAYED[who])
+	if OwnerMemory.frayed.size() >= Story.SHED_TARGETS.size() and "all_frayed" not in OwnerMemory.shed_said:
+		OwnerMemory.shed_said.append("all_frayed")
+		OwnerMemory.save_memory()
+		director.say(Story.OWNER_ALL_FRAYED)
+
+
 ## The owner's planted memory: it doesn't count, and it costs you.
 func _took_false_memory(f: Dictionary) -> void:
 	OwnerMemory.false_memory_taken = true

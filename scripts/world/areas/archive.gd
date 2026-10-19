@@ -104,13 +104,22 @@ static func _archivist_remembers() -> String:
 ## id stem (VoiceManifest). Lines with run counts in them stay text only.
 static func voice_lines() -> Dictionary:
 	return {"npc.archivist": ARCHIVIST_POINTER + ARCHIVIST_FIRST + [ARCHIVIST_BACK, ARCHIVIST_AGAIN, ARCHIVIST_NO_PIECES, _archivist_remembers(),
-		Story.ARCHIVIST_FILE_HINT, Story.ARCHIVIST_KNOWS]}
+		Story.ARCHIVIST_FILE_HINT, Story.ARCHIVIST_KNOWS, Story.ARCHIVIST_PIECE_BACK, Story.ARCHIVIST_NOTHING_TO_TAKE] + Story.ARCHIVIST_SHED_FIRST}
 
 
 func _archivist_lines() -> Array:
 	var lines: Array = _archivist_core() + [_fragment_comment()]
 	if OwnerMemory.fragments.size() >= Story.FRAGMENTS.size():
 		lines.append(Story.ARCHIVIST_KNOWS if OwnerMemory.knows_truth else Story.ARCHIVIST_FILE_HINT)
+	# What he thinks of her leaving bodies behind (each said once).
+	if OwnerMemory.sheds > 0 and "archivist" not in OwnerMemory.shed_said:
+		OwnerMemory.shed_said.append("archivist")
+		OwnerMemory.save_memory()
+		lines.append_array(Story.ARCHIVIST_SHED_FIRST)
+	elif "archivist_back" not in OwnerMemory.shed_said and OwnerMemory.sheds > 0 and OwnerMemory.frayed.size() < OwnerMemory.sheds:
+		OwnerMemory.shed_said.append("archivist_back")
+		OwnerMemory.save_memory()
+		lines.append(Story.ARCHIVIST_PIECE_BACK)
 	return lines
 
 

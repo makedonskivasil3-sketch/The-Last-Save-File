@@ -740,6 +740,99 @@ static func truth_ready() -> bool:
 	return OwnerMemory.fragments.size() >= FRAGMENTS.size() and OwnerMemory.truth_pieces.size() >= TRUTH_PIECES_NEEDED
 
 
+## --- Leaving a body (docs/DARK_TRUTH_DESIGN.md, layer B) ---------------------
+## Knowing she is a file, Rue can step out of her body and into a new one,
+## made from a piece of someone beside her. The owner forgets her route and
+## who hid her; never how she walks. The piece stays taken (that person is
+## "frayed") until it's brought back from the Recycle Bin.
+
+const SHED_TARGETS := ["wren", "mira", "tobben"]
+const SHED_MAX_PER_RUN := 2
+## How much the owner's awareness drops (never below the last threshold).
+const SHED_COOL := 15.0
+const SHED_PIECE := {"wren": "ribbon", "mira": "colour", "tobben": "voice"}
+const SHED_ASSET := {"wren": "wren_ribbon.asset", "mira": "mira_palette.asset", "tobben": "tobben_voice.wav"}
+const SHED_TITLE := "LEAVE THIS BODY"
+
+
+static func _her(who: String) -> String:
+	return "his" if who == "tobben" else "her"
+
+
+static func shed_preview(who: String) -> String:
+	var name := who.capitalize()
+	var she := "he" if who == "tobben" else "she"
+	return "%s  ·  Take %s's %s. %s loses it, and %s will remember. The owner forgets your route and who hid you. They don't forget how you walk." % [
+		SHED_TITLE, name.to_upper(), SHED_PIECE[who], name, she]
+
+
+static func shed_options(who: String) -> Array:
+	return ["Take it", "Not him" if who == "tobben" else "Not her"]
+
+
+## Rue, as she does it.
+static func shed_thought(who: String, times: int, wearing: int) -> String:
+	if wearing >= SHED_TARGETS.size():
+		return "i'm wearing all of them now. there's barely any of me left in here."
+	if times <= 1:
+		return "it comes off like a coat. underneath there's nothing. then there's %s %s." % [_her(who), SHED_PIECE[who]]
+	return "easier every time. that's the worst part."
+
+
+const HUSK_TITLE := "EMPTY BODY"
+const HUSK_LINES := ["rue_slot02.body — empty. still warm, if data can be warm."]
+## Pip was always hers; Rue won't.
+const PIP_REFUSE := "not pip. never pip."
+
+## As it's taken. Tobben can't say his: he writes it in the guest book.
+const FRAY_TAKEN := {
+	"wren": ["Hey, that's mine! ...You need it more? Okay. Okay."],
+	"mira": ["Oh. Is that... me, on you? It suits you. I hate that it suits you."],
+	"tobben": ["(He opens his mouth. Nothing comes out. He writes in the guest book instead.)", "IT'S ALRIGHT. I WASN'T USING IT MUCH."],
+}
+## Afterwards, the same run.
+const FRAY_LINES := {
+	"wren": "My hair keeps falling in my face. I keep reaching for it.",
+	"mira": "Everything in here was already grey. Now I match.",
+	"tobben": "THE SHOP IS OPEN. I CAN'T SAY SO.",
+}
+## Later runs.
+const FRAY_RECALL := {
+	"wren": "You took my ribbon last time. I'm not mad. I'm a bit mad.",
+	"mira": "You wore me out of the room. Did the square look nice, at least?",
+	"tobben": "YOU AGAIN. I'D SAY HELLO.",
+}
+## Given back from the Recycle Bin.
+const FRAY_RETURNED := {
+	"wren": "My ribbon! You went into the bin for it? ...You smell like the bin.",
+	"mira": "Oh. There I am.",
+	"tobben": "—oh. Oh! There it is. I'd forgotten how loud I am. Sorry.",
+}
+## Tobben, frayed, speaks only in writing.
+const TOBBEN_WRITTEN := "TOBBEN · WRITTEN"
+
+## The owner.
+const OWNER_NEW_FACE := "new face. same walk."
+const OWNER_SECOND_SHED := "you can change your clothes all night. i know how you move."
+const OWNER_HUSK := "you left something in my room."
+const OWNER_HUSK_ELSEWHERE := "you left something in my save."
+const NOTE_BODY := "YOU LEFT A BODY HERE.\nI KEPT IT."
+const OWNER_FRAYED := {
+	"wren": "wren's ribbon is gone. did you do that.",
+	"mira": "mira's gone grey. she was the only colour in that room.",
+	"tobben": "tobben stopped talking. even the shop music sounds wrong.",
+}
+const OWNER_ALL_FRAYED := "you're not hiding from me. you're eating them."
+
+## The Archivist.
+const ARCHIVIST_SHED_FIRST := [
+	"You found out you can do that. So did I, once. I chose not to.",
+	"That's how you came back the first time, you know. You just didn't notice whose pieces they were.",
+]
+const ARCHIVIST_PIECE_BACK := "Good. Some things should go back where they were."
+const ARCHIVIST_NOTHING_TO_TAKE := "Go on. Look closely. I was cut before anyone finished drawing me. There's nothing on me to take."
+
+
 ## The records screen: every ending, with a hint while it's still unseen.
 ## id -> [name, what happened, hint].
 const ENDINGS_RECORD := [

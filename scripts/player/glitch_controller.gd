@@ -80,7 +80,7 @@ func _process(delta: float) -> void:
 			# press, not a glitch); later, a soft "cancelled" so it's never silent.
 			if _charge <= 0.0:
 				world.tap_interact()
-			elif not target.is_empty() and _charge < float(Glitch.DEFS[target.id].hold) * TAP_FRACTION:
+			elif not target.is_empty() and _charge < Glitch.hold_time(target.id) * TAP_FRACTION:
 				world.tap_interact()
 			else:
 				Sfx.play("denied", -10.0, 1.3)
@@ -98,7 +98,7 @@ func _charge_up(delta: float) -> void:
 		_fizzle()
 		return
 	_charge += delta
-	var need: float = Glitch.DEFS[target.id].hold
+	var need: float = Glitch.hold_time(target.id)
 	var k := clampf(_charge / need, 0.0, 1.0)
 	_loop.volume_db = Sfx.LEVEL["glitch_charge"] + linear_to_db(maxf(0.25 + 0.75 * k, 0.001) * Sfx.harshness())
 	_loop.pitch_scale = 0.7 + 0.9 * k
@@ -134,6 +134,11 @@ func find_target() -> Dictionary:
 		var landing := phase_landing()
 		if landing != Vector2.INF:
 			return {"id": "phase", "node": null, "pos": landing}
+	# Beside someone, knowing what she is, unwatched: she can leave this body
+	# instead (not a glitch: World.can_shed).
+	for node in area.interactables:
+		if node is Npc and world.can_shed(node) and p.distance_to(node.global_position) <= Glitch.SHED.range:
+			return {"id": "shed", "node": node, "pos": node.global_position}
 	var best := {}
 	var best_score := INF
 	var candidates: Array = []
@@ -188,7 +193,7 @@ func _still_valid(t: Dictionary) -> bool:
 		return false
 	if t.id in ["phase", "decoy", "pause"]:
 		return true
-	var reach: float = Glitch.DEFS[t.id].range * 1.4
+	var reach: float = Glitch.reach(t.id) * 1.4
 	return world.player.global_position.distance_to(t.pos if node == null or t.id == "scrub" else node.global_position) <= maxf(reach, 56.0)
 
 
@@ -237,6 +242,12 @@ func _fire(t: Dictionary) -> void:
 	PlaytestLog.mark("FIRST GLITCH", str(t.id), true)
 	var id: String = t.id
 	var node: Variant = t.get("node")
+	if id == "shed":
+		# No price, no count, no owner reaction: it asks first.
+		_cancel()
+		_cooldown = COOLDOWN
+		world.offer_shed(node)
+		return
 	var pos: Vector2 = t.pos
 	var burst_size := Vector2(24, 30)
 	match id:
@@ -320,7 +331,7 @@ func _update_prompt() -> void:
 	world.hud.preview_cost(Glitch.cost(target.id) if charging else 0.0)
 	if world.touch:
 		world.touch.hold_label = "" if target.is_empty() or _cooldown > 0.0 else Glitch.label(target.id).to_upper()
-		world.touch.hold_progress = clampf(_charge / float(Glitch.DEFS[target.id].hold), 0.0, 1.0) if charging else -1.0
+		world.touch.hold_progress = clampf(_charge / Glitch.hold_time(target.id), 0.0, 1.0) if charging else -1.0
 	if target.is_empty() or _cooldown > 0.0:
 		world.hud.set_glitch_prompt("")
 		return
@@ -336,7 +347,7 @@ func _draw() -> void:
 		return
 	var p: Vector2 = world.player.global_position + Vector2(0, -6)
 	var charging := _charge > 0.0
-	var k := clampf(_charge / float(Glitch.DEFS[target.id].hold), 0.0, 1.0) if charging else 0.0
+	var k := clampf(_charge / Glitch.hold_time(target.id), 0.0, 1.0) if charging else 0.0
 	# Brackets on the target (not on yourself).
 	if not (target.id in ["decoy", "pause"]):
 		var tp: Vector2 = target.pos if target.id in ["phase", "scrub"] or target.node == null else target.node.global_position
