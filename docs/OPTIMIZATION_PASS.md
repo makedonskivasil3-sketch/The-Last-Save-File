@@ -70,3 +70,29 @@
 | Physical controller, touch, phones | not run |
 | Real-GPU frame times | not run (software renderer only) |
 | Any human play | not run |
+
+## Frame-time measurements (same machine, software renderer)
+
+Machine: Xeon 2.1 GHz, Xvfb with Mesa llvmpipe (no GPU), 1280×720, effects Full unless noted. Tour: `tests/tour_profile.gd`.
+
+| Scene | `main` 3f471e6: p50 / p95 / max (ms) | This branch 1e6e0a6: p50 / p95 / max (ms) |
+|---|---|---|
+| Room, session start | 54.7 / 83.4 / 107.4 | 49.8 / 100.1 / 132.1 |
+| Square, calm, effects Full | 52.1 / 60.0 / 63.4 | 49.5 / 65.5 / 69.1 |
+| Square, calm, effects Off | 31.6 / 38.4 / 45.4 | 31.9 / 36.1 / 40.0 |
+| Square, HUNT + Wren escort | 52.6 / 64.8 / 73.7 | 53.1 / 60.7 / 61.4 |
+| Edge, static spreading | 39.2 / 45.9 / 52.4 | 41.7 / 53.6 / 77.2 |
+| Out of bounds | 39.7 / 46.2 / 52.8 | 40.5 / 46.7 / 50.4 |
+| Archive after 8 area changes | 42.5 / 45.9 / 48.4 | 44.2 / 50.8 / 54.2 |
+
+**Title, first 3 s** (`tools/title_startup.gd`, two runs each), worst frames in ms:
+- `main`: 89–135 and 86–111
+- this branch: 95–148 and 80–98
+
+**What this shows, honestly:**
+
+1. **No measurable frame-time change between `main` and this branch.** Both columns and both title runs fall within run-to-run noise on this machine.
+2. **The screen-effects shader dominates on a software renderer.** Effects Off cuts the square's p50 from about 50 ms to about 32 ms. A real GPU needs its own measurement (not run). Nothing was removed, because the brief rules out cutting atmosphere without evidence from target hardware.
+3. **Removing synthesis spikes didn't show up in frame times here.** Baking the drone and the themes removes synthesis spikes measured in isolation: the hum went from about 95–120 ms to 0.3 ms, and a theme is now under 1 ms where rendering one took 20–55 ms. But the title still builds about 60 sound effects at roughly 30–50 ms each, one per frame (`tools/synth_timing.gd`). Those dominate its first seconds in both versions.
+4. **The next step if a real device shows title stalls:** bake the deterministic sound effects the same way. Effects that use noise need a fixed seed first.
+5. **Memory and objects stay flat** across 8 area changes in both versions: about 2,250 objects, about 65 MB.
