@@ -1039,7 +1039,14 @@ static func dialogue_voice_prefix(node: Node, result: Dictionary) -> String:
 static func expressions_for(node: Node, lines: Array) -> Array:
 	var out: Array = []
 	for l in lines:
-		out.append(ArinsRoom.mira_expression(str(l)) if node is Npc and node.npc_id == "mira" else "")
+		var who: String = node.npc_id if node is Npc else ""
+		match who:
+			"mira":
+				out.append(ArinsRoom.mira_expression(str(l)))
+			"wren":
+				out.append(VillageSquare.wren_expression(str(l)))
+			_:
+				out.append("")
 	return out
 
 

@@ -14,7 +14,7 @@ func _mask(img: Image) -> PackedByteArray:
 
 
 func test_no_one_wears_rue_s_face() -> void:
-	for who in ["wren", "tobben", "archivist", "arin", "pip"]:
+	for who in ["tobben", "archivist", "arin", "pip"]:
 		check(not CharacterArt.has_portrait(who), "%s has no portrait yet" % who)
 		check(CharacterArt.Portrait.new(who, "neutral", {}).texture() == null, "so %s shows none (not Rue's)" % who)
 	var w := await start_session()
@@ -91,3 +91,39 @@ func test_mira_s_moods_cover_her_story() -> void:
 		for l in ArinsRoom.voice_lines()[stem]:
 			used[ArinsRoom.mira_expression(l)] = true
 	check(used.size() >= 6, "her lines use most of her faces (%s)" % ", ".join(used.keys()))
+
+
+func test_wren_s_portrait_is_her_sprite_and_her_own() -> void:
+	var w := await start_session()
+	await go_to(w, "square", "house")
+	var wren: Npc = w.area.wren
+	var p := CharacterArt.for_npc(wren)
+	check(p != null and p.who == "wren", "Wren has a portrait")
+	var img := CharacterArt.image(p)
+	var pal: Dictionary = wren.sprite().palette
+	check_eq(img.get_pixel(12, 7), pal.h, "her hair is her sprite's hair")
+	check_eq(img.get_pixel(15, 15), pal.s, "her skin is her sprite's skin")
+	check_eq(img.get_pixel(12, 29), pal.c, "her pinafore is her sprite's clothes")
+	check_eq(img.get_pixel(4, 13), pal.d, "her pigtail ties are her clothes' trim")
+	for own in ["brave", "awed"]:
+		check(own in CharacterArt.expressions_for("wren"), "Wren has her own '%s'" % own)
+	var masks := {}
+	for who in ["rue", "mira", "wren"]:
+		masks[who] = _mask(CharacterArt.image(CharacterArt.Portrait.new(who, "neutral", pal)))
+	for pair in [["wren", "rue"], ["wren", "mira"]]:
+		var differ := 0
+		for i in masks[pair[0]].size():
+			if masks[pair[0]][i] != masks[pair[1]][i]:
+				differ += 1
+		check(differ > 60, "Wren's silhouette isn't %s's (%d pixels differ)" % [pair[1], differ])
+
+
+func test_talking_to_wren_shows_her_face() -> void:
+	var w := await start_session()
+	await go_to(w, "square", "house")
+	await interact_with(w, w.area.wren)
+	check(w.hud.is_dialogue_open(), "talking to Wren")
+	check(w.hud._dialogue_portrait.visible and w.hud._dialogue_portrait.texture != null, "her portrait is in the box")
+	check_eq(w.hud.dialogue_expression(), VillageSquare.wren_expression(w.hud._dialogue_text.text), "her expression follows the line")
+	await shot("wren_dialogue_portrait")
+	await finish_dialogue(w)

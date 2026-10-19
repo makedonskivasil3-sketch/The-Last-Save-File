@@ -1,5 +1,7 @@
 # First minutes: fairness and readable threats
 
+> **Historical record.** This audit describes an earlier build. For the current state, see `RELEASE_READINESS.md` (status and validation) and `COHESION_PASS.md` (what was verified, fixed and deferred most recently). Findings marked fixed there supersede the ones here.
+
 Base: `game-presentation-polish` at `2c0936f`. Findings below are code and
 functional-test observations, not human playtest results.
 

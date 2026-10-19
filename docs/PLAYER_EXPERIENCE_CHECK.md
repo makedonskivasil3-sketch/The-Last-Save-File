@@ -1,5 +1,7 @@
 # Player experience validation
 
+> **Historical record.** This audit describes an earlier build. For the current state, see `RELEASE_READINESS.md` (status and validation) and `COHESION_PASS.md` (what was verified, fixed and deferred most recently). Findings marked fixed there supersede the ones here.
+
 ## Changes in this pass
 
 - Pause → Console history: full, wrapped text of the latest 200 console messages that have started appearing this run. No future queued messages. Resets on a new run. Mouse wheel, touch scrollbar and Older/Newer buttons; keyboard/controller focus on buttons. Reading pauses the game.

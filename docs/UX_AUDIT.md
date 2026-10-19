@@ -1,5 +1,7 @@
 # UX audit: The Last Save File
 
+> **Historical record.** This audit describes an earlier build. For the current state, see `RELEASE_READINESS.md` (status and validation) and `COHESION_PASS.md` (what was verified, fixed and deferred most recently). Findings marked fixed there supersede the ones here.
+
 > **Status (2026-10-16, experience-polish milestone):**
 > - **Fixed:**
 >   - C1: reading no longer counts as standing still, and modal questions hold the owner.

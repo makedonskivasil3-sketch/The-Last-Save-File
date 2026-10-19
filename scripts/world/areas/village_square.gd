@@ -46,6 +46,22 @@ const TOBBEN_LINES := [
 
 
 
+## How Wren looks saying each of her lines (CharacterArt expressions; the
+## rest are "neutral"). docs/CHARACTER_ART.md has her brief.
+static func wren_expression(line: String) -> String:
+	var by_line := {
+		WREN_LINES[1]: "brave", WREN_LINES[3]: "afraid", WREN_LINES[4]: "relieved",
+		Story.WREN_ASK: "brave", Story.WREN_ASK_SAVED: "awed",
+		Story.WREN_SAVED_LINES[0]: "brave", Story.WREN_SAVED_LINES[1]: "relieved",
+		Story.WREN_JOINS[0]: "relieved", Story.WREN_DECLINED[0]: "concerned",
+	}
+	var recall := {"ended:wren": "awed", "ended:message": "relieved", "ended:escape": "concerned", "died:eraser": "afraid"}
+	for entry in Story.RECALL["wren"]:
+		if recall.has(entry[0]):
+			by_line[entry[1]] = recall[entry[0]]
+	return by_line.get(line, "neutral")
+
+
 ## Every line Wren and Tobben can say that is the same in every run, by voice
 ## id stem (VoiceManifest), including what they remember (Story.recall_lines).
 static func voice_lines() -> Dictionary:
@@ -282,12 +298,12 @@ func on_dialogue_closed(who: Node) -> void:
 		return
 	world.player.frozen = false
 	if pick == 0:
-		world.hud.show_dialogue("WREN", wren.name_color, Story.WREN_JOINS, "npc.wren")
+		world.hud.show_dialogue("WREN", wren.name_color, Story.WREN_JOINS, "npc.wren", CharacterArt.for_npc(wren), World.expressions_for(wren, Story.WREN_JOINS))
 		world.start_escort(wren)
 		wren = null
 	else:
 		_wren_ask_at = _wren_line + 2  # she'll ask again, after two more of her own lines
-		world.hud.show_dialogue("WREN", wren.name_color, Story.WREN_DECLINED, "npc.wren")
+		world.hud.show_dialogue("WREN", wren.name_color, Story.WREN_DECLINED, "npc.wren", CharacterArt.for_npc(wren), World.expressions_for(wren, Story.WREN_DECLINED))
 
 
 func area_process(delta: float) -> void:

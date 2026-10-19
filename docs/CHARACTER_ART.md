@@ -1,7 +1,7 @@
 # Character art: direction, briefs, expressions
 
 The cast is code-drawn pixel art, like the rest of the game. This document sets the look for **in-world sprites, portraits, animation and interface**.
-- **Rue** (the reference) and **Mira** (the first supporting character) are fully integrated.
+- **Rue** (the reference), **Mira** and **Wren** (supporting characters) are fully integrated.
 - The others have briefs, ready to build the same way.
 
 **The presentation contract** (`CharacterArt.CAST`, tested in `tests/test_character_presentation.gd`):
@@ -180,7 +180,21 @@ The original brief follows.
   - **proud** (Mira-specific: chin up, eyes closed, "MIRA WAS HERE");
   - **reset** (Mira-specific: a blank, too-wide smile after the owner resets her).
 
-### Wren
+### Wren (integrated)
+
+**Built in the cohesion pass.** The art is code-drawn in this repository, so there is nothing external to attribute.
+- **Silhouette:** a round head with a short fringe, and two pigtails sticking straight out at the sides, tied in green. Narrow shoulders and a green pinafore. She is visibly a child, and unlike Rue or Mira (the test requires more than 60 pixels of difference).
+- **Palette:** read from her sprite: hair `c9a04a`, skin `e8c48a`, pinafore `6a8f5a`, trim `4a6a3a`.
+- **Expressions:** the shared six, plus the two in her brief:
+  - **brave**: brows down, mouth set;
+  - **awed**: wide eyes with the slot's cyan in them.
+- **Where she appears:**
+  - her conversations in the square;
+  - her request, join and decline lines;
+  - what she remembers. Her own ending gives *awed*; a death by static gives *afraid*.
+- **Evidence:** `review/wren_expressions.png` (left to right: neutral, concerned, afraid, relieved, determined, remembering, brave, awed) and `review/after_wren_dialogue_portrait.png`. These are staged automation shots, **not an art approval**.
+
+The original brief follows.
 
 - **Role:** a child in the square who hides you; wants to see the Edge.
 - **Visual brief:** smallest of the cast, pigtails, oversized eyes. Quick hop idle.
