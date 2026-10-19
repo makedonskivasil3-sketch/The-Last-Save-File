@@ -51,7 +51,9 @@ static func stream(level: int, variant := "normal") -> AudioStreamWAV:
 	level = clampi(level, 0, MAX_LEVEL)
 	var key := "theme_%d_%s" % [level, variant]
 	if not OwnerMemory.runtime_cache.has(key):
-		if Sfx.finish_job(key):
+		if _load_baked(key, level, variant):
+			pass  # baked (tools/bake_audio.gd): ready at once, on any machine
+		elif Sfx.finish_job(key):
 			pass  # it was being built in the background: finished it now
 		elif variant == "reverse":
 			# Backwards is the same samples, flipped: no need to render again.
@@ -59,6 +61,30 @@ static func stream(level: int, variant := "normal") -> AudioStreamWAV:
 		else:
 			OwnerMemory.runtime_cache[key] = render(level, variant)
 	return OwnerMemory.runtime_cache[key]
+
+
+## Every theme, in every variant, is baked into res://audio/baked/ (about
+## 107 KB each). Rendering one took 20-55 ms here and much longer on a slow
+## browser, so on the web the title's theme could start seconds late or not
+## within the first listen (CI: the title's notes weren't in the output).
+const VARIANTS := ["normal", "invert", "reverse"]
+
+
+static func baked_path(level: int, variant: String) -> String:
+	return "res://audio/baked/theme_%d_%s.res" % [level, variant]
+
+
+static func _load_baked(key: String, level: int, variant: String) -> bool:
+	var path := baked_path(level, variant)
+	if not ResourceLoader.exists(path):
+		return false
+	OwnerMemory.runtime_cache[key] = load(path)
+	return true
+
+
+## The theme built from code (what the baked files must match).
+static func build(level: int, variant: String) -> AudioStreamWAV:
+	return _reversed(render(level)) if variant == "reverse" else render(level, variant)
 
 
 static func _reversed(src: AudioStreamWAV) -> AudioStreamWAV:
@@ -89,7 +115,7 @@ static func render(level: int, variant := "normal") -> AudioStreamWAV:
 static func prewarm(level: int, variant := "normal") -> void:
 	level = clampi(level, 0, MAX_LEVEL)
 	var key := "theme_%d_%s" % [level, variant]
-	if OwnerMemory.runtime_cache.has(key):
+	if OwnerMemory.runtime_cache.has(key) or _load_baked(key, level, variant):
 		return
 	if variant == "reverse":
 		prewarm(level)

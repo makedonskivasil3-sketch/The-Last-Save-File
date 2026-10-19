@@ -13,6 +13,21 @@ func test_baked_layers_match_the_code() -> void:
 			"%s matches the code (re-run tools/bake_audio.gd if not)" % key)
 
 
+func test_baked_themes_match_the_code() -> void:
+	for level in MusicBox.MAX_LEVEL + 1:
+		for variant in MusicBox.VARIANTS:
+			var path := MusicBox.baked_path(level, variant)
+			check(ResourceLoader.exists(path), "theme %d %s is baked" % [level, variant])
+			var baked: AudioStreamWAV = load(path)
+			check(baked.data == MusicBox.build(level, variant).data, "theme %d %s matches the code (re-run tools/bake_audio.gd if not)" % [level, variant])
+
+
+func test_the_title_theme_is_ready_at_once() -> void:
+	OwnerMemory.runtime_cache.clear()
+	MusicBox.prewarm(0)
+	check(OwnerMemory.runtime_cache.has("theme_0_normal"), "prewarm loads the baked theme straight away, no background job")
+
+
 func test_loading_is_far_cheaper_than_building() -> void:
 	var t := Time.get_ticks_usec()
 	var _w: AudioStreamWAV = ResourceLoader.load(Drone.baked_path("hum"), "", ResourceLoader.CACHE_MODE_IGNORE)
