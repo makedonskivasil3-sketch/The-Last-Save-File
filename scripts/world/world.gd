@@ -262,6 +262,7 @@ func _process(delta: float) -> void:
 	player.set_targeted((cursor is OwnerCursor and cursor.is_selecting()) or (watcher is OwnerAvatar and watcher.is_seeing()))
 	# Reading or answering isn't "standing still" for the owner's save-over.
 	player.reading = hud.is_dialogue_open() or hud.is_choosing()
+	player.reading_card = hud.is_tip_shown() or hud.is_act_shown()
 	_update_reading_hold()
 	var helper := hiding_npc()
 	player.sheltered = is_hidden_now()
@@ -756,7 +757,7 @@ func _sync_perf_overlay() -> void:
 ## Can Rue act (interact or glitch) right now?
 func can_act() -> bool:
 	return not (purged or ending != "" or _transitioning or _cutscene or player.frozen
-		or hud.is_dialogue_open() or get_tree().paused)
+		or hud.is_dialogue_open() or hud.is_cinematic() or get_tree().paused)
 
 
 ## A tap of [E]: interact with whatever's focused.
@@ -824,11 +825,11 @@ func is_owner_paused() -> bool:
 
 
 ## Reading is safe (docs/NARRATIVE_RELIABILITY.md, the modal safety matrix):
-## while a conversation is open Rue stands still and so does the owner, like a
+## while a conversation or a scene is open Rue stands still and so does the owner, like a
 ## question. No move starts, a save ring in progress holds where it is, and
 ## awareness doesn't climb. All of it resumes, visibly, when the box closes.
 func _update_reading_hold() -> void:
-	var reading := hud.is_dialogue_open()
+	var reading := hud.is_dialogue_open() or hud.is_cinematic()
 	if reading == _reading_hold:
 		return
 	var was := is_owner_paused()

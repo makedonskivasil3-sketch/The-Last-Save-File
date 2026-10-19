@@ -436,8 +436,12 @@ func _offer_guestbook() -> void:
 
 
 func _tobben_reports() -> void:
-	# He tells the owner a few seconds later.
-	get_tree().create_timer(4.0).timeout.connect(_tobben_report_lands)
+	# He tells the owner a few seconds after you stop talking, not while you
+	# are still reading him.
+	while is_inside_tree() and world.hud.is_dialogue_open():
+		await get_tree().process_frame
+	if is_inside_tree():
+		get_tree().create_timer(4.0).timeout.connect(_tobben_report_lands)
 
 
 func _tobben_report_lands() -> void:

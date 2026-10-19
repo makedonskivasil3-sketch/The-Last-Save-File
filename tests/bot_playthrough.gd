@@ -43,6 +43,10 @@ func test_full_game_escape_purge_3() -> void:
 	await _playthrough("escape", 3)
 
 
+func test_full_game_escape_purge_5() -> void:
+	await _playthrough("escape", 5)
+
+
 func test_wren_ending() -> void:
 	await _playthrough("wren", 0)
 
