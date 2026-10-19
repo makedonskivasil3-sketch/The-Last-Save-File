@@ -83,3 +83,19 @@ func test_speech_ducks_the_music_by_bus_volume() -> void:
 	await wait(1.5)
 	check(absf(AudioServer.get_bus_volume_db(music) - base) < 0.1, "and comes back after the line (%.1f dB)" % AudioServer.get_bus_volume_db(music))
 	check(Sfx.speech_duck_db() <= 0.0, "the duck never raises anything")
+
+
+func test_the_web_page_turns_sound_on_at_the_first_gesture() -> void:
+	# web/sound_unlock.js goes into the page's head (export_presets.cfg): it
+	# resumes the browser's audio on the first click, tap or key, plays a
+	# silent media loop so an iPhone's silent switch doesn't mute the game,
+	# and says on screen whether sound is on.
+	var js := FileAccess.get_file_as_string("res://web/sound_unlock.js")
+	check(js.contains("resume()") and js.contains("audioSession"), "the unlock script resumes audio")
+	var cfg := ConfigFile.new()
+	check_eq(cfg.load("res://export_presets.cfg"), OK, "export presets load")
+	var head := ""
+	for s in cfg.get_sections():
+		if cfg.get_value(s, "platform", "") == "Web":
+			head = str(cfg.get_value(s.replace(".options", "") + ".options", "html/head_include", ""))
+	check_eq(head, "<script>\n" + js + "</script>", "the Web export includes it, unchanged")

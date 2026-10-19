@@ -109,6 +109,24 @@ The alternative is Stream playback, which on the web needs main-thread mixing in
 | Windows build audio | not run (no Windows machine) |
 | System narration (TTS) output | not run (it doesn't pass through Godot's buses; it needs a device with voices) |
 
+### 4. A page that stays silent on the player's device (2026-10-19, report: "I can't hear any sound")
+
+The build is audible in the headless browser (title about -29 dBFS, the theme's 441 and 657 Hz strongest). A silent page on a real device is then most likely the browser or device keeping sound off. Known causes: an iPhone or iPad silent switch (it mutes web audio), a muted tab, or a page embedded in another page.
+
+**Change:** `web/sound_unlock.js`, included in the page's head by the Web export preset. It:
+- resumes the browser's audio on the first click, tap or key, and again when the tab comes back;
+- plays a silent media loop and sets `navigator.audioSession` to playback, so the silent switch doesn't mute the game on iPhone and iPad;
+- shows the sound state in the corner: "Click or tap anywhere to turn the sound on", "Sound on" (then hides), or what to check when the browser keeps it off.
+
+It never raises a volume or unmutes the game's own settings.
+
+| Check | Status |
+|---|---|
+| Browser check: audible, and the page reports "running" after the click | pass (headless Chromium; added to `audio_output_check.cjs`) |
+| `test_audio_routing.test_the_web_page_turns_sound_on_at_the_first_gesture` | pass |
+| iPhone or iPad with the silent switch on | not run (no device) |
+| The player's own device | not run: waiting for the player's report |
+
 ## For a person to check
 
 1. **Web:** open the browser build and click once on the title. The two-note music box should be clear over a soft hum.

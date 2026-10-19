@@ -114,6 +114,8 @@ async function waitForGame(page) {
   await page.mouse.click(640, 360);
   await page.waitForTimeout(500);
   results.title = await measure(page, 6000);
+  // The page's own report (web/sound_unlock.js) after that click.
+  results.sound_state = await page.evaluate(() => { const b = document.getElementById('sound-state'); return b ? b.dataset.state : 'missing'; });
   // Start: Enter on Load Slot 1, then E through the opening.
   await page.keyboard.press('Escape');
   await page.waitForTimeout(300);
@@ -130,6 +132,7 @@ async function waitForGame(page) {
   if (!audible(results.title) && !audible(results.first_room)) failures.push('silent after the first gesture (title and first room)');
   if (!audible(results.first_room)) failures.push('the first room is silent');
   if (results.title.clipped_samples > 0 || results.first_room.clipped_samples > 0) failures.push('clipping');
+  if (results.sound_state !== 'running') failures.push(`the page says sound is "${results.sound_state}" after a click`);
   if (errors.length) failures.push(`${errors.length} page error(s)`);
   // The title's music box must be among what reaches the speakers.
   const near = (hz, f) => Math.abs(hz - f) <= 12;
