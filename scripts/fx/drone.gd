@@ -17,6 +17,8 @@ extends AudioStreamPlayer
 
 const HUM_RATE := 11025
 const LOOP_SECONDS := 4.0
+## The hum's level: under the music box, not over it.
+const HUM_DB := -18.0
 
 ## 0..1, set by OwnerDirector from awareness.
 var tension := 0.0
@@ -33,7 +35,7 @@ var _build_queue := ["dread", "shimmer", "crackle"]
 func _ready() -> void:
 	bus = "Music"
 	stream = _cached("hum", _build_hum)
-	volume_db = -15.0
+	volume_db = HUM_DB
 	play()
 	_heart = AudioStreamPlayer.new()
 	_heart.bus = "SFX"  # a threat cue: muting the music mustn't silence it
@@ -119,12 +121,20 @@ func _cached(key: String, builder: Callable) -> AudioStreamWAV:
 # --- layers ------------------------------------------------------------------------
 
 ## 55 Hz against 55.75 Hz (a slow, uneasy beat) plus an octave. 4 s, every
-## partial a whole number of cycles.
+## partial a whole number of cycles (55.75 x 3, 5, 7 are multiples of 0.25 Hz).
+## Laptop and phone speakers can't play 55 Hz, so quiet odd harmonics carry
+## the same pitch and slow beat into the range they can (docs/AUDIO_DIAGNOSIS.md:
+## 95% of the title's energy was below 120 Hz).
 static func _build_hum() -> AudioStreamWAV:
 	var b := Synth.begin(LOOP_SECONDS, HUM_RATE)
 	Synth.tone(b, 0.0, LOOP_SECONDS, 55.0, 55.0, 0.35, Synth.Wave.SINE, 0.0, 0.0)
 	Synth.tone(b, 0.0, LOOP_SECONDS, 55.75, 55.75, 0.25, Synth.Wave.SINE, 0.0, 0.0)
 	Synth.tone(b, 0.0, LOOP_SECONDS, 110.25, 110.25, 0.08, Synth.Wave.SINE, 0.0, 0.0)
+	# Odd harmonics, like a powered console's mains hum, each with its
+	# detuned partner so the beat survives on small speakers.
+	for h in [[3.0, 0.12], [5.0, 0.10], [7.0, 0.07]]:
+		Synth.tone(b, 0.0, LOOP_SECONDS, 55.0 * h[0], 55.0 * h[0], h[1], Synth.Wave.SINE, 0.0, 0.0)
+		Synth.tone(b, 0.0, LOOP_SECONDS, 55.75 * h[0], 55.75 * h[0], h[1] * 0.7, Synth.Wave.SINE, 0.0, 0.0)
 	Synth.normalize(b, 0.5)
 	return Synth.to_wav(b, true)
 

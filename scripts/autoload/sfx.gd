@@ -368,13 +368,18 @@ func _base(name: String) -> String:
 
 
 func _make_buses() -> void:
-	for bus in BUSES:
-		if AudioServer.get_bus_index(bus) != -1:
-			continue
-		AudioServer.add_bus()
-		var i := AudioServer.bus_count - 1
-		AudioServer.set_bus_name(i, bus)
-		AudioServer.set_bus_send(i, "Master")
+	# All the missing buses in one step, by setting the bus count. Not one
+	# add_bus() at a time: on the web (Sample playback, Godot 4.3) each
+	# add_bus() files the browser's copy of the new bus in the wrong place, so
+	# the browser's buses stop matching the engine's and nothing reaches the
+	# speakers. Setting the count adds them in order on both sides.
+	# docs/AUDIO_DIAGNOSIS.md; tests/web/audio_output_check.cjs.
+	var missing: Array = BUSES.filter(func(b: String) -> bool: return AudioServer.get_bus_index(b) == -1)
+	var first := AudioServer.bus_count
+	AudioServer.bus_count = first + missing.size()
+	for k in missing.size():
+		AudioServer.set_bus_name(first + k, missing[k])
+		AudioServer.set_bus_send(first + k, "Master")
 	var sfx := AudioServer.get_bus_index("SFX")
 	var reverb := AudioEffectReverb.new()
 	reverb.room_size = 0.55

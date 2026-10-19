@@ -77,6 +77,18 @@ jobs:
           test -s build/linux/TheLastSaveFile.x86_64
           test -s build/web/index.html
 
+      # The web build must be AUDIBLE, not just "running": a real browser taps
+      # what reaches the speakers and checks the title theme's notes are in it
+      # (docs/AUDIO_DIAGNOSIS.md: Godot 4.3's web Sample playback once left
+      # every sound routed nowhere).
+      - name: Web build is audible (headless Chromium)
+        run: |
+          mkdir -p /tmp/pw && cd /tmp/pw && npm init -y >/dev/null && npm install --silent playwright@1.56.1
+          npx --prefix /tmp/pw playwright install --with-deps chromium >/dev/null
+          (cd "$GITHUB_WORKSPACE/build/web" && python3 -m http.server 8765 --bind 127.0.0.1 >/dev/null 2>&1 &)
+          sleep 1
+          cd "$GITHUB_WORKSPACE" && NODE_PATH=/tmp/pw/node_modules node tests/web/audio_output_check.cjs http://127.0.0.1:8765/index.html
+
       - name: Smoke test exported Linux game
         run: build/linux/TheLastSaveFile.x86_64 --headless --quit-after 240 -- --test-mode
 

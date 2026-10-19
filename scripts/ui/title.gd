@@ -5,6 +5,9 @@ extends Control
 const GAME_SCENE := "res://scenes/main.tscn"
 const TITLE := "THE LAST SAVE FILE"
 
+## The theme on the title (dB, Music bus).
+const MUSIC_DB := -13.0
+
 var _title: Label
 var _menu: VBoxContainer
 var _settings_box: VBoxContainer
@@ -35,7 +38,9 @@ func _ready() -> void:
 	# Built in the background if it isn't cached yet; it starts when ready.
 	_music = AudioStreamPlayer.new()
 	_music.bus = "Music"
-	_music.volume_db = -22.0
+	# Above the drone: at -22 dB under it the theme was inaudible on laptop
+	# and phone speakers (docs/AUDIO_DIAGNOSIS.md).
+	_music.volume_db = MUSIC_DB
 	add_child(_music)
 	MusicBox.prewarm(MusicBox.held_level(OwnerMemory.fragments.size()))
 	var touch := TouchControls.new()

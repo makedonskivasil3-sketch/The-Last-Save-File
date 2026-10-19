@@ -55,6 +55,7 @@ async function measure(page, ms) {
     const buf = new Float32Array(tap.fftSize);
     const spec = new Float32Array(tap.frequencyBinCount);
     let windows = 0, loud = 0, sumSq = 0, n = 0, peak = 0, clipped = 0, low = 0, mid = 0;
+    const avg = new Float64Array(spec.length);
     const binHz = ctx.sampleRate / tap.fftSize;
     const t = setInterval(() => {
       tap.getFloatTimeDomainData(buf);
@@ -66,14 +67,24 @@ async function measure(page, ms) {
       for (let i = 1; i < spec.length; i++) {
         const hz = i * binHz, p = Math.pow(10, spec[i] / 10);
         if (hz < 200) low += p; else if (hz >= 300 && hz <= 4000) mid += p;
+        avg[i] += p;
       }
     }, 50);
     setTimeout(() => {
       clearInterval(t);
       const db = (x) => x > 0 ? Math.round(20 * Math.log10(x) * 10) / 10 : -Infinity;
+      // The strongest pitches above 300 Hz (the music box lives there:
+      // A4 440 Hz and E5 659 Hz are its first two notes).
+      const peaks = [];
+      for (let i = 2; i < avg.length - 1; i++) {
+        const hz = i * binHz;
+        if (hz >= 300 && hz <= 2000 && avg[i] > avg[i - 1] && avg[i] >= avg[i + 1]) peaks.push([Math.round(hz), avg[i]]);
+      }
+      peaks.sort((a, b) => b[1] - a[1]);
       resolve({ state: ctx.state, contexts: ctxs.length, rms_dbfs: db(Math.sqrt(sumSq / Math.max(n, 1))), peak_dbfs: db(peak),
         audible_share: Math.round(100 * loud / Math.max(windows, 1)), clipped_samples: clipped,
-        mid_to_low_db: low > 0 && mid > 0 ? Math.round(10 * Math.log10(mid / low) * 10) / 10 : null });
+        mid_to_low_db: low > 0 && mid > 0 ? Math.round(10 * Math.log10(mid / low) * 10) / 10 : null,
+        top_pitches_hz: peaks.slice(0, 5).map((p) => p[0]) });
     }, ms);
   }), ms);
 }
@@ -120,6 +131,10 @@ async function waitForGame(page) {
   if (!audible(results.first_room)) failures.push('the first room is silent');
   if (results.title.clipped_samples > 0 || results.first_room.clipped_samples > 0) failures.push('clipping');
   if (errors.length) failures.push(`${errors.length} page error(s)`);
+  // The title's music box must be among what reaches the speakers.
+  const near = (hz, f) => Math.abs(hz - f) <= 12;
+  const tp = results.title.top_pitches_hz || [];
+  if (!tp.some((hz) => near(hz, 440) || near(hz, 659))) failures.push(`the title theme isn't heard (top pitches ${JSON.stringify(tp)})`);
   if (failures.length) { console.log('FAIL: ' + failures.join('; ')); process.exit(1); }
   console.log('PASS: the web build is audible after a gesture');
 })().catch((e) => { console.error('FAILED', e); process.exit(1); });

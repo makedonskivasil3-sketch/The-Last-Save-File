@@ -6,7 +6,8 @@ extends Node
 ##   archive  a low hum and pages turning somewhere in the stacks
 ##   edge     the music box theme backwards, slowed: time running out
 ##   oob      the theme upside down at half speed, over thin air
-##   room     nothing but the drone (the owner is listening)
+##   room     the drone, and the theme faintly, like a toy left playing; it
+##            fades as the owner watches more closely
 ## World swaps it on every area change.
 
 var world: World
@@ -17,13 +18,15 @@ var _theme: AudioStreamPlayer
 var _next_event := 2.0
 var _memory_theme: AudioStreamPlayer
 var _memory_level := -1
+## The theme's level per calm area (dB, before awareness takes some away).
+const THEME_DB := {"archive": -16.0, "square": -20.0, "room": -21.0}
 
 
 ## Build the bed for an area (call once, right after creating it).
 func setup(w: World, id: String) -> void:
 	world = w
 	area_id = id
-	if id in ["square", "archive"]:
+	if id in ["square", "archive", "room"]:
 		_memory_theme = AudioStreamPlayer.new()
 		_memory_theme.bus = "Music"
 		_memory_theme.volume_db = -60.0
@@ -128,7 +131,9 @@ func _update_memory_theme(delta: float) -> void:
 			_memory_theme.volume_db = -60.0
 			_memory_theme.play()
 			_memory_level = level
-	var target := -25.0 if area_id == "archive" else -29.0 - world.director.awareness * 0.12
+	# Heard, not buried (docs/AUDIO_DIAGNOSIS.md): it used to sit at -25/-29 dB
+	# under the drone and read as no music at all.
+	var target: float = THEME_DB.get(area_id, -20.0) - world.director.awareness * (0.15 if area_id == "room" else 0.12)
 	if world.hud.is_dialogue_open() or world.hud.is_cinematic() or world.hud.banner_text() != "":
 		target -= 8.0
 	_memory_theme.volume_db = move_toward(_memory_theme.volume_db, target, delta * 12.0)
