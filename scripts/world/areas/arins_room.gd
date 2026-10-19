@@ -54,7 +54,8 @@ const MIRA_RESTRICTED := [
 ## Every line Mira can say that is the same in every run, by voice id stem
 ## (VoiceManifest), including what she remembers (Story.recall_lines).
 static func voice_lines() -> Dictionary:
-	return {"npc.mira": Story.recall_lines("mira") + [Story.TRUTH_LINES.mira] + MIRA_LINES + MIRA_RESTRICTED + Story.MIRA_RESET_LINES + Story.MIRA_ASK + Story.MIRA_JOINS + Story.MIRA_DECLINED}
+	return {"npc.mira": Story.recall_lines("mira") + [Story.TRUTH_LINES.mira] + Story.FRAY_TAKEN.mira
+		+ [Story.FRAY_LINES.mira, Story.FRAY_RECALL.mira, Story.FRAY_RETURNED.mira] + MIRA_LINES + MIRA_RESTRICTED + Story.MIRA_RESET_LINES + Story.MIRA_ASK + Story.MIRA_JOINS + Story.MIRA_DECLINED}
 
 
 ## How Mira looks saying each of her lines (CharacterArt expressions; the

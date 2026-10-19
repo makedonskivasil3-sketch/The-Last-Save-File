@@ -67,8 +67,10 @@ static func wren_expression(line: String) -> String:
 ## id stem (VoiceManifest), including what they remember (Story.recall_lines).
 static func voice_lines() -> Dictionary:
 	return {
-		"npc.wren": Story.recall_lines("wren") + [Story.TRUTH_LINES.wren] + WREN_LINES + Story.WREN_SAVED_LINES + [Story.WREN_ASK, Story.WREN_ASK_SAVED] + Story.WREN_JOINS + Story.WREN_DECLINED,
-		"npc.tobben": Story.recall_lines("tobben") + [Story.TRUTH_LINES.tobben] + TOBBEN_LINES,
+		"npc.wren": Story.recall_lines("wren") + [Story.TRUTH_LINES.wren] + Story.FRAY_TAKEN.wren
+			+ [Story.FRAY_LINES.wren, Story.FRAY_RECALL.wren, Story.FRAY_RETURNED.wren] + WREN_LINES + Story.WREN_SAVED_LINES + [Story.WREN_ASK, Story.WREN_ASK_SAVED] + Story.WREN_JOINS + Story.WREN_DECLINED,
+		# (Frayed, he writes: only the line when his voice comes back is said.)
+		"npc.tobben": Story.recall_lines("tobben") + [Story.TRUTH_LINES.tobben, Story.FRAY_RETURNED.tobben] + TOBBEN_LINES,
 	}
 
 
