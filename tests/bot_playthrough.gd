@@ -98,9 +98,15 @@ func _play_session(w: Node, ending: String) -> String:
 		if not await _down_the_well(w):
 			return _why(w, "out of bounds")
 		_step(w, "out of bounds done")
-	if not await _archive(w, ending != "wren"):
+	# Wren deleted for helping in an earlier run: bring her back from the bin
+	# like a player would, then fetch her again.
+	if not await _archive(w, ending != "wren" or memory().is_deleted("wren")):
 		return _why(w, "the archive")
 	_step(w, "archive done")
+	if ending == "wren" and w.escort == null and not memory().is_deleted("wren"):
+		if not await _take_wren(w):
+			return _why(w, "asking Wren (after the bin)")
+		_step(w, "Wren comes along (after the bin)")
 	if not await _north(w):
 		return _why(w, "the north road")
 	_step(w, "at the Edge")
