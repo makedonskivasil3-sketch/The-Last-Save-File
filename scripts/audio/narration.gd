@@ -2,7 +2,6 @@ class_name Narration
 extends Node
 ## Optional system speech. Captions remain the source of truth on platforms
 ## without a voice. Never queue stale dialogue or speak after leaving a scene.
-static var _voices_checked := false
 static var _english_voices: PackedStringArray = []
 
 var _voice := ""
@@ -14,17 +13,19 @@ func _ready() -> void:
 	supported = available()
 	Settings.changed.connect(_settings_changed)
 
+## Asked again while the list is empty: browsers (and some desktops) only
+## report their voices a moment after startup, and caching the first, empty
+## answer switched narration off for the whole session.
 static func available() -> bool:
-	if not _voices_checked:
-		_voices_checked = true
-		if DisplayServer.has_feature(DisplayServer.FEATURE_TEXT_TO_SPEECH):
-			_english_voices = DisplayServer.tts_get_voices_for_language("en")
+	if _english_voices.is_empty() and DisplayServer.has_feature(DisplayServer.FEATURE_TEXT_TO_SPEECH):
+		_english_voices = DisplayServer.tts_get_voices_for_language("en")
 	return not _english_voices.is_empty()
 
 func speak(text: String, speaker := "") -> void:
 	if not Settings.narration or Settings.voice_volume <= 0.001 or Settings.volume <= 0.001:
 		return
 	if _voice == "":
+		supported = available()  # voices may have arrived since _ready
 		if not supported:
 			return
 		_voice = _english_voices[0]

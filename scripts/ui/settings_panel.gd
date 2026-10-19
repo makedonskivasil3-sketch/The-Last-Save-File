@@ -9,7 +9,12 @@ signal memory_wiped
 ## The title screen also offers wiping the owner's memory.
 var show_reset := false
 
+const SOUND_CHECK := preload("res://scripts/ui/sound_check.gd")
+
 var _first: Control
+var _master: HSlider
+var _music_slider: HSlider
+var _effects: HSlider
 var _reset_button: Button
 var _reset_armed := false
 
@@ -33,11 +38,19 @@ func _ready() -> void:
 
 	_section(left, "SOUND")
 	_first = _slider(left, "Master", Settings.volume, func(v: float) -> void: Settings.set_value("volume", v))
-	_slider(left, "Music", Settings.music_volume, func(v: float) -> void: Settings.set_value("music_volume", v))
-	_slider(left, "Effects", Settings.sfx_volume, _on_effects_volume)
-	_slider(left, "Voices", Settings.voice_volume, func(v: float) -> void:
+	_master = _first
+	_music_slider = _slider(left, "Music", Settings.music_volume, func(v: float) -> void: Settings.set_value("music_volume", v))
+	_effects = _slider(left, "Effects", Settings.sfx_volume, _on_effects_volume)
+	var voices := _slider(left, "Voices", Settings.voice_volume, func(v: float) -> void:
 		Settings.set_value("voice_volume", v)
 		Sfx.voice_blip("MIRA"))  # so you hear the level you're choosing
+	# Can you hear it? Effect, music box, voice; and the defaults back.
+	var check: Node = SOUND_CHECK.new()
+	check.name = "SoundCheck"
+	left.add_child(check)
+	check.defaults_restored.connect(func() -> void:
+		for pair in [[_master, Settings.volume], [_music_slider, Settings.music_volume], [_effects, Settings.sfx_volume], [voices, Settings.voice_volume]]:
+			pair[0].set_value_no_signal(pair[1]))
 	_section(left, "PICTURE")
 	_check(left, "Fullscreen", Settings.fullscreen, func(on: bool) -> void: Settings.set_value("fullscreen", on))
 	_check(left, "CRT curvature", Settings.crt_curvature, func(on: bool) -> void: Settings.set_value("crt_curvature", on))
