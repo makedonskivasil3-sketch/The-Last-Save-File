@@ -6,6 +6,10 @@ extends Node2D
 const TITLE_SCENE := "res://scenes/title.tscn"
 const INTERACT_DISTANCE := 22.0
 const TALK_BREAK_DISTANCE := 40.0
+## How long a death card ignores input before it offers a retry: the first
+## time a cause kills you, and after that.
+const RETRY_LOCK := 1.2
+const RETRY_LOCK_REPEAT := 0.5
 const WIPE_HOLD_TIME := 1.5
 ## The purge ending: seconds of quiet before its card and buttons appear.
 const PURGED_CARD_DELAY := 4.0
@@ -32,6 +36,8 @@ var _visited: Dictionary = {}
 var _cutscene := false
 ## True while choose_safely() holds the owner for a question.
 var _choice_hold := false
+## A conversation is open: the owner holds still while Rue reads (_update_reading_hold).
+var _reading_hold := false
 ## Inner-voice beats already used this session.
 var _voiced: Dictionary = {}
 var _tutorial: Tutorial
@@ -190,7 +196,12 @@ func recover_fragment(m: MemoryFragment) -> void:
 		return
 	# Kept only once it has been lived through: quitting mid-memory changes
 	# nothing (no fragment, no journal entry), so the next run is coherent.
-	OwnerMemory.record_read("memory:" + f.id, "memory", f.title, area.display_name, f.lines)
+	if planted:
+		OwnerMemory.record_read("memory:" + f.id, "memory", f.title, area.display_name, f.lines)
+	else:
+		# The fragment and its journal page are one save: no crash between
+		# two writes can leave one without the other.
+		OwnerMemory.keep_memory(f.id, f.title, area.display_name, f.lines)
 	fx.memory(false)
 	Sfx.muffle(false)
 	var out := create_tween()
@@ -199,7 +210,6 @@ func recover_fragment(m: MemoryFragment) -> void:
 	if planted:
 		_took_false_memory(f)
 		return
-	OwnerMemory.add_fragment(f.id)
 	_prewarm_themes()
 	area.process_mode = Node.PROCESS_MODE_INHERIT
 	player.frozen = false
@@ -252,6 +262,7 @@ func _process(delta: float) -> void:
 	player.set_targeted((cursor is OwnerCursor and cursor.is_selecting()) or (watcher is OwnerAvatar and watcher.is_seeing()))
 	# Reading or answering isn't "standing still" for the owner's save-over.
 	player.reading = hud.is_dialogue_open() or hud.is_choosing()
+	_update_reading_hold()
 	var helper := hiding_npc()
 	player.sheltered = is_hidden_now()
 	if helper:
@@ -600,7 +611,7 @@ func mira_pins_note() -> void:
 	director.paused = true
 	OwnerMemory.mira_quest = "pinned"
 	OwnerMemory.save_memory()
-	await hud.cinematic("MIRA", Story.MIRA_PIN_SCENE, Color("e0a070"), 0.6, "mira.pin")
+	await hud.cinematic("MIRA", Story.MIRA_PIN_SCENE, Color("e0a070"), 0.6, "mira.pin", CharacterArt.for_npc(escort, "proud"))
 	if not is_inside_tree():
 		return
 	var board: Variant = area.get("board")
@@ -801,7 +812,7 @@ func pause_owner(seconds: float) -> void:
 
 
 func resume_owner() -> void:
-	if area:
+	if area and not is_owner_paused():  # a conversation or question still holds it
 		area.set_owner_paused(false)
 	fx.memory(false)
 	hud.set_banner("")
@@ -809,7 +820,21 @@ func resume_owner() -> void:
 
 
 func is_owner_paused() -> bool:
-	return director.owner_paused > 0.0 or _choice_hold
+	return director.owner_paused > 0.0 or _choice_hold or _reading_hold
+
+
+## Reading is safe (docs/NARRATIVE_RELIABILITY.md, the modal safety matrix):
+## while a conversation is open Rue stands still and so does the owner, like a
+## question. No move starts, a save ring in progress holds where it is, and
+## awareness doesn't climb. All of it resumes, visibly, when the box closes.
+func _update_reading_hold() -> void:
+	var reading := hud.is_dialogue_open()
+	if reading == _reading_hold:
+		return
+	var was := is_owner_paused()
+	_reading_hold = reading
+	if area and was != is_owner_paused():
+		area.set_owner_paused(is_owner_paused())
 
 
 ## A question asked in the middle of play (Wren, Mira, Tobben): Rue can't
@@ -972,7 +997,8 @@ func _update_focus() -> void:
 func _interact(node: Node2D) -> void:
 	var result: Variant = node.interact()
 	if result is Dictionary:
-		hud.show_dialogue(result.speaker, result.color, result.lines)
+		var face: CharacterArt.Portrait = CharacterArt.for_npc(node) if node is Npc else null
+		hud.show_dialogue(result.speaker, result.color, result.lines, dialogue_voice_prefix(node, result), face, expressions_for(node, result.lines))
 		_talking_to = node
 		_keep_in_journal(node, result)
 	elif str(result) != "":
@@ -983,6 +1009,25 @@ func _interact(node: Node2D) -> void:
 		director.notice(cost, "talking to %s" % who if who is String and who != "" else "you touched something")
 	if area.has_method("interact_extra"):
 		area.interact_extra(node)
+
+
+## The voice id stem for what `node` says (Hud.voice_id): people speak as
+## "npc.<id>", notes, books and signs as "read.<area>". VoiceManifest lists
+## the same ids, so a recording dropped in audio/voice/ just plays.
+static func dialogue_voice_prefix(node: Node, result: Dictionary) -> String:
+	if node is Npc:
+		return "npc." + str(node.npc_id)
+	if node is Companion:
+		return "npc.pip"
+	return ""
+
+
+## The portrait expression for each line someone says ("" = their default).
+static func expressions_for(node: Node, lines: Array) -> Array:
+	var out: Array = []
+	for l in lines:
+		out.append(ArinsRoom.mira_expression(str(l)) if node is Npc and node.npc_id == "mira" else "")
+	return out
 
 
 ## Notes, books and files go in the artefact journal (signs and props don't).
@@ -1041,9 +1086,20 @@ func kill(cause: String, reason := "") -> void:
 	if not is_inside_tree():
 		return
 	hud.show_death(title, body, cause, tip)
-	# A tip needs reading time.
-	await get_tree().create_timer(3.6 if tip != "" else 2.8).timeout
-	if is_inside_tree():  # F9 may have reloaded the scene in the meantime
+	# The card waits for the player: the advice is read, then a press retries.
+	# A moment first, so a press still held from play doesn't skip it; less
+	# for a death the player has had before (the repeat player's fast path).
+	await get_tree().create_timer(RETRY_LOCK_REPEAT if times > 1 else RETRY_LOCK).timeout
+	if not is_inside_tree():
+		return  # F9 may have reloaded the scene in the meantime
+	hud.show_retry()
+	while is_inside_tree():
+		await get_tree().process_frame
+		if get_tree().paused:
+			continue  # the pause menu has the input
+		if Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("confirm"):
+			break
+	if is_inside_tree():
 		get_tree().reload_current_scene()
 
 

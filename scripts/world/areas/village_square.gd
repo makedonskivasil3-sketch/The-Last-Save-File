@@ -44,6 +44,17 @@ const TOBBEN_LINES := [
 	"There used to be two names in my guest book. Now there's one. I don't remember the other.",
 ]
 
+
+
+## Every line Wren and Tobben can say that is the same in every run, by voice
+## id stem (VoiceManifest), including what they remember (Story.recall_lines).
+static func voice_lines() -> Dictionary:
+	return {
+		"npc.wren": Story.recall_lines("wren") + WREN_LINES + Story.WREN_SAVED_LINES + [Story.WREN_ASK, Story.WREN_ASK_SAVED] + Story.WREN_JOINS + Story.WREN_DECLINED,
+		"npc.tobben": Story.recall_lines("tobben") + TOBBEN_LINES,
+	}
+
+
 var arin: OwnerAvatar
 var cursor: OwnerCursor
 var wren: Npc
@@ -269,12 +280,12 @@ func on_dialogue_closed(who: Node) -> void:
 		return
 	world.player.frozen = false
 	if pick == 0:
-		world.hud.show_dialogue("WREN", wren.name_color, Story.WREN_JOINS)
+		world.hud.show_dialogue("WREN", wren.name_color, Story.WREN_JOINS, "npc.wren")
 		world.start_escort(wren)
 		wren = null
 	else:
 		_wren_line += 1  # she'll ask again later
-		world.hud.show_dialogue("WREN", wren.name_color, Story.WREN_DECLINED)
+		world.hud.show_dialogue("WREN", wren.name_color, Story.WREN_DECLINED, "npc.wren")
 
 
 func area_process(delta: float) -> void:

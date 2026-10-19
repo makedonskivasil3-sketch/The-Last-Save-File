@@ -257,7 +257,7 @@ func record_win(ending := "escape") -> void:
 ## Keep what Rue just read in the journal. Reading it again updates it; a
 ## text that changed since (the owner rewrote it) is added below the old one.
 ## Returns true the first time this id is read.
-func record_read(id: String, kind: String, title: String, area: String, lines: Array) -> bool:
+func record_read(id: String, kind: String, title: String, area: String, lines: Array, save := true) -> bool:
 	var text: Array[String] = []
 	for l in lines:
 		if str(l) != "":
@@ -274,18 +274,35 @@ func record_read(id: String, kind: String, title: String, area: String, lines: A
 			else:
 				e.lines = text.slice(0, MAX_JOURNAL_LINES)
 			e.title = title
-			save_memory()
+			if save:
+				save_memory()
 			return false
 	if journal.size() >= MAX_JOURNAL:
 		return false
 	journal.append({"id": id, "kind": kind, "title": title, "area": area, "lines": text.slice(0, MAX_JOURNAL_LINES)})
-	save_memory()
+	if save:
+		save_memory()
 	return true
+
+
+## A memory lived through: the fragment and its journal page, in one save.
+func keep_memory(id: String, title: String, area: String, lines: Array) -> void:
+	record_read("memory:" + id, "memory", title, area, lines, false)
+	if id not in fragments:
+		fragments.append(id)
+	save_memory()
 
 
 ## Debug / "new game": forget everything the owner learned.
 func wipe() -> void:
 	_leave_guard(false)
+	clear_state()
+	save_memory()
+	SafeFile.remove_copies(_path)  # a reset shouldn't be undone by the backup
+
+
+## Every field back to a new game's, in memory only (nothing is written).
+func clear_state() -> void:
 	sessions = 0
 	deaths = 0
 	quits = 0
@@ -325,11 +342,31 @@ func wipe() -> void:
 	session_helpers.clear()
 	session_seam = -1
 	_session_closed = true
-	save_memory()
-	SafeFile.remove_copies(_path)  # a reset shouldn't be undone by the backup
+
+
+## A deep copy of everything this autoload holds, for restore(). Tools that
+## need a known state (VoiceManifest) use these to leave the save untouched.
+func snapshot() -> Dictionary:
+	var out := {}
+	for p in get_script().get_script_property_list():
+		if p.usage & PROPERTY_USAGE_SCRIPT_VARIABLE and p.name != "save_count":
+			var v: Variant = get(p.name)
+			out[p.name] = v.duplicate(true) if v is Array or v is Dictionary else v
+	return out
+
+
+func restore(snap: Dictionary) -> void:
+	for k in snap:
+		var v: Variant = snap[k]
+		set(k, v.duplicate(true) if v is Array or v is Dictionary else v)
+
+
+## Saves written this run (tests check that one event is one write).
+var save_count := 0
 
 
 func save_memory() -> void:
+	save_count += 1
 	var data := {
 		"version": SAVE_VERSION,
 		"sessions": sessions,

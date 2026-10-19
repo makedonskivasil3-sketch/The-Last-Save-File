@@ -10,6 +10,9 @@ extends RefCounted
 ##   raw  = BASE + letters / CPS + SENTENCE × sentence ends + CLAUSE × clause marks
 ##   time = clamp(raw / READ_SPEEDS[auto_speed], MIN_TIME, MAX_TIME)
 ##
+## MAX_TIME is only a sanity bound for runaway text: every line that fits on
+## a page (PAGE_CHARS) gets its full allowance, at every reading speed.
+##
 ## letters ignores spaces and the owner's ">" prompt; "..." counts as one
 ## sentence end. CPS 14 is ~170 words a minute, a comfortable pace for
 ## players reading in a second language or on a small screen.
@@ -19,7 +22,10 @@ const CPS := 14.0
 const SENTENCE := 0.4
 const CLAUSE := 0.15
 const MIN_TIME := 1.6
-const MAX_TIME := 10.0
+const MAX_TIME := 30.0
+## A line longer than this is shown in pages (pages()), split between
+## sentences, so no box overflows and each page gets its own allowance.
+const PAGE_CHARS := 180
 ## Settings.auto_speed: slow, normal, fast.
 const READ_SPEEDS := [0.75, 1.0, 1.35]
 const READ_SPEED_NAMES := ["Slow", "Normal", "Fast"]
@@ -68,8 +74,10 @@ static func reading_time(text: String, speed := -1) -> float:
 
 ## How long a console line stays the newest before the next one starts.
 ## A backlog is shown at the minimum pace; everything is in the history.
-static func ambient_time(text: String, waiting: int) -> float:
-	if waiting >= BACKLOG:
+## Only system lines are hurried by a backlog: thoughts, people and the owner
+## keep their reading time (capped at AMBIENT_MAX; the History has the rest).
+static func ambient_time(text: String, waiting: int, kind := "system") -> float:
+	if waiting >= BACKLOG and kind == "system":
 		return MIN_TIME
 	return minf(reading_time(text), AMBIENT_MAX)
 
@@ -80,3 +88,25 @@ static func voice_delay() -> float:
 
 static func is_auto() -> bool:
 	return Settings.advance_mode == 1
+
+
+## `text` split into pages of at most PAGE_CHARS: between sentences where
+## possible, else between words. Joining the pages with spaces gives the text
+## back exactly. Short text is one page.
+static func pages(text: String) -> Array[String]:
+	var out: Array[String] = []
+	var rest := text
+	while rest.length() > PAGE_CHARS:
+		var cut := -1
+		for i in range(PAGE_CHARS, 0, -1):
+			if rest[i] == " " and rest[i - 1] in [".", "!", "?", "…"]:
+				cut = i
+				break
+		if cut < PAGE_CHARS / 3:
+			cut = rest.rfind(" ", PAGE_CHARS)
+		if cut <= 0:
+			break  # one unbroken word: show it whole rather than cut it
+		out.append(rest.substr(0, cut))
+		rest = rest.substr(cut + 1)
+	out.append(rest)
+	return out

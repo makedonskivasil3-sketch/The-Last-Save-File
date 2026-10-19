@@ -156,7 +156,8 @@ func startle() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if frozen:
+	if frozen or reading:
+		# Reading or answering: Rue stands still (and the owner holds, World._update_reading_hold).
 		velocity = Vector2.ZERO
 		return
 	var dir := Input.get_vector("move_left", "move_right", "move_up", "move_down")

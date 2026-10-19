@@ -50,6 +50,9 @@ const MIRA_RESET_EVERY := 25.0
 const SAFE_FROM_CURSOR := 64.0
 const SAFE_FROM_ARIN := 44.0
 const GRACE := 0.8
+## ...and never lands on a doorway (or this close to one): dragged back onto
+## an exit, Rue would leave the area.
+const EXIT_CLEARANCE := 16.0
 ## Where the owner can't see you, there are no moves.
 const BLIND_AREAS := ["archive", "oob"]
 
@@ -85,6 +88,11 @@ func _owner_watching() -> bool:
 ## Called by World every frame while the session runs.
 func update(delta: float) -> void:
 	_clock += delta
+	if world.is_owner_paused():
+		# Held (a conversation, a question, PAUSE): the owner's cadences wait
+		# too, so nothing lands the moment the hold ends.
+		_next_save += delta
+		_next_wren += delta
 	_load_cd = maxf(0.0, _load_cd - delta)
 	_drag_cd = maxf(0.0, _drag_cd - delta)
 	_snapshot(delta)
@@ -110,6 +118,7 @@ func on_area_changed() -> void:
 	_history.clear()
 	if save_progress >= 0.0:
 		save_progress = -1.0
+		world.hud.cancel_warning()
 	_drag_back = -1.0
 
 
@@ -128,10 +137,12 @@ func on_threshold(t: float) -> void:
 func on_glitch(_id: String) -> void:
 	if wren_delete >= 0.0:
 		wren_delete = -1.0
+		world.hud.cancel_warning()
 		world.director.say("...fine. later.")
 		Sfx.play("denied", -2.0, 0.8)
 	if save_progress >= 0.0:
 		save_progress = -1.0
+		world.hud.cancel_warning()
 		world.hud.say("SAVE FAILED: SLOT 1 IN USE", "system")
 		world.director.say("...the save failed. what did you do.")
 		Sfx.play("denied", -2.0, 0.8)
@@ -141,7 +152,7 @@ func on_glitch(_id: String) -> void:
 	# One glitch before the owner reloads, they say so: the rule is fair once heard.
 	if _glitches_since_load == GLITCHES_PER_LOAD - 1 and _load_cd <= 0.0 \
 			and world.director.awareness >= OwnerDirector.NOTICE and _owner_watching():
-		world.director.say(Story.RELOAD_WARNING)
+		world.director.warn(Story.RELOAD_WARNING)
 	if _glitches_since_load >= GLITCHES_PER_LOAD and _load_cd <= 0.0 \
 			and world.director.awareness >= OwnerDirector.NOTICE and _owner_watching():
 		get_tree().create_timer(1.0).timeout.connect(func() -> void:
@@ -187,7 +198,7 @@ func load_last_save(force := false) -> void:
 	for i in range(_history.size() - 1, target - 1, -1):
 		path.append(_history[i].player)
 	var snap: Dictionary = _history[target]
-	world.director.say(["no. loading autosave.", "let's try that again.", "rewind."].pick_random())
+	world.director.warn(["no. loading autosave.", "let's try that again.", "rewind."].pick_random())
 	world.hud.set_banner("◀◀  LOADING AUTOSAVE  ·  00:%02d AGO" % int(_clock - float(snap.t)))
 	Sfx.play("unload", -2.0, 1.6)
 	Sfx.play("transition", 0.0, 0.6)
@@ -236,12 +247,21 @@ func _pick_snapshot() -> int:
 		var s: Dictionary = _history[i]
 		if _clock - float(s.t) > REWIND_BACK:
 			break
+		if _near_exit(s.player):
+			break  # never drag her back through a doorway
 		if _is_void(s.player):
 			continue
 		fallback = i
 		if is_safe(s):
 			safe = i
 	return safe if safe >= 0 else fallback
+
+
+func _near_exit(p: Vector2) -> bool:
+	for e in world.area.exits:
+		if Rect2(e.global_position - e.size / 2.0, e.size).grow(EXIT_CLEARANCE).has_point(p):
+			return true
+	return false
 
 
 ## Would landing in this snapshot put Rue right next to a threat?
@@ -325,7 +345,7 @@ func start_save_over() -> void:
 		return
 	save_progress = 0.0
 	_next_save = _clock + SAVE_EVERY
-	world.director.say(["saving over you.", "i'll just save over you.", "hold still. it's saving."].pick_random())
+	world.director.warn(["saving over you.", "i'll just save over you.", "hold still. it's saving."].pick_random())
 	world.hud.say("SAVING SLOT 1 . . .", "system")
 
 
@@ -375,10 +395,10 @@ func start_wren_delete() -> void:
 	wren_delete = 0.0
 	if world.escort_id() == "mira":
 		_next_wren = _clock + MIRA_RESET_EVERY
-		world.director.say("mira. back to your room. reset.")
+		world.director.warn("mira. back to your room. reset.")
 	else:
 		_next_wren = _clock + WREN_DELETE_EVERY
-		world.director.say("and you. wren.npc. delete.")
+		world.director.warn("and you. wren.npc. delete.")
 	Sfx.play("stinger", -6.0, 1.3, 0.0)
 
 

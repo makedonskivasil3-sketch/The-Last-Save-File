@@ -75,6 +75,10 @@ var _hint: Label
 var _glitch_prompt: Label
 ## Big centred line for owner-scale events ("‖ OWNER PAUSED").
 var _banner: Label
+## Urgent owner warnings (warn()): shown at once, whatever is being read.
+var _warning: Label
+var _warning_tween: Tween
+var _overlay_retry: Label
 ## A choice: a question and a list of options (choose()).
 var _choice: PanelContainer
 var _choice_question: Label
@@ -93,6 +97,13 @@ var _dialogue_speaker: Label
 var _dialogue_text: Label
 var _dialogue_hint: Label
 var _dialogue_lines: Array = []
+## The voice id of each entry in _dialogue_lines ("" for a continuation page).
+var _dialogue_ids: Array[String] = []
+## The speaker's portrait (null: none) and the expression for each entry in
+## _dialogue_lines; the face talks while the line types and blinks after.
+var _dialogue_face: CharacterArt.Portrait
+var _dialogue_exprs: Array[String] = []
+var _face_t := 0.0
 var _dialogue_index := 0
 var _dialogue_typed := 0.0
 var _dialogue_opened_frame := -1
@@ -214,6 +225,22 @@ func _ready() -> void:
 	_banner = _make_label(root, Vector2(0, 70), Vector2(640, 24), 16, SELF_COLOR)
 	_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
+	# Warnings sit under the banner on their own dark strip: never queued
+	# behind the console, never hidden by a conversation.
+	_warning = _make_label(root, Vector2(120, 98), Vector2(400, 18), 11, OWNER_COLOR)
+	_warning.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_warning.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var warn_bg := StyleBoxFlat.new()
+	warn_bg.bg_color = Color(0, 0, 0, 0.8)
+	warn_bg.border_color = Color(OWNER_COLOR, 0.6)
+	warn_bg.set_border_width_all(1)
+	warn_bg.content_margin_left = 8
+	warn_bg.content_margin_right = 8
+	warn_bg.content_margin_top = 2
+	warn_bg.content_margin_bottom = 2
+	_warning.add_theme_stylebox_override("normal", warn_bg)
+	_warning.visible = false
+
 	_hint = _make_label(root, Vector2(640 - SAFE.x - 176, 360 - SAFE.y - 14), Vector2(176, 12), 9, Color(SYSTEM_COLOR, 0.8))
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 
@@ -280,6 +307,10 @@ func _ready() -> void:
 	tip_bg.content_margin_top = 3
 	tip_bg.content_margin_bottom = 3
 	_overlay_tip.add_theme_stylebox_override("normal", tip_bg)
+	# The death card waits for the player (show_retry()).
+	_overlay_retry = _make_label(_overlay, Vector2(80, 318), Vector2(480, 14), 10, SLOT_COLOR)
+	_overlay_retry.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_overlay_retry.visible = false
 
 	_area_title = _make_label(root, Vector2(0, 150), Vector2(640, 24), 16, SLOT_COLOR)
 	_area_title.add_theme_color_override("font_outline_color", Color.BLACK)
@@ -455,12 +486,16 @@ func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: floa
 			return
 		if _advance_pressed():
 			_skip_armed = true  # a hold that starts as the scene opens counts
-	for i in lines.size():
+	var paged := paginate(lines, voice_prefix)
+	var shown: Array = paged[0]
+	var ids: Array[String] = []
+	ids.assign(paged[1])
+	for i in shown.size():
 		if _skip_requested:
 			# Skipped lines are still part of the story: keep them readable.
-			_log_line(title, str(lines[i]), _cine_kind(str(lines[i]), color), "")
+			_log_line(title, str(shown[i]), _cine_kind(str(shown[i]), color), "")
 			continue
-		await _cinematic_line(str(lines[i]), voice_id(voice_prefix, str(lines[i])), title, color)
+		await _cinematic_line(str(shown[i]), ids[i], title, color)
 		if not is_inside_tree():
 			return
 	VoiceOver.stop()
@@ -480,6 +515,11 @@ func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: floa
 	if dialogue_held and _pacer != null:
 		_dialogue.visible = true  # back to the conversation, where it was
 		_dialogue_opened_frame = Engine.get_process_frames()  # the scene's last press doesn't advance it
+		# The scene cut the line's voice off: say the line again from the start.
+		if _dialogue_voice != "" and VoiceOver.play(self, _dialogue_voice) != null:
+			_pacer = LinePacer.new(_dialogue_text.text, StoryPacing.is_auto(), voice_busy)
+			_pacer.reveal(Engine.get_process_frames())
+			_dialogue_text.visible_characters = -1
 	else:
 		_console_box.visible = _console.get_child_count() > 0
 		_prompt.visible = true
@@ -584,11 +624,21 @@ func _advance_pressed() -> bool:
 ## Opens the dialogue box. lines: Array of Strings, advanced with interact
 ## (or automatically, Settings.advance_mode). voice_prefix: the scene's id
 ## stem; a line plays voice_id(voice_prefix, text) if it was recorded.
-func show_dialogue(speaker: String, color: Color, lines: Array, voice_prefix := "") -> void:
+## portrait: the speaker's face (CharacterArt), or null; expressions: one per
+## line ("" keeps the portrait's own).
+func show_dialogue(speaker: String, color: Color, lines: Array, voice_prefix := "", portrait: CharacterArt.Portrait = null, expressions: Array = []) -> void:
 	if lines.is_empty():
 		return
 	_dialogue_voice_prefix = voice_prefix
-	_dialogue_lines = lines
+	var paged := paginate(lines, voice_prefix)
+	_dialogue_lines = paged[0]
+	_dialogue_ids.assign(paged[1])
+	_dialogue_face = portrait if portrait and portrait.texture() else null
+	_dialogue_exprs.clear()
+	for i in paged[2]:
+		var e: String = str(expressions[i]) if i < expressions.size() else ""
+		_dialogue_exprs.append(e if e != "" else (portrait.expression if portrait else ""))
+	_layout_dialogue_face()
 	_dialogue_index = 0
 	_dialogue_typed = 0.0
 	_dialogue_opened_frame = Engine.get_process_frames()
@@ -607,6 +657,8 @@ func close_dialogue() -> void:
 	narrator.stop()
 	VoiceOver.stop()
 	_pacer = null
+	_dialogue_face = null
+	_layout_dialogue_face()
 	dialogue_finished = _finishing
 	_finishing = false
 	_dialogue.visible = false
@@ -726,7 +778,7 @@ func fade(to_black: bool, duration: float = 0.25) -> Tween:
 func _show_dialogue_line() -> void:
 	var text := str(_dialogue_lines[_dialogue_index])
 	_dialogue_text.text = text
-	_dialogue_voice = voice_id(_dialogue_voice_prefix, text)
+	_dialogue_voice = _dialogue_ids[_dialogue_index] if _dialogue_index < _dialogue_ids.size() else ""
 	var recorded := VoiceOver.play(self, _dialogue_voice)
 	if recorded == null:
 		narrator.speak(text, _dialogue_speaker.text)
@@ -735,13 +787,69 @@ func _show_dialogue_line() -> void:
 	_pacer = LinePacer.new(text, StoryPacing.is_auto(), voice_busy)
 	_log_line(_dialogue_speaker.text, text, "npc", _dialogue_voice if recorded else "")
 	_dialogue_hint.text = ""
+	_face_t = 0.0
+	_update_dialogue_face(0.0)
 	_fit_dialogue()
+
+
+## With a portrait the text moves right to make room for it.
+func _layout_dialogue_face() -> void:
+	var x := 44.0 if _dialogue_face else 8.0
+	_dialogue_portrait.visible = _dialogue_face != null
+	_dialogue_speaker.position.x = x
+	_dialogue_text.position.x = x
+	_dialogue_text.size.x = 568.0 - x
+
+
+## The face talks (mouth frames) while the line types or the voice speaks,
+## and blinks now and then while it waits.
+func _update_dialogue_face(delta: float) -> void:
+	if _dialogue_face == null:
+		return
+	_face_t += delta
+	var expr: String = _dialogue_exprs[_dialogue_index] if _dialogue_index < _dialogue_exprs.size() else ""
+	var face := _dialogue_face.with(expr) if expr != "" else _dialogue_face
+	var speaking := (_pacer != null and _pacer.phase == LinePacer.Phase.REVEALING) or VoiceOver.is_playing()
+	var frame := ""
+	if speaking and not Settings.reduce_flashing:
+		frame = "talk" if int(_face_t / 0.12) % 2 == 0 else ""
+	elif fmod(_face_t, 3.2) > 3.05:
+		frame = "blink"
+	_dialogue_portrait.texture = face.texture(frame)
+
+
+## The expression the portrait shows now ("" without one).
+func dialogue_expression() -> String:
+	if _dialogue_face == null or not _dialogue.visible:
+		return ""
+	return _dialogue_exprs[_dialogue_index] if _dialogue_index < _dialogue_exprs.size() else _dialogue_face.expression
 
 
 ## The stable dialogue id of a line: "<scene>.<first 8 hex of md5(text)>".
 ## Same text, same id, in whatever order or variant a scene shows it; a
 ## change to the text makes a new id, so an outdated recording never plays
 ## under new words (audio/voice/manifest.csv lists them all).
+## Lines too long for one box become pages (StoryPacing.pages), each with
+## its own reading time. A recorded line stays whole (it is one
+## performance). Returns [lines, voice ids, index of the line each came
+## from]; a continuation page has no id.
+static func paginate(lines: Array, prefix: String) -> Array:
+	var out: Array = []
+	var ids: Array[String] = []
+	var source: Array[int] = []
+	for n in lines.size():
+		var line := str(lines[n])
+		var id := voice_id(prefix, line)
+		var pages: Array[String] = [line]
+		if not VoiceOver.has_line(id):
+			pages = StoryPacing.pages(line)
+		for i in pages.size():
+			out.append(pages[i])
+			ids.append(id if i == 0 else "")
+			source.append(n)
+	return [out, ids, source]
+
+
 static func voice_id(prefix: String, text: String) -> String:
 	if prefix == "":
 		return ""
@@ -786,7 +894,7 @@ func _next_dialogue_line() -> void:
 
 ## Grow the dialogue box to fit its text (long lines, large subtitles).
 func _fit_dialogue() -> void:
-	var lines := maxi(2, _dialogue_text.get_line_count())
+	var lines := maxi(2 if _dialogue_face == null else 3, _dialogue_text.get_line_count())
 	var lh := _dialogue_text.get_line_height()
 	var top := 18.0 * Settings.subtitle_scale() if Settings.speaker_labels else 6.0
 	_dialogue_text.position.y = top
@@ -800,6 +908,7 @@ func _fit_dialogue() -> void:
 func _update_dialogue(delta: float) -> void:
 	if not _dialogue.visible or _pacer == null or _cinematic:
 		return
+	_update_dialogue_face(delta)
 	var frame := Engine.get_process_frames()
 	var total := _dialogue_text.get_total_character_count()
 	if _pacer.phase == LinePacer.Phase.REVEALING:
@@ -855,6 +964,43 @@ func say(text: String, kind: String = "owner", speaker: String = "") -> void:
 
 func clear_queue() -> void:
 	_queue.clear()
+
+
+## An urgent owner warning: something will happen to Rue unless the player
+## acts. It shows at once on its own strip, whatever the console is typing
+## and whatever is open (a conversation, a scene), stays for its reading
+## time, and goes in the History once. It never waits in the console queue.
+func warn(text: String) -> void:
+	var shown := "> " + text
+	_warning.text = shown
+	_warning.visible = true
+	_warning.modulate.a = 1.0
+	_warning.reset_size()
+	_warning.size.x = 400
+	hide_tip(true)
+	Sfx.owner_blip(text[0] if text != "" else "a")
+	console_history.append(shown)
+	if console_history.size() > MAX_HISTORY:
+		console_history.pop_front()
+	_log_line("OWNER", text, "owner")
+	if _warning_tween:
+		_warning_tween.kill()
+	_warning_tween = create_tween()
+	_warning_tween.tween_interval(maxf(2.5, StoryPacing.reading_time(text)))
+	_warning_tween.tween_property(_warning, "modulate:a", 0.0, 0.4)
+	_warning_tween.tween_callback(func() -> void: _warning.visible = false)
+
+
+## The warning on screen now ("" if none).
+func warning_text() -> String:
+	return _warning.text.trim_prefix("> ") if _warning.visible else ""
+
+
+## The threat is over (the save was interrupted, Rue left): take it down.
+func cancel_warning() -> void:
+	if _warning_tween:
+		_warning_tween.kill()
+	_warning.visible = false
 
 
 func set_awareness(value: float) -> void:
@@ -994,6 +1140,14 @@ func death_tip_text() -> String:
 	return _overlay_tip.text
 
 
+## The death card's way out, shown once it has had a moment to be read.
+func show_retry() -> void:
+	_overlay_retry.text = "[%s]  retry" % Settings.glyph("interact")
+	_overlay_retry.visible = true
+	_overlay_retry.modulate.a = 0.0
+	create_tween().tween_property(_overlay_retry, "modulate:a", 1.0, 0.3)
+
+
 func show_overlay(title: String, body: String, title_color: Color = OWNER_COLOR) -> void:
 	if _area_tween:
 		_area_tween.kill()
@@ -1004,6 +1158,7 @@ func show_overlay(title: String, body: String, title_color: Color = OWNER_COLOR)
 	_overlay_body.text = body
 	_overlay_tip.text = ""
 	_overlay_tip.visible = false
+	_overlay_retry.visible = false
 
 
 func hide_overlay() -> void:
@@ -1069,7 +1224,7 @@ func _update_typing(delta: float) -> void:
 			_typing.text = full
 			_typing.visible_characters = -1
 			# Time to read it before the next one starts (StoryPacing).
-			_pause = StoryPacing.ambient_time(full, _queue.size())
+			_pause = StoryPacing.ambient_time(full, _queue.size(), _typing.get_meta("kind", "system"))
 			_typing = null
 		return
 	if _pause > 0.0:

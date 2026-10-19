@@ -3,7 +3,12 @@ extends RefCounted
 ## Character portraits (docs/CHARACTER_ART.md). Drawn in code like the rest
 ## of the cast, from the SAME palette keys as the in-world sprite
 ## (PixelCharacter / Player.RUE), so a portrait always matches the figure on
-## screen. That includes Rue's restoration: until her memories come back the
+## screen.
+##
+## The contract: a character has a portrait only if they are in CAST (their
+## own 32×32 grid, the shared EXPRESSIONS plus their own extras). Anyone else
+## gets no portrait at all: never somebody else's face. Rue is in CAST and so
+## is Mira; the rest of the cast have briefs only. That includes Rue's restoration: until her memories come back the
 ## portrait has the "missing" palette (cyan, a void where the face should
 ## be, two points of light), exactly like her sprite.
 ##
@@ -56,6 +61,48 @@ const RUE_GRID := [
 	".occcccccccccdaaaadccccccccCCCo.",
 ]
 
+const MIRA_GRID := [
+	"................................",
+	"................................",
+	"................................",
+	"...........oooooooooo...........",
+	".........oohhhhhhhhhhoo.........",
+	"........ohhhhhhhhhhhhhhoo.......",
+	".......ohhhhhhhHhhhhhhhhddo.....",
+	"......ohhhhhhhHHhhhhhhhhdddo....",
+	"......ohhhhhhHhhHhhhhhhhhddo....",
+	".....ohhhhhhHhhhhHhhhhhhhho.....",
+	".....ohhhhhHssssssHhhhhhhho.....",
+	".....ohhhhHssssssssHhhhhhho.....",
+	".....ohhhHssssssssssssHhhho.....",
+	".....ohhhssssssssssssssShho.....",
+	".....ohhhssssssssssssssShho.....",
+	".....ohhhssssssssssssssShho.....",
+	".....ohhhssssssssssssssShho.....",
+	".....ohhhssssssssssssssShho.....",
+	".....ohhhSsssssssssssssShho.....",
+	".....ohhhhSssssssssssssShho.....",
+	".....ohhhhoSSssssssssSShhho.....",
+	".....ohhhhhooSSSSSSSSoohhho.....",
+	".....ohhhhhhoooSSSSoooHhhho.....",
+	".....ohhhhhhooccddccoohhhhho....",
+	"....ohhhhhooccccddccccoohhhho...",
+	"....ohhhhoccccccddcccccCohhhho..",
+	"...ohhhhocccccccddcccccCCohhho..",
+	"...ohhhoccccccccccccccccCCohho..",
+	"...ohhoccccccccccccccccccCCoho..",
+	"...ooccccccccccccccccccccCCCoo..",
+	"..occcccccccccccccccccccccCCCo..",
+	"..occcccccccccccccccccccccCCCo..",
+]
+
+## Who has a portrait: their bust grid (keys as RUE_GRID; d is trim, ribbon
+## or seams in the clothes-dark colour) and expressions of their own.
+const CAST := {
+	"rue": {"grid": RUE_GRID, "extras": []},
+	"mira": {"grid": MIRA_GRID, "extras": ["eager", "proud", "reset"]},
+}
+
 ## Face features per expression, in grid coordinates. Eyes are drawn at
 ## x0 = 11 (left) and 19 (right), offsets from row 14. "lids" draws closed
 ## or smiling eyes as a line instead. Brows use the hair shade.
@@ -72,7 +119,22 @@ const FACES := {
 		"brows": [[10, 12], [11, 12], [12, 13], [19, 13], [20, 12], [21, 12]], "mouth": [[14, 19], [15, 19], [16, 19], [17, 19]], "cheeks": false},
 	"remembering": {"lids": [[-1, 2], [0, 2], [1, 2], [2, 2]],
 		"brows": [[10, 12], [11, 12], [12, 12], [19, 12], [20, 12], [21, 12]], "mouth": [[15, 19], [16, 19]], "cheeks": true},
+	# Mira's own: bright, a little too eager (raised brows, open smile).
+	"eager": {"eye": [[0, -1], [1, -1], [0, 0], [1, 0], [0, 1], [1, 1]],
+		"brows": [[10, 11], [11, 10], [12, 11], [19, 11], [20, 10], [21, 11]], "mouth": [[14, 19], [15, 20], [16, 20], [17, 19], [15, 19], [16, 19]], "cheeks": true},
+	# Mira's: chin up, eyes closed, a wide smile ("MIRA WAS HERE").
+	"proud": {"lids": [[-1, 1], [0, 2], [1, 2], [2, 1]],
+		"brows": [[10, 11], [11, 11], [12, 11], [19, 11], [20, 11], [21, 11]], "mouth": [[13, 19], [14, 20], [15, 20], [16, 20], [17, 20], [18, 19]], "cheeks": true},
+	# Mira's, after the owner resets her: wide eyes with no light in them and
+	# a blank, too-wide smile.
+	"reset": {"eye": [[0, 0], [1, 0], [0, 1], [1, 1]], "no_shine": true,
+		"brows": [[10, 11], [11, 11], [12, 11], [19, 11], [20, 11], [21, 11]], "mouth": [[12, 19], [13, 20], [14, 20], [15, 20], [16, 20], [17, 20], [18, 20], [19, 19]], "cheeks": false},
 }
+
+## The mouth while speaking (alternates with the expression's own) and the
+## eyes mid-blink: the portrait's two animation frames.
+const TALK_MOUTH := [[15, 19], [16, 19], [15, 20], [16, 20]]
+const BLINK_LIDS := [[0, 2], [1, 2]]
 
 static var _cache: Dictionary = {}
 
@@ -86,11 +148,13 @@ class Portrait:
 
 	func _init(character: String, expr: String, colours: Dictionary) -> void:
 		who = character
-		expression = expr if expr in CharacterArt.EXPRESSIONS else "neutral"
+		expression = expr if expr in CharacterArt.expressions_for(character) else "neutral"
 		palette = colours
 
-	func texture() -> Texture2D:
-		return CharacterArt.texture_for(self)
+	## null for someone without a portrait (CharacterArt.CAST).
+	## frame: "" (still), "talk" (mouth open) or "blink".
+	func texture(frame := "") -> Texture2D:
+		return CharacterArt.texture_for(self, frame)
 
 	## The same character with another expression.
 	func with(expr: String) -> Portrait:
@@ -102,14 +166,38 @@ static func rue(expression := "neutral", colours: Dictionary = {}) -> Portrait:
 	return Portrait.new("rue", expression, colours if not colours.is_empty() else Player.RUE)
 
 
-static func texture_for(p: Portrait) -> Texture2D:
-	var restored: bool = p.palette.get("s") == Player.RUE["s"] and p.palette.get("c") == Player.RUE["c"]
+## Mira as her sprite looks right now (pass Npc.sprite().palette).
+static func mira(expression := "neutral", colours: Dictionary = {}) -> Portrait:
+	return Portrait.new("mira", expression, colours)
+
+
+## The portrait of a character in the world, in their sprite's colours, or
+## null if they have none.
+static func for_npc(npc: Npc, expression := "neutral") -> Portrait:
+	if npc == null or not has_portrait(npc.npc_id):
+		return null
+	return Portrait.new(npc.npc_id, expression, npc.sprite().palette)
+
+
+static func has_portrait(who: String) -> bool:
+	return CAST.has(who)
+
+
+static func expressions_for(who: String) -> Array:
+	return EXPRESSIONS + (CAST[who].extras if CAST.has(who) else [])
+
+
+static func texture_for(p: Portrait, frame := "") -> Texture2D:
+	if not has_portrait(p.who):
+		return null  # never another character's face
+	# Rue's finished art is only for her restored look; others have one look.
+	var restored: bool = p.who != "rue" or (p.palette.get("s") == Player.RUE["s"] and p.palette.get("c") == Player.RUE["c"])
 	var file := "%s%s/%s_%s.png" % [ART_DIR, p.who, p.who, p.expression]
-	if restored and ResourceLoader.exists(file):
+	if restored and frame == "" and ResourceLoader.exists(file):
 		return load(file) as Texture2D  # a finished external portrait
-	var key := "%s/%s/%s" % [p.who, p.expression, _palette_key(p.palette)]
+	var key := "%s/%s/%s/%s" % [p.who, p.expression, frame, _palette_key(p.palette)]
 	if not _cache.has(key):
-		_cache[key] = ImageTexture.create_from_image(image(p))
+		_cache[key] = ImageTexture.create_from_image(image(p, frame))
 	return _cache[key]
 
 
@@ -121,7 +209,9 @@ static func _palette_key(colours: Dictionary) -> String:
 
 
 ## The portrait as a 32×32 image (transparent background).
-static func image(p: Portrait) -> Image:
+static func image(p: Portrait, frame := "") -> Image:
+	if not has_portrait(p.who):
+		return null
 	var c := p.palette
 	var h: Color = c.get("h", Color("8a4f2c"))
 	var s: Color = c.get("s", Color("f0c49c"))
@@ -134,12 +224,18 @@ static func image(p: Portrait) -> Image:
 	}
 	var img := Image.create(SIZE, SIZE, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
-	for y in RUE_GRID.size():
-		var row: String = RUE_GRID[y]
+	var grid: Array = CAST[p.who].grid
+	for y in grid.size():
+		var row: String = grid[y]
 		for x in row.length():
 			if keys.has(row[x]):
 				img.set_pixel(x, y, keys[row[x]])
-	_draw_face(img, FACES.get(p.expression, FACES["neutral"]), c)
+	var face: Dictionary = FACES.get(p.expression, FACES["neutral"]).duplicate()
+	if frame == "talk" and face.has("mouth"):
+		face["mouth"] = TALK_MOUTH
+	elif frame == "blink" and not face.has("lids"):
+		face["lids"] = BLINK_LIDS
+	_draw_face(img, face, c)
 	return img
 
 
@@ -162,7 +258,8 @@ static func _draw_face(img: Image, face: Dictionary, c: Dictionary) -> void:
 		for o in face.eye:
 			img.set_pixel(x0 + o[0], 14 + o[1], eye_col)
 			top = mini(top, o[1])
-		img.set_pixel(x0, 14 + top, shine)
+		if not face.get("no_shine", false):
+			img.set_pixel(x0, 14 + top, shine)
 	if not has_face:
 		return
 	var brow: Color = (c.get("h", Color("8a4f2c")) as Color).darkened(0.25)
@@ -179,10 +276,11 @@ static func _draw_face(img: Image, face: Dictionary, c: Dictionary) -> void:
 
 ## A reference sheet of every expression, in a palette, scaled up (docs).
 static func sheet(who: String, colours: Dictionary, scale := 6) -> Image:
-	var out := Image.create(SIZE * scale * EXPRESSIONS.size(), SIZE * scale, false, Image.FORMAT_RGBA8)
+	var exprs := expressions_for(who)
+	var out := Image.create(SIZE * scale * exprs.size(), SIZE * scale, false, Image.FORMAT_RGBA8)
 	out.fill(Color("282028"))
-	for i in EXPRESSIONS.size():
-		var img := image(Portrait.new(who, EXPRESSIONS[i], colours))
+	for i in exprs.size():
+		var img := image(Portrait.new(who, exprs[i], colours))
 		img.resize(SIZE * scale, SIZE * scale, Image.INTERPOLATE_NEAREST)
 		out.blend_rect(img, Rect2i(0, 0, SIZE * scale, SIZE * scale), Vector2i(i * SIZE * scale, 0))
 	return out

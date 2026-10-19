@@ -112,8 +112,15 @@ func start_session(skip_boot := true, first_session := false) -> Node:
 
 
 ## Waits for World to reload into a new session (after a death).
+## The death card waits for a press (World.kill): this presses retry like a
+## player once the card offers it.
 func wait_for_new_session(old: Node) -> Node:
 	var old_id := old.get_instance_id()
+	var until := Time.get_ticks_msec() + 8000
+	while is_instance_valid(old) and scene() == old and Time.get_ticks_msec() < until:
+		if old.hud._overlay_retry.visible:
+			await press("interact")
+		await frames(2)
 	await wait_until(func() -> bool:
 		var s := scene()
 		return s != null and s.get_instance_id() != old_id and s.get("area") != null, 8.0, "the next session")

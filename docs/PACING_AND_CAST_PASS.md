@@ -1,5 +1,7 @@
 # Story pacing and cast pass
 
+> **Historical record of the earlier pass.** Several rules below were changed later on `claude/narrative-reliability`: the 10 s cap, warnings through the console queue, the self-restarting death card, and NPC lines without voice ids. `NARRATIVE_RELIABILITY.md` and `STORY_PACING.md` describe the current rules.
+
 **Branch:** `claude/story-pacing-cast-pass`.
 - **Base:** `playtest/first-minutes-fairness`, which already contains `game-presentation-polish`.
 - **Merged in, without losing or duplicating work:**
