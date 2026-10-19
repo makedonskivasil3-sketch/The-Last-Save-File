@@ -91,6 +91,9 @@ var cracked: CrackedWall
 var _mira_line := 0
 ## Mira just asked to come along: the choice comes when the dialogue closes.
 var _mira_asked := false
+## The talk on which she asks (again): after a "not now" she says two more
+## of her own lines first, so who she is never gets lost behind the request.
+var _mira_ask_at := 2
 
 
 func _init() -> void:
@@ -201,6 +204,7 @@ func area_process(_delta: float) -> void:
 		# The wall tears once the owner gets suspicious and starts rewriting
 		# the room. (Agitating the owner on purpose is a way out.)
 		seam.open = world.director.awareness >= OwnerDirector.SUSPECT
+		seam.hint = door.state == Door.State.DELETED
 		seam.reveal = 0.25 + world.director.awareness / 100.0 * 0.6 if seam.open else 0.0
 
 
@@ -259,7 +263,7 @@ func _mira_lines() -> Array:
 		_mira_line += 1
 		return [reset]
 	# Her request, once she trusts you a little: take her to the square.
-	if mira.state == Npc.State.NORMAL and OwnerMemory.mira_quest in ["", "carried"] and _mira_line >= 2 \
+	if mira.state == Npc.State.NORMAL and OwnerMemory.mira_quest in ["", "carried"] and _mira_line >= _mira_ask_at \
 			and world.escort == null:
 		_mira_asked = true
 		return Story.MIRA_ASK
@@ -285,7 +289,7 @@ func on_dialogue_closed(who: Node) -> void:
 		world.hud.show_dialogue("MIRA", mira.name_color, Story.MIRA_JOINS, "npc.mira", CharacterArt.for_npc(mira), World.expressions_for(mira, Story.MIRA_JOINS))
 		world.start_escort(mira)
 	else:
-		_mira_line += 1
+		_mira_ask_at = _mira_line + 2
 		world.hud.show_dialogue("MIRA", mira.name_color, Story.MIRA_DECLINED, "npc.mira", CharacterArt.for_npc(mira), World.expressions_for(mira, Story.MIRA_DECLINED))
 
 

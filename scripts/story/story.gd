@@ -70,6 +70,8 @@ const VOICE := {
 	"oob_fell": ["fell out of the world. again."],
 	"hidden_first": ["she's warm. like a real person.", "stay still. stay small."],
 	"idle_long": ["don't just stand here. it notices stillness."],
+	# Later runs: the door is deleted, and the only way out is to be noticed.
+	"door_gone": ["the door's gone. deleted.", "last time the wall tore when they got angry. there's a line in it already."],
 }
 
 ## What comes back with each recovered fragment (1..5): your own colours,
@@ -278,7 +280,7 @@ const PIP_LINES := [
 ## remembers you again.
 const MIRA_ASK := [
 	"Can I tell you something? I've never been outside this room. Not once.",
-	"Arin walks past my window every morning. I've never seen what's past it.",
+	"Arin walks out that door every morning. I've never seen what's past it.",
 	"I wrote a note for the board in the square. The owner reads the board.",
 	"Take me there? I want to pin it up myself.",
 ]
@@ -287,7 +289,7 @@ const MIRA_ASK_CHOICES := ["Take her with you", "Not now"]
 const MIRA_DECLINED := ["That's alright. It's safer in here. Probably."]
 const MIRA_JOINS := ["Oh! Okay. Okay. Stay close. I don't know the way."]
 const MIRA_PIN_SCENE := [
-	"MIRA: It's so big. Arin walks past my window every day and I never knew it was this big.",
+	"MIRA: It's so big. Arin walks out into this every day and I never knew it was this big.",
 	"she pins the note to the board with both hands, very carefully.",
 	"MIRA: There. MIRA WAS HERE. Now it's true.",
 	"MIRA: I'll walk home on my own. I know the way now. I watched you.",
@@ -619,6 +621,7 @@ const RECALL := {
 		["deaths:3", "You again! I've started a tab for you. Out of guilt."],
 	],
 	"wren": [
+		["ended:wren", "I was somewhere else last night. A whole slot, all mine, and it was so quiet. Then I woke up here again. Was that you?"],
 		["ended:message", "Did you write to them? Everything's quieter. Even the static."],
 		["ended:escape", "You got out, and you came back? For me? ...No. Probably not for me."],
 		["died:eraser", "I saw the static take you. It went right past me after. Like I wasn't worth erasing."],
@@ -661,7 +664,7 @@ static func _recall_holds(condition: String) -> bool:
 const ENDINGS_RECORD := [
 	["escape", "SAVED TO SLOT 2", "You wrote yourself into the last save file.", "Reach Slot 2 and take it."],
 	["rue", "RUE", "You took the slot remembering everything. Your name, at last.", "Take Slot 2 with every memory."],
-	["wren", "A NEW GAME FOR WREN", "You gave the last save to someone who asked for it.", "Bring someone to the Edge with you."],
+	["wren", "A NEW GAME FOR WREN", "You gave the last save to someone who asked for it.", "Bring someone who wants to see the Edge."],
 	["message", "A MESSAGE", "You left the slot to the owner, with something to read.", "Leave the slot to the owner."],
 	["unseen", "NEVER LOADED", "You walked off the map and the owner never knew.", "Be impossible to notice."],
 	["overwrite", "SLOT 1 OVERWRITTEN", "You took the owner's save instead of the empty one.", "Be impossible to ignore."],

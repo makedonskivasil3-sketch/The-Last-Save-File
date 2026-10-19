@@ -968,6 +968,11 @@ func say(text: String, kind: String = "owner", speaker: String = "") -> void:
 		_queue.append(msg)
 
 
+## The console is still typing or has lines waiting.
+func is_console_busy() -> bool:
+	return _typing != null or not _queue.is_empty()
+
+
 func clear_queue() -> void:
 	_queue.clear()
 

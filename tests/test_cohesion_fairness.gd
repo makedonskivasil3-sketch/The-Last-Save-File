@@ -65,3 +65,24 @@ func test_reading_a_tip_is_not_standing_still() -> void:
 	var before: float = w.player.idle_time
 	await wait(1.0)
 	check(w.player.idle_time - before < 0.1, "reading it doesn't count as standing still (%.2f)" % (w.player.idle_time - before))
+
+
+## At the start of a later run the owner's note and recall lines arrive
+## together (about 14 s of reading). Standing still to read them used to
+## draw "you stopped moving" and a save-over.
+func test_reading_the_start_of_a_run_is_not_standing_still() -> void:
+	memory().sessions = 1
+	memory().last_exit = "death"
+	memory().last_death = "arin"
+	memory().purge = 1
+	var w := await start_session()
+	await frames(3)
+	check(w.hud.is_console_busy(), "the owner is still talking")
+	var waited := 0.0
+	while w.hud.is_console_busy() and waited < 20.0:
+		await wait(0.5)
+		waited += 0.5
+		check(w.player.idle_time < 0.6, "not idle while the console delivers its lines (%.1f s at %.1f s)" % [w.player.idle_time, waited])
+		if w.player.idle_time >= 0.6:
+			break
+	check_eq(w.ending, "", "and nobody is saved over for reading")

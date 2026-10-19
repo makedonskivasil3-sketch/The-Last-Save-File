@@ -9,6 +9,9 @@ var id := 0
 var size := Vector2(12, 22)
 ## 0..1, how visible the tear is. The owner's rewrites make it easier to see.
 var reveal := 0.0
+## Before it tears: a faint hairline where it will (shown when the door is
+## gone, so the way out has evidence before it opens).
+var hint := false
 ## Closed seams are invisible and can't be used.
 var open := false
 ## A seam the owner patched in an earlier session: a scar, not a way out.
@@ -49,7 +52,7 @@ func _process(delta: float) -> void:
 		if fx:
 			fx.spike(0.6, 0.6)  # the wall tearing open
 		Sfx.play("wound_open")
-	if open or sealed:
+	if open or sealed or hint:
 		queue_redraw()
 
 
@@ -59,6 +62,11 @@ func _draw() -> void:
 		_draw_scar(vertical)
 	elif open:
 		_draw_wound(vertical)
+	elif hint:
+		var axis := Vector2(0, 1) if vertical else Vector2(1, 0)
+		var long := (size.y if vertical else size.x) * 0.6
+		var a := 0.18 + 0.12 * sin(_t * 2.0) * Settings.flash_scale()
+		draw_line(-axis * long / 2.0, axis * long / 2.0, Color(0.95, 0.3, 0.45, a), 1.0)
 
 
 ## An open wound in the wall: a pulsing red glow, a torn bright core, ragged

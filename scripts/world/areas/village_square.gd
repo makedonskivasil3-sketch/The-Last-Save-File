@@ -70,6 +70,8 @@ var door: Door
 var _wren_line := 0
 ## Wren just asked to come along: the choice comes when the dialogue closes.
 var _wren_asked := false
+## As with Mira: after a "not now", two more of her own lines before she asks again.
+var _wren_ask_at := 2
 var _tobben_line := 0
 var _spotted_once := false
 ## Seconds Arin has had you in view without a break, and the frame they last
@@ -284,7 +286,7 @@ func on_dialogue_closed(who: Node) -> void:
 		world.start_escort(wren)
 		wren = null
 	else:
-		_wren_line += 1  # she'll ask again later
+		_wren_ask_at = _wren_line + 2  # she'll ask again, after two more of her own lines
 		world.hud.show_dialogue("WREN", wren.name_color, Story.WREN_DECLINED, "npc.wren")
 
 
@@ -382,14 +384,14 @@ static func make_wren(parent: Node, pos: Vector2) -> Npc:
 func _wren_lines() -> Array:
 	if OwnerMemory.wren_saved:
 		# Saved for good, but she still wants to come: there's a slot out there.
-		if _wren_line >= 1 and world.escort == null:
+		if _wren_line >= _wren_ask_at - 1 and world.escort == null:  # she asks sooner: she has seen it
 			_wren_asked = true
 			return [Story.WREN_ASK_SAVED]
 		var saved: String = Story.WREN_SAVED_LINES[mini(_wren_line, Story.WREN_SAVED_LINES.size() - 1)]
 		_wren_line += 1
 		return [saved]
 	# After a couple of talks she asks to come with you.
-	if _wren_line >= 2 and world.escort == null:
+	if _wren_line >= _wren_ask_at and world.escort == null:
 		_wren_asked = true
 		return [Story.WREN_ASK]
 	var line: String = WREN_LINES[mini(_wren_line, WREN_LINES.size() - 1)]

@@ -74,6 +74,9 @@ var _win_card_shown := false
 
 
 func _ready() -> void:
+	# The Archivist's pointer to Slot 2 is kept in the save once given: the
+	# north road isn't an errand to repeat every run.
+	flags["pointer"] = OwnerMemory.met_archivist
 	player.z_index = 10
 	_pause_menu = PauseMenu.new()
 	_pause_menu.console_hud = hud
@@ -138,6 +141,11 @@ func _begin_session(previous: String) -> void:
 	add_child(_tutorial)
 	_tutorial.start(self)
 	voice("wake_first" if OwnerMemory.sessions == 1 else "wake_again")
+	var door: Variant = area.get("door")
+	if area.area_id == "room" and door is Door and door.state == Door.State.DELETED:
+		get_tree().create_timer(3.0).timeout.connect(func() -> void:
+			if is_inside_tree() and ending == "" and area.area_id == "room":
+				voice("door_gone"))
 	if OwnerMemory.fragments.is_empty():
 		get_tree().create_timer(7.0).timeout.connect(func() -> void:
 			if is_inside_tree() and ending == "":
@@ -262,7 +270,9 @@ func _process(delta: float) -> void:
 	player.set_targeted((cursor is OwnerCursor and cursor.is_selecting()) or (watcher is OwnerAvatar and watcher.is_seeing()))
 	# Reading or answering isn't "standing still" for the owner's save-over.
 	player.reading = hud.is_dialogue_open() or hud.is_choosing()
-	player.reading_card = hud.is_tip_shown() or hud.is_act_shown()
+	# Reading a tip, a card, or lines the console is still delivering (the
+	# owner's note at the start of a run) is not standing still either.
+	player.reading_card = hud.is_tip_shown() or hud.is_act_shown() or hud.is_console_busy()
 	_update_reading_hold()
 	var helper := hiding_npc()
 	player.sheltered = is_hidden_now()
@@ -549,6 +559,8 @@ func current_goal() -> String:
 				goal = "Explore the village. The road east leads somewhere old."
 			if area and area.area_id == "square" and not OwnerMemory.found_pip:
 				goal += " The well looks deeper than it should."
+	if director and director.truce:
+		goal = "TRUCE: the owner only watches this run, unless you glitch. " + goal
 	return "%s\nMemories recovered: %d / %d" % [goal, OwnerMemory.fragments.size(), Story.FRAGMENTS.size()]
 
 

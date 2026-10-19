@@ -103,6 +103,9 @@ func update(delta: float) -> void:
 		return
 	var aw := world.director.awareness
 	_note_route(delta)
+	if world.director.truce:
+		queue_redraw()
+		return  # the owner only watches this run
 	# Saving over you.
 	if _writing_slot():
 		pass  # standing still in Slot 2 is the point: no save-over there
@@ -137,6 +140,9 @@ func on_threshold(t: float) -> void:
 ## Every glitch is a provocation: it interrupts a save, and enough of them
 ## make the owner reload.
 func on_glitch(_id: String) -> void:
+	if world.director.truce:
+		world.director.truce_strike()
+		return  # no reloads or interrupted moves to count: none are running
 	if wren_delete >= 0.0:
 		wren_delete = -1.0
 		world.hud.cancel_warning()
