@@ -84,6 +84,12 @@ The alternative is Stream playback, which on the web needs main-thread mixing in
 - Soloed on the title, the Music bus has 41% of its energy between 300 Hz and 4 kHz, up from 3%.
 - The theme plays in Arin's room at about -25 dB.
 
+### 3. The theme could start late (reproduced in CI, fixed)
+
+**What happened.** The music box is rendered in code, in the background (20–55 ms per theme here). In CI's browser, which renders in software, the title theme wasn't ready within the first 6 s listen. The CI check failed with "the title theme isn't heard", even though the web build was audible.
+
+**Fix.** Every theme is now baked (`tools/bake_audio.gd` → `audio/baked/`) and loaded the moment it's needed. `tests/test_baked_audio.gd` fails if a baked file drifts from the code.
+
 ## Verification status
 
 | Check | Status |
