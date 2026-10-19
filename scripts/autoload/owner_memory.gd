@@ -99,6 +99,7 @@ var frayed: Array[String] = []
 var sheds := 0
 var husk_area := ""
 var husk_session := -1
+var husk_pos := Vector2.ZERO
 var returned_pending: Array[String] = []
 var shed_said: Array[String] = []
 ## This session only: who was frayed this run (their "afterwards" line, not
@@ -296,10 +297,8 @@ func record_win(ending := "escape") -> void:
 		# Reconciliation: the owner stops the purge and lets everyone back.
 		purge = 0
 		npc_fates.clear()
-		# ...and the pieces Rue took go back to their owners.
-		for who in frayed:
-			if who not in returned_pending:
-				returned_pending.append(who)
+		# ...and the pieces Rue took go back to their owners, quietly (their
+		# "given back" lines are about the bin, so they aren't said).
 		frayed.clear()
 	_close_session("win")
 
@@ -352,7 +351,9 @@ func learn_truth_piece(who: String) -> void:
 
 ## Rue left a body and took `who`'s piece. The owner forgets her route and
 ## who helped her this run (not how she moves). One save.
-func fray(who: String, area: String) -> void:
+func fray(who: String, area: String, at := Vector2.ZERO) -> void:
+	if _session_closed:
+		return  # the run is over: nothing more is written into it
 	if who not in frayed:
 		frayed.append(who)
 	if who not in session_frayed:
@@ -361,6 +362,7 @@ func fray(who: String, area: String) -> void:
 	sheds += 1
 	husk_area = area
 	husk_session = sessions
+	husk_pos = at
 	route_memory.clear()
 	session_spots.clear()
 	session_helpers.clear()
@@ -369,7 +371,7 @@ func fray(who: String, area: String) -> void:
 
 ## A piece brought back from the bin: they're whole, and will say so.
 func return_piece(who: String) -> void:
-	if who in frayed:
+	if who in frayed and not _session_closed:
 		frayed.erase(who)
 		session_frayed.erase(who)
 		if who not in returned_pending:
@@ -380,6 +382,12 @@ func return_piece(who: String) -> void:
 ## A body left in the run before this one: where ("" if none).
 func last_run_husk() -> String:
 	return husk_area if husk_session >= 0 and husk_session == sessions - 1 else ""
+
+
+## Whether the body she left is still lying in `area` (this run or the last:
+## the owner kept it).
+func husk_in(area: String) -> bool:
+	return husk_area == area and husk_session >= 0 and husk_session >= sessions - 1
 
 
 ## Rue read her CHARACTER FILE whole.
@@ -417,6 +425,7 @@ func clear_state() -> void:
 	sheds = 0
 	husk_area = ""
 	husk_session = -1
+	husk_pos = Vector2.ZERO
 	returned_pending.clear()
 	shed_said.clear()
 	session_frayed.clear()
@@ -511,6 +520,8 @@ func save_memory() -> void:
 		"sheds": sheds,
 		"husk_area": husk_area,
 		"husk_session": husk_session,
+		"husk_x": husk_pos.x,
+		"husk_y": husk_pos.y,
 		"returned_pending": returned_pending,
 		"shed_said": shed_said,
 		"last_exit": last_exit,
@@ -620,7 +631,8 @@ func load_memory() -> void:
 	frayed.assign(_strings(data, "frayed").filter(func(id: String) -> bool: return id in Story.SHED_TARGETS))
 	sheds = _int(data, "sheds", 0)
 	husk_area = _str(data, "husk_area", "")
-	husk_session = _int(data, "husk_session", -1)  # (only read with husk_area set)
+	husk_session = int(data.husk_session) if _num(data, "husk_session") else -1
+	husk_pos = Vector2(float(data.husk_x), float(data.husk_y)) if _num(data, "husk_x") and _num(data, "husk_y") else Vector2.ZERO
 	returned_pending.assign(_strings(data, "returned_pending"))
 	shed_said.assign(_strings(data, "shed_said"))
 	deaths_log.clear()

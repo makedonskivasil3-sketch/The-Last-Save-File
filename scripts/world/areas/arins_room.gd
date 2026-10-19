@@ -284,7 +284,7 @@ func on_dialogue_closed(who: Node) -> void:
 		return
 	world.player.frozen = true
 	var pick := await world.choose_safely(Story.MIRA_ASK_Q, Story.MIRA_ASK_CHOICES)
-	if not is_inside_tree():
+	if not is_inside_tree() or pick < 0:
 		return
 	world.player.frozen = false
 	if pick == 0:

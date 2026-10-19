@@ -20,7 +20,9 @@ const EMPTY_EVERY := 16.0
 const WARNING := 3.0
 const SWEEP_TIME := 2.6
 ## Where deleted characters' files lie.
-const FILE_SPOTS: Array[Vector2] = [Vector2(260, 120), Vector2(380, 160), Vector2(480, 240), Vector2(150, 160)]
+## Up to four deleted characters and three taken pieces at once.
+const FILE_SPOTS: Array[Vector2] = [Vector2(260, 120), Vector2(380, 160), Vector2(480, 240), Vector2(150, 160),
+	Vector2(340, 110), Vector2(200, 200), Vector2(450, 200)]
 
 const FLOOR := Color("16161c")
 
@@ -191,6 +193,8 @@ func _on_restored(id: String) -> void:
 func _on_piece_returned(id: String) -> void:
 	OwnerMemory.return_piece(id)
 	world.player.refresh_look()
+	if world.escort and world.escort.npc_id == id:
+		world.escort.refresh_fray()  # walked in with you: whole again here too
 	world.hud.say("%s  ·  returned" % Story.SHED_ASSET[id], "system")
 	world.director.notice(6.0, "something went back")
 

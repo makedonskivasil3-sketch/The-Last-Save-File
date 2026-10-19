@@ -252,8 +252,9 @@ func reveal_truth() -> void:
 	await hud.cinematic("WHAT I AM", Story.TRUTH_REVEAL, Hud.SELF_COLOR, 0.6, "truth.reveal", CharacterArt.rue("remembering", player.palette()))
 	if not is_inside_tree():
 		return
+	# The page and the truth are one save, like a memory.
+	OwnerMemory.record_read("truth:reveal", "memory", "WHAT I AM", area.display_name, Story.TRUTH_REVEAL, false)
 	OwnerMemory.learn_truth()
-	OwnerMemory.record_read("truth:reveal", "memory", "WHAT I AM", area.display_name, Story.TRUTH_REVEAL)
 	fx.memory(false)
 	Sfx.muffle(false)
 	player.frozen = false
@@ -267,6 +268,8 @@ func reveal_truth() -> void:
 ## Bodies left this run.
 var sheds_this_run := 0
 var _pip_refused := false
+var _archivist_tried := false
+var _all_frayed_now := false
 
 
 ## Whether holding [E] beside `npc` offers LEAVE THIS BODY: Rue knows what she
@@ -279,7 +282,7 @@ func can_shed(npc: Node) -> bool:
 	if not npc.is_present():
 		return false
 	if npc.npc_id == "archivist":
-		return true
+		return not _archivist_tried  # he says it once; then the hold is the glitch again
 	if npc.npc_id not in Story.SHED_TARGETS or npc.is_frayed() or sheds_this_run >= Story.SHED_MAX_PER_RUN:
 		return false
 	if director.awareness >= OwnerDirector.HUNT or owner_moves.save_progress >= 0.0:
@@ -296,6 +299,7 @@ func offer_shed(npc: Npc) -> void:
 	if not can_shed(npc):
 		return
 	if npc.npc_id == "archivist":
+		_archivist_tried = true
 		hud.show_dialogue(npc.display_name, npc.name_color, [Story.ARCHIVIST_NOTHING_TO_TAKE], "npc.archivist")
 		return
 	if pip and pip.visible and pip.global_position.distance_to(player.global_position) < 80.0 and not _pip_refused:
@@ -303,10 +307,13 @@ func offer_shed(npc: Npc) -> void:
 		hud.say(Story.PIP_REFUSE, "self")
 	_cutscene = true
 	player.frozen = true
-	var pick := await choose_safely(Story.shed_preview(npc.npc_id), Story.shed_options(npc.npc_id))
+	# The irreversible answer is never the one already selected.
+	var pick := await choose_safely(Story.shed_preview(npc.npc_id), Story.shed_options(npc.npc_id), 1)
 	if not is_inside_tree():
 		return
 	_cutscene = false
+	if ending != "":
+		return  # the run ended with the question open: nothing is taken
 	player.frozen = false
 	if pick == 0 and is_instance_valid(npc):
 		_shed(npc)
@@ -315,12 +322,16 @@ func offer_shed(npc: Npc) -> void:
 func _shed(npc: Npc) -> void:
 	var who := npc.npc_id
 	PlaytestLog.mark("left a body", "took %s's %s" % [who, Story.SHED_PIECE[who]], true)
-	# The body she leaves, where she stood.
-	var husk := Husk.new()
-	husk.position = area.to_local(player.global_position)
-	area.add_child(husk)
-	area.interactables.append(husk)
-	OwnerMemory.fray(who, area.area_id)
+	# The body she leaves, where she stood, a step away from the person she
+	# took from (so the prompt stays on them). It stays this run and the next.
+	var away := (player.global_position - npc.global_position).normalized()
+	var at := area.to_local(player.global_position + (away if away != Vector2.ZERO else Vector2.DOWN) * 16.0)
+	area.place_husk(at)
+	if OwnerMemory.frayed.size() + 1 >= Story.SHED_TARGETS.size() and who not in OwnerMemory.frayed \
+			and "all_frayed" not in OwnerMemory.shed_said:
+		OwnerMemory.shed_said.append("all_frayed")  # saved with the fray, one write
+		_all_frayed_now = true
+	OwnerMemory.fray(who, area.area_id, at)
 	sheds_this_run += 1
 	director.awareness = maxf(director.floor_level(), director.awareness - Story.SHED_COOL)
 	director.add_awareness(0.0)  # refresh the meter and the mood
@@ -331,14 +342,13 @@ func _shed(npc: Npc) -> void:
 	Sfx.play("unload", -4.0, 0.8, 0.0)
 	# What they say as it's taken, and what she thinks.
 	hud.show_dialogue(Story.TOBBEN_WRITTEN if who == "tobben" else npc.display_name, npc.name_color, Story.FRAY_TAKEN[who],
-		"npc." + who, CharacterArt.for_npc(npc), World.expressions_for(npc, Story.FRAY_TAKEN[who]))
+		"" if who == "tobben" else "npc." + who, CharacterArt.for_npc(npc), World.expressions_for(npc, Story.FRAY_TAKEN[who]))
 	hud.say(Story.shed_thought(who, OwnerMemory.sheds, OwnerMemory.frayed.size()), "self")
 	# The owner notices the walk, then the damage.
 	director.say(Story.OWNER_SECOND_SHED if sheds_this_run >= 2 else Story.OWNER_NEW_FACE)
 	director.say(Story.OWNER_FRAYED[who])
-	if OwnerMemory.frayed.size() >= Story.SHED_TARGETS.size() and "all_frayed" not in OwnerMemory.shed_said:
-		OwnerMemory.shed_said.append("all_frayed")
-		OwnerMemory.save_memory()
+	if _all_frayed_now:
+		_all_frayed_now = false
 		director.say(Story.OWNER_ALL_FRAYED)
 
 
@@ -960,17 +970,20 @@ func _update_reading_hold() -> void:
 ## A question asked in the middle of play (Wren, Mira, Tobben): Rue can't
 ## move while it's open, so the owner holds still too, like PAUSE, instead of
 ## killing someone who is reading. Awareness holds as well.
-func choose_safely(question: String, options: Array) -> int:
-	var hold := not is_owner_paused()
-	if hold:
-		_choice_hold = true
+## The hold is kept for the whole question, even when it starts during PAUSE
+## (PAUSE running out mustn't let the owner back in mid-question). Returns -1
+## if the run ended while it was open: nothing was answered.
+func choose_safely(question: String, options: Array, focus := 0) -> int:
+	if not is_owner_paused():
 		area.set_owner_paused(true)
-	var pick := await hud.choose(question, options)
-	if hold and is_inside_tree():
-		_choice_hold = false
-		if not is_owner_paused() and area:
-			area.set_owner_paused(false)
-	return pick
+	_choice_hold = true
+	var pick := await hud.choose(question, options, focus)
+	if not is_inside_tree():
+		return -1
+	_choice_hold = false
+	if not is_owner_paused() and area:
+		area.set_owner_paused(false)
+	return pick if ending == "" else -1
 
 
 ## Where Pip should lead: a memory still in this area, else the area's goal.
@@ -1135,6 +1148,8 @@ func _interact(node: Node2D) -> void:
 ## "npc.<id>", notes, books and signs as "read.<area>". VoiceManifest lists
 ## the same ids, so a recording dropped in audio/voice/ just plays.
 static func dialogue_voice_prefix(node: Node, result: Dictionary) -> String:
+	if node is Npc and node.npc_id == "tobben" and node.is_frayed():
+		return ""  # he writes; nothing is said aloud
 	if node is Npc:
 		return "npc." + str(node.npc_id)
 	if node is Companion:
@@ -1179,6 +1194,7 @@ func kill(cause: String, reason := "") -> void:
 	ending = "death"
 	player.frozen = true
 	director.stop()
+	hud.cancel_choice()  # a question still open answers nothing now
 	hud.close_dialogue()
 	hud.clear_queue()
 	hud.set_prompt("")
@@ -1283,12 +1299,12 @@ func reach_slot2() -> void:
 	if not is_inside_tree():
 		return
 	var pick := await hud.choose(Story.SLOT2_QUESTION, options)
-	if not is_inside_tree():
+	if not is_inside_tree() or pick < 0:
 		return
 	var message := 0
 	if ids[pick] == "message":
 		message = await hud.choose(Story.MESSAGE_QUESTION, Story.MESSAGES)
-		if not is_inside_tree():
+		if not is_inside_tree() or message < 0:
 			return
 	_cutscene = false
 	win(ids[pick], message)
@@ -1306,6 +1322,7 @@ func win(chosen := "escape", message := 0) -> void:
 	ending = "win"
 	player.frozen = true
 	director.stop()
+	hud.cancel_choice()  # a question still open answers nothing now
 	hud.close_dialogue()
 	hud.clear_queue()
 	hud.set_prompt("")
@@ -1398,6 +1415,7 @@ func _quit(to_title: bool = false) -> void:
 	ending = "quit"
 	player.frozen = true
 	director.stop()
+	hud.cancel_choice()  # a question still open answers nothing now
 	hud.close_dialogue()
 	hud.clear_queue()
 	hud.set_prompt("")

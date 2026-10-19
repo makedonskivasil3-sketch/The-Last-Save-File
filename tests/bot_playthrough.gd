@@ -76,7 +76,8 @@ func _playthrough(ending: String, purge: int) -> void:
 		ending, purge, result, _session, _now() - _t0, memory().fragments.size(), memory().found_pip,
 		_deaths.size(), str(_deaths), _glitches, _reloads, _stalls]
 	print(summary)
-	check(result.begins_with("ending"), "the bot reached an ending (%s)" % result)
+	# The ending asked for, exactly: a different ending is a failure, not a pass.
+	check_eq(result, "ending:" + ending, "the bot reached the %s ending" % ending)
 
 
 ## One session; returns "ending:<id>", "death" or "stuck:<where>".
@@ -381,13 +382,20 @@ func _edge(w: Node, ending: String) -> String:
 	var options: Array = []
 	for b in w.hud._choice_list.get_children():
 		options.append(b.text)
-	# By name: hidden options can shift the list.
-	var label: String = {"escape": "Write", "wren": "Wren", "message": "message"}.get(ending, "Write")
-	var want := 0
+	var escort_note := "escort %s%s" % [w.escort.npc_id if w.escort else "none",
+		" (present)" if w.escort and w.escort.is_present() else ""]
+	_say("SLOT 2 options %s · %s · wren deleted %s · memories %d · truth %s" % [str(options), escort_note,
+		memory().is_deleted("wren"), memory().fragments.size(), memory().knows_truth])
+	# By name: hidden options can shift the list. The option missing is a
+	# result of its own, never a quiet fallback to the first one.
+	var label: String = {"escape": "Write", "rue": "Write RUE", "wren": "Wren", "message": "message"}.get(ending, "Write")
+	var want := -1
 	for i in options.size():
 		if str(options[i]).contains(label):
 			want = i
 			break
+	if want < 0:
+		return "unavailable:%s (options %s, %s)" % [ending, str(options), escort_note]
 	for i in want:
 		await press("ui_down")
 	await press("interact")
@@ -399,8 +407,7 @@ func _edge(w: Node, ending: String) -> String:
 			break
 		await press("interact")
 		await wait(0.25)
-	var got: String = memory().last_ending
-	return "ending:" + ("escape" if got == "rue" else got)
+	return "ending:" + memory().last_ending  # exactly as recorded: escape and rue are different endings
 
 
 # --- moving --------------------------------------------------------------------------

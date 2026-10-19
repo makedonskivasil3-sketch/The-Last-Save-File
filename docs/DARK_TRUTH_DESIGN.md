@@ -247,9 +247,11 @@ This differs from the design above: it isn't limited to the archive and out of b
 - Each person remembers it once a session.
 - The Archivist comments once.
 
-**Giving it back.** The piece lies in the Recycle Bin as `wren_ribbon.asset`, `mira_palette.asset` or `tobben_voice.wav` ("taken by: [no such entity]"). It's restored like a deleted character: stand beside it between sweeps. They're whole again and say so once; the Archivist approves once. The message ending gives every piece back.
+**Giving it back.** The piece lies in the Recycle Bin as `wren_ribbon.asset`, `mira_palette.asset` or `tobben_voice.wav` ("taken by: [no such entity]"). It's restored like a deleted character: stand beside it between sweeps. They're whole again and say so once; the Archivist approves once. The message ending gives every piece back, quietly (their "given back" lines are about the bin). The empty body stays where she left it for the rest of that run and the next, a step away from the person she took from.
 
 **Never Pip.** With Pip beside her when she's asked: "(not pip. never pip.)". The Archivist can be tried; he says there's nothing on him to take.
+
+**Review fixes (2026-10-19):** a question open when the run ends answers nothing; "Not her" is selected first; with Arin in reach the hold is FREEZE, never LEAVE THIS BODY; the Archivist answers once a run; a frayed person's line is said once a run, not once a visit; frayed Tobben is never voiced; the bin has room for every piece (`tests/test_review_fixes.gd`).
 
 **Deferred from the design:** Arin standing guard over the body next run, and slower cooling in the bin after two bodies (§2.4). The new lines are text only.
 

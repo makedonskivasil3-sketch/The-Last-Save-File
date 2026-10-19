@@ -168,6 +168,18 @@ func start_erasure(extra_seeds: Array[Vector2] = [], seed_deaths := true) -> voi
 
 # --- helpers for subclasses -------------------------------------------------
 
+## The body Rue left (docs/DARK_TRUTH_DESIGN.md §8): one at a time.
+func place_husk(at: Vector2) -> void:
+	for n in interactables.duplicate():
+		if n is Husk:
+			interactables.erase(n)
+			n.queue_free()
+	var husk := Husk.new()
+	husk.position = at
+	add_child(husk)
+	interactables.append(husk)
+
+
 func setup_common() -> void:
 	_body = StaticBody2D.new()
 	add_child(_body)
@@ -177,6 +189,8 @@ func setup_common() -> void:
 	add_child(erasure)
 	if not world.purged:
 		add_fragments.call_deferred()
+	if OwnerMemory.husk_in(area_id):
+		place_husk(OwnerMemory.husk_pos)
 	var deaths := OwnerMemory.deaths_in(area_id)
 	for i in deaths.size():
 		var g := GhostMarker.new()

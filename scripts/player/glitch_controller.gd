@@ -134,11 +134,6 @@ func find_target() -> Dictionary:
 		var landing := phase_landing()
 		if landing != Vector2.INF:
 			return {"id": "phase", "node": null, "pos": landing}
-	# Beside someone, knowing what she is, unwatched: she can leave this body
-	# instead (not a glitch: World.can_shed).
-	for node in area.interactables:
-		if node is Npc and world.can_shed(node) and p.distance_to(node.global_position) <= Glitch.SHED.range:
-			return {"id": "shed", "node": node, "pos": node.global_position}
 	var best := {}
 	var best_score := INF
 	var candidates: Array = []
@@ -147,6 +142,13 @@ func find_target() -> Dictionary:
 	if arin is OwnerAvatar and arin.stunned <= 0.0:
 		candidates.append(["freeze", arin, arin.global_position, Glitch.DEFS.freeze.range])
 		arin_in_reach = p.distance_to(arin.global_position) <= Glitch.DEFS.freeze.range
+	# Beside someone, knowing what she is, unwatched: she can leave this body
+	# instead (not a glitch: World.can_shed). Never when Arin is in reach:
+	# then the hold means FREEZE on Arin.
+	if not arin_in_reach:
+		for node in area.interactables:
+			if node is Npc and world.can_shed(node) and p.distance_to(node.global_position) <= Glitch.SHED.range:
+				return {"id": "shed", "node": node, "pos": node.global_position}
 	for node in area.interactables:
 		if node is Npc:
 			# With Arin in reach, FREEZE means Arin: never the friend you're
@@ -238,10 +240,11 @@ func _blocker(q: Vector2) -> Object:
 # --- firing --------------------------------------------------------------------------
 
 func _fire(t: Dictionary) -> void:
-	PlaytestLog.mark("glitch", str(t.id))
-	PlaytestLog.mark("FIRST GLITCH", str(t.id), true)
 	var id: String = t.id
 	var node: Variant = t.get("node")
+	if id != "shed":
+		PlaytestLog.mark("glitch", id)
+		PlaytestLog.mark("FIRST GLITCH", id, true)
 	if id == "shed":
 		# No price, no count, no owner reaction: it asks first.
 		_cancel()

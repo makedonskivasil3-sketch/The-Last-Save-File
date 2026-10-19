@@ -675,7 +675,14 @@ func close_dialogue() -> void:
 
 ## Asks a question and waits for a pick (arrows / stick + E, or tap).
 ## Returns the option's index. Await it.
-func choose(question: String, options: Array) -> int:
+## A question still open when the run ends (death, quit, an ending) answers
+## nothing: the asker gets -1.
+func cancel_choice() -> void:
+	if _choice.visible:
+		_chosen.emit(-1)
+
+
+func choose(question: String, options: Array, focus := 0) -> int:
 	_choice_question.text = question
 	for c in _choice_list.get_children():
 		c.queue_free()
@@ -690,7 +697,7 @@ func choose(question: String, options: Array) -> int:
 				_chosen.emit(i))
 		b.focus_entered.connect(func() -> void: Sfx.ui("ui_move"))
 		_choice_list.add_child(b)
-		if first == null:
+		if first == null or i == focus:
 			first = b
 	_choice.visible = true
 	_choice_ready_ms = Time.get_ticks_msec() + CHOICE_GRACE_MS
@@ -786,7 +793,7 @@ func _show_dialogue_line() -> void:
 	_dialogue_text.text = text
 	_dialogue_voice = _dialogue_ids[_dialogue_index] if _dialogue_index < _dialogue_ids.size() else ""
 	var recorded := VoiceOver.play(self, _dialogue_voice)
-	if recorded == null:
+	if recorded == null and _dialogue_speaker.text != Story.TOBBEN_WRITTEN:  # written, not said
 		narrator.speak(text, _dialogue_speaker.text)
 	_dialogue_text.visible_characters = 0
 	_dialogue_typed = 0.0

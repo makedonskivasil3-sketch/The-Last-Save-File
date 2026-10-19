@@ -29,7 +29,8 @@ var notice_emote := ""
 var talking := false
 ## Never moves their mouth (the real Arin only says "...").
 var mute := false
-var _fray_said := false
+## Their own colours, kept the first time a piece is taken from the drawing.
+var _unfrayed: Dictionary = {}
 var player: Node2D
 ## Returns Array[String]: the lines for this conversation.
 var lines_provider: Callable
@@ -138,6 +139,10 @@ func is_frayed() -> bool:
 
 
 func _apply_fray() -> void:
+	if _unfrayed.is_empty():
+		_unfrayed = {"accent_color": accent_color, "dress_color": dress_color, "dark_color": dark_color, "mute": mute}
+	for k in _unfrayed:
+		set(k, _unfrayed[k])
 	if not is_frayed():
 		return
 	match npc_id:
@@ -150,7 +155,7 @@ func _apply_fray() -> void:
 			mute = true
 
 
-## Taken just now: redraw without the piece.
+## Taken (or given back) just now: redraw from the right colours.
 func refresh_fray() -> void:
 	_sprite = null
 	queue_redraw()
@@ -176,8 +181,8 @@ func interact() -> Dictionary:
 			OwnerMemory.returned_pending.erase(npc_id)
 			OwnerMemory.save_memory()
 			lines = [Story.FRAY_RETURNED[npc_id]] + lines
-		elif is_frayed() and not _fray_said:
-			_fray_said = true
+		elif is_frayed() and "fray:" + npc_id not in OwnerMemory.session_recalled:
+			OwnerMemory.session_recalled.append("fray:" + npc_id)  # once a session, not once a visit
 			lines = [Story.FRAY_LINES[npc_id] if npc_id in OwnerMemory.session_frayed else Story.FRAY_RECALL[npc_id]] + lines
 	# What they've noticed about what Rue is, once it's time (said once ever),
 	# goes before their usual lines...

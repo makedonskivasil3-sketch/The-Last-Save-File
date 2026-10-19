@@ -297,7 +297,7 @@ func on_dialogue_closed(who: Node) -> void:
 		return
 	world.player.frozen = true
 	var pick := await world.choose_safely(Story.WREN_ASK, Story.WREN_ASK_CHOICES)
-	if not is_inside_tree():
+	if not is_inside_tree() or pick < 0:
 		return
 	world.player.frozen = false
 	if pick == 0:
@@ -432,7 +432,7 @@ func _offer_guestbook() -> void:
 		return
 	world.player.frozen = true
 	var pick := await world.choose_safely(Story.GUESTBOOK_ASK, Story.GUESTBOOK_CHOICES)
-	if not is_inside_tree():
+	if not is_inside_tree() or pick < 0:
 		return
 	world.player.frozen = false
 	if pick != 0:
