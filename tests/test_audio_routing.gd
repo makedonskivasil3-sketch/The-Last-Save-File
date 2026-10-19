@@ -55,3 +55,31 @@ func test_the_hum_reaches_small_speakers() -> void:
 		if f > 250.0:
 			mid += p
 	check(mid / all > 0.03, "the hum has energy a small speaker can play (%.1f%% at 275/385 Hz)" % (100.0 * mid / all))
+
+
+func test_speech_ducks_the_music_by_bus_volume() -> void:
+	# The browser's Sample playback runs no bus effects, so the duck is bus
+	# volume (which it does follow), never an AudioEffectAmplify.
+	settings().music_volume = 0.8
+	settings().apply()
+	for b in ["Music", "Memory"]:
+		var i := AudioServer.get_bus_index(b)
+		for e in AudioServer.get_bus_effect_count(i):
+			check(not (AudioServer.get_bus_effect(i, e) is AudioEffectAmplify), "%s has no amplify effect to duck with" % b)
+	var music := AudioServer.get_bus_index("Music")
+	var memory := AudioServer.get_bus_index("Memory")
+	var base := AudioServer.get_bus_volume_db(music)
+	Sfx.duck_for_speech(true)
+	await wait(0.8)
+	check(absf(AudioServer.get_bus_volume_db(music) - (base + Sfx.SPEECH_DUCK_DB)) < 0.5, "the music dips under speech (%.1f dB from %.1f)" % [AudioServer.get_bus_volume_db(music), base])
+	check(absf(AudioServer.get_bus_volume_db(memory) - (base + Sfx.SPEECH_DUCK_DB)) < 0.5, "and the memory theme")
+	# A volume change mid-line keeps the dip; a muted slider stays muted.
+	settings().set_value("music_volume", 0.5)
+	check(absf(AudioServer.get_bus_volume_db(music) - (linear_to_db(0.5) + Sfx.SPEECH_DUCK_DB)) < 0.5, "a new music volume, still ducked")
+	settings().set_value("music_volume", 0.0)
+	check(AudioServer.is_bus_mute(music), "music at 0 stays muted under speech")
+	settings().set_value("music_volume", 0.8)
+	Sfx.duck_for_speech(false)
+	await wait(1.5)
+	check(absf(AudioServer.get_bus_volume_db(music) - base) < 0.1, "and comes back after the line (%.1f dB)" % AudioServer.get_bus_volume_db(music))
+	check(Sfx.speech_duck_db() <= 0.0, "the duck never raises anything")

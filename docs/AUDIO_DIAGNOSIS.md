@@ -57,7 +57,9 @@ There are two separate causes. Each one alone would make the game seem silent.
 | Title | silent | -29.4 dBFS RMS, sound in 100% of windows, no clipping; the theme's A4 (441 Hz) and E5 (657 Hz) are the two strongest pitches |
 | First room | silent | -31.7 dBFS RMS, sound in 92% of windows, no clipping; 441 Hz and 657 Hz among the strongest pitches |
 
-**Still different on the web.** In Sample mode Godot doesn't run bus *effects*. The SFX reverb, the low-pass "muffle" on pause and in memories, and the speech duck (AudioEffectAmplify) don't apply in the browser. Volumes and mutes do. This is an engine limitation of Sample playback, recorded here rather than worked around.
+**Still different on the web.** In Sample mode Godot doesn't run bus *effects*. The SFX reverb and the low-pass "muffle" on pause and in memories don't apply in the browser. Volumes and mutes do. This is an engine limitation of Sample playback.
+
+**The speech duck now works on the web too.** It used to be an AudioEffectAmplify on the Music and Memory buses (ignored by the browser). It is now the buses' own volume: `Settings.apply_music()` sets the player's music volume plus `Sfx.speech_duck_db()` (0 to -9 dB, down in about 0.25 s, back in about 0.8 s). The same path runs on desktop and web. It only ever lowers: a slider at 0 stays muted (`test_audio_routing.test_speech_ducks_the_music_by_bus_volume`, pass natively; the browser path is not run yet because no recorded speech exists to trigger it).
 
 The alternative is Stream playback, which on the web needs main-thread mixing in this threadless export. It has not been measured, so it isn't adopted.
 

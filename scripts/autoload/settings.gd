@@ -161,8 +161,7 @@ func set_value(key: String, value: Variant) -> void:
 func apply() -> void:
 	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(volume, 0.0001)))
 	AudioServer.set_bus_mute(0, volume <= 0.001)
-	for bus in ["Music", "Memory"]:
-		_set_bus(bus, music_volume)
+	apply_music()
 	for bus in ["SFX", "UI"]:
 		_set_bus(bus, sfx_volume)
 	_set_bus("Voice", voice_volume)
@@ -174,11 +173,20 @@ func apply() -> void:
 		DisplayServer.window_set_mode(mode)
 
 
-func _set_bus(bus: String, linear: float) -> void:
+## Music and the memory theme: the player's volume, less the speech duck
+## (Sfx.speech_duck_db(), never above 0 dB).
+func apply_music() -> void:
+	var sfx := get_node_or_null("/root/Sfx")
+	var duck: float = minf(0.0, sfx.speech_duck_db()) if sfx else 0.0
+	for bus in ["Music", "Memory"]:
+		_set_bus(bus, music_volume, duck)
+
+
+func _set_bus(bus: String, linear: float, offset_db := 0.0) -> void:
 	var i := AudioServer.get_bus_index(bus)
 	if i == -1:
 		return
-	AudioServer.set_bus_volume_db(i, linear_to_db(maxf(linear, 0.0001)))
+	AudioServer.set_bus_volume_db(i, linear_to_db(maxf(linear, 0.0001)) + offset_db)
 	AudioServer.set_bus_mute(i, linear <= 0.001)
 
 

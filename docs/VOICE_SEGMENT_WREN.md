@@ -90,4 +90,4 @@ It plays in this order: the recap (its last two lines are shown here), the choic
 - History replay;
 - muted speech.
 
-**Ducking on the web.** The music dips under speech through an AudioEffectAmplify on the Music and Memory buses, and the browser build (Sample playback) doesn't run bus effects (`docs/AUDIO_DIAGNOSIS.md`). Before any recorded speech ships to the web, this has to change: duck by adjusting bus volume instead.
+**Ducking on the web.** The music dips under speech by the Music and Memory buses' volume, which the browser build follows (`docs/AUDIO_DIAGNOSIS.md`). When the first files exist, check by ear in a browser that the dip is enough.

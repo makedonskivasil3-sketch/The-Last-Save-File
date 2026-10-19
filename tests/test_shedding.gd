@@ -193,3 +193,53 @@ func test_the_message_ending_gives_the_pieces_back() -> void:
 	memory().record_win("message")
 	check(memory().frayed.is_empty(), "the owner lets everyone back, whole")
 	check(memory().returned_pending.is_empty(), "quietly: their lines are about the bin")
+
+
+func test_arin_guards_the_body_next_run() -> void:
+	_knowing()
+	memory().husk_area = "square"
+	memory().husk_pos = Vector2(200, 150)
+	memory().husk_session = 1
+	memory().sessions = 1
+	var w := await start_session()
+	await go_to(w, "square", "house")
+	var arin: OwnerAvatar = w.area.arin
+	var guard := Vector2(200, 150) + Vector2(OwnerAvatar.GUARD_GAP, 0.0)
+	check_eq(arin.guard_point, guard, "Arin knows where the body lies")
+	check(guard in arin.route, "and stops there on every round")
+	w.player.global_position = Vector2(600, 330)  # out of the way
+	arin._target = arin.route.find(guard)
+	arin.position = guard + Vector2(1, 0)
+	arin._wait = 0.0  # not mid-pause at a corner
+	await frames(3)
+	check(arin._wait > 1.0, "standing guard over it, not a corner pause (%.1f s)" % arin._wait)
+
+
+func test_no_guard_two_runs_later() -> void:
+	memory().husk_area = "square"
+	memory().husk_pos = Vector2(200, 150)
+	memory().husk_session = 0
+	memory().sessions = 1
+	var w := await start_session()
+	await go_to(w, "square", "house")
+	check_eq(w.area.arin.guard_point, Vector2.INF, "the body is gone after the next run; so is the guard")
+
+
+func test_two_bodies_watch_the_hiding_places() -> void:
+	var w := await start_session()
+	await go_to(w, "house", "front")
+	w.area.next_visit = 999.0
+	w.player.global_position = ArinsHouse.CLOSETS[0].get_center()
+	await frames(3)
+	check(w.is_hidden_now(), "in a closet")
+	w.director.awareness = 40.0
+	await wait(1.5)
+	var once: float = 40.0 - w.director.awareness
+	check(not w.current_goal().contains(Story.GOAL_WATCHED_HIDING), "one body or none: nothing said")
+	w.sheds_this_run = 2
+	w.director.awareness = 40.0
+	await wait(1.5)
+	var twice: float = 40.0 - w.director.awareness
+	check(once > 0.5, "hiding cools the owner (%.2f)" % once)
+	check(twice > 0.0 and twice < once * 0.75, "after two bodies, more slowly (%.2f vs %.2f)" % [twice, once])
+	check(w.current_goal().contains(Story.GOAL_WATCHED_HIDING), "and the goal line says so")

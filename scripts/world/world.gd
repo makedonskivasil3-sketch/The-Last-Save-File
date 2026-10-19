@@ -676,6 +676,8 @@ func current_goal() -> String:
 				goal = "Explore the village. The road east leads somewhere old."
 			if area and area.area_id == "square" and not OwnerMemory.found_pip:
 				goal += " The well looks deeper than it should."
+	if sheds_this_run >= 2:
+		goal += " " + Story.GOAL_WATCHED_HIDING
 	if director and director.truce:
 		goal = "TRUCE: the owner only watches this run, unless you glitch. " + goal
 	return "%s\nMemories recovered: %d / %d" % [goal, OwnerMemory.fragments.size(), Story.FRAGMENTS.size()]

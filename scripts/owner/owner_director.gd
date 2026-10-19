@@ -164,7 +164,7 @@ func _process(delta: float) -> void:
 	if _world.escort and rate > 0.0:
 		rate *= 1.4  # a child following an intruder: hard to miss
 	if _world.is_hidden_now():
-		rate = -HIDDEN_COOL_RATE
+		rate = -HIDDEN_COOL_RATE * (Story.WATCHED_HIDING_RATE if _world.sheds_this_run >= 2 else 1.0)
 	if rate < 0.0:
 		_cool(-rate * delta)
 	else:

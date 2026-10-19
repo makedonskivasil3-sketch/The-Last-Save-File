@@ -253,13 +253,19 @@ This differs from the design above: it isn't limited to the archive and out of b
 
 **Review fixes (2026-10-19):** a question open when the run ends answers nothing; "Not her" is selected first; with Arin in reach the hold is FREEZE, never LEAVE THIS BODY; the Archivist answers once a run; a frayed person's line is said once a run, not once a visit; frayed Tobben is never voiced; the bin has room for every piece (`tests/test_review_fixes.gd`).
 
-**Deferred from the design:** Arin standing guard over the body next run, and slower cooling in the bin after two bodies (§2.4). The new lines are text only.
+**The owner adapts (§2.4), built 2026-10-19:**
+- **A body left behind:** next run, where Arin walks that area (the square, the house when Arin comes home, the Edge), Arin's round gains a stop beside the body and stands over it for 3 s each time (`OwnerAvatar.guard_point`). Areas where Arin doesn't walk keep the owner's note and line only. The run after that, the body and the guard are gone.
+- **Two bodies in one run:** for the rest of that run, hiding cools the owner's awareness at half the rate, and the goal line says so: "The owner is watching the hiding places: hiding cools them slowly now." This applies to every hiding place, not only the bin: the bin's shadows protect from the sweep but never cooled awareness, so "slower cooling in the bin" had nothing to slow.
+
+The new lines are text only.
 
 | What | Test |
 |---|---|
 | Not offered without the truth; offered beside Wren, unwatched; not while hunted | `test_shedding.test_not_offered_without_the_truth`, `test_offered_knowing_the_truth_and_only_unwatched` |
 | The cost is previewed, the question holds the owner, "Not her" takes nothing | `test_the_cost_is_shown_and_can_be_refused` |
 | Body, forgetting, awareness floor, not a glitch, lines, what she wears | `test_leaving_a_body` |
+| Arin guards the body next run; not the run after | `test_arin_guards_the_body_next_run`, `test_no_guard_two_runs_later` |
+| Two bodies: hiding cools slower, said on the goal line | `test_two_bodies_watch_the_hiding_places` |
 | Two a run | `test_twice_a_run_at_most` |
 | Across runs: the note, the owner, Wren's memory, still worn | `test_the_piece_stays_taken_across_runs` |
 | The bin gives it back; she says so | `test_the_bin_gives_it_back`, `test_given_back_she_says_so` |

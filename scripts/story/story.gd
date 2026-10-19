@@ -750,6 +750,10 @@ const SHED_TARGETS := ["wren", "mira", "tobben"]
 const SHED_MAX_PER_RUN := 2
 ## How much the owner's awareness drops (never below the last threshold).
 const SHED_COOL := 15.0
+## After two bodies in one run the owner watches the hiding places (§2.4):
+## hiding cools awareness this much slower, and the goal line says so.
+const WATCHED_HIDING_RATE := 0.5
+const GOAL_WATCHED_HIDING := "The owner is watching the hiding places: hiding cools them slowly now."
 const SHED_PIECE := {"wren": "ribbon", "mira": "colour", "tobben": "voice"}
 const SHED_ASSET := {"wren": "wren_ribbon.asset", "mira": "mira_palette.asset", "tobben": "tobben_voice.wav"}
 const SHED_TITLE := "LEAVE THIS BODY"

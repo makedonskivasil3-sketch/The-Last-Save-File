@@ -13,6 +13,12 @@ const SKIN := Color("e8c48a")
 const VIEW_COL := Color(0.88, 0.44, 0.31)
 
 var route: Array[Vector2] = []
+## A body Rue left in this area last run (docs/DARK_TRUTH_DESIGN.md §2.4):
+## Arin stops beside it on every round and stands guard. INF when there's none.
+var guard_point := Vector2.INF
+## How long Arin stands over the body each round, and how far to one side.
+const GUARD_WAIT := 3.0
+const GUARD_GAP := 12.0
 var speed := 40.0
 var view_distance := 85.0
 var view_angle := deg_to_rad(70.0)
@@ -76,7 +82,7 @@ func _physics_step(delta: float) -> void:
 		var to := goal - position
 		if to.length() < 2.0:
 			_target = (_target + 1) % route.size()
-			_wait = 0.6  # pauses at corners, looking around
+			_wait = GUARD_WAIT if goal == guard_point else 0.6  # pauses at corners, looking around
 		else:
 			_facing = _facing.lerp(to.normalized(), minf(1.0, delta * 6.0)).normalized()
 			position += to.normalized() * minf(speed * delta, to.length())
@@ -99,11 +105,26 @@ func can_see(pos: Vector2) -> bool:
 
 
 func _ready() -> void:
+	_guard_husk()
 	_steps = AudioStreamPlayer2D.new()
 	_steps.bus = "SFX"
 	_steps.max_distance = 300.0
 	_steps.attenuation = 1.6
 	add_child(_steps)
+
+
+## Seen, said (the owner's note) and answerable: shed somewhere else.
+func _guard_husk() -> void:
+	var a := get_parent() as Area
+	if a == null or route.is_empty() or OwnerMemory.last_run_husk() != a.area_id:
+		return
+	guard_point = OwnerMemory.husk_pos + Vector2(GUARD_GAP, 0.0)
+	# Stop there after the nearest point of the round.
+	var best := 0
+	for i in route.size():
+		if route[i].distance_to(guard_point) < route[best].distance_to(guard_point):
+			best = i
+	route.insert(best + 1, guard_point)
 
 
 func _process(delta: float) -> void:
