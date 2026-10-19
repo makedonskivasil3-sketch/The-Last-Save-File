@@ -143,8 +143,14 @@ func interact_prompt() -> String:
 
 func interact() -> Dictionary:
 	var lines: Array = lines_provider.call()
-	# The first time you talk this session: anything they remember from your
-	# last runs comes first.
+	# What they've noticed about what Rue is, once it's time (said once ever),
+	# goes before their usual lines...
+	var truth := Story.truth_line(npc_id) if state != State.DELETED else ""
+	if truth != "":
+		OwnerMemory.learn_truth_piece(npc_id)
+		lines = [truth] + lines
+	# ...and the first time you talk this session, anything they remember
+	# from your last runs comes first of all.
 	if state != State.DELETED and npc_id not in OwnerMemory.session_recalled:
 		OwnerMemory.session_recalled.append(npc_id)
 		var memory := Story.recall(npc_id)

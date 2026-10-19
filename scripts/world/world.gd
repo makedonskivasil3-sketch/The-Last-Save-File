@@ -235,6 +235,33 @@ func recover_fragment(m: MemoryFragment) -> void:
 	director.notice(6.0, "a memory flickered")
 
 
+## Rue read her CHARACTER FILE whole (docs/DARK_TRUTH_DESIGN.md): the world
+## stops while she understands what she is. Kept once it has been lived
+## through, like a memory.
+func reveal_truth() -> void:
+	if OwnerMemory.knows_truth or ending != "" or _cutscene or _transitioning or not Story.truth_ready():
+		return
+	PlaytestLog.mark("the truth", "read the CHARACTER FILE whole", true)
+	_cutscene = true
+	player.frozen = true
+	director.paused = true
+	hud.set_prompt("")
+	fx.memory(true)
+	Sfx.play("fragment", -2.0, 0.6, 0.0)
+	Sfx.muffle(true, 500.0)
+	await hud.cinematic("WHAT I AM", Story.TRUTH_REVEAL, Hud.SELF_COLOR, 0.6, "truth.reveal", CharacterArt.rue("remembering", player.palette()))
+	if not is_inside_tree():
+		return
+	OwnerMemory.learn_truth()
+	OwnerMemory.record_read("truth:reveal", "memory", "WHAT I AM", area.display_name, Story.TRUTH_REVEAL)
+	fx.memory(false)
+	Sfx.muffle(false)
+	player.frozen = false
+	director.paused = false
+	_cutscene = false
+	hud.say(Story.TRUTH_AFTER, "self")
+
+
 ## The owner's planted memory: it doesn't count, and it costs you.
 func _took_false_memory(f: Dictionary) -> void:
 	OwnerMemory.false_memory_taken = true
@@ -1155,7 +1182,8 @@ func reach_slot2() -> void:
 	hud.set_glitch_prompt("")
 	owner_moves.save_progress = -1.0
 	owner_moves.wren_delete = -1.0
-	var full := OwnerMemory.fragments.size() >= Story.FRAGMENTS.size()
+	# RUE needs every memory and the truth they add up to.
+	var full := OwnerMemory.fragments.size() >= Story.FRAGMENTS.size() and OwnerMemory.knows_truth
 	var options: Array = [Story.SLOT2_ESCAPE_NAMED if full else Story.SLOT2_ESCAPE]
 	var ids: Array[String] = ["rue" if full else "escape"]
 	if escort and escort.npc_id == "wren" and escort.is_present():
@@ -1192,8 +1220,8 @@ func win(chosen := "escape", message := 0) -> void:
 	PlaytestLog.mark("ENDING", chosen)
 	if ending != "":
 		return
-	# Taking the slot remembering everything is RUE.
-	if chosen == "escape" and OwnerMemory.fragments.size() >= Story.FRAGMENTS.size():
+	# Taking the slot remembering everything, and knowing what you are, is RUE.
+	if chosen == "escape" and OwnerMemory.fragments.size() >= Story.FRAGMENTS.size() and OwnerMemory.knows_truth:
 		chosen = "rue"
 	ending = "win"
 	player.frozen = true

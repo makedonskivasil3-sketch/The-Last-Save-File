@@ -35,6 +35,7 @@ const FALL_GRACE := 0.12
 const ENTRY := Vector2(110, 84)
 const PIP_POS := Vector2(512, 100)
 const PILLAR_POS := Vector2(84, 66)
+const FIRST_SHAPE_POS := Vector2(500, 124)
 
 const VOID := Color(0.01, 0.015, 0.04)
 const WIRE := Color(0.55, 0.95, 1.0)
@@ -78,6 +79,11 @@ func build() -> void:
 	add_child(pillar)
 	interactables.append(pillar)
 
+	# Once Pip is yours and every memory is back: the shape slot 2 was made
+	# with, outlined on Pip's ledge (docs/DARK_TRUTH_DESIGN.md).
+	if OwnerMemory.found_pip and OwnerMemory.fragments.size() >= Story.FRAGMENTS.size():
+		add_readable(Story.FIRST_SHAPE_TITLE, FIRST_SHAPE_POS, Readable.Look.TERMINAL, _first_shape)
+
 	if not OwnerMemory.found_pip:
 		pip = Companion.new()
 		pip.world = world
@@ -89,6 +95,12 @@ func build() -> void:
 
 func catch_up() -> void:
 	pass  # the eraser can't reach out of bounds either
+
+
+func _first_shape() -> Array:
+	if not OwnerMemory.knows_truth:
+		OwnerMemory.learn_truth_piece("pip")
+	return Story.FIRST_SHAPE.duplicate()
 
 
 ## Where Pip (once found) would lead you: the ledge, then back to the pillar.

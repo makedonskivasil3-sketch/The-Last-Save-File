@@ -12,7 +12,11 @@ func test_records_count_endings_including_rue() -> void:
 		m.add_fragment(f.id)
 	m.begin_session()
 	m.record_win("escape")
-	check("rue" in m.endings_seen, "taking the slot with every memory is RUE")
+	check("rue" not in m.endings_seen, "every memory without the truth is still the escape")
+	m.knows_truth = true
+	m.begin_session()
+	m.record_win("escape")
+	check("rue" in m.endings_seen, "taking the slot with every memory, knowing what you are, is RUE")
 	check(RecordsPanel.progress_line().begins_with("ENDINGS 2/6"), RecordsPanel.progress_line())
 	check(RecordsPanel.progress_line().contains("MEMORIES 5/5"), "memories counted")
 

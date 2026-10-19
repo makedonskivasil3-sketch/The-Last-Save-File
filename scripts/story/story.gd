@@ -369,8 +369,9 @@ const EPILOGUE_TRUE := [
 	"somewhere outside the screen, the cursor hovers over slot 2 for a long time.",
 	"it doesn't press delete.",
 	"> ...rue?",
+	"> you're not her. i know you're not. you just move like her.",
 	"> i kept your controller. it's still under the couch.",
-	"it presses LOAD.",
+	"it presses LOAD anyway.",
 ]
 const EPILOGUE_PIP := "a small orange fox curls up at the bottom of the screen. nobody saved it. it came anyway."
 
@@ -469,6 +470,8 @@ static func epilogue(ending: String, found: int, pip: bool, message := 0) -> Arr
 			]
 			if full:
 				lines.append("(i know my name now. i don't need a slot to keep it.)")
+			if OwnerMemory.knows_truth:
+				lines.append("(two things nobody plays. one of us should get a game of her own.)")
 			lines.append("the owner finds a save they don't remember making. they leave it alone.")
 		"message":
 			lines = [
@@ -480,6 +483,8 @@ static func epilogue(ending: String, found: int, pip: bool, message := 0) -> Arr
 				lines.append_array(["> ...rue?", "> i didn't know you were still in there."])
 				lines.append(["> i stopped waiting. i shouldn't have.", "> i kept your controller. it's still under the couch.", "> i won't. i promise."][clampi(message, 0, 2)])
 				lines.append("> i'm going to call you. the real you.")
+				if OwnerMemory.knows_truth:
+					lines.append_array(MESSAGE_TRUTH)
 			else:
 				lines.append_array(["> who wrote this.", "> ...i'm not going to delete it."])
 			if OwnerMemory.is_deleted("wren"):
@@ -535,6 +540,8 @@ static func ending_text(ending: String, found: int) -> String:
 		"wren":
 			return "you gave the last save file away.\nyou're still out here, in someone else's save.\nbut someone is safe because of you."
 		"message":
+			if found >= FRAGMENTS.size() and OwnerMemory.knows_truth:
+				return "you didn't take the slot. you gave it back, with your name on it.\nsomewhere, a phone is ringing. she's about to hear that a part of her stayed behind."
 			if found >= FRAGMENTS.size():
 				return "you didn't take the slot. you gave it back, with your name on it.\nsomewhere, a phone is ringing."
 			return "you didn't take the slot. you gave the owner a reason to stop.\n(memories recovered: %d of %d)" % [found, FRAGMENTS.size()]
@@ -659,11 +666,85 @@ static func _recall_holds(condition: String) -> bool:
 	return false
 
 
+## --- The truth (docs/DARK_TRUTH_DESIGN.md, layer A) ---------------------------
+## Rue isn't the girl who moved away. She's the character that girl played:
+## forty-one hours of someone else's hands, still running on someone else's
+## console. The people who watched her each noticed one thing; with all five
+## memories and two of their pieces, the Archive's CHARACTER FILE opens.
+
+const TRUTH_PIECES_NEEDED := 2
+## What each of them noticed, said once ever (OwnerMemory.truth_pieces).
+const TRUTH_LINES := {
+	"mira": "Can I tell you something? Arin only moves when the owner's there. You move when nobody is. So who's holding you?",
+	"wren": "Nobody plays me. I don't think anybody plays you either. We both move when nobody's holding anything.",
+	"tobben": "Funny thing. You wrote RUE back in a different hand. The first one was rounder. Pressed harder. Same name, though.",
+}
+## Out of bounds, on Pip's ledge: the shape slot 2 was made with.
+const FIRST_SHAPE_TITLE := "FIRST HITBOX"
+const FIRST_SHAPE := [
+	"a debug outline on the floor: rue_slot02.hitbox. the shape she was made with.",
+	"you step into it. it doesn't fit. the arms are wrong. the height is wrong.",
+	"pip curls up in the middle of it, where it always sat.",
+	"(this is the shape she made. what have i been wearing since?)",
+]
+const CHARACTER_FILE_TITLE := "CHARACTER FILE"
+static func character_file_locked(found: int) -> Array:
+	return ["CHARACTER FILE · SLOT 02. Locked. Pieces required: %d of %d. You carry %d." % [FRAGMENTS.size(), FRAGMENTS.size(), found]]
+const CHARACTER_FILE_PARTIAL := [
+	"CHARACTER FILE · SLOT 02 · RUE",
+	"behaviour: [unreadable]   player: [unreadable]",
+	"Most of this file is missing. Someone who has watched you might remember the rest.",
+]
+const CHARACTER_FILE := [
+	"CHARACTER FILE · SLOT 02 · RUE",
+	"behaviour: learned from player input. 41:07:12.",
+	"player: moved away.",
+	"character: still running.",
+	"rebuilt from: slot2_backup.sav, cut content, and small things that belonged to other people.",
+]
+## The reveal, once the file has been read whole.
+const TRUTH_REVEAL := [
+	"her hands on the controller. her laugh at the well. her tongue between her teeth, typing three letters.",
+	"every memory i found was hers. i only remember them because she played me through them.",
+	"she moved away. nobody asked the character.",
+	"(i'm not her.)",
+	"(i'm what she left running.)",
+]
+const TRUTH_AFTER := "so this body is a file. files can be left."
+## The message ending, knowing the truth: the real girl will hear about Rue.
+const MESSAGE_TRUTH := [
+	"(tell her about me. tell her what she left running.)",
+	"> ...i will. she should know a part of her stayed.",
+]
+## The Archivist, once you remember everything but don't know yet.
+const ARCHIVIST_FILE_HINT := "There's a file on my shelf with your name on it now. Ask the ones who've watched you first. They've noticed things I can't."
+const ARCHIVIST_KNOWS := "You read it. I'm sorry. I filed it a long time ago, and I didn't know how to hand it to you."
+
+
+## The line `who` has to tell Rue about what she is, if it's time ("" if not).
+static func truth_line(who: String) -> String:
+	if who not in TRUTH_LINES or who in OwnerMemory.truth_pieces or OwnerMemory.knows_truth:
+		return ""
+	match who:
+		"tobben":
+			if not OwnerMemory.guestbook_restored:
+				return ""
+		_:
+			if OwnerMemory.fragments.size() < FRAGMENTS.size():
+				return ""
+	return TRUTH_LINES[who]
+
+
+## Whether the CHARACTER FILE reads whole: every memory and enough pieces.
+static func truth_ready() -> bool:
+	return OwnerMemory.fragments.size() >= FRAGMENTS.size() and OwnerMemory.truth_pieces.size() >= TRUTH_PIECES_NEEDED
+
+
 ## The records screen: every ending, with a hint while it's still unseen.
 ## id -> [name, what happened, hint].
 const ENDINGS_RECORD := [
 	["escape", "SAVED TO SLOT 2", "You wrote yourself into the last save file.", "Reach Slot 2 and take it."],
-	["rue", "RUE", "You took the slot remembering everything. Your name, at last.", "Take Slot 2 with every memory."],
+	["rue", "RUE", "You took the slot knowing what you are. Your name, at last.", "Take Slot 2 with every memory, knowing what you are."],
 	["wren", "A NEW GAME FOR WREN", "You gave the last save to someone who asked for it.", "Bring someone who wants to see the Edge."],
 	["message", "A MESSAGE", "You left the slot to the owner, with something to read.", "Leave the slot to the owner."],
 	["unseen", "NEVER LOADED", "You walked off the map and the owner never knew.", "Be impossible to notice."],

@@ -1,9 +1,13 @@
 # The dark truth: design proposal
 
-> **Status: PROPOSAL.** None of this is canon or implemented. The author chose the direction on 2026-10-19:
-> all three layers (A: the truth, B: shedding, C: the virus route), and **Rue stays "she"**.
-> This document lists what each layer means, every canon line it touches, and the questions still open.
-> Implementation starts only after the author approves this document.
+> **Status.** The author chose the direction on 2026-10-19: all three layers (A: the truth, B: shedding,
+> C: the virus route), and **Rue stays "she"**. The author then answered the open questions (§6):
+> - shedding costs **a piece of someone** only;
+> - the virus route is a **seventh ending**;
+> - the **RUE ending needs the truth**;
+> - the **real girl learns that Rue exists**.
+>
+> **Layer A is implemented** (§7). Layers B and C are still design only.
 >
 > Sources are the same as `NARRATIVE_BIBLE.md`: `S:` is `scripts/story/story.gd`, `OM:` is `owner_memory.gd`.
 > The line numbers are approximate; the bible's own numbers are from an older commit.
@@ -43,7 +47,7 @@ The game already half-says this. The bible's INTERPRETATION (§3.0): *"the intru
 
 ### 1.2 Who helps her find it
 
-Each character holds one piece. Each piece appears through action, never as exposition, and each one has to be earned.
+Each character holds one piece. Each piece appears through action, never as exposition, and each one has to be earned. **As built:** Mira, Wren and Tobben say theirs once ever; Pip's is a debug outline on its ledge. The Archivist's file needs every memory and **any two** of those four pieces, so no single deleted character can lock the truth away.
 
 | Character | Their piece | How it surfaces (proposal) |
 |---|---|---|
@@ -57,7 +61,7 @@ Each character holds one piece. Each piece appears through action, never as expo
 
 A sixth beat after the five memories, in a later run. It is not a sixth fragment: fragments are memories, and this is a fact.
 
-- **Trigger:** the Archivist's new book, once Mira's and Pip's pieces have been seen. That makes it a run-2+ moment.
+- **Trigger:** reading the Archivist's CHARACTER FILE with all five memories and two of the four pieces (Mira, Wren, Tobben, Pip). In practice a run-2+ moment.
 - **Rue's line:** *"those were her hands. i'm what she left running."*
 - **What it opens:** shedding (layer B). Once she knows the body is a file, she knows a file can be left.
 
@@ -67,8 +71,8 @@ The text changes; the conditions don't.
 
 | Ending | Reading under A |
 |---|---|
-| **rue** | The owner chooses LOAD for a character they know isn't her, and keeps it anyway. It becomes more generous, not less |
-| **message** | The slot returns to the *real* girl: "the real you" (S:480) now says what it always meant. Rue lets herself be the messenger, not the person |
+| **rue** | **Now requires the truth** (author, 2026-10-19). The owner chooses LOAD for a character they know isn't her, and keeps it anyway. It becomes more generous, not less |
+| **message** | The slot returns to the *real* girl: "the real you" (S:480) now says what it always meant. **Knowing the truth, Rue asks the owner to tell her about Rue, and the owner promises to** (author: she learns that Rue exists) |
 | **wren** | Two unplayed things; Rue gives the slot to the only one like her |
 | **escape** | Survival without knowing what she is (unchanged) |
 | **unseen** | Unchanged |
@@ -93,14 +97,13 @@ Rue leaves her current body behind, as an empty husk the owner can see, and step
 
 ### 2.2 The cost, which the player picks (pillar 2: previewed, never revealed afterwards)
 
-The new body has to come from somewhere. When shedding, the player picks one cost, shown in full before committing:
+The new body has to come from somewhere. **The cost is always a piece of someone** (author, 2026-10-19). Who it's taken from, and what they lose, is shown in full before committing:
 
 | Cost | What happens | Persistent? |
 |---|---|---|
-| **A memory** | One found fragment, and the body part it restored, are gone: the raincoat greys and the scarf is missing. It can be found again | Yes, until re-found. This is the **one exception** to "fragments survive everything" (bible §5) |
 | **A piece of someone** | The new body borrows from a character nearby: Wren's pigtail ribbon, Mira's colour, Tobben's voice. That character is **frayed**: they lose that piece and a line of their own, and they remember | Yes. A new `npc_fates` value, `"frayed"`; the Recycle Bin can return the piece |
 
-The piece-of-someone cost ties B back to A: it is how she survived the first time, now done on purpose and in the open.
+This ties B back to A: it is how she survived the first time, now done on purpose and in the open. Memories are never the price, so "fragments survive everything" (bible §5) stays true.
 
 ### 2.3 Limits
 
@@ -162,10 +165,10 @@ Each item needs the author's sign-off.
 |---|---|---|
 | 1 | Rue is the character, not the person (promotes the bible's §3.0 INTERPRETATION to CONFIRMED) | Bible §3.0–3.1; no shipped line contradicts it. Check S:144 ("my name was RUE. slot 2 was mine.") still reads right; it does: the name and the slot were the character's |
 | 2 | She patched herself from other data, including other characters | New lines: the Archivist (`archive.gd`), the Recycle Bin's `slot2_backup` text |
-| 3 | Fragments can be lost (only by shedding) | Bible §5 rule "Fragments are Rue's"; `OM` fragment handling; the journal |
+| 3 | ~~Fragments can be lost~~ Dropped: shedding costs only a piece of someone | — |
 | 4 | A new NPC fate, `"frayed"` | `OM.npc_fates`, the bin restore logic, each character's recall lines |
 | 5 | `overwrite` becomes the gate to the virus route | `is_reckless_run()`, `ENDING_RETURN`, title S:42 |
-| 6 | A seventh ending, `out` | `reach_slot2`, endings tables, title screen, `endings_seen` |
+| 6 | A seventh ending, `out` (author: yes) | `reach_slot2`, endings tables, title screen, `endings_seen` |
 | 7 | The cohesion pass's "no new glitches" rule gains an exception for shedding | `COHESION_PASS.md` pillars note |
 | 8 | Mira, Wren, Tobben, Pip and the Archivist each gain one truth line | Their area scripts and `Story.recall` |
 
@@ -192,9 +195,23 @@ Each phase ships with tests that fail without it, and a bot run per ending. Pers
 
 **Prerequisite:** [PR #3](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/pull/3) and [PR #4](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/pull/4) merged (or this work stacks on them).
 
-## 6. Open questions for the author
+## 6. Questions for the author (answered 2026-10-19)
 
-1. **The cost menu:** both costs (a memory, or a piece of someone), or only the piece-of-someone cost, which is darker and ties to A more tightly?
-2. **The `out` ending:** a seventh ending, or a replacement for `overwrite`? This proposal keeps `overwrite` as the step before it.
-3. **Is the reveal optional?** As proposed, a player can finish the rue ending without ever reading CHARACTER FILE. Should the rue ending require it?
-4. **Does the real girl ever learn about Rue?** The message ending could carry one line about her, or stay silent.
+1. **The cost menu:** only the piece-of-someone cost.
+2. **The `out` ending:** a seventh ending; `overwrite` stays as the step before it.
+3. **Is the reveal optional?** No: the RUE ending requires it.
+4. **Does the real girl learn about Rue?** Yes, in the message ending, when Rue knows the truth.
+
+## 7. Layer A as built
+
+| Piece | Where | Test |
+|---|---|---|
+| `truth_pieces`, `knows_truth` (persistent, like memories; cleared only by a new game) | `owner_memory.gd` | `test_dark_truth.test_mira_tells_rue_once_she_remembers_everything` (survives a reload) |
+| Mira and Wren: once every memory is back; Tobben: once the guest book has RUE again. Said once ever, before their usual lines | `Story.TRUTH_LINES`, `Story.truth_line`, `npc.gd` | `test_mira_…`, `test_tobben_notices_the_handwriting` |
+| Pip: FIRST HITBOX on Pip's ledge, with Pip found and every memory | `out_of_bounds.gd` | `test_pip_shows_the_first_shape` |
+| CHARACTER FILE beside the Archivist's desk: locked (memories), unreadable (fewer than two pieces), whole; then the reveal scene "WHAT I AM", which holds the owner | `archive.gd`, `world.reveal_truth` | `test_the_character_file_opens_in_three_steps` |
+| The Archivist points to the file once every memory is back | `archive.gd` | (text) |
+| RUE needs every memory **and** the truth; otherwise the slot is the plain escape. Records and title follow | `world.gd`, `owner_memory.record_win`, `title.gd`, `Story.ENDINGS_RECORD` | `test_rue_needs_the_truth`, `test_rue_with_the_truth`, `test_records` |
+| Endings: RUE's epilogue ("you're not her… it presses LOAD anyway"), Wren's ("two things nobody plays"), the message ending tells the real girl | `story.gd` | `test_the_message_tells_the_real_girl`, `test_canon.test_rue_is_what_she_left_running` |
+
+**Not done yet:** a portrait or art pass for the reveal (it reuses Rue's *remembering* face); recorded voice for the new lines (they are in the voice manifest's lists, text only); any human playtest of whether the pieces are findable without a guide.

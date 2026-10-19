@@ -54,6 +54,7 @@ static func wren_expression(line: String) -> String:
 		Story.WREN_ASK: "brave", Story.WREN_ASK_SAVED: "awed",
 		Story.WREN_SAVED_LINES[0]: "brave", Story.WREN_SAVED_LINES[1]: "relieved",
 		Story.WREN_JOINS[0]: "relieved", Story.WREN_DECLINED[0]: "concerned",
+		Story.TRUTH_LINES.wren: "awed",
 	}
 	var recall := {"ended:wren": "awed", "ended:message": "relieved", "ended:escape": "concerned", "died:eraser": "afraid"}
 	for entry in Story.RECALL["wren"]:
@@ -66,8 +67,8 @@ static func wren_expression(line: String) -> String:
 ## id stem (VoiceManifest), including what they remember (Story.recall_lines).
 static func voice_lines() -> Dictionary:
 	return {
-		"npc.wren": Story.recall_lines("wren") + WREN_LINES + Story.WREN_SAVED_LINES + [Story.WREN_ASK, Story.WREN_ASK_SAVED] + Story.WREN_JOINS + Story.WREN_DECLINED,
-		"npc.tobben": Story.recall_lines("tobben") + TOBBEN_LINES,
+		"npc.wren": Story.recall_lines("wren") + [Story.TRUTH_LINES.wren] + WREN_LINES + Story.WREN_SAVED_LINES + [Story.WREN_ASK, Story.WREN_ASK_SAVED] + Story.WREN_JOINS + Story.WREN_DECLINED,
+		"npc.tobben": Story.recall_lines("tobben") + [Story.TRUTH_LINES.tobben] + TOBBEN_LINES,
 	}
 
 

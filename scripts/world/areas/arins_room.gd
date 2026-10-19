@@ -54,7 +54,7 @@ const MIRA_RESTRICTED := [
 ## Every line Mira can say that is the same in every run, by voice id stem
 ## (VoiceManifest), including what she remembers (Story.recall_lines).
 static func voice_lines() -> Dictionary:
-	return {"npc.mira": Story.recall_lines("mira") + MIRA_LINES + MIRA_RESTRICTED + Story.MIRA_RESET_LINES + Story.MIRA_ASK + Story.MIRA_JOINS + Story.MIRA_DECLINED}
+	return {"npc.mira": Story.recall_lines("mira") + [Story.TRUTH_LINES.mira] + MIRA_LINES + MIRA_RESTRICTED + Story.MIRA_RESET_LINES + Story.MIRA_ASK + Story.MIRA_JOINS + Story.MIRA_DECLINED}
 
 
 ## How Mira looks saying each of her lines (CharacterArt expressions; the
@@ -65,6 +65,7 @@ static func mira_expression(line: String) -> String:
 		MIRA_LINES[3]: "concerned", MIRA_LINES[4]: "determined", MIRA_LINES[5]: "remembering",
 		MIRA_RESTRICTED[0]: "afraid", MIRA_RESTRICTED[1]: "afraid", MIRA_RESTRICTED[2]: "determined",
 		Story.MIRA_JOINS[0]: "eager", Story.MIRA_DECLINED[0]: "relieved",
+		Story.TRUTH_LINES.mira: "concerned",
 	}
 	for l in Story.MIRA_ASK:
 		by_line[l] = "eager"

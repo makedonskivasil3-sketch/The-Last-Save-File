@@ -22,3 +22,13 @@ func test_slot_two_is_the_deleted_slots_ghost() -> void:
 	var archive := FileAccess.get_file_as_string("res://scripts/world/areas/archive.gd")
 	check(archive.contains("the owner thinks is gone"), "the Archivist")
 	check(not archive.contains("never used"), "no 'never used' left")
+
+
+## The author's decisions of 2026-10-19 (docs/DARK_TRUTH_DESIGN.md): Rue is
+## the character, not the girl; she stays "she"; RUE needs the truth; the real
+## girl learns that Rue exists.
+func test_rue_is_what_she_left_running() -> void:
+	check(Story.TRUTH_REVEAL.has("(i'm what she left running.)"), "the reveal's last line")
+	check(Story.TRUTH_REVEAL.has("(i'm not her.)"), "Rue is not the girl")
+	check(Story.MESSAGE_TRUTH[0].contains("tell her about me"), "the real girl will hear about Rue")
+	check(Story.ENDINGS_RECORD.any(func(e: Array) -> bool: return e[0] == "rue" and e[3].contains("knowing what you are")), "the RUE hint names the truth")

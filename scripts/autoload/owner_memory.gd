@@ -84,6 +84,12 @@ var acts_seen: Array[String] = []
 ## are YOUR memories, not the owner's: they survive deaths and purges, and
 ## only a full reset clears them.
 var fragments: Array[String] = []
+## The truth (docs/DARK_TRUTH_DESIGN.md): who has told Rue what they noticed
+## about her ("mira", "wren", "tobben", "pip"), and whether she has read her
+## CHARACTER FILE whole. Like memories, these are Rue's: they survive deaths
+## and purges.
+var truth_pieces: Array[String] = []
+var knows_truth := false
 ## How the previous session ended: "none", "death", "quit", "crash", "win"
 ## (or "escape" from old saves). While a session is running it is stored as
 ## "active", so if the process is killed the owner finds out next launch.
@@ -245,7 +251,7 @@ func record_win(ending := "escape") -> void:
 	# Taking the slot remembering everything is its own ending: RUE.
 	if ending == "rue" and "escape" not in endings_seen:
 		endings_seen.append("escape")  # RUE is also the slot, taken
-	if ending == "escape" and fragments.size() >= Story.FRAGMENTS.size() and "rue" not in endings_seen:
+	if ending == "escape" and fragments.size() >= Story.FRAGMENTS.size() and knows_truth and "rue" not in endings_seen:
 		endings_seen.append("rue")
 	if ending == "message":
 		# Reconciliation: the owner stops the purge and lets everyone back.
@@ -293,6 +299,19 @@ func keep_memory(id: String, title: String, area: String, lines: Array) -> void:
 	save_memory()
 
 
+## Someone told Rue what they noticed about her (kept once, for good).
+func learn_truth_piece(who: String) -> void:
+	if who not in truth_pieces:
+		truth_pieces.append(who)
+		save_memory()
+
+
+## Rue read her CHARACTER FILE whole.
+func learn_truth() -> void:
+	knows_truth = true
+	save_memory()
+
+
 ## Debug / "new game": forget everything the owner learned.
 func wipe() -> void:
 	_leave_guard(false)
@@ -316,6 +335,8 @@ func clear_state() -> void:
 	wren_saved = false
 	found_guestbook = false
 	found_controller = false
+	truth_pieces.clear()
+	knows_truth = false
 	journal.clear()
 	owner_notes_seen = 0
 	session_glitches = 0
@@ -401,6 +422,8 @@ func save_memory() -> void:
 		"acts_seen": acts_seen,
 		"route_memory": route_memory,
 		"fragments": fragments,
+		"truth_pieces": truth_pieces,
+		"knows_truth": knows_truth,
 		"last_exit": last_exit,
 	}
 	SafeFile.write_atomic(_path, JSON.stringify(data, "\t"))
@@ -503,6 +526,8 @@ func load_memory() -> void:
 			route_memory.append(r)
 	acts_seen.assign(_strings(data, "acts_seen"))
 	fragments.assign(_strings(data, "fragments"))
+	truth_pieces.assign(_strings(data, "truth_pieces"))
+	knows_truth = _bool(data, "knows_truth")
 	deaths_log.clear()
 	for d in _list(data, "deaths_log"):
 		if d is Dictionary and _num(d, "x") and _num(d, "y") and d.get("area") is String:
