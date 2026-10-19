@@ -68,6 +68,22 @@ func build() -> void:
 		interactables.append(f)
 		i += 1
 
+	# The pieces Rue took, where deleted things go (after the characters).
+	for who in OwnerMemory.frayed:
+		if i >= FILE_SPOTS.size():
+			break
+		var piece := BinFile.new()
+		piece.npc_id = who
+		piece.asset = Story.SHED_ASSET[who]
+		piece.tint = Color("c8b8a0")
+		piece.player = world.player
+		piece.position = FILE_SPOTS[i]
+		piece.restored.connect(_on_piece_returned)
+		add_child(piece)
+		files.append(piece)
+		interactables.append(piece)
+		i += 1
+
 	add_readable("slot2_backup.sav", Vector2(470, 60), Readable.Look.TERMINAL, _backup)
 	add_readable("guestbook_p2.txt", Vector2(140, 264), Readable.Look.TERMINAL, _guestbook)
 	add_readable("rue_last_message.txt", Vector2(500, 150), Readable.Look.TERMINAL, _last_message)
@@ -158,7 +174,7 @@ func _check_sweep(from_x: float, to_x: float) -> void:
 	for f in files:
 		if f.is_restoring() and f.global_position.x >= from_x and f.global_position.x < to_x and f.progress > 0.0:
 			f.progress = 0.0
-			world.hud.say("%s.npc  ·  restore lost" % f.npc_id, "system")
+			world.hud.say("%s  ·  restore lost" % f.file_name(), "system")
 	var p := world.player.global_position
 	if p.x >= from_x and p.x < to_x and not sheltered_at(p):
 		world.kill("erased", "bin")
@@ -169,6 +185,14 @@ func _on_restored(id: String) -> void:
 	world.director.notice(10.0, "a file came back")
 	world.director.say({"wren": "wren? i deleted you.", "mira": "mira. who put you back."}.get(id, "who restored that."))
 	world.voice("bin_restored")
+
+
+## A piece given back: they're whole again, and the owner notices that too.
+func _on_piece_returned(id: String) -> void:
+	OwnerMemory.return_piece(id)
+	world.player.refresh_look()
+	world.hud.say("%s  ·  returned" % Story.SHED_ASSET[id], "system")
+	world.director.notice(6.0, "something went back")
 
 
 func _backup() -> Array:

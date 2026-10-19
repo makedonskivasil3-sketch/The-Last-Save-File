@@ -29,6 +29,12 @@ const MISSING := {
 	"h": Color("3fa6b8"), "s": Color("05070a"), "c": BODY, "d": Color("5fc8d8"),
 	"a": Color("d8ffff"), "l": Color("2f8a9a"), "f": Color("1c4e58"), "e": Color("e8ffff"),
 }
+## What Rue wears of the people she took from: Wren's ribbon as her scarf,
+## Mira's colour as her coat (Tobben's voice doesn't show).
+const BORROWED := {
+	"wren": {"a": Color("e8c48a")},
+	"mira": {"c": Color("c9733e"), "d": Color("a85a2e")},
+}
 ## Which keys each recovered fragment restores, in order.
 const RESTORE_ORDER := [["a"], ["h"], ["c", "d"], ["l", "f"], ["s", "e"]]
 const TRAIL_LENGTH := 6
@@ -100,6 +106,10 @@ func refresh_look(animate := true) -> void:
 	for i in count:
 		for key in RESTORE_ORDER[i]:
 			_palette[key] = RUE[key]
+	# Pieces of other people, worn since she left a body behind.
+	for who in OwnerMemory.frayed:
+		for key in BORROWED.get(who, {}):
+			_palette[key] = BORROWED[who][key]
 	_sprite.palette = _palette
 	_sprite.leg_color = _palette["l"]
 	_sprite.shoe_color = _palette["f"]

@@ -120,6 +120,7 @@ func test_true_ending_plays_the_epilogue() -> void:
 	for f in Story.FRAGMENTS:
 		memory().add_fragment(f.id)
 	memory().found_pip = true
+	memory().knows_truth = true  # RUE needs the truth too (docs/DARK_TRUTH_DESIGN.md)
 	var w := await start_session()
 	w.flags["pointer"] = true
 	await go_to(w, "edge", "south")

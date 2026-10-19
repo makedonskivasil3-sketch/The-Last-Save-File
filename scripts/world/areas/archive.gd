@@ -63,6 +63,8 @@ func build() -> void:
 	add_readable("DELETED ASSETS", Vector2(440, 138), Readable.Look.BOOK, _deleted_assets)
 	add_readable("CUT CONTENT", Vector2(200, 84), Readable.Look.BOOK, _cut_content)
 	add_readable("THE OWNER", Vector2(440, 84), Readable.Look.BOOK, _owner_notes)
+	# Filed long ago, at the Archivist's desk: what Rue is (docs/DARK_TRUTH_DESIGN.md).
+	add_readable(Story.CHARACTER_FILE_TITLE, Vector2(DESK.end.x + 10, DESK.get_center().y), Readable.Look.TERMINAL, _character_file)
 
 
 func guide_point() -> Vector2:
@@ -101,11 +103,38 @@ static func _archivist_remembers() -> String:
 ## Every line the Archivist can say that is the same in every run, by voice
 ## id stem (VoiceManifest). Lines with run counts in them stay text only.
 static func voice_lines() -> Dictionary:
-	return {"npc.archivist": ARCHIVIST_POINTER + ARCHIVIST_FIRST + [ARCHIVIST_BACK, ARCHIVIST_AGAIN, ARCHIVIST_NO_PIECES, _archivist_remembers()]}
+	return {"npc.archivist": ARCHIVIST_POINTER + ARCHIVIST_FIRST + [ARCHIVIST_BACK, ARCHIVIST_AGAIN, ARCHIVIST_NO_PIECES, _archivist_remembers(),
+		Story.ARCHIVIST_FILE_HINT, Story.ARCHIVIST_KNOWS, Story.ARCHIVIST_PIECE_BACK, Story.ARCHIVIST_NOTHING_TO_TAKE] + Story.ARCHIVIST_SHED_FIRST}
 
 
 func _archivist_lines() -> Array:
-	return _archivist_core() + [_fragment_comment()]
+	var lines: Array = _archivist_core() + [_fragment_comment()]
+	if OwnerMemory.fragments.size() >= Story.FRAGMENTS.size():
+		lines.append(Story.ARCHIVIST_KNOWS if OwnerMemory.knows_truth else Story.ARCHIVIST_FILE_HINT)
+	# What he thinks of her leaving bodies behind (each said once).
+	if OwnerMemory.sheds > 0 and "archivist" not in OwnerMemory.shed_said:
+		OwnerMemory.shed_said.append("archivist")
+		OwnerMemory.save_memory()
+		lines.append_array(Story.ARCHIVIST_SHED_FIRST)
+	elif "archivist_back" not in OwnerMemory.shed_said and OwnerMemory.sheds > 0 and OwnerMemory.frayed.size() < OwnerMemory.sheds:
+		OwnerMemory.shed_said.append("archivist_back")
+		OwnerMemory.save_memory()
+		lines.append(Story.ARCHIVIST_PIECE_BACK)
+	return lines
+
+
+## Rue's CHARACTER FILE: locked until every memory is back, unreadable until
+## two people who watched her have said what they noticed, then whole, and
+## the truth plays once the box closes.
+func _character_file() -> Array:
+	var found := OwnerMemory.fragments.size()
+	if found < Story.FRAGMENTS.size():
+		return Story.character_file_locked(found)
+	if not Story.truth_ready():
+		return Story.CHARACTER_FILE_PARTIAL.duplicate()
+	if not OwnerMemory.knows_truth and not world.hud.dialogue_closed.is_connected(world.reveal_truth):
+		world.hud.dialogue_closed.connect(world.reveal_truth, CONNECT_ONE_SHOT)
+	return Story.CHARACTER_FILE.duplicate()
 
 
 ## What the Archivist says about the pieces of yourself you've found.

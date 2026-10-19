@@ -291,6 +291,10 @@ func _intro(previous_exit: String) -> void:
 				say(line)
 	if not OwnerMemory.npc_fates.is_empty() and previous_exit in ["death", "quit", "crash"]:
 		say("and i know who helped you.")
+	# A body she left behind last run.
+	var husk := OwnerMemory.last_run_husk()
+	if husk != "":
+		say(Story.OWNER_HUSK if husk == "room" else Story.OWNER_HUSK_ELSEWHERE)
 	# The owner starts to recognise who you are.
 	var known := 0
 	for n in Story.OWNER_RECOGNITION:

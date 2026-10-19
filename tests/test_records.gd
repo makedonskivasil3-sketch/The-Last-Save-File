@@ -12,7 +12,11 @@ func test_records_count_endings_including_rue() -> void:
 		m.add_fragment(f.id)
 	m.begin_session()
 	m.record_win("escape")
-	check("rue" in m.endings_seen, "taking the slot with every memory is RUE")
+	check("rue" not in m.endings_seen, "every memory without the truth is still the escape")
+	m.knows_truth = true
+	m.begin_session()
+	m.record_win("escape")
+	check("rue" in m.endings_seen, "taking the slot with every memory, knowing what you are, is RUE")
 	check(RecordsPanel.progress_line().begins_with("ENDINGS 2/6"), RecordsPanel.progress_line())
 	check(RecordsPanel.progress_line().contains("MEMORIES 5/5"), "memories counted")
 
@@ -86,7 +90,7 @@ func test_title_shows_records() -> void:
 	await frames(2)
 	var text := _text()
 	check(text.contains("A NEW GAME FOR WREN"), "the ending you saw is named")
-	check(text.contains("Take Slot 2 with every memory."), "the rest give a hint")
+	check(text.contains("Take Slot 2 with every memory, knowing what you are."), "the rest give a hint")
 	check(text.contains("Wren saw the Edge"), "secrets found are listed")
 	await press("ui_cancel")
 	check(title._panel_of(title._menu).visible, "back to the menu")

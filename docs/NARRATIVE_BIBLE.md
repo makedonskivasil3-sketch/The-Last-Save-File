@@ -93,7 +93,7 @@ of story.gd, SS:3-5, but it has drifted; see §10).
 
 The owner speaks of the person and her character separately ("where her character used to stand",
 S:180). Rue's memories, however, are first-person *player* memories ("i was here before. not in this
-room. in front of it." S:98). INTERPRETATION: the intruder is save data that remembers being played.
+room. in front of it." S:98). **CONFIRMED 2026-10-19** (author; `DARK_TRUTH_DESIGN.md`): Rue is the character, not the girl: an intelligence grown from 41 hours of someone else's play, left running on someone else's console. She learns it from her CHARACTER FILE ("i'm what she left running.").
 
 ### 3.1 Rue (the intruder, you)
 
@@ -252,7 +252,7 @@ All choices are built in `reach_slot2` (W:939-979). Writing into Slot 2 requires
 | Id | Condition (code) | Option text | Final exchange | Epilogue | End card | Title after |
 | --- | --- | --- | --- | --- | --- | --- |
 | **escape** | Always offered; picked with <5 memories (W:950-952) | "Write yourself in" S:379 | S:415-419 | default S:504 + people S:512-527 + Pip S:506 | win_text S:768-773 (by memories ≥3 or less) | S:37 |
-| **rue** | Same option with 5 memories ("Write RUE", S:380); escape is promoted to rue (W:987-988). Also counts "escape" as seen (OM:239-242) | "Write RUE" | S:420-425 | EPILOGUE_TRUE S:365-372 | S:770 | S:38 |
+| **rue** | Same option with 5 memories **and the truth** (`knows_truth`, since 2026-10-19) ("Write RUE"); escape is promoted to rue only then. Also counts "escape" as seen | "Write RUE" | S:420-425 | EPILOGUE_TRUE S:365-372 | S:770 | S:38 |
 | **wren** | Wren escorting and present (W:953-955) | "Give Slot 2 to Wren" S:381 | S:426-430 | S:461-470 | S:534 | S:39 |
 | **message** | Always offered (W:956-957); then pick 1 of 3 messages (W:973-974; S:384-388) | S:382 | S:431-435 | S:471-485 (5 memories: "...rue?" and "i'm going to call you. the real you.") | S:535-538 | S:40 |
 | **unseen** | `is_unseen_run()`: `not flags.seen_by_arin and session_glitches <= 1` (W:928-929) | S:392 | S:436-440 | S:488-494 | S:541-542 | S:41 |
@@ -297,6 +297,8 @@ Side effects: message resets purge to 0 and clears `npc_fates` (OM:243-246). Onl
 | `last_death` / `death_causes` | death reasons | OM:194-196 | OD:217; S:583; arins_room.gd:246; W:896 |
 | `edge_static_deaths` / `edge_mercy_used` | Edge balance | OM:198-205, 236-237 | the_edge.gd:114-115 |
 | `restored` | NPCs brought back | OM:173-176 | S:204, 592, 644, 712; W:792 |
+| `truth_pieces` / `knows_truth` | who told Rue what she is; whether she read her CHARACTER FILE whole (`DARK_TRUTH_DESIGN.md`) | npc.gd, out_of_bounds.gd, W `reveal_truth` | `Story.truth_line`, `truth_ready`; W `reach_slot2`; S epilogues |
+| `frayed` / `sheds` / `husk_area` / `husk_session` / `returned_pending` / `shed_said` | leaving a body: whose piece Rue wears, how often, where she left a body, pieces given back (`DARK_TRUTH_DESIGN.md` §8) | OM `fray`, `return_piece`; W `_shed`; recycle_bin.gd | npc.gd; player.gd `BORROWED`; owner_director.gd intro; arins_room.gd note; archive.gd |
 | `fragments` | memory ids | OM:159-162 | everywhere (S:206, 707; W:950, 987; archive.gd:79; recycle_bin.gd:205; OD:234) |
 | `acts_seen` | act cards shown | W:382 | W:381 |
 | `route_memory` / `session_spots` | Arin's learned route | OM:453-489 | village_square.gd:176-187; OD:160 |

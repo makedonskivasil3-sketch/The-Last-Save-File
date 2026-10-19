@@ -11,6 +11,9 @@ const RESTORE_TIME := 3.5
 const RANGE := 26.0
 
 var npc_id := ""
+## A piece Rue took (docs/DARK_TRUTH_DESIGN.md), not a deleted character:
+## its file name ("wren_ribbon.asset"). "" for a character.
+var asset := ""
 var tint := Color("8a8f98")
 var player: Node2D
 ## 0..1; < 0 until you start it.
@@ -25,14 +28,18 @@ func can_interact() -> bool:
 	return not done and progress < 0.0
 
 
+func file_name() -> String:
+	return asset if asset != "" else "%s.npc" % npc_id
+
+
 func interact_prompt() -> String:
-	return "restore %s.npc" % npc_id
+	return "restore %s" % file_name()
 
 
 func interact() -> String:
 	progress = 0.0
 	Sfx.play("glitch_charge", -8.0, 0.7)
-	return "RESTORING %s.npc . . . stay close" % npc_id
+	return "RESTORING %s . . . stay close" % file_name()
 
 
 func is_restoring() -> bool:
@@ -70,7 +77,9 @@ func _draw() -> void:
 	draw_polyline(PackedVector2Array([Vector2(-7, -9), Vector2(3, -9), Vector2(7, -5), Vector2(7, 9), Vector2(-7, 9), Vector2(-7, -9)]), Color("8a8f98"), 1.0)
 	draw_line(Vector2(3, -9), Vector2(3, -5), Color("8a8f98"), 1.0)
 	draw_line(Vector2(3, -5), Vector2(7, -5), Color("8a8f98"), 1.0)
-	draw_string(ThemeDB.fallback_font, Vector2(-30, 20), "%s.npc" % npc_id, HORIZONTAL_ALIGNMENT_CENTER, 60, 7, Color("8a8f98"))
+	draw_string(ThemeDB.fallback_font, Vector2(-40, 20), file_name(), HORIZONTAL_ALIGNMENT_CENTER, 80, 7, Color("8a8f98"))
+	if asset != "":
+		draw_string(ThemeDB.fallback_font, Vector2(-50, 28), "taken by: [no such entity]", HORIZONTAL_ALIGNMENT_CENTER, 100, 6, Color("8a8f98", 0.7))
 	if progress >= 0.0:
 		draw_rect(Rect2(-16, 24, 32, 3), Color(0, 0, 0, 0.7))
 		draw_rect(Rect2(-16, 24, 32 * progress, 3), Color("8cf2ff"))
