@@ -1,5 +1,87 @@
 # Release readiness
 
+## Current status (2026-10-19): `claude/cohesion-pass`
+
+**Branches and commits:**
+- `claude/cohesion-pass` is based on `claude/narrative-reliability` (`8fe3f35`, [PR #3](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/pull/3)), which is unmerged.
+- `main` is still at `f2fcf32`.
+- Code at `56ec8bb` (later commits on this branch are documentation only).
+
+**Environment:** Linux container, Godot 4.3. No real GPU (Mesa llvmpipe), no Windows, no phones, no gamepads, no speakers.
+
+### Is this a release candidate?
+
+**Not yet.** No critical functional failure is known. These gates are still unmet:
+- **Windows:** the build is exported but has never been launched on Windows.
+- **Human playtest:** none has run. See the plan in `PLAYTEST_PLAN.md`.
+- **Audio by ear:** nothing has been listened to.
+- **Voice:** nothing ships. The generated pilot is not licensed for release (`VOICE_PILOT.md`).
+
+### Builds
+
+| Target | Result |
+|---|---|
+| Windows | Exported locally (exit 0), 84.8 MB PE32+. CI builds it as the `TheLastSaveFile-windows` artifact. **Not launched on Windows** |
+| Linux | Exported (exit 0), 66.6 MB. Runs 240 frames headless with no script errors and no leak warning |
+| Web | Built by CI (`TheLastSaveFile-web`). The browser check (`tests/web/web_check.cjs`) was **not re-run this pass** |
+
+### Automated tests (this pass)
+
+| Suite | Result |
+|---|---|
+| Full suite | **325 passed, 0 failed** at `8f287a7` (768 s). The suite is re-run on the final code before the PR; see the PR description |
+| Character tests after Wren | 7 passed, 0 failed |
+| Ending bots | **4 of 4 committed bots reached an ending:** escape (1 session), message (1), escape at purge 3 (2), wren (2, the Wren ending). An extra purge-5 bot escaped in one session in 2 of 3 runs. In the third it died once, which at purge 5 is the purge ending by design. It was not kept as a committed check |
+
+New regression files:
+- `test_verification_probes` (4)
+- `test_cohesion_fairness` (5)
+- `test_cohesion_story` (7)
+- `test_character_presentation` (+2)
+
+Each new fix's test was confirmed to fail without it.
+
+### Performance (`tests/tour_profile.gd`, rendered through xvfb on llvmpipe at 1280×720)
+
+**Software rendering:** these numbers measure this container's CPU rasteriser, not a player's GPU.
+
+| Scene | p50 | p95 | max | Nodes | Objects |
+|---|---|---|---|---|---|
+| Room, session start | 64.1 ms | 101.8 ms | 129.8 ms | 269 | 2129 |
+| Square, calm (effects full) | 58.6 ms | 70.6 ms | 112.8 ms | 286 | 2170 |
+| Square, calm (effects off) | 32.9 ms | 38.9 ms | 42.0 ms | 287 | 2170 |
+| Square, HUNT + Wren escort | 57.2 ms | 62.7 ms | 66.5 ms | 291 | 2235 |
+| Edge, static spreading | 44.4 ms | 53.5 ms | 59.1 ms | 278 | 2224 |
+| Out of bounds | 43.3 ms | 50.3 ms | 52.2 ms | 255 | 2188 |
+| Archive after 8 area changes | 42.3 ms | 51.8 ms | 54.8 ms | 284 | 2242 |
+
+**What this does and doesn't show:**
+- **Screen effects** (CRT, lighting, shadows) are about 40% of software render time. *Settings → Screen effects* already lets low-end machines turn them off.
+- **Node and object counts stay flat** across area changes, so there is no growth during play.
+- **Game logic is cheap:** headless CPU time per frame stays within its budget (`test_performance`, the fully hunted square).
+- **Not optimised this pass:** without real-device numbers there was no evidence to justify removing lighting or effects.
+
+### Exit warnings
+
+| Case | Status |
+|---|---|
+| Title screen | **0 leaked instances.** `Sfx` stops every audio player as it leaves the tree |
+| The test harness | Still prints Godot's "ObjectDB instances leaked" once, from scenes freed mid-coroutine. **A harmless shutdown artefact**, not growth during play (see above) |
+
+### Not verified
+
+- Windows launch.
+- Audio levels and intelligibility.
+- Physical controllers.
+- Phones and touch devices.
+- Real-GPU frame times.
+- Any human play.
+
+---
+
+## Historical status (2026-10-16, experience-polish milestone)
+
+
 **Status on 2026-10-16:** the end of the experience-polish milestone, branch `claude/last-save-file-prototype-ljwuq4`. Everything below was run in a Linux container (Godot 4.3, headless, plus xvfb for screenshots). There was no real GPU, phone or gamepad.
 
 ## Builds
