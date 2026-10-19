@@ -126,6 +126,8 @@ func build() -> void:
 	])
 	for r in [HOUSE, WELL, STALL]:
 		add_solid(r)
+	set_backdrop(_paint)
+	add_canopies(TREES, 13.0, Color("3e5a3a"))
 	# The remembered afternoon, outdoors: a low warm sun that the houses
 	# cast shadows from, a lantern at the well, the stall's awning light.
 	light_surfaces(0.82, 1.2)
@@ -481,31 +483,66 @@ func _tobben_report_lands() -> void:
 
 
 func _draw() -> void:
-	var r := bounds
-	draw_rect(r, GRASS)
-	# Paths: house to well, well to the east road, well to the north road.
-	draw_rect(Rect2(100, 100, 24, 90), PATH)
-	draw_rect(Rect2(100, 170, 500, 20), PATH)
-	draw_rect(Rect2(NORTH_GAP.x, r.position.y, 40, 130), PATH)
-	# Unloaded road north: static where the path should continue.
+	# Only what moves is drawn every frame: the unloaded road north, static
+	# where the path should continue. The rest is the backdrop (_paint).
 	if not world.flags.get("pointer", false):
 		for i in 10:
-			draw_rect(Rect2(NORTH_GAP.x + randf() * 36.0, r.position.y + randf() * 14.0, 4, 1), Color(1, 1, 1, 0.15))
-	for t in TREES:
-		draw_circle(t, 12.0, Color("223322"))
-		draw_circle(t + Vector2(-3, -3), 8.0, Color("2c4430"))
-	# Arin's house.
-	draw_rect(HOUSE, Color("5a4434"))
-	draw_rect(Rect2(HOUSE.position - Vector2(4, 6), Vector2(HOUSE.size.x + 8, 12)), Color("6b3a2c"))
-	draw_rect(Rect2(Vector2(104, 82), Vector2(14, 18)), Color("3a2a20"))
-	# Well.
-	draw_rect(WELL, STONE)
-	draw_rect(WELL.grow(-4), Color("1a2a3a"))
-	# Tobben's stall.
-	draw_rect(STALL, Color("4f3a2c"))
-	for i in 6:
-		draw_rect(Rect2(STALL.position + Vector2(i * 16, -6), Vector2(16, 8)), Color("8a3a3a") if i % 2 == 0 else Color("c8b8a0"))
-	draw_walls([
+			draw_rect(Rect2(NORTH_GAP.x + randf() * 36.0, bounds.position.y + randf() * 14.0, 4, 1), Color(1, 1, 1, 0.15))
+
+
+## The village square, illustrated (docs/VISUAL_DIRECTION.md): an ordinary
+## afternoon. Grass with a worn dirt path from Arin's door, a cobbled road
+## east and north, the well, Tobben's striped stall. Only the house, the
+## well and the stall are solid, and only they have a front face; the trees
+## are canopies overhead (Area.add_canopies).
+func _paint(ci: CanvasItem) -> void:
+	var r := bounds
+	Decor.grass(ci, r, GRASS.lightened(0.06), 3.0, 0.0035)
+	Decor.path(ci, Rect2(100, 100, 24, 90), PATH.lightened(0.05), 1.0)
+	Decor.cobbles(ci, Rect2(100, 170, 500, 20), STONE.darkened(0.12), 8.0, 2.0)
+	Decor.cobbles(ci, Rect2(NORTH_GAP.x, r.position.y, 40, 130), STONE.darkened(0.12), 8.0, 3.0)
+	# Flower beds and a low fence along the south edge: flat, never in the way.
+	var bed_y := r.end.y - 16.0
+	for x in [150.0, 270.0, 470.0]:
+		ci.draw_rect(Rect2(x, bed_y, 34, 8), PATH.darkened(0.1))
+		for k in 7:
+			ci.draw_circle(Vector2(x + 3.0 + k * 4.6, bed_y + 4.0 + sin(k) * 1.5), 1.4, Color("d88aa0") if k % 2 == 0 else Color("e8d890"))
+	var fy := r.end.y - 3.0
+	ci.draw_line(Vector2(r.position.x + 4, fy), Vector2(r.end.x - 4, fy), Color("5a4632"), 1.2)
+	var fx := r.position.x + 6.0
+	while fx < r.end.x - 4.0:
+		ci.draw_rect(Rect2(fx, fy - 3.0, 1.6, 4.0), Color("4a3828"))
+		fx += 14.0
+	# Arin's house: roof, front wall, the door you came out of.
+	Decor.house(ci, HOUSE, Color("7a3a30"), Color("b8a088"), HOUSE_DOOR.get_center().x)
+	# The well: a stone ring with a front face, dark water, a crossbeam.
+	ci.draw_rect(Rect2(WELL.position + Vector2(2, 4), WELL.size), Color(0, 0, 0, 0.3))
+	ci.draw_rect(Rect2(WELL.position.x, WELL.end.y - 6, WELL.size.x, 6), STONE.darkened(0.3))
+	ci.draw_rect(Rect2(WELL.position, Vector2(WELL.size.x, WELL.size.y - 6)), STONE)
+	ci.draw_rect(Rect2(WELL.position + Vector2(4, 3), Vector2(WELL.size.x - 8, WELL.size.y - 12)), Color("142230"))
+	ci.draw_line(WELL.position + Vector2(5, 5), WELL.position + Vector2(11, 7), Color(0.6, 0.8, 1.0, 0.35), 0.8)
+	for k in 4:
+		ci.draw_line(Vector2(WELL.position.x + 2 + k * 7, WELL.end.y - 6), Vector2(WELL.position.x + 2 + k * 7, WELL.end.y), STONE.darkened(0.45), 0.6)
+	ci.draw_rect(Rect2(WELL.position.x - 2, WELL.position.y + 5, WELL.size.x + 4, 2.2), Color("6b4a30"))
+	ci.draw_rect(WELL, Decor.INK, false, 0.8)
+	# Tobben's stall: a counter with goods under a striped awning.
+	var counter := Decor.furniture(ci, STALL, Color("6b5040"), 6.0)
+	for k in 9:
+		var g := Vector2(counter.position.x + 6 + k * 10, counter.end.y - 6)
+		ci.draw_circle(g, 2.2, Color("c84a3a") if k % 3 == 0 else (Color("e8b84a") if k % 3 == 1 else Color("8ab05a")))
+	for k in 6:
+		var a := Rect2(STALL.position + Vector2(k * 16, -7), Vector2(16, 10))
+		ci.draw_rect(a, Color("a8443a") if k % 2 == 0 else Color("e8dcc4"))
+	ci.draw_rect(Rect2(STALL.position + Vector2(0, -7), Vector2(STALL.size.x, 10)), Decor.INK, false, 0.8)
+	for k in 6:
+		ci.draw_colored_polygon(PackedVector2Array([STALL.position + Vector2(k * 16, 3), STALL.position + Vector2(k * 16 + 16, 3), STALL.position + Vector2(k * 16 + 8, 6)]),
+			Color("a8443a") if k % 2 == 0 else Color("e8dcc4"))
+	# A lantern post by the well (its light is one of the area's lights).
+	ci.draw_circle(WELL.get_center() + Vector2(22, 10), 2.0, Color(0, 0, 0, 0.3))
+	ci.draw_rect(Rect2(WELL.get_center() + Vector2(21, -2), Vector2(2, 12)), Color("3a2a20"))
+	ci.draw_circle(WELL.get_center() + Vector2(22, -3), 2.4, Color("f2c878"))
+	Decor.wall_shadow(ci, r, 10.0, 0.22)
+	Decor.walls(ci, r, WALL, Color("5a4a3a"), Color("2a2620"), [
 		{"side": "right", "from": EAST_GAP.x, "to": EAST_GAP.y},
 		{"side": "top", "from": NORTH_GAP.x, "to": NORTH_GAP.y},
 	])

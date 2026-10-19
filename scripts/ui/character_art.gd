@@ -223,8 +223,18 @@ static func for_npc(npc: Npc, expression := "neutral") -> Portrait:
 	return Portrait.new(npc.npc_id, expression, npc.sprite().palette)
 
 
+## Everyone with a face has a portrait: their own illustrated bust
+## (PortraitView), drawn from their own body. Pip is a creature and has none.
+const KINDS := {"rue": "rue", "mira": "dress", "wren": "child", "tobben": "apron", "archivist": "robe", "arin": "adult"}
+
+
 static func has_portrait(who: String) -> bool:
-	return CAST.has(who)
+	return KINDS.has(who)
+
+
+## The body an illustrated portrait is drawn from (IllustratedCharacter).
+static func kind_for(who: String) -> String:
+	return KINDS.get(who, "adult")
 
 
 static func expressions_for(who: String) -> Array:
@@ -232,8 +242,8 @@ static func expressions_for(who: String) -> Array:
 
 
 static func texture_for(p: Portrait, frame := "") -> Texture2D:
-	if not has_portrait(p.who):
-		return null  # never another character's face
+	if not CAST.has(p.who):
+		return null  # no pixel grid for them (and never another character's face)
 	# Rue's finished art is only for her restored look; others have one look.
 	var restored: bool = p.who != "rue" or (p.palette.get("s") == Player.RUE["s"] and p.palette.get("c") == Player.RUE["c"])
 	var file := "%s%s/%s_%s.png" % [ART_DIR, p.who, p.who, p.expression]
@@ -254,7 +264,7 @@ static func _palette_key(colours: Dictionary) -> String:
 
 ## The portrait as a 32×32 image (transparent background).
 static func image(p: Portrait, frame := "") -> Image:
-	if not has_portrait(p.who):
+	if not CAST.has(p.who):
 		return null
 	var c := p.palette
 	var h: Color = c.get("h", Color("8a4f2c"))

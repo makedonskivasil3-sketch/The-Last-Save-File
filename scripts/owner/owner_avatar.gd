@@ -35,7 +35,7 @@ var stunned := 0.0
 var _target := 0
 var _vel := Vector2.ZERO
 ## The protagonist the owner loves: blue tunic, dark hair, a red scarf.
-var _sprite := PixelCharacter.new("adult", {
+var _sprite := IllustratedCharacter.new("adult", {
 	"h": HAIR, "s": SKIN, "c": BODY, "d": Color("2e3f5c"), "a": Color("c0392b"),
 	"l": Color("2e3f5c"), "f": Color("1a1a20"), "e": Color("101018"),
 })
@@ -105,6 +105,7 @@ func can_see(pos: Vector2) -> bool:
 
 
 func _ready() -> void:
+	add_to_group("canopy_reveal")  # never hidden under a tree
 	_guard_husk()
 	_steps = AudioStreamPlayer2D.new()
 	_steps.bus = "SFX"

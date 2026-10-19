@@ -680,10 +680,12 @@ func _update_objective() -> void:
 	if _goal_check > 0.0:
 		return
 	_goal_check = 0.5  # goals change on events, not every frame
+	# The goal, and under it the quiet truth-route hint (Progression), if any.
 	var goal := current_goal().get_slice("\n", 0)
-	if goal != _shown_goal and not hud.is_dialogue_open() and not hud.is_cinematic() and not hud.is_choosing():
-		_shown_goal = goal
-		hud.show_objective(goal)
+	var hint := Progression.goal_hint()
+	if goal + hint != _shown_goal and not hud.is_dialogue_open() and not hud.is_cinematic() and not hud.is_choosing():
+		_shown_goal = goal + hint
+		hud.show_objective(goal, hint)
 
 
 func current_goal() -> String:
@@ -1189,7 +1191,8 @@ func _update_focus() -> void:
 	if _focused == null and pip and pip.can_interact() \
 			and player.global_position.distance_to(pip.global_position) < INTERACT_DISTANCE:
 		_focused = pip
-	hud.set_prompt(_focused.interact_prompt() if _focused else "")
+	# Said beside the thing itself, where the eye already is.
+	hud.set_prompt(_focused.interact_prompt() if _focused else "", _focused.global_position if _focused else Vector2.INF)
 	_focus_marker.target = _focused
 
 
@@ -1304,6 +1307,8 @@ func kill(cause: String, reason := "") -> void:
 	hud.show_retry()
 	while is_inside_tree():
 		await get_tree().process_frame
+		if not is_inside_tree():
+			return  # the scene changed while the card waited
 		if get_tree().paused:
 			continue  # the pause menu has the input
 		if Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("confirm"):

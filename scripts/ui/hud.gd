@@ -20,6 +20,8 @@ const SYSTEM_COLOR := Color("8a8f98")
 const NPC_COLOR := Color("e8c48a")
 ## The intruder's own thoughts.
 const SELF_COLOR := Color("8cf2ff")
+## The speaker portrait beside dialogue (PortraitView), in game pixels.
+const PORTRAIT_SIZE := 50.0
 const SLOT_COLOR := Color("c8b8a0")
 ## Lines kept in the console (one fewer with large text, so it still fits).
 const MAX_LINES := 4
@@ -131,10 +133,11 @@ var _skip_hold := 0.0
 var _skip_armed := false
 var _skip_requested := false
 var _cine_backing: Panel
-var _cine_portrait: TextureRect
+var _cine_portrait: PortraitView
 var _objective: Label
 var _objective_tween: Tween
-var _dialogue_portrait: TextureRect
+var _dialogue_portrait: PortraitView
+var _objective_hint: Label
 var _dialogue_box_style: StyleBoxFlat
 var _console_style: StyleBoxFlat
 var _cine_style: StyleBoxFlat
@@ -166,6 +169,10 @@ func _ready() -> void:
 	_objective = _make_label(root, SAFE + Vector2(0, 15), Vector2(400, 12), 9, Color("c8b8a0"))
 	_objective.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_objective.modulate.a = 0.0
+	# A quieter line under it: where the story might lead (Progression).
+	_objective_hint = _make_label(_objective, Vector2(10, 14), Vector2(390, 12), 8, Color(SYSTEM_COLOR, 0.9))
+	_objective_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_objective.resized.connect(func() -> void: _objective_hint.position.y = _objective.size.y + 1.0)
 
 	_status = _make_label(root, Vector2(640 - SAFE.x - 220, SAFE.y + 36), Vector2(220, 12), 9, STATUS_COLOR)
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -329,9 +336,11 @@ func _ready() -> void:
 	_dialogue.position = Vector2(SAFE.x - 4, 360 - SAFE.y - 68)
 	_dialogue.size = Vector2(640 - SAFE.x * 2 + 8, 68)
 	var box := StyleBoxFlat.new()
-	box.bg_color = Color(0.02, 0.016, 0.024, 0.95)
+	box.bg_color = Color(UiStyle.SURFACE, 0.94)
 	box.set_border_width_all(1)
-	box.border_color = Color(1, 1, 1, 0.15)
+	box.border_color = Color(1, 1, 1, 0.12)
+	box.set_corner_radius_all(6)
+	box.anti_aliasing = true
 	_dialogue.add_theme_stylebox_override("panel", box)
 	_dialogue.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_dialogue.visible = false
@@ -374,20 +383,15 @@ func _ready() -> void:
 	_cine_backing.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_cine_backing)
 	root.move_child(_cine_backing, _cine_text.get_index())  # behind the text
-	_cine_portrait = TextureRect.new()
-	_cine_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_cine_portrait.stretch_mode = TextureRect.STRETCH_SCALE
+	_cine_portrait = PortraitView.new()
 	_cine_portrait.size = Vector2(64, 64)
 	_cine_portrait.position = Vector2(52, 134)
-	_cine_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_cine_portrait.visible = false
 	root.add_child(_cine_portrait)
-	_dialogue_portrait = TextureRect.new()
-	_dialogue_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_dialogue_portrait.stretch_mode = TextureRect.STRETCH_SCALE
-	_dialogue_portrait.size = Vector2(32, 32)
+	# The speaker's face: the same illustrated figure as in the world.
+	_dialogue_portrait = PortraitView.new()
+	_dialogue_portrait.size = Vector2(PORTRAIT_SIZE, PORTRAIT_SIZE)
 	_dialogue_portrait.position = Vector2(6, 6)
-	_dialogue_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_dialogue_portrait.visible = false
 	_dialogue.add_child(_dialogue_portrait)
 	for l in [_cine_title, _cine_text, _cine_hint, _cine_backing]:
@@ -434,10 +438,11 @@ func _log_line(speaker: String, text: String, kind: String, voice := "") -> void
 
 ## Show (or hide, with null) a character portrait beside cinematic text.
 func _show_portrait(portrait: CharacterArt.Portrait) -> void:
-	var tex: Texture2D = portrait.texture() if portrait else null
-	_cine_portrait.texture = tex
-	_cine_portrait.visible = tex != null
-	if tex:
+	var shown := portrait != null and CharacterArt.has_portrait(portrait.who)
+	_cine_portrait.portrait = portrait if shown else null
+	_cine_portrait.tint = SELF_COLOR if shown and portrait.who == "rue" else NPC_COLOR
+	_cine_portrait.visible = shown
+	if shown:
 		_cine_text.position.x = 128
 		_cine_text.size.x = 452
 		_cine_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -644,7 +649,8 @@ func show_dialogue(speaker: String, color: Color, lines: Array, voice_prefix := 
 	_dialogue_sources.assign(paged[2])
 	_dialogue_lines = paged[0]
 	_dialogue_ids.assign(paged[1])
-	_dialogue_face = portrait if portrait and portrait.texture() else null
+	_dialogue_face = portrait if portrait and CharacterArt.has_portrait(portrait.who) else null
+	_dialogue_portrait.tint = color
 	_dialogue_exprs.clear()
 	for i in paged[2]:
 		var e: String = str(expressions[i]) if i < expressions.size() else ""
@@ -822,7 +828,7 @@ func _show_dialogue_line() -> void:
 
 ## With a portrait the text moves right to make room for it.
 func _layout_dialogue_face() -> void:
-	var x := 44.0 if _dialogue_face else 8.0
+	var x := PORTRAIT_SIZE + 14.0 if _dialogue_face else 8.0
 	_dialogue_portrait.visible = _dialogue_face != null
 	_dialogue_speaker.position.x = x
 	_dialogue_text.position.x = x
@@ -843,7 +849,10 @@ func _update_dialogue_face(delta: float) -> void:
 		frame = "talk" if int(_face_t / 0.12) % 2 == 0 else ""
 	elif fmod(_face_t, 3.2) > 3.05:
 		frame = "blink"
-	_dialogue_portrait.texture = face.texture(frame)
+	if _dialogue_portrait.portrait == null or _dialogue_portrait.portrait.expression != face.expression \
+			or _dialogue_portrait.portrait.who != face.who or _dialogue_portrait.portrait.palette != face.palette:
+		_dialogue_portrait.portrait = face
+	_dialogue_portrait.frame = frame
 
 
 ## The expression the portrait shows now ("" without one).
@@ -928,6 +937,8 @@ func _fit_dialogue() -> void:
 	_dialogue_text.position.y = top
 	_dialogue_text.size.y = lines * lh + 2.0
 	var h := top + _dialogue_text.size.y + 14.0
+	if _dialogue_face:
+		h = maxf(h, PORTRAIT_SIZE + 14.0)  # the face never overhangs the box
 	_dialogue.size.y = h
 	_dialogue.position.y = 360 - SAFE.y - h
 	_dialogue_hint.position.y = h - 14.0
@@ -1040,8 +1051,29 @@ func set_awareness(value: float) -> void:
 	_awareness = clampf(value, 0.0, 1.0)
 
 
-func set_prompt(text: String) -> void:
+## at: the target's world position; the prompt sits just above it (kept on
+## screen). Without one it sits in the bottom-right corner.
+func set_prompt(text: String, at := Vector2.INF) -> void:
 	_prompt.text = "[%s] %s" % [Settings.glyph("interact"), text] if text != "" else ""
+	_prompt_at = at
+	_place_prompt()
+
+
+var _prompt_at := Vector2.INF
+var _prompt_corner := Vector2.ZERO
+
+
+func _place_prompt() -> void:
+	if _prompt_corner == Vector2.ZERO:
+		_prompt_corner = _prompt.position
+	if _prompt_at == Vector2.INF or _prompt.text == "":
+		_prompt.position = _prompt_corner
+		_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		return
+	var screen := get_viewport().canvas_transform * _prompt_at
+	_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var w := _prompt.size.x
+	_prompt.position = Vector2(clampf(screen.x - w * 0.5, SAFE.x, 640.0 - SAFE.x - w), clampf(screen.y - 44.0, SAFE.y + 30.0, 360.0 - SAFE.y - 20.0))
 
 
 func set_hint(text: String) -> void:
@@ -1104,8 +1136,9 @@ func set_status(text: String) -> void:
 
 ## Show the current goal for its reading time plus 3 s, then fade it to a
 ## faint reminder (Pause shows it in full).
-func show_objective(text: String) -> void:
+func show_objective(text: String, hint := "") -> void:
 	_objective.text = "▸ " + text
+	_objective_hint.text = hint
 	if _objective_tween:
 		_objective_tween.kill()
 	_objective_tween = create_tween()

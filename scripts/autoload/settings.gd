@@ -40,8 +40,9 @@ var pause_on_focus_loss := true
 var fullscreen := false
 ## 0..1 multiplier for screen tearing, chromatic split and grain.
 var glitch_intensity := 1.0
-## Curved CRT glass. Off = flat screen (some players find curvature disorienting).
-var crt_curvature := true
+## The old CRT screen (curved glass, scanlines, grille). Off by default: the
+## picture is clean and the screen only degrades when something is wrong.
+var crt_screen := false
 ## Screen effects quality: 2 = full CRT, 1 = light (one texture read, no
 ## colour fringing or aperture grille; for weak GPUs and laptops), 0 = off
 ## (no full-screen pass at all).
@@ -210,7 +211,7 @@ func save() -> void:
 	cfg.set_value("accessibility", "glitch_intensity", glitch_intensity)
 	cfg.set_value("accessibility", "reduce_flashing", reduce_flashing)
 	cfg.set_value("accessibility", "vibration", vibration)
-	cfg.set_value("video", "crt_curvature", crt_curvature)
+	cfg.set_value("video", "crt_screen", crt_screen)
 	cfg.set_value("video", "screen_effects", screen_effects)
 	cfg.set_value("accessibility", "large_text", large_text)
 	cfg.set_value("help", "tutorial_tips", tutorial_tips)
@@ -245,7 +246,9 @@ func _load() -> void:
 	glitch_intensity = clampf(float(cfg.get_value("accessibility", "glitch_intensity", glitch_intensity)), 0.0, 1.0)
 	reduce_flashing = bool(cfg.get_value("accessibility", "reduce_flashing", reduce_flashing))
 	vibration = bool(cfg.get_value("accessibility", "vibration", vibration))
-	crt_curvature = bool(cfg.get_value("video", "crt_curvature", crt_curvature))
+	# The old "crt_curvature" key was on by default for everyone, so it isn't
+	# read as a choice: the clean screen is the new default (docs/VISUAL_DIRECTION.md).
+	crt_screen = bool(cfg.get_value("video", "crt_screen", crt_screen))
 	screen_effects = clampi(int(cfg.get_value("video", "screen_effects", screen_effects)), 0, 2)
 	large_text = bool(cfg.get_value("accessibility", "large_text", large_text))
 	tutorial_tips = bool(cfg.get_value("help", "tutorial_tips", tutorial_tips))

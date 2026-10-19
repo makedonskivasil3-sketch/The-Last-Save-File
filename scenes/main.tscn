@@ -24,7 +24,7 @@ position = Vector2(320, 270)
 script = ExtResource("3_director")
 
 [node name="HUD" type="CanvasLayer" parent="."]
-layer = 5
+layer = 15
 script = ExtResource("4_hud")
 
 [node name="ScreenFX" type="CanvasLayer" parent="."]

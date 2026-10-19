@@ -199,6 +199,14 @@ func test_an_old_escape_stays_an_escape() -> void:
 	memory().knows_truth = true  # learned later, without another ending
 	var Title := load("res://scripts/ui/title.gd")
 	check_eq(Title._after(), Story.TITLE_AFTER["escape"], "the title remembers the escape, not RUE")
+	tree.change_scene_to_file("res://scenes/title.tscn")
+	await wait(0.5)
+	var said := ""
+	for l in tree.current_scene.find_children("*", "Label", true, false):
+		said += (l as Label).text + "\n"
+	check(said.contains(Story.TITLE_AFTER["escape"][0]), "its words are the escape's")
+	check(not said.contains(Story.TITLE_AFTER["rue"][0]), "not RUE's")
+	check(said.contains("SLOT 2   ·   RUE"), "though the slot carries the name she remembers now")
 	check("rue" not in memory().endings_seen, "and RUE isn't recorded as seen")
 	memory().last_ending = ""
 	check_eq(Title._after(), Story.TITLE_AFTER["escape"], "a save from before endings had names reads as an escape")

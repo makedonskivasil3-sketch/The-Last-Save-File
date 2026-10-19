@@ -5,6 +5,10 @@ extends Node2D
 
 const WALL := 8.0
 const WALL_COL := Color("4a3b33")
+## The illustrated walls (Decor.walls): the face seen along the top wall, and
+## the cap seen from above. Areas set their own before drawing.
+var wall_face := Color("6a5546")
+var wall_cap := Color("2e2620")
 const WALL_EDGE := Color("6b5546")
 
 var world: World
@@ -137,6 +141,75 @@ func set_owner_paused(on: bool) -> void:
 	for n in [get("arin"), get("cursor")]:
 		if n is Node:
 			n.set("paused", on)
+
+
+## Static scenery painted once (Decor), under everything else in the area:
+## `painter(ci: CanvasItem)` is called when the backdrop first draws. Areas
+## keep only what moves in their own _draw.
+func set_backdrop(painter: Callable) -> Node2D:
+	var b := _Painted.new()
+	b.painter = painter
+	b.z_index = -1
+	add_child(b)
+	move_child(b, 0)
+	return b
+
+
+## Tree canopies over the play space (Decor.tree): drawn above the cast, and
+## see-through over anyone standing beneath, so they never hide a threat.
+func add_canopies(spots: Array, radius: float, leaf: Color) -> void:
+	var c := _Canopies.new()
+	c.spots = spots
+	c.radius = radius
+	c.leaf = leaf
+	c.area = self
+	c.z_index = 20
+	add_child(c)
+
+
+class _Painted:
+	extends Node2D
+	var painter: Callable
+
+	func _draw() -> void:
+		if painter.is_valid():
+			painter.call(self)
+
+
+class _Canopies:
+	extends Node2D
+	var spots: Array = []
+	var radius := 14.0
+	var leaf := Color("2c4430")
+	var area: Node2D
+	var _fade: Array = []
+
+	func _ready() -> void:
+		for i in spots.size():
+			_fade.append(1.0)
+
+	func _process(delta: float) -> void:
+		var people: Array = []
+		for n in get_tree().get_nodes_in_group("canopy_reveal"):
+			if n is Node2D:
+				people.append(n.global_position)
+		var changed := false
+		for i in spots.size():
+			var under := false
+			for p: Vector2 in people:
+				if p.distance_to(to_global(spots[i])) < radius + 8.0:
+					under = true
+			var want := 0.28 if under else 0.95
+			var f: float = move_toward(_fade[i], want, delta * 3.0)
+			if f != _fade[i]:
+				_fade[i] = f
+				changed = true
+		if changed:
+			queue_redraw()
+
+	func _draw() -> void:
+		for i in spots.size():
+			Decor.tree(self, spots[i], radius, leaf, float(i), _fade[i])
 
 
 ## The owner's learned habits changed mid-run (OwnerMemory.fray clears the
@@ -317,12 +390,5 @@ func add_readable(title: String, pos: Vector2, look: Readable.Look, provider: Ca
 
 
 func draw_walls(gaps: Array = []) -> void:
-	var r := bounds
-	draw_rect(Rect2(r.position.x - WALL, r.position.y - WALL, r.size.x + WALL * 2, WALL), WALL_COL)
-	draw_rect(Rect2(r.position.x - WALL, r.end.y, r.size.x + WALL * 2, WALL), WALL_COL)
-	draw_rect(Rect2(r.position.x - WALL, r.position.y, WALL, r.size.y), WALL_COL)
-	draw_rect(Rect2(r.end.x, r.position.y, WALL, r.size.y), WALL_COL)
-	draw_rect(r.grow(WALL), WALL_EDGE, false, 1.0)
-	draw_rect(r, WALL_EDGE, false, 1.0)
-	for g in gaps:
-		draw_rect(_side_rect(g.side, g.from, g.to).grow(1), Color(0.02, 0.016, 0.024))
+	Decor.wall_shadow(self, bounds, 12.0, 0.3)
+	Decor.walls(self, bounds, WALL, wall_face, wall_cap, gaps)

@@ -121,10 +121,14 @@ func emote(text: String, duration: float = 1.6) -> void:
 	Sfx.play("pop", 0.0, 1.0 + randf() * 0.2)
 
 
+func _enter_tree() -> void:
+	add_to_group("canopy_reveal")
+
+
 func sprite() -> PixelCharacter:
 	if _sprite == null:
 		_apply_fray()
-		_sprite = PixelCharacter.new(body_kind, {
+		_sprite = IllustratedCharacter.new(body_kind, {
 			"h": hair_color, "s": skin_color, "c": dress_color, "d": dark_color,
 			"a": accent_color, "w": Color("d8d0c0"), "l": dark_color.darkened(0.3),
 		})

@@ -8,7 +8,7 @@ extends ColorRect
 ##       aberration, sickness, block glitches, world jitter and shake.
 ##   Settings.reduce_flashing          scales colour washes, negative flashes,
 ##       static bursts, brightness flicker and screen roll down to ~30%.
-##   Settings.crt_curvature            toggles the curved glass.
+##   Settings.crt_screen               the old CRT look (glass, scanlines, grille).
 ##
 ## Gameplay code only ever calls the event methods below (deletion_hit(),
 ## cursor_arrives(), play_death(), ...) or sets the awareness target.
@@ -229,7 +229,8 @@ func _process(delta: float) -> void:
 	_mat.set_shader_parameter("quality", Settings.screen_effects)
 	_mat.set_shader_parameter("intensity", intensity)
 	_mat.set_shader_parameter("flash", flash)
-	_mat.set_shader_parameter("curvature", 0.14 if Settings.crt_curvature else 0.0)
+	_mat.set_shader_parameter("curvature", 0.14 if Settings.crt_screen else 0.0)
+	_mat.set_shader_parameter("crt", 1.0 if Settings.crt_screen else 0.0)
 	_mat.set_shader_parameter("awareness", _awareness)
 	_mat.set_shader_parameter("edge_mode", _edge)
 	_mat.set_shader_parameter("glitch", clampf(g, 0.0, 1.0))

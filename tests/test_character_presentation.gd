@@ -14,15 +14,22 @@ func _mask(img: Image) -> PackedByteArray:
 
 
 func test_no_one_wears_rue_s_face() -> void:
-	for who in ["tobben", "archivist", "arin", "pip"]:
-		check(not CharacterArt.has_portrait(who), "%s has no portrait yet" % who)
-		check(CharacterArt.Portrait.new(who, "neutral", {}).texture() == null, "so %s shows none (not Rue's)" % who)
+	# Everyone with a face has their own illustrated bust (PortraitView),
+	# drawn from their own body; nobody stands in for anybody, and Pip, a
+	# creature, has none.
+	var bodies := {}
+	for who in ["rue", "mira", "wren", "tobben", "archivist", "arin"]:
+		check(CharacterArt.has_portrait(who), "%s has a portrait" % who)
+		bodies[CharacterArt.kind_for(who)] = who
+	check_eq(bodies.size(), 6, "six people, six different bodies")
+	check(not CharacterArt.has_portrait("pip"), "Pip has none")
 	var w := await start_session()
 	await go_to(w, "square", "house")
 	await interact_with(w, w.area.tobben)
 	check(w.hud.is_dialogue_open(), "talking to Tobben")
-	check(not w.hud._dialogue_portrait.visible, "no portrait in Tobben's box")
-	check_eq(w.hud._dialogue_text.position.x, 8.0, "and the text uses the whole box")
+	check(w.hud._dialogue_portrait.visible, "his own portrait in his box")
+	check_eq(w.hud._dialogue_portrait.portrait.who, "tobben", "and it's Tobben's, not Rue's")
+	check_eq(w.hud._dialogue_portrait.portrait.palette, w.area.tobben.sprite().palette, "in his sprite's colours")
 	await finish_dialogue(w)
 
 
@@ -67,13 +74,14 @@ func test_talking_to_mira_shows_her_face_and_mood() -> void:
 	var w := await start_session()
 	await interact_with(w, w.area.mira)
 	check(w.hud.is_dialogue_open(), "talking to Mira")
-	check(w.hud._dialogue_portrait.visible and w.hud._dialogue_portrait.texture != null, "her portrait is in the box")
-	check(w.hud._dialogue_text.position.x > 30.0, "the text makes room for it")
+	check(w.hud._dialogue_portrait.visible and w.hud._dialogue_portrait.portrait != null, "her portrait is in the box")
+	check_eq(w.hud._dialogue_portrait.portrait.palette, w.area.mira.sprite().palette, "drawn in her sprite's colours")
+	check(w.hud._dialogue_text.position.x > w.hud._dialogue_portrait.size.x, "the text makes room for it")
 	var line: String = w.hud._dialogue_text.text
 	check_eq(w.hud.dialogue_expression(), ArinsRoom.mira_expression(line), "her expression follows the line")
 	var frames_seen := {}
 	for i in 20:
-		frames_seen[w.hud._dialogue_portrait.texture] = true
+		frames_seen[w.hud._dialogue_portrait.frame] = true
 		await frames(2)
 	check(frames_seen.size() > 1 or Settings.reduce_flashing, "the face moves while she speaks")
 	await shot("mira_dialogue_portrait")
@@ -123,7 +131,8 @@ func test_talking_to_wren_shows_her_face() -> void:
 	await go_to(w, "square", "house")
 	await interact_with(w, w.area.wren)
 	check(w.hud.is_dialogue_open(), "talking to Wren")
-	check(w.hud._dialogue_portrait.visible and w.hud._dialogue_portrait.texture != null, "her portrait is in the box")
+	check(w.hud._dialogue_portrait.visible and w.hud._dialogue_portrait.portrait.who == "wren", "her portrait is in the box")
 	check_eq(w.hud.dialogue_expression(), VillageSquare.wren_expression(w.hud._dialogue_text.text), "her expression follows the line")
+	check_eq(w.hud._dialogue_portrait._figure.expression, w.hud.dialogue_expression(), "and the face shows it")
 	await shot("wren_dialogue_portrait")
 	await finish_dialogue(w)

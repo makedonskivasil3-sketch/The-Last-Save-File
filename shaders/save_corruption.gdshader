@@ -10,7 +10,7 @@ render_mode unshaded;
 // uniform each frame and applies the player's Settings. The settings map to:
 //   intensity  = Settings.glitch_intensity  (0 = clean-ish CRT, 1 = full corruption)
 //   flash      = Settings.flash_scale()     (1 = normal, 0.3 = reduce flashing)
-//   curvature  = Settings.crt_curvature     (0 = flat glass)
+//   curvature, crt = Settings.crt_screen    (0 = clean, flat glass)
 // Only 3 texture reads per pixel at full quality (1 at light), so it stays
 // cheap on the web build. Settings.screen_effects picks the quality.
 
@@ -19,7 +19,9 @@ uniform sampler2D screen_texture : hint_screen_texture, filter_linear;
 // --- player settings ---------------------------------------------------------
 uniform float intensity : hint_range(0.0, 1.0) = 1.0;
 uniform float flash : hint_range(0.0, 1.0) = 1.0;
-uniform float curvature : hint_range(0.0, 0.4) = 0.14;
+uniform float curvature : hint_range(0.0, 0.4) = 0.0;
+// The old CRT look (scanlines, grille, refresh band, bezel): an option, off by default.
+uniform float crt : hint_range(0.0, 1.0) = 0.0;
 // Settings.screen_effects: 2 = full, 1 = light (1 texture read, no fringing,
 // no aperture grille, no event static lines). 0 never reaches the shader.
 uniform int quality = 2;
@@ -96,7 +98,8 @@ void fragment() {
 	uv.x -= smear * hash(vec2(floor(uv.y * 90.0), floor(t * 24.0))) * 0.25;
 
 	// 7. Chromatic aberration, stronger toward the edges of the glass.
-	float ca = (0.0012 + a * 0.003 + glitch * 0.012 + noise_burst * 0.012 + edge_mode * 0.002) * max(intensity, 0.25);
+	// None while calm: colour splits only when something is wrong.
+	float ca = (crt * 0.0012 + a * 0.003 + glitch * 0.012 + noise_burst * 0.012 + edge_mode * 0.002) * max(intensity, 0.25);
 	vec2 dir = (uv - 0.5) * 2.0;
 	vec3 col;
 	if (quality >= 2) {
@@ -120,7 +123,9 @@ void fragment() {
 	float scan = 0.5 + 0.5 * cos(uv.y * game_size.y * 6.28318);
 	// Light while things are calm, so the lit scene reads cleanly; the
 	// tube shows its age as the owner closes in.
-	float tube = 0.25 + a * 0.35 + edge_mode * 0.2;
+	// Off while calm (unless the CRT option is on); the picture starts to
+	// show its scanlines as the owner closes in, and at the Edge.
+	float tube = crt * 0.25 + max(a - 0.25, 0.0) * 0.45 + edge_mode * 0.2;
 	col *= mix(1.0, 0.68 + 0.32 * scan, tube);
 	if (quality >= 2) {
 		float triad = mod(FRAGCOORD.x, 3.0);
@@ -128,11 +133,11 @@ void fragment() {
 		col *= mix(vec3(1.0), mask, tube * 0.35);
 	}
 	// A faint bright band rolling through: the refresh you can almost see.
-	col *= 1.0 + 0.05 * smoothstep(0.06, 0.0, abs(fract(uv.y - t * 0.07) - 0.5));
+	col *= 1.0 + 0.05 * crt * smoothstep(0.06, 0.0, abs(fract(uv.y - t * 0.07) - 0.5));
 
 	// 10. Grain, alive, heavier as things get worse.
 	float g = hash(FRAGCOORD.xy * 0.71 + fract(t * 7.13) * 431.0) - 0.5;
-	col += g * (0.02 + a * 0.07 + glitch * 0.15 + noise_burst * 0.3 + edge_mode * 0.04) * max(intensity, 0.35);
+	col += g * (0.012 + a * 0.07 + glitch * 0.15 + noise_burst * 0.3 + edge_mode * 0.04) * max(intensity, 0.35);
 
 	// 11. Cursor arrival: thin bright vertical lines and a sweeping static band.
 	if (noise_burst > 0.0 && quality >= 2) {
@@ -169,7 +174,7 @@ void fragment() {
 	col *= 1.0 - smoothstep(0.08, 0.6, v) * (0.45 + 0.27 * a);
 	// Rounded glass edge: a soft black bezel at the very corners.
 	vec2 edge = smoothstep(vec2(0.0), vec2(0.012 + curvature * 0.03), 0.5 - abs(cc));
-	col *= edge.x * edge.y * on_glass;
+	col *= mix(1.0, edge.x * edge.y, crt) * on_glass;
 	// Power-off: the collapsing line glows white-hot.
 	col += vec3(0.8, 0.95, 1.0) * sy * (1.0 - sx) * smoothstep(0.01, 0.0, abs(SCREEN_UV.y - 0.5)) * flash;
 

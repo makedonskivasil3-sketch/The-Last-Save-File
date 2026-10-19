@@ -53,7 +53,7 @@ func _ready() -> void:
 			pair[0].set_value_no_signal(pair[1]))
 	_section(left, "PICTURE")
 	_check(left, "Fullscreen", Settings.fullscreen, func(on: bool) -> void: Settings.set_value("fullscreen", on))
-	_check(left, "CRT curvature", Settings.crt_curvature, func(on: bool) -> void: Settings.set_value("crt_curvature", on))
+	_check(left, "CRT screen", Settings.crt_screen, func(on: bool) -> void: Settings.set_value("crt_screen", on))
 	var fx_button := Button.new()
 	fx_button.focus_mode = Control.FOCUS_ALL
 	fx_button.pressed.connect(_cycle_effects.bind(fx_button))

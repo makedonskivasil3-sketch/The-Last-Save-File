@@ -293,7 +293,8 @@ func test_a_tap_never_skips() -> void:
 func test_rue_portrait_matches_her_sprite() -> void:
 	var w := await start_session()
 	await _touch_first_memory(w)
-	check(w.hud._cine_portrait.visible and w.hud._cine_portrait.texture != null, "the memory shows Rue")
+	check(w.hud._cine_portrait.visible and w.hud._cine_portrait.portrait.who == "rue", "the memory shows Rue")
+	check_eq(w.hud._cine_portrait.portrait.palette, w.player.palette(), "as she looks right now (still missing her face)")
 	var missing := CharacterArt.image(CharacterArt.rue("neutral", w.player.palette()))
 	var restored := CharacterArt.image(CharacterArt.rue("neutral"))
 	check(missing.get_pixel(15, 17).get_luminance() < 0.1, "no memories yet: her face is still missing, as on her sprite")

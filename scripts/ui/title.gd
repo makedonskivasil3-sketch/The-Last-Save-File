@@ -10,6 +10,8 @@ const MUSIC_DB := -13.0
 
 var _title: Label
 var _menu: VBoxContainer
+## The layer the menus live on (above the screen effects).
+var _ui: Control
 var _settings_box: VBoxContainer
 var _settings: SettingsPanel
 var _records_box: VBoxContainer
@@ -49,7 +51,16 @@ func _ready() -> void:
 
 	add_child(SaveVista.new())
 
-	_menu = UiStyle.centered_panel(self, 300)
+	# Menus sit above the screen effects (layer 10), like the in-game HUD:
+	# the backdrop can tremble; the words you read never do.
+	var ui_layer := CanvasLayer.new()
+	ui_layer.layer = 15
+	add_child(ui_layer)
+	_ui = Control.new()
+	_ui.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_ui.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui_layer.add_child(_ui)
+	_menu = UiStyle.centered_panel(_ui, 300)
 	_title = UiStyle.heading(_menu, TITLE, UiStyle.TEXT, 22)
 	# After the message ending, the tagline changes.
 	var after: Array = _after()
@@ -86,7 +97,7 @@ func _ready() -> void:
 	else:
 		UiStyle.note(_menu, "Move: WASD / arrows / stick   ·   Interact: E / A   ·   Pause: Esc / Start")
 
-	_settings_box = UiStyle.centered_panel(self, 480)
+	_settings_box = UiStyle.centered_panel(_ui, 480)
 	_settings = SettingsPanel.new()
 	_settings.show_reset = true
 	_settings.closed.connect(_show_menu)
@@ -94,22 +105,22 @@ func _ready() -> void:
 	_settings.memory_wiped.connect(func() -> void: _rebuild_on_close = true)
 	_settings_box.add_child(_settings)
 
-	_records_box = UiStyle.centered_panel(self, 600)
+	_records_box = UiStyle.centered_panel(_ui, 600)
 	_records = RecordsPanel.new()
 	_records.closed.connect(_show_menu)
 	_records_box.add_child(_records)
 
-	_help_box = UiStyle.centered_panel(self, 480)
+	_help_box = UiStyle.centered_panel(_ui, 480)
 	_help = HowToPlayPanel.new()
 	_help.closed.connect(_show_menu)
 	_help_box.add_child(_help)
 
-	_credits_box = UiStyle.centered_panel(self, 520)
+	_credits_box = UiStyle.centered_panel(_ui, 520)
 	_credits = CreditsPanel.new()
 	_credits.closed.connect(_show_menu)
 	_credits_box.add_child(_credits)
 
-	_journal_box = UiStyle.centered_panel(self, 560)
+	_journal_box = UiStyle.centered_panel(_ui, 560)
 	_journal = JournalPanel.new()
 	_journal.closed.connect(_show_menu)
 	_journal_box.add_child(_journal)
@@ -186,6 +197,11 @@ func _build_slot_card() -> void:
 	if OwnerMemory.wins > 0 and not after.is_empty() and after[1] != "":
 		var two := Label.new()
 		two.text = after[1]
+		# The slot's name is what she remembers now (progress), not a
+		# different ending: an escape stays an escape, with her name on it
+		# once she has it back.
+		if OwnerMemory.fragments.size() >= Story.FRAGMENTS.size():
+			two.text = two.text.replace("???", Story.SECOND_PLAYER_NAME)
 		two.add_theme_font_size_override("font_size", 10)
 		two.add_theme_color_override("font_color", after[2])
 		v.add_child(two)

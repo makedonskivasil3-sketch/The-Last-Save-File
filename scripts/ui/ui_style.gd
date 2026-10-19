@@ -4,6 +4,8 @@ extends RefCounted
 ## hover and the intruder's cyan on keyboard/gamepad focus.
 
 const BG := Color(0.02, 0.016, 0.024, 0.94)
+## The surface behind subtitles and dialogue: a deep, slightly warm grey.
+const SURFACE := Color("15121a")
 const TEXT := Color("c8b8a0")
 const MUTED := Color("8a8f98")
 const OWNER := Color("e0704f")

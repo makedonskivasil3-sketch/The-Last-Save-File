@@ -35,13 +35,15 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var r := Rect2(-size * 0.5, size)
-	# A stack of crates: three rows of planks.
-	draw_rect(r, Color("5a4632"))
+	# A stack of crates seen from above: a lit lid, a slatted front face.
+	var top := Decor.furniture(self, r, Color("8a6a48"), 8.0)
 	for i in 3:
-		var y := r.position.y + (i + 1) * r.size.y / 3.0
-		draw_line(Vector2(r.position.x, y), Vector2(r.end.x, y), Color("3a2a20"), 1.0)
-	draw_line(r.position, r.end, Color("4a3828"), 1.0)
-	draw_rect(r, Color("3a2a20"), false, 1.0)
+		var x := top.position.x + (i + 1) * top.size.x / 4.0
+		draw_line(Vector2(x, top.position.y + 1), Vector2(x, top.end.y - 1), Color("6a4e34"), 0.8)
+	draw_line(top.position + Vector2(2, 2), top.end - Vector2(2, 2), Color("6a4e34"), 1.0)
+	for i in 2:
+		var y := top.end.y + 2.6 + i * 2.6
+		draw_line(Vector2(r.position.x + 1, y), Vector2(r.end.x - 1, y), Color("3a2a20"), 0.6)
 	if held:
 		# Selected by the owner: marching ants and a pale highlight.
 		draw_rect(r, Color(0.55, 0.8, 1.0, 0.15))

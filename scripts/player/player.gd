@@ -64,7 +64,7 @@ var _t := 0.0
 var _last_step := 0
 var _dissolve := ""
 var _dissolve_t := 0.0
-var _sprite := PixelCharacter.new("rue", MISSING)
+var _sprite := IllustratedCharacter.new("rue", MISSING)
 ## The palette for how much of you is restored, and the fully-missing one
 ## the restored parts flicker back to under pressure.
 var _palette: Dictionary = MISSING
@@ -83,6 +83,7 @@ var glow: PointLight2D
 
 
 func _ready() -> void:
+	add_to_group("canopy_reveal")  # tree canopies go see-through over her
 	refresh_look(false)
 	glow = PointLight2D.new()
 	glow.texture = Area.light_texture()
@@ -132,7 +133,7 @@ func facing() -> Vector2:
 
 ## The sprite (for DECOY: a frame of exactly how you look right now).
 func sprite_snapshot() -> PixelCharacter:
-	var copy := PixelCharacter.new("rue", _palette)
+	var copy := IllustratedCharacter.new("rue", _palette)
 	copy.facing = _sprite.facing
 	copy.leg_color = _sprite.leg_color
 	copy.shoe_color = _sprite.shoe_color

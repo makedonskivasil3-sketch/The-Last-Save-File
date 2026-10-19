@@ -325,35 +325,34 @@ func _build_purged_extras() -> void:
 
 
 func _draw() -> void:
-	var r := bounds
-	draw_rect(r, FLOOR)
-	# Floorboards: a seam every 12 px, and the joints between boards staggered.
-	var y := r.position.y + 12.0
-	var row := 0
-	while y < r.end.y:
-		draw_line(Vector2(r.position.x, y), Vector2(r.end.x, y), FLOOR_LINE)
-		var x := r.position.x + float((row * 37) % 70) + 20.0
-		while x < r.end.x:
-			draw_line(Vector2(x, y - 12.0), Vector2(x, y), FLOOR_LINE)
-			x += 70.0 + float((row * 13) % 30)
-		y += 12.0
-		row += 1
-	# Contact shadows: things stand on the floor instead of floating over it.
-	for prop in [BED, TABLE]:
-		draw_rect(Rect2(prop.position + Vector2(2, 3), prop.size), Color(0, 0, 0, 0.28))
-	draw_rect(RUG, RUG_COL)
-	draw_rect(RUG.grow(-4), Color(RUG_COL.lightened(0.08)), false, 1.0)
-	# A worn pattern in the rug: diamonds down the middle, a fringe at the ends.
-	for i in 5:
-		var c := Vector2(RUG.position.x + 20.0 + i * 22.0, RUG.get_center().y)
-		draw_colored_polygon(PackedVector2Array([c + Vector2(0, -6), c + Vector2(6, 0), c + Vector2(0, 6), c + Vector2(-6, 0)]),
-			Color(RUG_COL.lightened(0.12), 0.6))
-	for x in range(int(RUG.position.x) + 2, int(RUG.end.x), 4):
-		draw_line(Vector2(x, RUG.position.y - 2), Vector2(x, RUG.position.y), Color(RUG_COL.lightened(0.1), 0.7))
-		draw_line(Vector2(x, RUG.end.y), Vector2(x, RUG.end.y + 2), Color(RUG_COL.lightened(0.1), 0.7))
-	draw_rect(BED, WOOD)
-	draw_rect(Rect2(BED.position + Vector2(3, 3), BED.size - Vector2(6, 6)), SHEET)
-	draw_rect(Rect2(BED.position + Vector2(BED.size.x - 15, 5), Vector2(10, BED.size.y - 10)), Color("c8b8a0"))
-	draw_rect(TABLE, WOOD)
-	draw_rect(Rect2(TABLE.position + Vector2(4, 4), Vector2(6, 6)), Color("7fd6a8", 0.6))
+	# Arin's room, illustrated (docs/VISUAL_DIRECTION.md): warm boards, a
+	# worn rug, the bed in its walled-off nook, the desk with its lamp and
+	# console light. Only the bed and the desk are solid, and only they have
+	# a front face.
+	Decor.planks(self, bounds, FLOOR, 12.0, 1.0)
+	Decor.rug(self, RUG, RUG_COL, Color("c89a6a"))
+	# Flat things on the floor (never in the way): a book, a sock, a drawing.
+	draw_rect(Rect2(212, 246, 9, 6), Color("6b3a2c"))
+	draw_rect(Rect2(213, 246.6, 3.6, 4.8), Color("e8dcc4"))
+	draw_rect(Rect2(216.8, 246.6, 3.6, 4.8), Color("e8dcc4"))
+	draw_colored_polygon(PackedVector2Array([Vector2(330, 250), Vector2(338, 248), Vector2(340, 252), Vector2(332, 254)]), Color("8aa0c0"))
+	draw_rect(Rect2(150, 120, 16, 12), Color("efe6d6"))
+	draw_line(Vector2(152, 128), Vector2(158, 123), Color("d8463a"), 0.8)
+	draw_circle(Vector2(161, 126), 2.0, Color("e9b44c"))
+	Decor.bed(self, BED, WOOD, Color("5a7a9a"), SHEET)
+	var desk := Decor.furniture(self, TABLE, WOOD, 4.0)
+	# The console on the desk: where the saves live. Its light is the room's
+	# one cold colour.
+	draw_rect(Rect2(desk.position + Vector2(3, 3), Vector2(12, 7)), Decor.INK)
+	draw_rect(Rect2(desk.position + Vector2(4, 4), Vector2(10, 5)), Color("1e2a26"))
+	draw_rect(Rect2(desk.position + Vector2(5, 5), Vector2(3, 1.4)), Color("7fd6a8", 0.9))
+	Decor.lamp(self, desk.position + Vector2(desk.size.x - 7, desk.size.y * 0.5), Color("f0c070"))
+	wall_face = Color("7a6656")
+	wall_cap = Color("2e2620")
 	draw_walls()
+	# On the top wall's face: a framed drawing, and the window frame.
+	draw_rect(Rect2(WINDOW.position.x - 1, WINDOW.position.y - 1, WINDOW.size.x + 2, WINDOW.size.y + 2), Decor.INK)
+	draw_rect(WINDOW, Color("c8e0f0"))
+	draw_line(Vector2(WINDOW.get_center().x, WINDOW.position.y), Vector2(WINDOW.get_center().x, WINDOW.end.y), Decor.INK, 0.8)
+	draw_rect(Rect2(372, 29, 14, 6), Decor.INK)
+	draw_rect(Rect2(373, 30, 12, 4), Color("e8c48a"))
