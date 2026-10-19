@@ -78,8 +78,9 @@ func test_after_the_rue_ending_the_owner_keeps_their_word() -> void:
 	memory().last_ending = "rue"
 	var w := await start_session()
 	check(w.director.truce, "the owner only watches this run")
-	await frames(3)
-	check(w.hud.objective_text().contains("TRUCE"), "and the rule is on screen at once (%s)" % w.hud.objective_text())
+	check(w.current_goal().begins_with("TRUCE"), "the goal states the rule (%s)" % w.current_goal())
+	# The goal line refreshes every 0.5 s and waits for cards to clear.
+	await wait_until(func() -> bool: return w.hud.objective_text().contains("TRUCE"), 5.0, "the truce on the goal line")
 	w.director.add_awareness(80.0)
 	check(w.director.awareness < OwnerDirector.SILENCE, "watching never turns into deleting (%.0f)" % w.director.awareness)
 	w.owner_moves._next_save = 0.0
