@@ -217,6 +217,11 @@ func build() -> void:
 
 ## Arin's patrol: the usual loop, plus detours through the spots where the
 ## owner has seen you before (one more each session, up to three).
+func relearn_owner_routes() -> void:
+	if arin:
+		arin.set_route(learned_route())
+
+
 func learned_route() -> Array[Vector2]:
 	var route: Array[Vector2] = ROUTE.duplicate()
 	var spots := OwnerMemory.route_spots(area_id, clampi(OwnerMemory.sessions - 1, 0, 3))

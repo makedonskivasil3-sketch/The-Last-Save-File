@@ -98,9 +98,7 @@ func catch_up() -> void:
 
 
 func _first_shape() -> Array:
-	if not OwnerMemory.knows_truth:
-		OwnerMemory.learn_truth_piece("pip")
-	return Story.FIRST_SHAPE.duplicate()
+	return Story.FIRST_SHAPE.duplicate()  # counted on its last line (World._on_line_shown)
 
 
 ## Where Pip (once found) would lead you: the ledge, then back to the pillar.

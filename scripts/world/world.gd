@@ -1,7 +1,12 @@
 class_name World
 extends Node2D
+
 ## The session. Owns the player, HUD, the owner, and whichever area is loaded.
 ## Handles moving between areas, talking, dying, quitting, and winning.
+
+## A conversation with `node` (a person, a book, a file) was read to its
+## last line. Progress that needs the whole text waits for this.
+signal conversation_completed(node: Node)
 
 const TITLE_SCENE := "res://scenes/title.tscn"
 const INTERACT_DISTANCE := 22.0
@@ -86,6 +91,7 @@ func _ready() -> void:
 	_light = CanvasModulate.new()
 	add_child(_light)
 	hud.dialogue_closed.connect(_on_dialogue_closed)
+	hud.line_shown.connect(_on_line_shown)
 	touch = TouchControls.new()
 	add_child(touch)
 	_focus_marker = FocusMarker.new()
@@ -325,13 +331,14 @@ func _shed(npc: Npc) -> void:
 	# The body she leaves, where she stood, a step away from the person she
 	# took from (so the prompt stays on them). It stays this run and the next.
 	var away := (player.global_position - npc.global_position).normalized()
-	var at := area.to_local(player.global_position + (away if away != Vector2.ZERO else Vector2.DOWN) * 16.0)
+	var at := area.to_local(husk_spot(player.global_position, away if away != Vector2.ZERO else Vector2.DOWN, npc.global_position))
 	area.place_husk(at)
 	if OwnerMemory.frayed.size() + 1 >= Story.SHED_TARGETS.size() and who not in OwnerMemory.frayed \
 			and "all_frayed" not in OwnerMemory.shed_said:
 		OwnerMemory.shed_said.append("all_frayed")  # saved with the fray, one write
 		_all_frayed_now = true
 	OwnerMemory.fray(who, area.area_id, at)
+	area.relearn_owner_routes()  # forgotten now, not only next run
 	sheds_this_run += 1
 	director.awareness = maxf(director.floor_level(), director.awareness - Story.SHED_COOL)
 	director.add_awareness(0.0)  # refresh the meter and the mood
@@ -350,6 +357,31 @@ func _shed(npc: Npc) -> void:
 	if _all_frayed_now:
 		_all_frayed_now = false
 		director.say(Story.OWNER_ALL_FRAYED)
+
+
+## Where the body she leaves can lie: a step away from her helper, on open
+## floor inside the area (not in a wall, furniture, a doorway gap or off the
+## edge), so it can be seen and walked to. Tries the step she'd take first,
+## then around her; else where she stood.
+func husk_spot(from: Vector2, away: Vector2, helper: Vector2) -> Vector2:
+	for dist: float in [16.0, 12.0]:
+		for turn: float in [0.0, 45.0, -45.0, 90.0, -90.0, 135.0, -135.0, 180.0]:
+			var q := from + away.rotated(deg_to_rad(turn)) * dist
+			if husk_spot_ok(q, helper):
+				return q
+	return from
+
+
+func husk_spot_ok(q: Vector2, helper: Vector2) -> bool:
+	if area == null or not area.bounds.grow(-10.0).has_point(q) or q.distance_to(helper) < 10.0:
+		return false
+	if area.has_method("floor_at") and not area.floor_at(q):
+		return false
+	var params := PhysicsPointQueryParameters2D.new()
+	params.position = q
+	params.collision_mask = player.collision_mask
+	params.exclude = [player.get_rid()]
+	return get_world_2d().direct_space_state.intersect_point(params, 1).is_empty()
 
 
 ## The owner's planted memory: it doesn't count, and it costs you.
@@ -678,6 +710,10 @@ func current_goal() -> String:
 				goal += " The well looks deeper than it should."
 	if sheds_this_run >= 2:
 		goal += " " + Story.GOAL_WATCHED_HIDING
+	# The truth route, as a quiet hint; the way out above stays open.
+	var hint := Progression.goal_hint()
+	if hint != "":
+		goal += "\n" + hint
 	if director and director.truce:
 		goal = "TRUCE: the owner only watches this run, unless you glitch. " + goal
 	return "%s\nMemories recovered: %d / %d" % [goal, OwnerMemory.fragments.size(), Story.FRAGMENTS.size()]
@@ -685,9 +721,24 @@ func current_goal() -> String:
 
 # --- escorts: Wren to the Edge, Mira to the square ----------------------------------
 
+## What someone noticed about Rue counts once she has actually read it:
+## walking away before the line leaves it for next time.
+func _on_line_shown(line: String) -> void:
+	if OwnerMemory.knows_truth:
+		return
+	for who: String in Story.TRUTH_LINES:
+		if line == Story.TRUTH_LINES[who] and who not in OwnerMemory.truth_pieces:
+			OwnerMemory.learn_truth_piece(who)
+	if line == Story.FIRST_SHAPE[-1] and "pip" not in OwnerMemory.truth_pieces:
+		OwnerMemory.learn_truth_piece("pip")
+
+
 func _on_dialogue_closed() -> void:
 	var who := _talking_to
 	_talking_to = null
+	# Read to its last line, not walked away from or cut off by something else.
+	if who and hud.dialogue_finished:
+		conversation_completed.emit(who)
 	if area and is_instance_valid(who) and area.has_method("on_dialogue_closed"):
 		area.on_dialogue_closed(who)
 
@@ -727,11 +778,24 @@ func _update_escort(delta: float) -> void:
 			_crumbs.pop_front()
 	escort.follow(_crumbs, p, delta)
 	if escort.npc_id == "mira" and area.area_id != "room":
-		# A bedroom character out of her bedroom: the owner can tell.
-		director.add_awareness(2.5 * delta)
+		# A bedroom character out of her bedroom: the owner can tell. That is
+		# passive exposure: like every other, it waits while Rue reads, answers
+		# or holds the owner still (is_owner_paused), and in scenes.
+		if escort_exposed():
+			director.add_awareness(MIRA_EXPOSURE * delta)
 		var board: Variant = area.get("board")
 		if board is Node2D and escort.global_position.distance_to(board.global_position) < 40.0:
 			mira_pins_note()
+
+
+## Awareness a second for Mira walking outside her room with you.
+const MIRA_EXPOSURE := 2.5
+
+
+## Whether an escort is in the owner's view right now: not while a
+## conversation, question, scene or PAUSE holds the owner.
+func escort_exposed() -> bool:
+	return not is_owner_paused() and not _cutscene and not hud.is_choosing() and ending == ""
 
 
 ## Mira made it to the notice board: she pins her note herself.
@@ -988,14 +1052,14 @@ func choose_safely(question: String, options: Array, focus := 0) -> int:
 	return pick if ending == "" else -1
 
 
-## Where Pip should lead: a memory still in this area, else the area's goal.
+## Where Pip should lead: something relevant here (a memory, someone with
+## something to tell her, the CHARACTER FILE once it reads whole; see
+## Progression), else the area's own way on.
 func guide_target() -> Vector2:
 	if area == null:
 		return Vector2.INF
-	for c in area.get_children():
-		if c is MemoryFragment and not c.planted:  # Pip won't lead you to the owner's lie
-			return c.global_position
-	return area.guide_point()
+	var here := Progression.local_target(self)
+	return here if here != Vector2.INF else area.guide_point()
 
 
 ## Pip was found: from now on it follows you, in every session.

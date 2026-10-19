@@ -64,7 +64,8 @@ func build() -> void:
 	add_readable("CUT CONTENT", Vector2(200, 84), Readable.Look.BOOK, _cut_content)
 	add_readable("THE OWNER", Vector2(440, 84), Readable.Look.BOOK, _owner_notes)
 	# Filed long ago, at the Archivist's desk: what Rue is (docs/DARK_TRUTH_DESIGN.md).
-	add_readable(Story.CHARACTER_FILE_TITLE, Vector2(DESK.end.x + 10, DESK.get_center().y), Readable.Look.TERMINAL, _character_file)
+	_file = add_readable(Story.CHARACTER_FILE_TITLE, Vector2(DESK.end.x + 10, DESK.get_center().y), Readable.Look.TERMINAL, _character_file)
+	world.conversation_completed.connect(_on_completed)
 
 
 func guide_point() -> Vector2:
@@ -132,9 +133,21 @@ func _character_file() -> Array:
 		return Story.character_file_locked(found)
 	if not Story.truth_ready():
 		return Story.CHARACTER_FILE_PARTIAL.duplicate()
-	if not OwnerMemory.knows_truth and not world.hud.dialogue_closed.is_connected(world.reveal_truth):
-		world.hud.dialogue_closed.connect(world.reveal_truth, CONNECT_ONE_SHOT)
+	_file_whole = true  # the truth when it's read to the end (_on_completed)
 	return Story.CHARACTER_FILE.duplicate()
+
+
+## The CHARACTER FILE was last shown whole (not the partial or locked page).
+var _file_whole := false
+var _file: Readable
+
+
+## Only the file itself, read to its last line, gives the truth: not walking
+## away from it, nor another conversation closing later.
+func _on_completed(node: Node) -> void:
+	if node == _file and _file_whole and not OwnerMemory.knows_truth:
+		world.reveal_truth()
+	_file_whole = false
 
 
 ## What the Archivist says about the pieces of yourself you've found.

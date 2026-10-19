@@ -119,12 +119,34 @@ func _guard_husk() -> void:
 	if a == null or route.is_empty() or OwnerMemory.last_run_husk() != a.area_id:
 		return
 	guard_point = OwnerMemory.husk_pos + Vector2(GUARD_GAP, 0.0)
-	# Stop there after the nearest point of the round.
+	_insert_guard()
+
+
+## Stop at the body after the nearest point of the round.
+func _insert_guard() -> void:
+	if guard_point == Vector2.INF or route.is_empty() or guard_point in route:
+		return
 	var best := 0
 	for i in route.size():
 		if route[i].distance_to(guard_point) < route[best].distance_to(guard_point):
 			best = i
 	route.insert(best + 1, guard_point)
+
+
+## A new round, mid-walk (the owner forgot her route: Rue left a body): no
+## jump, no stale index. Arin carries on from where it stands toward the
+## nearest point of the new round, still stopping at a body it guards.
+func set_route(points: Array[Vector2]) -> void:
+	route = points.duplicate()
+	_insert_guard()
+	if route.is_empty():
+		_target = 0
+		return
+	var best := 0
+	for i in route.size():
+		if route[i].distance_to(position) < route[best].distance_to(position):
+			best = i
+	_target = best
 
 
 func _process(delta: float) -> void:

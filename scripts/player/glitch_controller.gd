@@ -28,6 +28,8 @@ var world: World
 var unlock_all := false
 ## What holding [E] would hit right now: {"id", "pos", "node"} or {}.
 var target: Dictionary = {}
+## What it will do (ActionPreview.describe), kept in step with `target`.
+var preview: Dictionary = {}
 
 var _pressing := false
 var _held := 0.0
@@ -245,6 +247,12 @@ func _fire(t: Dictionary) -> void:
 	if id != "shed":
 		PlaytestLog.mark("glitch", id)
 		PlaytestLog.mark("FIRST GLITCH", id, true)
+	# Checked again at the end of the hold: what was promised still holds.
+	var now := ActionPreview.describe(t, world)
+	if not now.available:
+		world.hud.say("%s  ·  %s" % [now.title, now.reason], "system")
+		_fizzle()
+		return
 	if id == "shed":
 		# No price, no count, no owner reaction: it asks first.
 		_cancel()
@@ -331,18 +339,17 @@ func _react(id: String) -> void:
 
 func _update_prompt() -> void:
 	var charging := _charge > 0.0 and not target.is_empty()
-	world.hud.preview_cost(Glitch.cost(target.id) if charging else 0.0)
+	# One description for the prompt, the touch button and the commit.
+	preview = ActionPreview.describe(target, world)
+	world.hud.preview_cost(float(preview.cost) if charging else 0.0)
 	if world.touch:
-		world.touch.hold_label = "" if target.is_empty() or _cooldown > 0.0 else Glitch.label(target.id).to_upper()
-		world.touch.hold_progress = clampf(_charge / Glitch.hold_time(target.id), 0.0, 1.0) if charging else -1.0
+		world.touch.hold_label = "" if target.is_empty() or _cooldown > 0.0 else ActionPreview.short(preview).to_upper()
+		world.touch.hold_progress = clampf(_charge / float(preview.hold), 0.0, 1.0) if charging else -1.0
 	if target.is_empty() or _cooldown > 0.0:
 		world.hud.set_glitch_prompt("")
 		return
-	# The label names the price ("PHASE +8"): every glitch costs awareness.
-	var prompt := "hold [%s]  %s" % [Settings.glyph("interact"), Glitch.label(target.id)]
-	if world.owner_moves.next_glitch_reloads():
-		prompt += "  ·  RELOADS"  # the owner said so; the prompt keeps saying so
-	world.hud.set_glitch_prompt(prompt)
+	# It names the price ("PHASE +8"), what it takes, and the owner's reload.
+	world.hud.set_glitch_prompt(ActionPreview.prompt(preview, Settings.glyph("interact")))
 
 
 func _draw() -> void:

@@ -11,6 +11,7 @@ const KIND_COL := {"memory": Color("8cf2ff"), "note": Color("e6d6b0"), "book": C
 
 var _list: VBoxContainer
 var _title: Label
+var _status: Label
 var _where: Label
 var _body: Label
 var _text_scroll: ScrollContainer
@@ -22,6 +23,8 @@ func _ready() -> void:
 	add_theme_constant_override("separation", 6)
 	UiStyle.heading(self, "JOURNAL", UiStyle.TEXT, 16)
 	_count = UiStyle.note(self, "", UiStyle.MUTED)
+	# Where she is in her own story (Progression): more than the HUD says.
+	_status = UiStyle.note(self, "", UiStyle.TEXT)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	add_child(row)
@@ -59,6 +62,7 @@ func refresh() -> void:
 	for c in _list.get_children():
 		c.queue_free()
 	var entries := OwnerMemory.journal
+	_status.text = Progression.journal_summary()
 	_count.text = "%d kept" % entries.size() if not entries.is_empty() else ""
 	if entries.is_empty():
 		_show_empty()

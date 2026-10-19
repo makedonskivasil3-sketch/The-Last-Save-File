@@ -153,10 +153,13 @@ func _update_whispers(delta: float) -> void:
 
 ## The title's aftermath for the last ending (old saves: the escape, or
 ## RUE's if every memory is found; RUE's also once Rue knows the truth).
+## The last ending achieved, as it was achieved: learning the truth later
+## doesn't turn an old escape into RUE. Only a save from before endings were
+## recorded by name (wins but no last_ending) is read as an escape.
 static func _after() -> Array:
 	var ending := OwnerMemory.last_ending
-	if ending == "" or (ending == "escape" and OwnerMemory.knows_truth):
-		ending = "rue" if OwnerMemory.fragments.size() >= Story.FRAGMENTS.size() else "escape"
+	if ending == "" and OwnerMemory.wins > 0:
+		ending = "escape"
 	return Story.TITLE_AFTER.get(ending, [])
 
 

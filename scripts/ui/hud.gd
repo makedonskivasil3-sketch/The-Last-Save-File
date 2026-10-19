@@ -4,6 +4,9 @@ extends CanvasLayer
 ## box for characters, area title cards and screen fades.
 
 signal dialogue_closed
+## A line of the open conversation has been shown whole (its last page is on
+## screen). Carries the line as written, before it was split into pages.
+signal line_shown(line: String)
 ## choose() picked an option (index).
 signal _chosen(index: int)
 
@@ -637,6 +640,8 @@ func show_dialogue(speaker: String, color: Color, lines: Array, voice_prefix := 
 		return
 	_dialogue_voice_prefix = voice_prefix
 	var paged := paginate(lines, voice_prefix)
+	_dialogue_source_lines = lines.duplicate()
+	_dialogue_sources.assign(paged[2])
 	_dialogue_lines = paged[0]
 	_dialogue_ids.assign(paged[1])
 	_dialogue_face = portrait if portrait and portrait.texture() else null
@@ -788,9 +793,19 @@ func fade(to_black: bool, duration: float = 0.25) -> Tween:
 	return tw
 
 
+## For line_shown: the lines as given, and which of them each page is from.
+var _dialogue_source_lines: Array = []
+var _dialogue_sources: Array[int] = []
+
+
 func _show_dialogue_line() -> void:
 	var text := str(_dialogue_lines[_dialogue_index])
 	_dialogue_text.text = text
+	if _dialogue_index < _dialogue_sources.size():
+		var src := _dialogue_sources[_dialogue_index]
+		var last_page := _dialogue_index + 1 >= _dialogue_sources.size() or _dialogue_sources[_dialogue_index + 1] != src
+		if last_page and src < _dialogue_source_lines.size():
+			line_shown.emit(str(_dialogue_source_lines[src]))
 	_dialogue_voice = _dialogue_ids[_dialogue_index] if _dialogue_index < _dialogue_ids.size() else ""
 	var recorded := VoiceOver.play(self, _dialogue_voice)
 	if recorded == null and _dialogue_speaker.text != Story.TOBBEN_WRITTEN:  # written, not said

@@ -139,6 +139,12 @@ func set_owner_paused(on: bool) -> void:
 			n.set("paused", on)
 
 
+## The owner's learned habits changed mid-run (OwnerMemory.fray clears the
+## route memory): areas whose watchers walk a learned round rebuild it now.
+func relearn_owner_routes() -> void:
+	pass
+
+
 ## Where to go next in this area (Pip trots toward it), or Vector2.INF.
 func guide_point() -> Vector2:
 	return Vector2.INF

@@ -186,9 +186,9 @@ func interact() -> Dictionary:
 			lines = [Story.FRAY_LINES[npc_id] if npc_id in OwnerMemory.session_frayed else Story.FRAY_RECALL[npc_id]] + lines
 	# What they've noticed about what Rue is, once it's time (said once ever),
 	# goes before their usual lines...
+	# (Counted when the line is actually shown: World._on_line_shown.)
 	var truth := Story.truth_line(npc_id) if state != State.DELETED else ""
 	if truth != "":
-		OwnerMemory.learn_truth_piece(npc_id)
 		lines = [truth] + lines
 	# ...and the first time you talk this session, anything they remember
 	# from your last runs comes first of all.
