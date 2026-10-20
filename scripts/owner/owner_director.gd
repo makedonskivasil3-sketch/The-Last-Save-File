@@ -17,6 +17,9 @@ const THRESHOLDS: Array[float] = [NOTICE, SUSPECT, CONTAIN, SILENCE, HUNT, PURGE
 const BASE_RATE := 0.35
 ## Each death or quit makes the owner faster to notice next time...
 const RATE_PER_PURGE := 0.15
+## ...up to this many purge steps: past it a run would snowball (HUNT in
+## half a minute), and a hard run shouldn't become a lost one.
+const RATE_PURGE_CAP := 3
 ## ...and start the session already this aware (per purge, capped). The cap
 ## keeps every session winnable: you always arrive below SUSPECT.
 const START_PER_PURGE := 10.0
@@ -156,10 +159,12 @@ func _process(delta: float) -> void:
 	if _world.is_owner_paused():
 		return  # holding for a question (World.choose_safely)
 	_lie = maxf(0.0, _lie - delta)
-	var rate := (BASE_RATE + RATE_PER_PURGE * OwnerMemory.purge) * _world.area.awareness_rate
+	var rate := (BASE_RATE + RATE_PER_PURGE * mini(OwnerMemory.purge, RATE_PURGE_CAP)) * _world.area.awareness_rate
 	if _lie > 0.0 and rate > 0.0:
 		rate *= LIE_RATE
-	if truce and rate > 0.0:
+	# (Not in the room: its seam opens on awareness, and a truce run
+	# shouldn't start with two minutes of waiting at a wall.)
+	if truce and rate > 0.0 and _world.area.area_id != "room":
 		rate *= TRUCE_RATE
 	if _world.escort and rate > 0.0:
 		rate *= 1.4  # a child following an intruder: hard to miss

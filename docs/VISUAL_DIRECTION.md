@@ -198,6 +198,15 @@ The `scripts/art/decor.gd` kit:
 - turn off the sun's shadows on low effects;
 - bake each figure's outline into one polygon;
 
+## Title screen (pass 7)
+
+The title is the first image anyone sees, so it now carries key art instead of a generic skyline behind a centred box.
+
+- **Layout:** asymmetric. Large title type, flush left, over a menu column with no heavy box: a faint wash and one accent rule in the owner's colour (`UiStyle.side_panel`). The small print is two short lines, not a paragraph. The full controls stay in How to Play.
+- **Key art (`scripts/fx/title_art.gd`):** Rue, drawn large, alone in a dark room facing the television the save runs on. The screen is the only light. It rims her on the side facing it, throws a cone across the floor and catches dust. The screen shows SLOT 1 full and SLOT 2 part-written with a waiting cursor (the save that never finished).
+- **It changes with the save:** her colours come from `Player.palette_for` (the same rule as the sprite), so a first launch shows the missing version with two points of light for eyes. The Slot 2 bar fills a little with each memory. Past purge 1, the screen occasionally slips (scaled by the flash setting).
+- **Status:** Implemented; Visually inspected (`tour_visual` 00/01). The look and feel of the first impression is still pending a human opinion.
+
 ## Not done (pending)
 
 - **Production art:** no external artist assets. Everything is drawn in code and needs nothing to be licensed. A finished pass would replace `Decor` and `IllustratedCharacter` drawing with authored art at the same anchor points:

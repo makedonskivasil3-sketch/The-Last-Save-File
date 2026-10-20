@@ -171,3 +171,20 @@ No saved field was added or renamed, so no migration is needed. Truth pieces alr
 | Strict browser lifecycle check not in CI | Confirmed | Workflow review | A broken run lifecycle could ship | Own blocking step; failure evidence uploaded | CI on the next push |
 | **Standing in Slot 2 can finish before the owner's grab** | **Design question (open)** | Tour: from 50% the slot fills in 1.2 s; the cursor needs longer when lured away | The confrontation is skipped by a player who lures the cursor far enough | **Not changed:** freezing writing during the reach would make the confrontation unavoidable but changes the finale's balance and the bots' routes. Author's call | — |
 | Do players find records, closets, the Edge objective? | Hypothesis | No observations | — | — | Pending human play |
+
+## Pass 7 (2026-10-20): ledger (three read-only reviews, then fixes)
+
+Sources: a player-experience review, a story-consistency review and an engineering review, each reading the code without running it. "Confirmed" means the code path is unambiguous; nothing here was observed with a human player.
+
+| Finding | Kind | Player impact | Correction | Validation |
+|---|---|---|---|---|
+| Hiding didn't stop "saving over you" at HUNT | Confirmed (source) | The tutorial says hide; a hidden, still Rue was overwritten in 4 s | The HUNT save doesn't start while hidden, and an open save waits while she is hidden | `test_a_save_over_waits_while_you_are_hidden` |
+| Square cursor reached 82–88 px/s at high purge (Rue walks 90) and spawned 14 px from the north arrival | Confirmed | Unavoidable deaths, some during the fade-in | Capped at 70 (the Edge caps at 62); comes in from the square's corner furthest from Rue | `test_the_square_cursor_never_outruns_rue_and_comes_in_far_away` |
+| Each purge step sped awareness without limit | Confirmed | After a few deaths, HUNT within ~30 s and no way back | The rate stops growing after purge 3 (start awareness was already capped) | Full suite, bots |
+| Static seeded where you died could start under you on arrival | Suspected | ~0.5 s to step off unseen static | Death seeds within 40 px of Rue are skipped | `test_the_static_does_not_start_under_your_feet` |
+| Truce runs slowed the room too | Confirmed | ~2 minutes of waiting for the seam after a RUE or message ending | The truce slowdown doesn't apply in the room | Full suite |
+| No seam hint in session 1 (door locked, not deleted) | Confirmed | A new player searched ~25 s with the clock running | The hint shows whenever the door isn't open | `test_cohesion_story` |
+| Death tips promised things the game doesn't do ("break its line of sight", "any glitch breaks a save") | Confirmed | Players act on wrong advice | Reworded to what works (hide; face a wall or get near someone) | Text |
+| **A finale retry walks room → square → north road again** | **Open (design)** | About two minutes per Edge retry; only the first Edge death is forgiven | **Not changed:** a checkpoint at the Edge needs the run's flags (the pointer) restored and skips the room's per-run notes. Proposal: after an Edge death, the next session starts on the north road with the pointer kept. Author's call | — |
+| Quits add purge; a phone killing a background tab counts as a crash | Design (kept) | Six quiet evenings can purge the save | Kept: the quit/purge rule is the author's. Worth revisiting after playtests | — |
+| Act cards and NEW GLITCH hold threats only at the Edge | Confirmed | A 4 s card in the square while Arin moves | Not changed this pass (moving the Edge's hold into World touches every area) | — |

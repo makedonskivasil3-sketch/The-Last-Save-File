@@ -3,6 +3,9 @@ extends Area
 ## Ashvale's square, the owner's hub. Arin (driven by the owner) walks a loop
 ## around the well. Wren can hide you. Tobben reports you.
 
+## Rue walks at 90: the cursor never closes on someone who keeps moving
+## (the Edge caps its own at 62).
+const CURSOR_MAX_SPEED := 70.0
 const HOUSE := Rect2(56, 44, 110, 56)
 const HOUSE_DOOR := Rect2(98, 96, 26, 6)
 const WELL := Rect2(306, 158, 28, 20)
@@ -273,7 +276,7 @@ func on_owner_event(threshold: float) -> void:
 			_unleash()
 		OwnerDirector.PURGE:
 			if cursor:
-				cursor.speed *= 1.2
+				cursor.speed = minf(cursor.speed * 1.2, CURSOR_MAX_SPEED)
 
 
 ## Pinning Mira's note to the board.
@@ -345,13 +348,23 @@ func guide_point() -> Vector2:
 	return Vector2(bounds.end.x, (EAST_GAP.x + EAST_GAP.y) * 0.5)
 
 
+## Where the cursor comes in: the corner of the square furthest from Rue,
+## never on top of an arrival.
+func _cursor_start() -> Vector2:
+	var spots: Array[Vector2] = [bounds.position + Vector2(24, 24), Vector2(bounds.end.x - 24, bounds.position.y + 24),
+		bounds.end - Vector2(24, 24), Vector2(bounds.position.x + 24, bounds.end.y - 24)]
+	var from: Vector2 = world.player.global_position if world and world.player else bounds.get_center()
+	spots.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.distance_to(from) > b.distance_to(from))
+	return spots[0]
+
+
 func _unleash() -> void:
 	start_erasure(ERASE_SEEDS)
 	if cursor == null:
 		cursor = OwnerCursor.new()
 		cursor.bounds = bounds
-		cursor.position = Vector2(320, 40)
-		cursor.speed = 48.0 + OwnerMemory.purge * 5.0
+		cursor.position = _cursor_start()
+		cursor.speed = minf(48.0 + OwnerMemory.purge * 5.0, CURSOR_MAX_SPEED)
 		cursor.player = world.player
 		cursor.is_hidden = world.is_player_hidden
 		cursor.selected_player.connect(func() -> void: world.kill("selected", "cursor"))

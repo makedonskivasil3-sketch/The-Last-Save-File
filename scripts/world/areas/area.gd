@@ -251,6 +251,10 @@ func entry_point(arrival: String) -> Vector2:
 
 ## Erasure grows in this area; seeded where you died here before.
 ## seed_deaths: also seed where you died here before (the owner remembers).
+## Death seeds closer than this to Rue are skipped when the static starts.
+const SAFE_SEED_DISTANCE := 40.0
+
+
 func start_erasure(extra_seeds: Array[Vector2] = [], seed_deaths := true) -> void:
 	if erasure == null or erasure.active:
 		return
@@ -259,8 +263,12 @@ func start_erasure(extra_seeds: Array[Vector2] = [], seed_deaths := true) -> voi
 	erasure.interval = maxf(0.2, 0.45 - 0.04 * OwnerMemory.purge)
 	erasure.burst = 1 + OwnerMemory.purge / 3
 	if seed_deaths:
+		# (Not where you're standing: arriving onto static you can't see
+		# yet isn't a fair death.)
+		var here: Vector2 = world.player.global_position if world and world.player else Vector2.INF
 		for p in OwnerMemory.deaths_in(area_id):
-			erasure.seed_at(p)
+			if here == Vector2.INF or p.distance_to(here) > SAFE_SEED_DISTANCE:
+				erasure.seed_at(p)
 	for p in extra_seeds:
 		erasure.seed_at(p)
 	world.fx.eraser_starts()

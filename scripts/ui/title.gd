@@ -53,7 +53,7 @@ func _ready() -> void:
 	touch.buttons_enabled = false
 	add_child(touch)
 
-	add_child(SaveVista.new())
+	add_child(TitleArt.new())
 
 	# Menus sit above the screen effects (layer 10), like the in-game HUD:
 	# the backdrop can tremble; the words you read never do.
@@ -64,15 +64,18 @@ func _ready() -> void:
 	_ui.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_ui.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui_layer.add_child(_ui)
-	_menu = UiStyle.centered_panel(_ui, 300)
-	_title = UiStyle.heading(_menu, TITLE, UiStyle.TEXT, 22)
+	# Left column, title type large and flush left; the key art has the
+	# right of the screen (scripts/fx/title_art.gd).
+	_menu = UiStyle.side_panel(_ui, 268)
+	_title = UiStyle.heading(_menu, TITLE, UiStyle.TEXT, 24)
+	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	# After the message ending, the tagline changes.
 	var after: Array = _after()
 	var tagline: String = after[0] if not after.is_empty() and OwnerMemory.wins > 0 else "you are not supposed to be here."
-	UiStyle.note(_menu, tagline, UiStyle.OWNER)
-	_menu.add_child(_spacer(6))
+	UiStyle.note(_menu, tagline, UiStyle.OWNER).horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_menu.add_child(_spacer(4))
 	_build_slot_card()
-	_menu.add_child(_spacer(6))
 	_load = UiStyle.button(_menu, "Load Slot 1", _start)
 	if OwnerMemory.sessions == 0:
 		# Nobody has played this "new" save yet. Someone is listening anyway.
@@ -95,13 +98,13 @@ func _ready() -> void:
 	if not OwnerMemory.journal.is_empty():
 		UiStyle.button(row2, "Journal", _show_journal).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UiStyle.button(row2, "Quit", func() -> void: OwnerMemory.quit_game()).size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_menu.add_child(_spacer(4))
-	UiStyle.note(_menu, "Contains flashing and glitch effects. Both can be reduced in Settings.")
+	# The small print, flush left under the menu.
 	var phone := OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios") or Settings.using_touch
-	if phone:
-		UiStyle.note(_menu, "Move: drag on the left side   ·   Interact: the E button   ·   Pause: II")
-	else:
-		UiStyle.note(_menu, "Move: WASD / arrows / stick   ·   Interact: E / A   ·   Pause: Esc / Start")
+	var keys := "drag left side to move  ·  E to interact  ·  II pauses" if phone else "WASD / arrows to move  ·  E to interact  ·  Esc pauses"
+	for line in [keys, "Flashing and glitch effects: reduce them in Settings."]:
+		var small := UiStyle.note(_menu, line)
+		small.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		UiStyle.sized(small, 9)
 
 	_settings_box = UiStyle.centered_panel(_ui, 480)
 	_settings = SettingsPanel.new()

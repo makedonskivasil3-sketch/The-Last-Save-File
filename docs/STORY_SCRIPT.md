@@ -33,7 +33,7 @@ so nothing out there could be deleted.
 | **THE ARCHIVIST** | Cut before the game shipped, so the owner has never seen them. | Dry, kind, a librarian of mistakes. |
 | **PIP** | Rue's fox. Fell out of the map with Rue years ago and never got saved back in. Lives out of bounds. | Lowercase, quick, loyal. Talks in short bursts. |
 
-Pronouns: Rue, the owner and the second player are *they*.
+Pronouns: Rue and the second player (the girl who made her) are *she*; the owner and Arin are *they*.
 
 ---
 

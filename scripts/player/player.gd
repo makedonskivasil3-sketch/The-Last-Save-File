@@ -103,14 +103,7 @@ func _ready() -> void:
 ## `animate`, the restored colours flash in.
 func refresh_look(animate := true) -> void:
 	var count := mini(OwnerMemory.fragments.size(), RESTORE_ORDER.size())
-	_palette = MISSING.duplicate()
-	for i in count:
-		for key in RESTORE_ORDER[i]:
-			_palette[key] = RUE[key]
-	# Pieces of other people, worn since she left a body behind.
-	for who in OwnerMemory.frayed:
-		for key in BORROWED.get(who, {}):
-			_palette[key] = BORROWED[who][key]
+	_palette = palette_for(count, OwnerMemory.frayed)
 	_sprite.palette = _palette
 	_sprite.leg_color = _palette["l"]
 	_sprite.shoe_color = _palette["f"]
@@ -118,6 +111,20 @@ func refresh_look(animate := true) -> void:
 	if animate and count > _restored:
 		_restore_flash = 1.2
 	_restored = count
+
+
+## Rue's colours with `count` memories restored, wearing what she took from
+## `frayed` (the sprite, and the title's key art, use the same rule).
+static func palette_for(count: int, frayed: Array) -> Dictionary:
+	var out: Dictionary = MISSING.duplicate()
+	for i in mini(count, RESTORE_ORDER.size()):
+		for key in RESTORE_ORDER[i]:
+			out[key] = RUE[key]
+	# Pieces of other people, worn since she left a body behind.
+	for who in frayed:
+		for key in BORROWED.get(who, {}):
+			out[key] = BORROWED[who][key]
+	return out
 
 
 ## Rue's colours right now (restored keys are hers, the rest still missing):

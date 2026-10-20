@@ -97,9 +97,9 @@ const ARCHIVIST_FIRST := [
 	"You want out. Everything in here wants out, but you're the only one who can actually leave.",
 	"There's a slot the owner thinks is gone. Slot 2. They deleted it, but what was left washed up past the edge, with the rest of the cut things. It's empty.",
 	"Here. A pointer to it. It'll open the north road. The world isn't loaded up there, so the owner reaches in by hand.",
-	"Reach Slot 2 and you can write yourself into it.",
+	"Reach Slot 2 and you can write yourself into it. A save of your own. Nothing here could delete you then.",
 ]
-const ARCHIVIST_BACK := "Back again. I remember you. I'm the only one here who does, kindly."
+const ARCHIVIST_BACK := "Back again. I remember you. Properly, I mean. The others only half do."
 const ARCHIVIST_AGAIN := "You kept the pointer. Good. North road, when you're ready."
 const ARCHIVIST_NO_PIECES := "Things like you leave pieces behind when they're deleted. Look for anything your colour."
 
@@ -234,7 +234,7 @@ func _cut_content() -> Array:
 		extra.append("ADDED: wren.npc. Note, in pencil: 'she saw the Edge. she's ours now. they can't delete what was cut.'")
 	return extra + [
 		"CUT: archivist.npc. Note: 'talks too much, breaks the mood'.",
-		"FILED: save slot 2. Note: 'deleted by the player, not by us. we kept the shape of it out past the north road.'",
+		"Someone has added, in pencil: save slot 2. deleted by the owner. the shape of it washed up past the north road.",
 		"CUT: the north road and everything past it. Note: 'nobody walks that far'.",
 		"Someone has written underneath, in pencil: everything cut is still here. Just not drawn.",
 	]

@@ -234,7 +234,7 @@ func _last_message() -> Array:
 	var lines: Array = ["rue_last_message.txt · deleted 3 years ago"]
 	if OwnerMemory.fragments.size() >= Story.FRAGMENTS.size():
 		lines.append("\"i'm not gone, i'm just moving. keep my slot. we'll finish it when i visit. promise?\"")
-		lines.append("you remember writing it.")
+		lines.append("you remember her writing it." if OwnerMemory.knows_truth else "you remember writing it.")
 	else:
 		lines.append("\"i'm not gone, i'm just ███████. keep my ████. we'll finish it when ███████. promise?\"")
 		lines.append("most of it won't open. maybe if you remembered more of yourself.")

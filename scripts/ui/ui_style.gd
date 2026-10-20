@@ -133,6 +133,35 @@ static func centered_panel(parent: Control, width: float) -> VBoxContainer:
 	return vbox
 
 
+## A menu column on the left of the screen, vertically centred, with no
+## heavy box: a faint wash and an accent rule. Same nesting as
+## centered_panel (container > panel > box), so callers treat them alike.
+static func side_panel(parent: Control, width: float, inset := 34.0) -> VBoxContainer:
+	var margin := MarginContainer.new()
+	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_theme_constant_override("margin_left", int(inset))
+	parent.add_child(margin)
+	var panel := PanelContainer.new()
+	var box := StyleBoxFlat.new()
+	box.bg_color = Color(0.015, 0.015, 0.025, 0.45)
+	box.border_width_left = 2
+	box.border_color = Color(OWNER, 0.55)
+	box.content_margin_left = 16
+	box.content_margin_right = 14
+	box.content_margin_top = 14
+	box.content_margin_bottom = 14
+	panel.add_theme_stylebox_override("panel", box)
+	panel.custom_minimum_size.x = width
+	panel.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	margin.add_child(panel)
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 6)
+	panel.add_child(vbox)
+	return vbox
+
+
 static func heading(parent: Control, text: String, color := OWNER, size := 16) -> Label:
 	var l := Label.new()
 	l.text = text

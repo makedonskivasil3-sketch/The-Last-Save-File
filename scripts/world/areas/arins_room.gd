@@ -207,7 +207,7 @@ func area_process(_delta: float) -> void:
 		# The wall tears once the owner gets suspicious and starts rewriting
 		# the room. (Agitating the owner on purpose is a way out.)
 		seam.open = world.director.awareness >= OwnerDirector.SUSPECT
-		seam.hint = door.state == Door.State.DELETED
+		seam.hint = door.state != Door.State.OPEN  # locked behind you counts too
 		seam.reveal = 0.25 + world.director.awareness / 100.0 * 0.6 if seam.open else 0.0
 
 

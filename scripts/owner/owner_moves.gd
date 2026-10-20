@@ -111,7 +111,7 @@ func update(delta: float) -> void:
 		pass  # standing still in Slot 2 is the point: no save-over there
 	elif save_progress >= 0.0:
 		_update_save(delta)
-	elif (aw >= OwnerDirector.HUNT and _clock >= _next_save) or _idle_save_due(aw):
+	elif (aw >= OwnerDirector.HUNT and _clock >= _next_save and not world.is_hidden_now()) or _idle_save_due(aw):
 		start_save_over()
 	_update_drag(delta)
 	_update_wren(delta, aw)
@@ -372,6 +372,10 @@ func start_save_over() -> void:
 
 
 func _update_save(delta: float) -> void:
+	# Hidden is hidden: the save can't find who to write over, so it waits
+	# (the tutorial teaches hiding; it has to work against this too).
+	if world.is_hidden_now():
+		return
 	var still: bool = world.player.velocity.length() < 10.0
 	save_progress += delta / SAVE_TIME * (1.0 if still else SAVE_MOVING)
 	_save_tick -= delta

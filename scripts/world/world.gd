@@ -1460,7 +1460,7 @@ func reach_slot2() -> void:
 		return
 	var message := 0
 	if ids[pick] == "message":
-		message = await hud.choose(Story.MESSAGE_QUESTION, Story.MESSAGES)
+		message = await hud.choose(Story.MESSAGE_QUESTION, Story.messages())
 		if not is_inside_tree() or message < 0:
 			return
 	_cutscene = false
