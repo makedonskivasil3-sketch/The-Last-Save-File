@@ -111,7 +111,9 @@ func test_walking_into_a_closet_hides_you_and_walking_out_ends_it() -> void:
 
 
 func test_the_chime_leaves_time_to_reach_a_closet() -> void:
-	var entry: Vector2 = ArinsHouse.new().entries["front"]
+	var house := ArinsHouse.new()
+	var entry: Vector2 = house.entries["front"]
+	house.free()  # (only read for its entry point; never left as an orphan)
 	var nearest := INF
 	for c in ArinsHouse.CLOSETS:
 		nearest = minf(nearest, entry.distance_to(Vector2(c.get_center().x, c.end.y - 4)))
