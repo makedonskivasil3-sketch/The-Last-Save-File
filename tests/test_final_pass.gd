@@ -29,6 +29,7 @@ func test_the_edge_swells_when_it_unloads() -> void:
 	var w := await start_session()
 	w.flags["pointer"] = true
 	await go_to(w, "edge", "south")
+	await wait_until(func() -> bool: return not w.hud.is_act_shown(), 8.0, "the act card")  # the countdown waits for it
 	await wait(1.6)
 	var amb: Ambience = null
 	for c in w.get_children():

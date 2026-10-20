@@ -4,6 +4,7 @@ extends SceneTree
 ##
 ##   godot --headless --path . -s res://tests/run_tests.gd -- --test-mode
 ##   ... -- --test-mode --filter=story          only files/methods containing "story"
+##   ... -- --test-mode --filter=opening,shedding   either (run in the usual order)
 ##   ... -- --test-mode --screenshots=/tmp/s    also save screenshots (needs a display)
 ##
 ##   ... -- --test-mode --bots                  the playtest bots instead (tests/bot_*.gd):
@@ -64,8 +65,8 @@ func _run() -> void:
 			var name: String = method.name
 			if not name.begins_with("test_"):
 				continue
-			if filter != "" and filter not in file and filter not in name:
-				continue
+			if filter != "" and not Array(filter.split(",")).any(func(f: String) -> bool: return f in file or f in name):
+				continue  # (a comma-separated filter matches any of its parts)
 			await _run_one(script, file.get_basename(), name)
 
 	var secs := (Time.get_ticks_msec() - started) / 1000.0

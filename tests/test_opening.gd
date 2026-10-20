@@ -39,8 +39,11 @@ func test_holding_interact_skips_into_the_run() -> void:
 func test_it_runs_its_length_and_then_the_game_begins() -> void:
 	settings().opening_seen = false
 	var film := Opening.new()
+	var old := tree.current_scene
 	tree.root.add_child(film)
 	tree.current_scene = film
+	if old:
+		old.queue_free()  # (else the previous scene keeps running behind it)
 	check(Opening.LENGTH >= 20.0 and Opening.LENGTH <= 35.0, "20–35 s (%.0f)" % Opening.LENGTH)
 	film._t = Opening.LENGTH - 0.5
 	await wait_until(func() -> bool: return scene() is World, 4.0, "the run after the last frame")

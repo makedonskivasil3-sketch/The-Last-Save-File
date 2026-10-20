@@ -1320,7 +1320,7 @@ func _keep_in_journal(node: Node2D, result: Dictionary) -> void:
 	if node is Note:
 		kind = "note"
 	elif node is Readable and node.look != Readable.Look.SIGN:
-		kind = "book" if node.look == Readable.Look.BOOK else "file"
+		kind = "book" if node.look in [Readable.Look.BOOK, Readable.Look.RECORD] else "file"
 	if kind != "" and OwnerMemory.record_read("%s:%s" % [area.area_id, result.speaker], kind, str(result.speaker), area.display_name, result.lines):
 		hud.say("KEPT IN JOURNAL  ·  %s%s" % [result.speaker, "  (pause to re-read)" if OwnerMemory.journal.size() == 1 else ""], "system")
 
