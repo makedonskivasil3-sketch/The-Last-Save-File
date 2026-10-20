@@ -71,3 +71,62 @@ func test_reduced_motion_holds_the_camera_still() -> void:
 	settings().reduce_flashing = false
 	settings().glitch_intensity = 0.0
 	check(Opening.calm(), "zero glitch intensity: the same")
+
+
+func _film() -> Opening:
+	settings().opening_seen = false
+	var film := Opening.new()
+	var old := tree.current_scene
+	tree.root.add_child(film)
+	tree.current_scene = film
+	if old:
+		old.queue_free()
+	await frames(2)
+	return film
+
+
+func test_a_press_held_over_from_the_title_does_not_skip() -> void:
+	Input.action_press("interact")  # still down from choosing Load
+	var film := await _film()
+	await wait(1.5)
+	check(is_instance_valid(film) and not film._done, "held from before the film: it plays on")
+	Input.action_release("interact")
+	await frames(2)
+	Input.action_press("interact")
+	await wait(1.0)
+	Input.action_release("interact")
+	await wait_until(func() -> bool: return scene() is World, 5.0, "a fresh hold skips")
+
+
+func test_looking_away_holds_the_film_and_its_skip() -> void:
+	var film := await _film()
+	await wait(1.0)
+	film._notification(Node.NOTIFICATION_APPLICATION_FOCUS_OUT)
+	var at := film._t
+	Input.action_press("interact")
+	await wait(1.2)
+	check_eq(film._t, at, "no time passes while the window is elsewhere")
+	check(not film._done, "and a key held meanwhile doesn't skip")
+	film._notification(Node.NOTIFICATION_APPLICATION_FOCUS_IN)
+	await wait(1.2)
+	check(not film._done, "back again, that key must be let go before it can skip")
+	check(film._t > at + 0.5, "the film carries on from the same frame")
+	Input.action_release("interact")
+	await frames(3)
+
+
+func test_the_skip_key_is_let_go_before_the_room_takes_input() -> void:
+	var film := await _film()
+	await wait(0.3)
+	Input.action_press("interact")
+	await wait(1.2)
+	check(film._done, "skipped")
+	check(scene() is Opening, "but the room waits while the key is still down")
+	Input.action_release("interact")
+	await wait_until(func() -> bool: return scene() is World, 4.0, "the room, once it's let go")
+	check(not (scene() as World).glitch.is_charging() if (scene() as World).glitch and (scene() as World).glitch.has_method("is_charging") else true, "no glitch charging from the skip")
+
+
+func test_the_opening_names_no_one() -> void:
+	var src := FileAccess.get_file_as_string("res://scripts/ui/opening.gd")
+	check(not src.contains("\"P2  RUE\""), "Player 2 is not labelled with Rue's name")

@@ -33,6 +33,9 @@ var _held := false
 var _skip_t := 0.0
 var _hint_t := 0.0
 var _done := false
+## Skips count only after every skip input has been seen released.
+var _armed := false
+var _handed_off := false
 var _cues := {}
 var _arin := IllustratedCharacter.new("adult", {
 	"h": OwnerAvatar.HAIR, "s": OwnerAvatar.SKIN, "c": OwnerAvatar.BODY, "d": Color("2e3f5c"), "a": Color("c0392b"),
@@ -106,18 +109,42 @@ func _label(layer: CanvasLayer, pos: Vector2, size: int, color: Color) -> Label:
 
 
 func _notification(what: int) -> void:
-	# Looking away holds the film where it is.
+	# Looking away holds the film, its music and any skip in progress where
+	# they are; coming back resumes from the same frame (no time jump), and a
+	# key still held from before has to be let go before it can skip.
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
 		_held = true
+		_skip_t = 0.0
+		_armed = false
+		if _music:
+			_music.stream_paused = true
 	elif what == NOTIFICATION_APPLICATION_FOCUS_IN:
 		_held = false
+		if _music:
+			_music.stream_paused = false
+
+
+## Any of the skip inputs held right now (keys, pad, a finger or the mouse).
+static func _skip_held() -> bool:
+	return Input.is_action_pressed("interact") or Input.is_action_pressed("confirm") \
+		or Input.is_action_pressed("ui_cancel") or Input.is_action_pressed("pause") \
+		or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
 
 
 func _process(delta: float) -> void:
 	if _done:
+		# The hand-off: whatever skipped (or a press during the last frames)
+		# is let go before the game or the title takes input, so it can't
+		# charge a glitch in the room or press a menu button.
+		if not _skip_held() and not _handed_off:
+			_handed_off = true
+			if is_inside_tree():
+				get_tree().change_scene_to_file.call_deferred(TITLE_SCENE if replay else GAME_SCENE)
 		return
+	if _held:
+		return  # focus elsewhere: nothing moves, nothing skips
 	_update_skip(delta)
-	if _done or _held:
+	if _done:
 		return
 	_t += delta
 	_update_music()
@@ -187,9 +214,12 @@ static func _lerp_palette(a: Dictionary, b: Dictionary, k: float) -> Dictionary:
 
 ## Any press shows how to skip; holding it skips.
 func _update_skip(delta: float) -> void:
-	var held := Input.is_action_pressed("interact") or Input.is_action_pressed("confirm") \
-		or Input.is_action_pressed("ui_cancel") or Input.is_action_pressed("pause") \
-		or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+	var held := _skip_held()
+	# A press that began before the film (the title's Load, held) or before
+	# focus came back doesn't count: let go first, then hold to skip.
+	if not _armed:
+		_armed = not held
+		held = false
 	if held:
 		_hint_t = 3.0
 		_skip_t += delta
@@ -209,9 +239,10 @@ func _finish() -> void:
 		return
 	_done = true
 	Settings.set_value("opening_seen", true)
+	if _music:
+		_music.stop()
 	finished.emit()
-	if is_inside_tree():
-		get_tree().change_scene_to_file.call_deferred(TITLE_SCENE if replay else GAME_SCENE)
+	# The scene changes in _process, once nothing is held.
 
 
 ## 0..1: how far into the film (for tests and the storyboard).
@@ -256,7 +287,10 @@ func _draw() -> void:
 	var font := UiStyle.system_font()
 	var labels_a := a * (1.0 - clampf((_t - 17.0) / 1.0, 0.0, 1.0))
 	draw_string(font, TV.position + Vector2(8, 14), "P1  ARIN", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.55, 0.7, 1.0, labels_a))
-	var p2 := "P2  RUE" if _t < 9.0 else "P2  ---"
+	# Player 2 is a player, not a name: the opening doesn't say who she was
+	# playing, or that the small figure is anyone in particular (that is the
+	# story's to find out; docs/DARK_TRUTH_DESIGN.md).
+	var p2 := "P2" if _t < 9.0 else "P2  --"
 	draw_string(font, Vector2(TV.end.x - 60, TV.position.y + 14), p2, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1.0, 0.8, 0.5, labels_a))
 	if _t > 9.0 and _t < 12.5:
 		var ta := a * clampf((_t - 9.0) / 0.3, 0.0, 1.0) * (1.0 - clampf((_t - 12.0) / 0.5, 0.0, 1.0))

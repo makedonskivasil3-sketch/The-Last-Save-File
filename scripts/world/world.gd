@@ -26,6 +26,9 @@ var area: Area
 var flags: Dictionary = {}
 ## "", "death", "quit", "win"
 var ending := ""
+## Development benchmark only (tests/tour_benchmark.gd): Rue can't be killed,
+## so a pursuit sample is never a death card. Never set in play.
+var bench_immune := false
 ## Why you last died this session (a key of Story.DEATHS), for the death card.
 var last_death := ""
 var purged := false
@@ -1338,6 +1341,8 @@ static func death_kept_line() -> String:
 ## cause picks the death effect ("erased", "overwritten", "selected");
 ## reason picks the explanation and tip (a key of Story.DEATHS).
 func kill(cause: String, reason := "") -> void:
+	if bench_immune:
+		return  # development benchmark only (tests/tour_benchmark.gd): nothing else changes
 	if ending != "" or _transitioning:
 		return
 	PlaytestLog.mark("DIED", "%s (%s) in %s, awareness %d" % [reason, cause, area.area_id, int(director.awareness)])
