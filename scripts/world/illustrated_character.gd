@@ -17,7 +17,7 @@ const OUTLINE_W := 0.75
 ## radius, and what the silhouette is built from.
 const BODIES := {
 	"rue": {"h": 26.0, "sh": 4.6, "head": 5.4, "hair": "messy", "lower": "trousers", "scarf": true},
-	"adult": {"h": 30.0, "sh": 5.4, "head": 5.4, "hair": "short", "lower": "trousers", "belt": true},
+	"adult": {"h": 30.0, "sh": 5.4, "head": 5.4, "hair": "short", "lower": "trousers", "belt": true, "scarf": true},
 	"dress": {"h": 28.0, "sh": 4.8, "head": 5.4, "hair": "long", "lower": "dress"},
 	"apron": {"h": 28.0, "sh": 6.0, "head": 5.6, "hair": "bald", "lower": "trousers", "apron": true, "moustache": true},
 	"child": {"h": 21.0, "sh": 3.8, "head": 5.0, "hair": "pigtails", "lower": "smock"},
@@ -280,8 +280,14 @@ func _head(p: _Parts, o: Vector2, side: bool) -> void:
 		p.circle(c, r + 1.2, _c("g", _c("h", Color("3fa6b8"))))
 		p.ellipse(c + Vector2(0.4 if side else 0.0, 0.6), Vector2(r - 1.2, r - 0.8), Color("05070a"), false)
 		return
-	p.circle(c, r, skin if not back else hair)
+	p.circle(c, r, skin if not back or style == "bald" else hair)
 	if back:
+		if style == "bald":
+			# Bald on every view: hair is a rim, never a full cap.
+			p.ellipse(c + Vector2(-r + 0.7, 0.6), Vector2(1.0, 2.0), hair)
+			p.ellipse(c + Vector2(r - 0.7, 0.6), Vector2(1.0, 2.0), hair)
+		if style == "messy":
+			p.poly(PackedVector2Array([c + Vector2(0.4, -r - 2.6), c + Vector2(-0.8, -r + 0.2), c + Vector2(1.4, -r + 0.2)]), hair)
 		return
 	# Hair on top: a cap with a shape that says who it is.
 	match style:
