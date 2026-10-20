@@ -53,6 +53,16 @@ var _lure_cooldown := 0.0
 var _chasing := false
 var _ignore: Array[RID] = []
 var _ignore_age := 99.0
+## A route point that can't be reached is skipped; after a whole round of
+## them, Arin keeps watch where it stands this long before trying again.
+const WATCH_TIME := 3.0
+## How far Arin may step to get out of a solid it finds itself in.
+const RECOVER_RANGE := 16.0
+var _nav: NavGrid
+var _path := PackedVector2Array()
+var _path_goal := Vector2.INF
+var _path_short := false
+var _skipped := 0
 ## The protagonist the owner loves: blue tunic, dark hair, a red scarf.
 var _sprite := IllustratedCharacter.new("adult", {
 	"h": HAIR, "s": SKIN, "c": BODY, "d": Color("2e3f5c"), "a": Color("c0392b"),
@@ -83,40 +93,29 @@ func _physics_step(delta: float) -> void:
 	if stunned > 0.0:
 		stunned -= delta
 		return
-	if route.is_empty() or paused:
+	if paused:
 		return
 	_lure_cooldown = maxf(0.0, _lure_cooldown - delta)
-	var decoy: Vector2 = lure.call() if lure.is_valid() and _lure_cooldown <= 0.0 else Vector2.INF
-	_chasing = decoy != Vector2.INF and decoy.distance_to(global_position) < 200.0
-	if _chasing:
-		# Fooled: walk at the stale frame of you, staring at it.
-		var to_decoy := decoy - global_position
-		_facing = _facing.lerp(to_decoy.normalized(), minf(1.0, delta * 8.0)).normalized()
-		if to_decoy.length() > 6.0 and _travel(decoy, speed * 1.2 * delta, delta):
-			# Blocked (a wall between): look a moment where it should be, then
-			# give up on it and go back to the round. No walking through walls,
-			# no endless pushing against them.
-			_chasing = false
-			_lure_cooldown = LURE_COOLDOWN
-			_wait = INVESTIGATE_TIME
-			_stuck = 0.0
-		_seeing = false
-		return
-	if _wait > 0.0:
-		_wait -= delta
+	if _recover(delta):
+		pass  # stepping back out onto open floor first (detection still runs)
 	else:
-		_target %= route.size()  # the route may have been changed under us
-		var goal := route[_target]
-		var to := goal - position
-		if to.length() < 2.0:
-			_target = (_target + 1) % route.size()
-			_wait = GUARD_WAIT if goal == guard_point else 0.6  # pauses at corners, looking around
-			_stuck = 0.0
-		else:
-			_facing = _facing.lerp(to.normalized(), minf(1.0, delta * 6.0)).normalized()
-			if _travel(goal, minf(speed * delta, to.length()), delta):
-				_target = (_target + 1) % route.size()  # can't get there from here: on to the next
-				_stuck = 0.0
+		var decoy: Vector2 = lure.call() if lure.is_valid() and _lure_cooldown <= 0.0 else Vector2.INF
+		_chasing = decoy != Vector2.INF and decoy.distance_to(global_position) < 200.0
+		if _chasing:
+			# Fooled: walk at the stale frame of you, staring at it, around
+			# whatever is in the way.
+			var to_decoy := decoy - global_position
+			_facing = _facing.lerp(to_decoy.normalized(), minf(1.0, delta * 8.0)).normalized()
+			if to_decoy.length() > 6.0 and _go(decoy, speed * 1.2, delta) == Go.BLOCKED:
+				# Can't get to it (no way round, or as close as it gets): look a
+				# moment where it should be, then give up on it and go back to
+				# the round. No walking through walls, no endless pushing.
+				_chasing = false
+				_lure_cooldown = LURE_COOLDOWN
+				_wait = INVESTIGATE_TIME
+			_seeing = false
+			return
+		_patrol(delta)
 	_seeing = can_see(player.global_position) if is_instance_valid(player) else false
 	if _seeing:
 		sees_player.emit(delta)
@@ -129,15 +128,72 @@ func is_chasing() -> bool:
 	return _chasing
 
 
+## The round: walk from point to point (around solids, through doorways),
+## pausing at each. A point that can't be reached is skipped; if none of
+## them can be, Arin keeps watch where it stands for a while, then tries the
+## round again. With no route at all, Arin keeps watch (it still sees and
+## still touches).
+func _patrol(delta: float) -> void:
+	if _wait > 0.0:
+		_wait -= delta
+		return
+	if route.is_empty():
+		return
+	_target %= route.size()  # the route may have been changed under us
+	var goal := route[_target]
+	match _go(goal, speed, delta):
+		Go.ARRIVED:
+			_target = (_target + 1) % route.size()
+			_wait = GUARD_WAIT if goal == guard_point else 0.6  # pauses at corners, looking around
+			_skipped = 0
+		Go.BLOCKED:
+			_target = (_target + 1) % route.size()
+			_skipped += 1
+			if _skipped >= route.size():
+				_skipped = 0
+				_wait = WATCH_TIME  # nowhere it can get to: keep watch, then try again
+
+
+enum Go { MOVING, ARRIVED, BLOCKED }
+
+
+## One step toward `goal` along a path around solids. ARRIVED when there;
+## BLOCKED when it can't be reached (the path ends short of it, or Arin got
+## stuck and the area's grid is rebuilt for next time).
+func _go(goal: Vector2, spd: float, delta: float) -> Go:
+	if global_position.distance_to(goal) < 2.0:
+		_path = PackedVector2Array()
+		return Go.ARRIVED
+	var grid := nav()
+	if _path_goal.distance_to(goal) > 4.0 or _path.is_empty():
+		_path_goal = goal
+		_path = grid.path(global_position, goal) if grid else PackedVector2Array([goal])
+		_path_short = _path.is_empty() or _path[_path.size() - 1].distance_to(goal) > 6.0
+		if _path.is_empty():
+			return Go.BLOCKED
+	while not _path.is_empty() and global_position.distance_to(_path[0]) < 1.5:
+		_path.remove_at(0)
+	if _path.is_empty():
+		_path_goal = Vector2.INF
+		return Go.BLOCKED if _path_short else Go.ARRIVED
+	var next := _path[0]
+	_facing = _facing.lerp((next - global_position).normalized(), minf(1.0, delta * 6.0)).normalized()
+	if _travel(next, minf(spd * delta, global_position.distance_to(next)), delta):
+		_stuck = 0.0
+		_path = PackedVector2Array()
+		_path_goal = Vector2.INF
+		_invalidate_nav()  # the level changed under the grid (a door, crates)
+		return Go.BLOCKED
+	return Go.MOVING
+
+
 ## Walks up to `dist` toward `goal` without entering a solid, sliding along
 ## walls (the level's solids are rectangles, so moving each axis separately
 ## slides cleanly). Returns true once Arin has been blocked for STUCK_TIME.
 func _travel(goal: Vector2, dist: float, delta: float) -> bool:
 	var motion := (goal - global_position).limit_length(dist)
 	var before := global_position
-	if not is_inside_tree() or _solid_at(global_position):
-		global_position += motion  # (already inside something: walk out of it)
-	else:
+	if is_inside_tree():
 		for axis in [Vector2(motion.x, 0.0), Vector2(0.0, motion.y)]:
 			if axis.length() > 0.001:
 				global_position += axis * _free_fraction(axis)
@@ -147,6 +203,21 @@ func _travel(goal: Vector2, dist: float, delta: float) -> bool:
 	else:
 		_stuck = 0.0
 	return _stuck >= STUCK_TIME
+
+
+## Inside a solid (a spawn point at a doorway, a wall that moved): step back
+## out to the nearest open floor within RECOVER_RANGE, never across an
+## obstacle, never by teleporting. With none that close, stay put (and keep
+## watching) rather than walk through. True while recovering.
+func _recover(delta: float) -> bool:
+	var grid := nav()
+	if grid == null or grid.clear(global_position, -0.5):
+		return false
+	var out := grid.nearest_open(global_position, RECOVER_RANGE)
+	if out == Vector2.INF:
+		return true  # stuck fast: hold still, safely
+	global_position = global_position.move_toward(out, speed * delta)
+	return true
 
 
 ## How much of `motion` Arin's feet can take before touching a solid (0..1).
@@ -161,15 +232,6 @@ func _free_fraction(motion: Vector2) -> float:
 	q.exclude = _ignored()
 	var r := get_world_2d().direct_space_state.cast_motion(q)
 	return r[0] if r.size() > 0 else 1.0
-
-
-## Is `p` inside a solid Arin respects (a wall, furniture, a missing texture)?
-func _solid_at(p: Vector2) -> bool:
-	var q := PhysicsPointQueryParameters2D.new()
-	q.position = p
-	q.collision_mask = _mask()
-	q.exclude = _ignored()
-	return not get_world_2d().direct_space_state.intersect_point(q, 1).is_empty()
 
 
 func _mask() -> int:
@@ -191,36 +253,63 @@ func _ignored() -> Array[RID]:
 	return _ignore
 
 
-## The nearest clear floor to `p` (itself if clear), or INF if none is close.
+## The area's walkable grid (shared by everything walking in it), built on
+## first use from the area's solids at Arin's radius.
+func nav() -> NavGrid:
+	if _nav != null or not is_inside_tree():
+		return _nav
+	var a := get_parent()
+	if a and a.has_meta("nav_grid"):
+		_nav = a.get_meta("nav_grid")
+		return _nav
+	var b := Rect2(0, 0, 640, 360)
+	if a is Area:
+		b = (a as Area).bounds
+	_ignore_age = 99.0
+	_nav = NavGrid.new()
+	_nav.build(get_world_2d().direct_space_state, b, _mask(), _ignored(), RADIUS)
+	if a:
+		a.set_meta("nav_grid", _nav)
+	return _nav
+
+
+func _invalidate_nav() -> void:
+	var a := get_parent()
+	if a and a.has_meta("nav_grid") and a.get_meta("nav_grid") == _nav:
+		a.remove_meta("nav_grid")
+	_nav = null
+
+
+## The nearest open floor to `p` with room for Arin's whole body (itself if
+## clear), or INF if there's none within FREE_SEARCH.
 func free_point(p: Vector2) -> Vector2:
-	if not is_inside_tree() or not _solid_at(p):
-		return p
-	for r in range(4, int(FREE_SEARCH) + 1, 4):
-		for i in 12:
-			var c := p + Vector2.from_angle(TAU * i / 12.0) * r
-			if not _solid_at(c):
-				return c
-	return Vector2.INF
+	var grid := nav()
+	return grid.nearest_open(p, FREE_SEARCH) if grid else p
 
 
-## Every destination on clear floor: points inside a solid move to the
-## nearest clear spot, or are dropped if there's none nearby.
+## Every destination on open floor with room for Arin: points inside or
+## against a solid move to the nearest open spot; points with none nearby
+## are dropped. Nothing rejected is kept: if every point goes, the route is
+## empty and Arin keeps watch where it stands. A guard point with no open
+## floor near it is given up the same way.
 func _sanitize_route() -> void:
 	if not is_inside_tree():
 		return
+	if guard_point != Vector2.INF:
+		var g := free_point(guard_point)
+		for i in route.size():
+			if route[i] == guard_point:
+				route[i] = g
+		guard_point = g
 	var clean: Array[Vector2] = []
 	for p in route:
 		var f := free_point(p)
 		if f != Vector2.INF and (clean.is_empty() or clean.back().distance_to(f) > 2.0):
 			clean.append(f)
-	if guard_point != Vector2.INF:
-		var g := free_point(guard_point)
-		for i in clean.size():
-			if clean[i] == guard_point:
-				clean[i] = g
-		guard_point = g
-	if not clean.is_empty():
-		route = clean
+	route = clean
+	_target = 0 if route.is_empty() else _target % route.size()
+	_path = PackedVector2Array()
+	_path_goal = Vector2.INF
 
 
 func can_see(pos: Vector2) -> bool:

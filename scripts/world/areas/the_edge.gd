@@ -297,23 +297,25 @@ func guard_route(c: Vector2) -> Array[Vector2]:
 	return out
 
 
-## Inside the area with room to stand, and not inside anything solid.
+## The Edge's walkable grid (the same one Arin uses: OwnerAvatar.nav()).
+func guard_grid() -> NavGrid:
+	if has_meta("nav_grid"):
+		return get_meta("nav_grid")
+	var grid := NavGrid.new()
+	var skip: Array[RID] = [world.player.get_rid()]
+	grid.build(get_world_2d().direct_space_state, bounds, world.player.collision_mask, skip, OwnerAvatar.RADIUS)
+	set_meta("nav_grid", grid)
+	return grid
+
+
+## Room for Arin's whole body: inside the area, touching nothing solid.
 func _guard_ok(p: Vector2) -> bool:
-	if not bounds.grow(-12.0).has_point(p):
-		return false
-	var q := PhysicsPointQueryParameters2D.new()
-	q.collision_mask = 1
-	for d in [Vector2.ZERO, Vector2(5, 0), Vector2(-5, 0), Vector2(0, 5), Vector2(0, -5)]:
-		q.position = p + d
-		if not get_world_2d().direct_space_state.intersect_point(q, 1).is_empty():
-			return false
-	return true
+	return guard_grid().clear(p)
 
 
-## Nothing solid on the straight walk from a to b.
+## Arin can walk from a to b (around solids if it has to).
 func _walkable(a: Vector2, b: Vector2) -> bool:
-	var q := PhysicsRayQueryParameters2D.create(a, b, 1)
-	return get_world_2d().direct_space_state.intersect_ray(q).is_empty()
+	return guard_grid().reaches(a, b)
 
 
 ## Arin walks up the road and circles the slot.
