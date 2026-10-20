@@ -75,8 +75,12 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var bob := sin(_t * 2.0) * 2.0
+	# The objective: the brightest steady thing at the Edge, with a slow
+	# pulse (motion that isn't a threat's strobe) so it's found at a glance.
+	var pulse := 0.5 + 0.5 * sin(_t * 1.6)
 	for i in 3:
-		draw_circle(Vector2(0, bob), 10.0 + i * 6.0 + sin(_t * 3.0 + i) * 2.0, Color(0.55, 0.95, 1.0, 0.06))
+		draw_circle(Vector2(0, bob), 10.0 + i * 6.0 + sin(_t * 3.0 + i) * 2.0, Color(0.55, 0.95, 1.0, 0.07 + 0.06 * pulse))
+	draw_arc(Vector2(0, bob), 16.0 + 6.0 * pulse, 0.0, TAU, 32, Color(0.55, 0.95, 1.0, 0.35 * (1.0 - pulse)), 1.0)
 	draw_rect(Rect2(Vector2(-7, -9 + bob), Vector2(14, 18)), Color("0c1a1f"))
 	draw_rect(Rect2(Vector2(-7, -9 + bob), Vector2(14, 18)), Color("8cf2ff"), false, 1.0)
 	draw_string(UiStyle.system_font(), Vector2(-6, 3 + bob), "02", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("8cf2ff"))

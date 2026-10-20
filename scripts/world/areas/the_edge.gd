@@ -339,8 +339,11 @@ func _send_arin() -> void:
 
 func _draw() -> void:
 	var r := bounds
-	draw_rect(r, Color(0.01, 0.01, 0.02))
-	var grid := Color(0.55, 0.95, 1.0, 0.06)
+	# Safe floor is a dark slate, clearly lighter than the erased void (pure
+	# black with a red rim): what you can stand on never looks like what
+	# kills you. The grid stays faint: it's the world's scaffolding, not news.
+	draw_rect(r, Color(0.075, 0.08, 0.1))
+	var grid := Color(0.55, 0.95, 1.0, 0.045)
 	for x in range(int(r.position.x), int(r.end.x) + 1, 16):
 		draw_line(Vector2(x, r.position.y), Vector2(x, r.end.y), grid)
 	for y in range(int(r.position.y), int(r.end.y) + 1, 16):
@@ -364,7 +367,7 @@ func _draw() -> void:
 			y += cell
 			row += 1
 	for pos: Vector2 in LABELS:
-		var a := 0.25 + 0.1 * sin(_t * 1.5 + pos.x)
+		var a := 0.13 + 0.04 * sin(_t * 1.5 + pos.x)  # decoration: quieter than anything that matters
 		draw_string(UiStyle.system_font(), pos, LABELS[pos], HORIZONTAL_ALIGNMENT_LEFT, -1, 7, Color(0.55, 0.95, 1.0, a))
 	# Where the static will start: cracks that pulse harder as it nears.
 	if grace >= 0.0:

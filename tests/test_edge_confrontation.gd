@@ -56,3 +56,31 @@ func test_the_goal_follows_the_confrontation() -> void:
 	check(edge.goal_text().contains("yours again"), "released: it's yours again")
 	await wait(0.6)
 	check(w.hud._objective.text.contains("yours again"), "and the HUD shows it")
+
+
+func test_every_place_the_slot_can_be_is_reachable_from_the_road() -> void:
+	var w := await start_session()
+	var edge := await _at_edge(w)
+	var road: Vector2 = edge.entries["south"]
+	for spot in [TheEdge.SLOT_POS] + TheEdge.DROP_SPOTS:
+		check(edge.guard_grid().reaches(road, spot), "Slot 2 at %s can be walked to from the road" % spot)
+
+
+func test_menu_pause_freezes_the_whole_confrontation() -> void:
+	var w := await start_session()
+	var edge := await _at_edge(w)
+	await wait_until(func() -> bool: return not w.hud.is_act_shown(), 8.0, "the card")
+	edge.cursor.global_position = Vector2(80, 250)
+	w.player.global_position = edge.slot.global_position
+	edge.slot.progress = TheEdge.FIGHT_AT
+	await wait_until(func() -> bool: return edge.fight == "reach", 4.0, "the reach")
+	var cursor_at: Vector2 = edge.cursor.global_position
+	var prog: float = edge.slot.progress
+	w.open_pause()
+	await wait(1.0)
+	check_eq(edge.fight, "reach", "the owner's reach waits with the menu open")
+	check(edge.cursor.global_position.distance_to(cursor_at) < 0.5, "the cursor holds still")
+	check_eq(edge.slot.progress, prog, "and the slot neither fills nor drains")
+	w._pause_menu.close()
+	await wait(1.0)
+	check(edge.cursor.global_position.distance_to(cursor_at) > 1.0 or edge.fight != "reach", "closing the menu lets it go on")
