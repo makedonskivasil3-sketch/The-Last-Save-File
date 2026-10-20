@@ -585,9 +585,8 @@ validation and staged screenshots. The Windows artifact also includes `PLAY-ME.t
 
 Tagging a version (`git tag v0.2.0 && git push --tags`) also publishes the zips on a **Release** page.
 
-**Optional: play in the browser.** Under *Settings → Pages* set *Source* to **GitHub Actions**, then
-under *Settings → Secrets and variables → Actions → Variables* add `ENABLE_PAGES` = `true`. The
-next push deploys the web build to `https://<user>.github.io/The-Last-Save-File/`.
+**Play in the browser.** Under *Settings → Pages* set *Source* to **GitHub Actions** (once). After
+that, every push to `main` deploys the web build to `https://<user>.github.io/The-Last-Save-File/`.
 
 ### Presentation and narration
 
