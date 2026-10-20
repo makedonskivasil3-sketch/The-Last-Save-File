@@ -207,6 +207,22 @@ The title is the first image anyone sees, so it now carries key art instead of a
 - **It changes with the save:** her colours come from `Player.palette_for` (the same rule as the sprite), so a first launch shows the missing version with two points of light for eyes. The Slot 2 bar fills a little with each memory. Past purge 1, the screen occasionally slips (scaled by the flash setting).
 - **Status:** Implemented; Visually inspected (`tour_visual` 00/01). The look and feel of the first impression is still pending a human opinion.
 
+## Pass 8: finishing the established direction (no new style)
+
+Each change answers a capture, and each applies a rule from the art specification above rather than inventing a new one.
+
+| Area | Before (capture) | Change | Status |
+|---|---|---|---|
+| The Edge's walls | Full magenta/black checkerboards, the loudest thing on screen after the cursor | **Grey-box blocks** (`Decor.greybox`): the untextured stand-ins of an unfinished level. A lit top face, a front face for depth, one crisp edge (the collision boundary) and a 6 px missing-texture tag in a corner. Unfinished world, not unfinished production | Implemented; Visually inspected (`tour_visual` 15) |
+| The Edge's exit sign | "ASHVALE" drawn on Rue's arrival spot | Beside the gap | Implemented |
+| Warning banner | 16 px headline across the top of the play area (y 70) | A compact plate (13 px) at y 50, shown only with text; warnings just under it | Implemented; inspection pending on every area |
+| Text over the world | 2–4 px black rims (terminal look) | A thin outline plus a soft drop shadow (`UiStyle.outline`) | Implemented; Visually inspected |
+| Interior walls | The top wall a flat band | A built-up face in `Decor.walls`: light falling off towards the ceiling, a faint wallpaper stripe, a wainscot with panels and a rail, the skirting. Shading, not height: collision unchanged | Implemented; subtle at 640×360, visible at 1280×720 |
+| Character motion | Instant flips; dead stops | A 0.12 s squeeze through a turn and a 0.18 s settle on stopping, scaled about the feet | Implemented; Human observed: pending |
+| Title in every state | One state checked | `tour_title`: clean, partial, full + frayed, after an ending with every button, large text, controller focus, touch, small window. With large text and every button the menu was 403 px on a 360 px screen: now the controls line gives way first, then the column scrolls and follows focus (the flashing warning always stays) | Implemented; Automated (`test_the_title_menu_fits…`); Visually inspected |
+
+Not done in this pass: portrait expression work, furniture perspective beyond the shared `furniture()` helper, and a lighting hierarchy pass per area. All are listed under "Not done".
+
 ## Not done (pending)
 
 - **Production art:** no external artist assets. Everything is drawn in code and needs nothing to be licensed. A finished pass would replace `Decor` and `IllustratedCharacter` drawing with authored art at the same anchor points:

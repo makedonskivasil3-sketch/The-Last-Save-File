@@ -189,3 +189,43 @@ Sources: a player-experience review, a story-consistency review and an engineeri
 | Quits add purge; a phone killing a background tab counts as a crash | Design (kept) | Six quiet evenings can purge the save | Kept: the quit/purge rule is the author's. Worth revisiting after playtests | — |
 | Act cards and NEW GLITCH hold threats only at the Edge | Confirmed | A 4 s card in the square while Arin moves | Not changed this pass (moving the Edge's hold into World touches every area) | — |
 | Escape card "the owner doesn't know this slot survived" vs the owner's "i deleted that" seconds earlier | Story (open) | Reads as a contradiction to an attentive player | **Kept:** it is the author's decided wording (NARRATIVE_DECISIONS.md, cut-content ghost). Option for the author: "the owner didn't know this slot survived. now they do." | `test_canon` |
+
+## Pass 8 (2026-10-20): consistent rules, a navigation lifecycle, a deliberate finale
+
+### The protection policy (one rule, read by every threat)
+
+`World._reading_now()` is the single definition. Every threat reads it through `World.is_owner_paused()` (awareness, owner moves, Arin, the square's cursor, the house's visit timer, Mira's exposure, the Edge countdown) or `Area.set_owner_paused()` (Arin, cursors, erasure). Slot writing reads `World.story_holds()` (the same rule minus PAUSE, which holds the owner but not Rue's own progress).
+
+| Presentation | Covers the scene / needs attention? | Holds the owner? |
+|---|---|---|
+| Dialogue, a question, a cinematic, a scripted scene | Yes | Yes (unchanged) |
+| Act card, NEW GLITCH card (large, centre) | Yes | **Yes, everywhere** (was: the Edge only) |
+| Area name card, tutorial tip, console line, goal line, banner | No (small, at the edges) | No |
+| Pause menu, focus loss (opens the pause menu) | Yes | The whole tree stops |
+| PAUSE (the glitch) | No | Holds the owner; Rue keeps writing Slot 2 |
+
+Resuming is safe: a cursor's click in progress restarts from zero after any hold (no banked click); cadences (`_next_save`, `_next_wren`) are pushed back by the hold's length; erasure and threats simply stop and continue; the hold is evaluated every frame, so it can't stick.
+
+### Ledger
+
+| Finding | Kind | Evidence | Player impact | Correction | Validation |
+|---|---|---|---|---|---|
+| Large cards held threats only at the Edge | Confirmed (source) | `TheEdge._arriving` was the only card hold | A 2.8 s card in the square while Arin and the cursor moved and awareness rose | Act and NEW GLITCH cards are part of the one rule; act cards count from the frame they're requested | `test_an_act_card_outside_the_edge_holds_every_threat`, `test_a_new_glitch_card_holds_the_owner_in_the_square`, `test_small_text_does_not_hold_the_owner` |
+| A click in progress survived a hold | Confirmed | `OwnerCursor._select` kept its value while paused | A click could land the moment a card closed | Reset while paused | `test_closing_a_card_never_lands_a_banked_click` |
+| No notice when geometry opened; a stuck walker threw the shared grid away (others kept the stale one) | Confirmed | `_invalidate_nav` removed the area's grid; nothing told walkers of doors or crates | New ways through unused; walkers disagreeing about the level | `NavGrid.version` + partial `refresh(rect)`; `Area.geometry_changed` (merged, after two physics frames); doors, the cracked wall and dragged crates notify; walkers replan on a new version; a watch over an unreachable point ends when the version changes | Opening/closing, crates moving, shared grid, watch ended early (`test_pass8`) |
+| Recovery moved straight to the nearest open cell | Confirmed | `_recover` used `move_toward` | Could cut across a thin wall | Steps along the contact normal, each step must lessen the overlap, bounded at 16 px, holds still otherwise | Thin wall, inside corner (overlap never grows, no jumps), `test_threat_navigation` |
+| Exact path ends replaced cell centres unconditionally | Hypothesis (risk) | `path()` | A last step that grazes a corner | Kept only when the body can sweep to it (`sweep_clear`) | 40 random paths: every step body-safe |
+| **Slot 2 finishing before the grab** | **Decision** | Pass 6 tour; `_update_fight` | — | **Kept as earned counterplay** (luring or blinding the cursor far enough away). Now a clean outcome: `fight = "beaten"`, the hand stops, banner and goal clear, Arin isn't sent, the owner says `FINAL_FIGHT.late`; the run records `slot2_beaten`. Endings and the recap don't mention the grab, so they fit either way | `test_slot_two_written_before_the_hand_arrives_is_a_clean_win`, `test_the_full_confrontation_still_happens_when_the_hand_is_close`, `test_confrontation` |
+| Finale retries replayed the room | Confirmed (measured) | `tour_retry`: 40.5 s back to the Edge at purge 1, 28 s of it pacing for the seam | A retry is mostly waiting | After a death at the Edge the room's seam is already open. Nothing else changes (purge, deaths, deletions, knowledge) | `tour_retry`: 40.5 → 14.0 s (purge 1), 23.1 → 17.2 s (purge 3); `test_back_from_an_edge_death…`, `test_a_death_elsewhere…` |
+| Checkpoint at the Edge | Proposal (author's call) | — | — | Not implemented: it would skip the room's per-run note and needs the run's flags restored. The seam change above removes most of the cost | — |
+| Hiding at a late purge | Integration | `test_hiding_holds_against_everything_at_a_late_purge` | — | Hidden beside Wren at purge 4 with the cursor out: alive, awareness doesn't climb while hidden, the save ring waits. (Wren wanders: Rue was hidden 2.2 of 6 s.) | Passing |
+| Winnable at the last purge step | Integration | New bot `test_full_game_escape_purge_5` | — | — | See the status page for the run |
+
+### Story state (examined, canon unchanged)
+
+| Apparent tension | Context | Outcome |
+|---|---|---|
+| Pip says "...rue?" before the name memory | Pip knew her before the deletion ("i waited by the wall"); Rue hearing a name isn't remembering it | Resolved by context; no change |
+| The opening shows Slot 2's save stalling the night she leaves; canon has a deletion months later | Both can be true: her last session never finished saving, and the slot was deleted later | Resolved by context; noted for the author in case the film should hint at "later" |
+| Escape card "the owner doesn't know this slot survived" vs "i deleted that" | Author-decided wording (`NARRATIVE_DECISIONS.md` §1) | Kept; alternative recorded in pass 7 |
+| The bypass ending after "SLOT 2? i deleted that." | The owner noticed, reached, was too late (`late` line) | Consistent with every ending text |
