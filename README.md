@@ -4,6 +4,8 @@
 > You are not supposed to be here.
 > The owner has noticed.
 
+**Status:** a playable prototype, not a release candidate. What is verified, what is not, and what remains: [`docs/RELEASE_READINESS.md`](docs/RELEASE_READINESS.md) (the one authoritative status page).
+
 **The Last Save File** is a small, tense, systemic game about being an intruder. You're a stray process
 inside another player's save slot: their character's room, their NPCs, their notes to themselves.
 The owner is still playing. They see you. And every time you die or quit, they learn something and

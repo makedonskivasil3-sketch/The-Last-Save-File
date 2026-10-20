@@ -1,6 +1,69 @@
 # Release readiness
 
-## Current status (2026-10-19): `claude/cohesion-pass`
+**This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
+
+## Current status (2026-10-20): `claude/last-save-file-prototype-ljwuq4` (pass 4)
+
+**Branches:** this branch carries [PR #7](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/pull/7) (stacked on [PR #6](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/pull/6)). Nothing is merged or deployed. `main` is unchanged.
+
+**Environment:** Linux container, Godot 4.3, Mesa llvmpipe (no GPU), headless Chromium. No Windows, phones, gamepads or speakers.
+
+### Is this a release candidate?
+
+**No.** No critical functional failure is known. Unmet gates:
+- **Human playtest:** none has run. A five-player round is ready (`PLAYTEST_PLAN.md`, "pass 4"); results pending.
+- **Listening:** no one has listened to the mix. The browser check proves audio *output*, not that it sounds good.
+- **Voice:** no recorded performances ship. Spoken lines use the device's system speech or the procedural voice; the generated pilot (`narration_review/`, untracked) is unlicensed and now excluded from every export preset.
+- **Real hardware:** no Windows launch, no real-GPU frame times, no physical controllers or phones.
+
+### What the game is now
+
+| Area | State | Evidence |
+|---|---|---|
+| Characters | Illustrated vector figures and matching portrait busts for the whole cast, Pip and the shed body included | Visual inspection of tour screenshots |
+| Places | Shared `Decor` kit, baked backdrops; Archive floor redone as flagstones in pass 4; system spaces keep their deliberate look | Visual inspection; per-area review in `VISUAL_DIRECTION.md` |
+| Type | Inter (OFL) for world and UI, DejaVu Sans Mono for the owner's system text; licences in Credits and in exports | `test_fonts`, `test_polish` |
+| Screen | Clean by default; CRT optional; corruption tied to awareness and events; UI above effects | Screenshots; earlier tests |
+| Threats | Line of sight blocked by solids; cone drawn from the same rays | `test_threat_fairness` |
+| Onboarding | One lesson at a time; awareness before glitches; tap vs hold explicit; tips persist until read; tips yield to danger, the act card and the prompt | `test_onboarding`, `test_first_minutes` |
+| Recovery | Pause says it's safe; quit says what it costs, keeps and loses; death card says what carries over and the purge count; How to Play in-run | `test_onboarding`, `test_menus` |
+| Scenes and sound state | Scenes hold the owner; stop cleanly if the run ends; muffles tracked per source; reset per run | `test_moment_safety` |
+
+### Verification (this pass)
+
+| Check | Result |
+|---|---|
+| Full suite | **405 passed, 0 failed** (923 s) |
+| Ending bots | **4 of 4 reached their exact endings**: escape, message, escape at purge 3, wren |
+| Web export | Built; pck 2.9 MB; contains the font licences, no review audio |
+| Browser checks (headless Chromium) | `audio_output_check`: audible after a gesture, no clipping, no page errors. `web_check`: closing mid-run asks first and counts as a quit |
+| Visual inspection | Developer screenshots at 1280×720: title, room, square, archive, bin, house, out of bounds, Edge, tips, prompt, pause, quit, help, death card, Large text. Not inspected by anyone else |
+| Listening | **Not run** |
+| Human playtest | **Not run** |
+
+### Performance (llvmpipe software rendering, 1280×720, `tests/tour_profile.gd`)
+
+| Scene | p50 | p95 | Earlier p50 (2026-10-19, before the illustrated pass) |
+|---|---|---|---|
+| Room, session start | 61.5 ms | 96.5 ms | 64.1 ms |
+| Square, calm, effects full | 59.9 ms | 65.6 ms | 58.6 ms |
+| Square, calm, effects off | 38.2 ms | 43.1 ms | 32.9 ms |
+| Square, HUNT + Wren escort | 63.9 ms | 73.7 ms | 57.2 ms |
+| Edge, static spreading | 47.6 ms | 57.6 ms | 44.4 ms |
+| Archive after 8 area changes | 49.1 ms | 55.3 ms | 42.3 ms |
+
+- These numbers measure a CPU rasteriser, not a player's GPU; they show relative cost only.
+- The illustrated cast and new areas cost about 5–7 ms here. Arin's line-of-sight cone costs 0.03 ms per frame (measured: 2.4 µs per ray, 14 rays).
+- Node and object counts stay flat across area changes (no growth during play).
+- No optimisation was made without real-device evidence. Candidates if a device shows a problem: sun shadows off on Light effects; baking figure outlines.
+
+### Save compatibility
+
+No saved field was added, renamed or removed in passes 3–4. Settings gain nothing new; `tips_seen` keeps its meaning (tips now enter it when read rather than when shown, so an older save simply has them marked already).
+
+---
+
+## Previous status (2026-10-19): `claude/cohesion-pass`
 
 **Branches and commits:**
 - `claude/cohesion-pass` is based on `claude/narrative-reliability` (`8fe3f35`, [PR #3](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/pull/3)), which is unmerged.
