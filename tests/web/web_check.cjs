@@ -22,6 +22,14 @@ const shotDir = process.argv[3] || process.env.SHOT_DIR || path.join(__dirname, 
 fs.mkdirSync(shotDir, { recursive: true });
 
 const failures = [];
+const runErrors = [];
+let lastPage = null;
+// What a failed run leaves behind (CI uploads it): the failed checks, the
+// game's last published state, the save, page errors and the build identity.
+function writeDiagnostics(extra) {
+  const d = Object.assign({ build: process.env.GITHUB_SHA || 'local', failures, page_errors: runErrors.slice(0, 20) }, extra);
+  fs.writeFileSync(path.join(shotDir, 'diagnostics.json'), JSON.stringify(d, null, 2));
+}
 function expect(ok, what, detail) {
   console.log(`${ok ? 'PASS' : 'FAIL'}: ${what}${detail === undefined ? '' : '  ' + JSON.stringify(detail)}`);
   if (!ok) failures.push(what);
@@ -84,10 +92,11 @@ const pick = (d) => d ? { sessions: d.sessions, deaths: d.deaths, quits: d.quits
   const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
   const errors = [];
   const watch = (p) => {
-    p.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-    p.on('pageerror', (e) => errors.push(String(e)));
+    p.on('console', (m) => { if (m.type() === 'error') { errors.push(m.text()); runErrors.push(m.text()); } });
+    p.on('pageerror', (e) => { errors.push(String(e)); runErrors.push(String(e)); });
   };
   let page = await context.newPage();
+  lastPage = page;
   watch(page);
 
   // 1. The title.
@@ -150,6 +159,7 @@ const pick = (d) => d ? { sessions: d.sessions, deaths: d.deaths, quits: d.quits
   await new Promise((r) => setTimeout(r, 1500));
   expect(asked, 'closing the tab mid-run asks first (beforeunload)');
   page = await context.newPage();
+  lastPage = page;
   watch(page);
   await page.goto(url);
   await waitForState(page, (st) => st.scene === 'title', 'the title after reopening', 120000);
@@ -159,8 +169,32 @@ const pick = (d) => d ? { sessions: d.sessions, deaths: d.deaths, quits: d.quits
   await page.screenshot({ path: path.join(shotDir, 'web_3_reopened.png') });
 
   expect(errors.length === 0, 'no page or runtime errors', errors.slice(0, 10));
+  if (failures.length) {
+    // Evidence while the page is still open: what it looked like and knew.
+    await page.screenshot({ path: path.join(shotDir, 'web_failure.png') }).catch(() => {});
+    const st = await state(page).catch(() => null);
+    const sv = await readSave(page).catch(() => null);
+    writeDiagnostics({ state: st, save: sv && sv.data ? pick(sv.data) : sv });
+  }
   await browser.close();
   console.log(`screenshots: ${shotDir}`);
-  if (failures.length) { console.error(`FAILED: ${failures.length} check(s): ${failures.join('; ')}`); process.exit(1); }
+  if (failures.length) {
+    console.error(`FAILED: ${failures.length} check(s): ${failures.join('; ')}`);
+    process.exit(1);
+  }
   console.log('ALL WEB CHECKS PASSED');
-})().catch((e) => { console.error('FAILED', e.message || e); process.exit(1); });
+})().catch(async (e) => {
+  // A crash or a timeout: leave what's needed to diagnose it.
+  console.error('FAILED', e.message || e);
+  try {
+    if (lastPage) {
+      await lastPage.screenshot({ path: path.join(shotDir, 'web_failure.png') });
+      const st = await state(lastPage).catch(() => null);
+      const sv = await readSave(lastPage).catch(() => null);
+      writeDiagnostics({ error: String(e.message || e), state: st, save: sv && sv.data ? pick(sv.data) : sv });
+    } else {
+      writeDiagnostics({ error: String(e.message || e) });
+    }
+  } catch (_) {}
+  process.exit(1);
+});

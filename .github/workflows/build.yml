@@ -89,6 +89,25 @@ jobs:
           sleep 1
           cd "$GITHUB_WORKSPACE" && NODE_PATH=/tmp/pw/node_modules node tests/web/audio_output_check.cjs http://127.0.0.1:8765/index.html
 
+      # The run's lifecycle in a real browser, separate from audio: a fresh
+      # title, the first-launch opening and its skip, a playable run that
+      # moves on real input, the open run saved to IndexedDB, closing the tab
+      # asking first and counting as a quit on reopening. Any failed
+      # assertion or page error fails the build (tests/web/web_check.cjs).
+      - name: Web run lifecycle (headless Chromium)
+        run: |
+          (cd "$GITHUB_WORKSPACE/build/web" && python3 -m http.server 8766 --bind 127.0.0.1 >/dev/null 2>&1 &)
+          sleep 1
+          NODE_PATH=/tmp/pw/node_modules node tests/web/web_check.cjs http://127.0.0.1:8766/index.html build/web_check
+
+      - name: Upload web check evidence (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-check-evidence
+          path: build/web_check/
+          if-no-files-found: ignore
+
       - name: Smoke test exported Linux game
         run: build/linux/TheLastSaveFile.x86_64 --headless --quit-after 240 -- --test-mode
 
