@@ -111,6 +111,11 @@ func start_session(skip_boot := true, first_session := false) -> Node:
 	await wait_until(func() -> bool: return scene() != null and scene().get("player") != null and scene().get("area") != null, 5.0, "main scene")
 	var w := scene()
 	await wait_until(func() -> bool: return not w._cutscene, 30.0 if not skip_boot else 6.0, "session start")
+	# The first room's act card holds the owner like any card; tests start
+	# once it has been read (see go_to).
+	if w.hud.is_act_shown():
+		w.hud.dismiss_title()
+		await frames(2)
 	return w
 
 
@@ -133,12 +138,13 @@ func wait_for_new_session(old: Node) -> Node:
 
 
 ## Moves to an area through World (as an exit would) and waits for the fade.
-func go_to(w: Node, area: String, arrival: String) -> void:
+func go_to(w: Node, area: String, arrival: String, read_card := true) -> void:
 	w.change_area(area, arrival)
 	await wait_until(func() -> bool: return w.area.area_id == area and not w._transitioning, 5.0, "arriving in " + area)
 	# A first visit's act card holds the owner (the protection policy); tests
-	# about what happens in an area start once it has been read.
-	if w.hud.is_act_shown():
+	# about what happens in an area start once it has been read (read_card =
+	# false leaves it up, for tests about the card itself).
+	if read_card and w.hud.is_act_shown():
 		w.hud.dismiss_title()
 		await frames(2)
 

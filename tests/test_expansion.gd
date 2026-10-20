@@ -83,11 +83,11 @@ func test_pip_leads_the_way() -> void:
 
 func test_act_cards_show_once() -> void:
 	var w := await start_session()
-	await go_to(w, "square", "house")
+	await go_to(w, "square", "house", false)
 	check(w.hud.is_act_shown(), "Act II card on the first visit")
 	check("square" in memory().acts_seen, "remembered")
 	await go_to(w, "archive", "west")
-	await go_to(w, "square", "east")
+	await go_to(w, "square", "east", false)
 	check(not w.hud.is_act_shown(), "just the place name after that")
 
 
