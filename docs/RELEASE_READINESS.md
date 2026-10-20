@@ -26,7 +26,7 @@
 | `306a53f` | `web_check` ×3 | 2 of 3 passed; 1 missed the browser's beforeunload dialog (the check then waited a fixed 1.5 s) |
 | `aa45cf2` | `web_check` ×2 (now: guard armed, bounded wait for the dialog) | 2/2 all pass (and 4/4 on the same check before the final commit) |
 | `aa45cf2` | `audio_output_check` | Audible |
-| `aa45cf2` | Full suite (local) | Running at the time of writing; result added when it finishes |
+| `aa45cf2` | Full suite (local) | 453 passed, 0 failed |
 | CI | PR #7 | Earlier commits in this pass failed CI: the card hold changed timing in 13 tests (fixed in `84bdd15` and `306a53f`), and the browser check pressed E into the world (`48ffbd4`). See the PR for the run on the head commit |
 
 **Save compatibility:** no save fields were added or changed. `slot2_beaten` is a run-only flag. Settings are unchanged.
