@@ -74,6 +74,8 @@ func test_credits_carry_the_licences() -> void:
 	var text := "\n".join(CreditsPanel.credits().map(func(b: Array) -> String: return "%s\n%s" % [b[0], b[1]]))
 	check(text.contains("All rights reserved"), "the game's licence")
 	check(text.contains(Engine.get_license_text().substr(0, 60)), "Godot's MIT licence, from the engine")
+	check(text.contains("SIL OPEN FONT LICENSE") or text.contains("Open Font License"), "the fonts' licences ship with the game")
+	check(text.contains("Bitstream"), "both of them")
 	check(text.contains("FreeType"), "and its third-party components (FreeType renders the text)")
 	await press("ui_cancel")
 	check(title._panel_of(title._menu).visible, "back to the menu")

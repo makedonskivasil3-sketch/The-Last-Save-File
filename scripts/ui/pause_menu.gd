@@ -31,6 +31,10 @@ var _journal_box: VBoxContainer
 var _journal: JournalPanel
 var _debug_box: VBoxContainer
 var _debug_button: Button
+var _help_box: VBoxContainer
+var _help: HowToPlayPanel
+## The main-page button that opened the page now showing (focus goes back to it).
+var _opener: Button
 ## Set by World before open(): show the Debug button.
 var debug_available := false
 var _resume: Button
@@ -60,7 +64,8 @@ func _ready() -> void:
 
 	_main = UiStyle.centered_panel(_root, 380)
 	UiStyle.heading(_main, "PAUSED", UiStyle.TEXT)
-	UiStyle.note(_main, "the owner is still here.", UiStyle.OWNER)
+	# Pausing is safe; only quitting ends the run (and counts).
+	UiStyle.note(_main, "nothing moves until you resume. the owner waits.", UiStyle.MUTED)
 	_goal_label = UiStyle.note(_main, "", UiStyle.TEXT)
 	var actions := GridContainer.new()
 	actions.columns = 2
@@ -71,6 +76,7 @@ func _ready() -> void:
 	UiStyle.button(actions, "History", _show_history)
 	_debug_button = UiStyle.button(actions, "Debug", func() -> void: _show_only(_debug_box); (_debug_box.get_child(1) as Button).grab_focus())
 	UiStyle.button(actions, "Settings", _show_settings)
+	UiStyle.button(actions, "How to Play", _show_help)
 	if PlaytestLog.enabled():
 		UiStyle.button(actions, "Playtest log", _show_playtest_log)
 	UiStyle.button(actions, "Quit to title", _ask_quit.bind(true))
@@ -132,6 +138,11 @@ func _ready() -> void:
 	_journal.closed.connect(_show_main)
 	_journal_box.add_child(_journal)
 
+	_help_box = UiStyle.centered_panel(_root, 480)
+	_help = HowToPlayPanel.new()
+	_help.closed.connect(_show_main)
+	_help_box.add_child(_help)
+
 	_settings_box = UiStyle.centered_panel(_root, 480)
 	_settings = SettingsPanel.new()
 	_settings.closed.connect(_show_main)
@@ -158,8 +169,8 @@ func close() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not visible or _panel_of(_settings_box).visible or _panel_of(_journal_box).visible:
-		return  # the settings panel handles its own back
+	if not visible or _panel_of(_settings_box).visible or _panel_of(_journal_box).visible or _panel_of(_help_box).visible:
+		return  # these panels handle their own back
 	if event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
 		if _panel_of(_confirm).visible or _panel_of(_map_box).visible or _panel_of(_debug_box).visible or _panel_of(_log_box).visible or _panel_of(_history_box).visible:
@@ -169,7 +180,11 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _show_only(box: VBoxContainer) -> void:
-	for b in [_main, _confirm, _settings_box, _map_box, _debug_box, _log_box, _history_box, _journal_box]:
+	# Leaving the main page: remember which button opened the page, to come back to it.
+	var owner_now := get_viewport().gui_get_focus_owner() if is_inside_tree() else null
+	if box != _main and _panel_of(_main).visible and owner_now is Button and _main.is_ancestor_of(owner_now):
+		_opener = owner_now
+	for b in [_main, _confirm, _settings_box, _map_box, _debug_box, _log_box, _history_box, _journal_box, _help_box]:
 		_panel_of(b).visible = b == box
 
 
@@ -236,7 +251,12 @@ func _show_playtest_log() -> void:
 func _show_main() -> void:
 	_show_only(_main)
 	_debug_button.visible = debug_available
-	_resume.grab_focus()
+	# Back from a page: focus returns to the button that opened it.
+	if is_instance_valid(_opener) and _opener.is_visible_in_tree():
+		_opener.grab_focus()
+	else:
+		_resume.grab_focus()
+	_opener = null
 
 
 func _debug(action: String) -> void:
@@ -249,6 +269,11 @@ func _show_map() -> void:
 	_map.visited = visited_areas
 	_show_only(_map_box)
 	_map_back.grab_focus()
+
+
+func _show_help() -> void:
+	_show_only(_help_box)
+	_help.focus_first()
 
 
 func _show_settings() -> void:
@@ -264,7 +289,9 @@ func _ask_quit(to_title: bool) -> void:
 		consequence = "This finishes the purge. You'll be gone."
 	elif after == OwnerMemory.MAX_PURGE - 1:
 		consequence += " One more and you're gone."
-	_confirm_label.text = "Quitting counts. The owner will remember.\n" + consequence
+	# Pausing is free; this ends the run. Say what is kept and what it costs.
+	_confirm_label.text = "This ends the run. Quitting counts, like dying: the owner will remember.\n" + consequence \
+		+ "\nKept: your memories, glitches and journal. Lost: anything you're carrying.\nResume instead, and nothing is counted."
 	_show_only(_confirm)
 	(_confirm.get_child(2) as Button).grab_focus()  # "Stay"
 

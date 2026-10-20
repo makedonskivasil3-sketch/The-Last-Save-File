@@ -6,11 +6,12 @@ extends "res://tests/test_case.gd"
 func test_tips_play_in_order_and_only_once() -> void:
 	settings().tutorial_tips = true
 	var w := await start_session(true, true)
-	await wait_until(func() -> bool: return w.hud.is_tip_shown(), 4.0, "first tip")
+	await wait_until(func() -> bool: return w.hud.is_tip_shown(), 8.0, "first tip")  # after the act card
 	check_eq(w.hud._tip_title.text, "MOVE", "the first tip teaches moving")
-	check("move" in settings().tips_seen, "a shown tip is remembered")
+	check("move" not in settings().tips_seen, "a tip only counts once it has been read or done")
 	w.player.global_position += Vector2(70, 0)
 	await wait_until(func() -> bool: return w.hud._tip_title.text == "THE OWNER IS WATCHING", 8.0, "second tip")
+	check("move" in settings().tips_seen, "a tip read and done is remembered")
 	# Once every tip has been seen, a new session shows none of them again.
 	for id in Tutorial.TIPS:
 		settings().mark_tip_seen(id)
@@ -62,3 +63,43 @@ func test_pause_menu_shows_the_goal() -> void:
 	check(goal.contains("Arin's room"), "the goal in the first room is to get out")
 	check(goal.contains("0 / 5"), "and memories recovered are counted")
 	await press("pause")
+
+
+func test_a_tip_cut_short_comes_back() -> void:
+	settings().tutorial_tips = true
+	var w := await start_session(true, true)
+	await wait_until(func() -> bool: return w.hud.is_tip_shown(), 8.0, "first tip")  # after the act card
+	w.kill("erased")  # dies before it could be read
+	var next := await wait_for_new_session(w)
+	check("move" not in settings().tips_seen, "not counted as seen")
+	# (A contextual tip, such as the locked door, may come first.)
+	await wait_until(func() -> bool: return next.hud._tip_title.text == "MOVE" and next.hud.is_tip_shown(), 30.0, "the same lesson, next run")
+
+
+func test_glitch_is_taught_after_awareness() -> void:
+	settings().tutorial_tips = true
+	settings().mark_tip_seen("move")
+	var w := await start_session(true, true)
+	# FREEZE has a target from the first second; the glitch lesson still waits for the bar's.
+	await wait_until(func() -> bool: return w.hud.is_tip_shown(), 6.0, "a tip")
+	check(w.hud._tip_title.text != "GLITCH" and w.hud._tip_title.text != "A THIN WALL", "awareness comes before any glitch (%s)" % w.hud._tip_title.text)
+
+
+func test_pause_is_safe_quit_says_what_it_costs() -> void:
+	var w := await start_session()
+	w._pause_menu.open()
+	await frames(2)
+	w._pause_menu._ask_quit(true)
+	var text: String = w._pause_menu._confirm_label.text
+	check(text.contains("ends the run"), "quitting is named as ending the run")
+	check(text.contains("Kept:"), "and says what's kept")
+	check(text.contains("Resume instead"), "and that resuming is free")
+	w._pause_menu.close()
+
+
+func test_death_card_says_what_carries_over() -> void:
+	var w := await start_session()
+	w.kill("erased")
+	await wait_until(func() -> bool: return w.hud._overlay_kept.visible, 3.0, "the death card")
+	check(w.hud._overlay_kept.text.contains("purge %d/%d" % [memory().purge, OwnerMemory.MAX_PURGE]), "the purge count is shown")
+	check(w.hud._overlay_kept.text.contains("memories"), "and what's kept")

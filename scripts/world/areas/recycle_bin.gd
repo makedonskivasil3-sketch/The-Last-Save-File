@@ -261,7 +261,7 @@ func _draw() -> void:
 		var c := f.get_center()
 		draw_rect(Rect2(c + Vector2(-4, -1), Vector2(8, 7)), Color("8cf2ff", 0.7))
 		draw_arc(c + Vector2(0, -1), 3.0, PI, TAU, 8, Color("8cf2ff", 0.7), 1.0)
-		draw_string(ThemeDB.fallback_font, Vector2(f.position.x - 8, f.end.y + 9), "system", HORIZONTAL_ALIGNMENT_CENTER, 40, 6, Color("8cf2ff", 0.6))
+		draw_string(UiStyle.system_font(), Vector2(f.position.x - 8, f.end.y + 9), "system", HORIZONTAL_ALIGNMENT_CENTER, 40, 6, Color("8cf2ff", 0.6))
 	draw_walls([{"side": "left", "from": WEST_GAP.x, "to": WEST_GAP.y}])
 	if sweep_x >= 0.0:
 		var flash := Settings.flash_scale()

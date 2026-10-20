@@ -261,8 +261,11 @@ func _draw() -> void:
 		draw_line(Vector2(x, r.position.y), Vector2(x, r.end.y), grid)
 	for y in range(int(r.position.y), int(r.end.y) + 1, 16):
 		draw_line(Vector2(r.position.x, y), Vector2(r.end.x, y), grid)
-	# Missing textures: the classic magenta and black checkerboard.
+	# Missing textures: the classic magenta and black checkerboard, muted so
+	# these walls don't shout louder than the static that kills. Full
+	# saturation is kept for danger (the cracks, the static, the cursor).
 	for m in MISSING:
+		draw_rect(m.grow(1.0), Color(1.0, 0.0, 0.86, 0.35), false, 1.0)
 		var cell := 6.0
 		var y := m.position.y
 		var row := 0
@@ -270,7 +273,7 @@ func _draw() -> void:
 			var x := m.position.x
 			var col := 0
 			while x < m.end.x:
-				var c := Color("ff00dc") if (row + col) % 2 == 0 else Color.BLACK
+				var c := Color("6e2a64") if (row + col) % 2 == 0 else Color("120812")
 				draw_rect(Rect2(x, y, minf(cell, m.end.x - x), minf(cell, m.end.y - y)), c)
 				x += cell
 				col += 1
@@ -278,7 +281,7 @@ func _draw() -> void:
 			row += 1
 	for pos: Vector2 in LABELS:
 		var a := 0.25 + 0.1 * sin(_t * 1.5 + pos.x)
-		draw_string(ThemeDB.fallback_font, pos, LABELS[pos], HORIZONTAL_ALIGNMENT_LEFT, -1, 7, Color(0.55, 0.95, 1.0, a))
+		draw_string(UiStyle.system_font(), pos, LABELS[pos], HORIZONTAL_ALIGNMENT_LEFT, -1, 7, Color(0.55, 0.95, 1.0, a))
 	# Where the static will start: cracks that pulse harder as it nears.
 	if grace >= 0.0:
 		var k := 1.0 - clampf(grace / grace_time(), 0.0, 1.0)

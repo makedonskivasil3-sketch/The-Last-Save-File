@@ -187,7 +187,7 @@ func _draw() -> void:
 		var y := r.end.y - fmod(_t * (8.0 + i % 5 * 4.0) + i * 37.0, r.size.y)
 		draw_rect(Rect2(x, y, 1, 1), Color(WIRE, 0.25))
 	for pos: Vector2 in LABELS:
-		draw_string(ThemeDB.fallback_font, pos, LABELS[pos], HORIZONTAL_ALIGNMENT_LEFT, -1, 7, Color(WIRE, 0.22 + 0.06 * sin(_t * 1.3 + pos.x)))
+		draw_string(UiStyle.system_font(), pos, LABELS[pos], HORIZONTAL_ALIGNMENT_LEFT, -1, 7, Color(WIRE, 0.22 + 0.06 * sin(_t * 1.3 + pos.x)))
 	# Chunks: tiles when present (flickering before they go), a dotted
 	# outline where they will come back.
 	for c in CHUNKS:
@@ -203,7 +203,7 @@ func _draw() -> void:
 	for a in ANCHORS:
 		draw_rect(a, Color(0.05, 0.12, 0.14))
 		draw_rect(a, Color(WIRE, 0.7), false, 1.0)
-		draw_string(ThemeDB.fallback_font, a.position + Vector2(3, 8), "anchor", HORIZONTAL_ALIGNMENT_LEFT, -1, 6, Color(WIRE, 0.35))
+		draw_string(UiStyle.system_font(), a.position + Vector2(3, 8), "anchor", HORIZONTAL_ALIGNMENT_LEFT, -1, 6, Color(WIRE, 0.35))
 	draw_rect(r, Color(WIRE, 0.25), false, 1.0)
 
 

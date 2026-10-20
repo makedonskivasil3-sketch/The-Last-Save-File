@@ -56,7 +56,7 @@ and **II** (top right) to pause. Menus are tapped directly. The controls appear 
 touch the screen (`scripts/ui/touch_controls.gd`).
 
 Menus work with mouse, keyboard or gamepad (d-pad or stick to move, A to pick, B to go back; W/S also move through choices). Settings also has **Voices** (character voices and typing, separate from Effects), **Text** speed (Slow / Normal / Fast / Instant) and **Screen shake**. **How to Play** on the title explains the rules, with the controls for whatever you're holding. With **Vibration** on, phones buzz and gamepads rumble on glitches, saves and deaths. **Settings** (title screen or pause menu) is in two
-columns: *Sound* (master, music, effects), *Picture* (fullscreen, CRT curvature, screen effects),
+columns: *Sound* (master, music, effects), *Picture* (fullscreen, CRT screen (off by default), screen effects),
 *Comfort* (glitch intensity, reduce flashing, **large text**) and *Help* (**tutorial tips**), plus
 *Reset owner memory* on the title screen. See [Visual effects](#visual-effects) and [Sound](#sound)
 for exactly what each one controls.
@@ -331,9 +331,12 @@ Rue also has body language (`scripts/player/player.gd`):
 
 All narrative text lives in `scripts/story/story.gd`, with the full story in its header comment.
 
-**Characters.** Everyone is code-drawn pixel art (`scripts/world/pixel_character.gd`): 8-pixel
-templates drawn at 2x, with a 4-frame walk cycle, swinging arms, breathing, blinking, a mouth that
-moves while they talk, facing in four directions, and speech-bubble emotes. Each has a personality
+**Characters.** Everyone is drawn in code as illustrated vector figures
+(`scripts/world/illustrated_character.gd`, on the animation state of `pixel_character.gd`), rendered
+at window resolution: soft shapes with one dark outline, painted shading, eyes and brows that follow
+mood, a walk cycle, swinging arms, breathing, blinking, a mouth that moves while they talk, four
+facings, and speech-bubble emotes. Dialogue portraits are the same figures as busts
+(`scripts/ui/portrait_view.gd`). See `docs/VISUAL_DIRECTION.md`. Each has a personality
 in motion:
 
 | Character | Look | Moves |
@@ -352,20 +355,21 @@ in motion:
 sun over the square, a flickering TV in the house, one lamp in the archive. Dust drifts in the
 light, and characters cast small ground shadows (`docs/ART_DIRECTION.md`).
 
-Everything is still coloured rectangles; the atmosphere comes from one full-screen shader
+Places are drawn in code with a shared kit (`scripts/art/decor.gd`: boards, cobbles, walls with a
+face, three-quarter furniture, canopies), baked once per area into a backdrop. The corruption comes from one full-screen shader
 (`shaders/save_corruption.gdshader`), one controller (`scripts/fx/screen_fx.gd`) and a handful of
 effects drawn in the world. Only 3 texture reads per pixel, so it stays cheap in the browser too.
 
-**The screen.** Curved CRT glass with a soft bezel, one scanline per game pixel row, an RGB
-aperture grille, a faint refresh band rolling down, radial chromatic aberration (stronger at the
-edges), and animated grain.
+**The screen.** Clean by default. *Settings → CRT screen* (off unless chosen) adds curved glass,
+a bezel, scanlines, an aperture grille and a refresh band. Distortion (colour split, tearing, grain)
+belongs to the owner: it appears as awareness rises and during events, so it means something.
 
 **Awareness drives the look.** `OwnerDirector` feeds awareness into `ScreenFx.awareness_target`,
 eased so the screen *slides* into sickness rather than jumping:
 
 | Awareness | What the screen does |
 | --- | --- |
-| low | Clean-ish CRT. Rare background twitches. |
+| low | A clean picture. Rare background twitches. |
 | rising | Colour drains and tints red/magenta. Fringing widens. Vignette closes in. |
 | 35%+ | Background tearing starts; a thin tear line sweeps down the screen. |
 | high | The image breathes and wobbles row by row; the world layer jitters and skews (the HUD doesn't); brightness flickers; the player's trail and body-tearing intensify. |
@@ -395,10 +399,10 @@ quickens as it fills, shifts orange → red → magenta, misfires, and its label
 **Controls (Settings).** All applied in `ScreenFx`, so they cover every effect:
 
 - **Glitch intensity** (0–1) scales all distortion: tearing, aberration, sickness, block glitches,
-  world jitter and shake, player tearing and trail, text corruption. At 0 you get a calm CRT.
+  world jitter and shake, player tearing and trail, text corruption. At 0 the picture stays clean.
 - **Reduce flashing** cuts colour washes, negative flashes, static bursts, brightness flicker,
   strobing and screen roll to about 30%.
-- **CRT curvature** flattens the glass.
+- **CRT screen** (off by default) adds the curved glass, scanlines and grille.
 - **Screen effects** (Full / Light / Off) trades the CRT pass for speed on weak GPUs; see Performance.
 
 **Tuning.** Every shader uniform is documented at the top of the shader; event strengths and
@@ -728,7 +732,10 @@ scripts/
   world/areas/archive.gd       The Archivist and the live log books
   world/areas/the_edge.gd      Unloaded region, cursor, Slot 2
   world/npc.gd                 Any character: sprite, emotes, dialogue provider, hiding, deletion
-  world/pixel_character.gd     Code-drawn pixel-art bodies and their animation
+  world/pixel_character.gd     Character animation state (pose, walk, blink, mood)
+  world/illustrated_character.gd  The illustrated vector bodies drawn from that state
+  art/decor.gd                 The environment kit
+  ui/ui_style.gd               Menu theme and the fonts (assets/fonts, OFL / Bitstream Vera)
   world/memory_fragment.gd     The cyan shards of your past
   story/story.gd               Boot text, inner voice, the five fragments, endings
   world/readable.gd            Books, signs, terminals

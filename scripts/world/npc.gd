@@ -329,4 +329,4 @@ func _draw_outline() -> void:
 	_draw_residue(0.35)
 	var c := Color(NULL_COL, 0.35)
 	draw_rect(Rect2(-8, PixelCharacter.FEET_Y - sprite().height(), 16, sprite().height()), c, false, 1.0)
-	draw_string(ThemeDB.fallback_font, Vector2(-34, 16), "%s.npc = null" % npc_id, HORIZONTAL_ALIGNMENT_CENTER, 68, 7, c)
+	draw_string(UiStyle.system_font(), Vector2(-34, 16), "%s.npc = null" % npc_id, HORIZONTAL_ALIGNMENT_CENTER, 68, 7, c)

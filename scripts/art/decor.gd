@@ -83,6 +83,33 @@ static func cobbles(ci: CanvasItem, r: Rect2, base: Color, size := 9.0, s := 0.0
 		row += 1
 
 
+## Laid flagstones: rectangular slabs in staggered courses, thin mortar,
+## each slab a slightly different tone with a lit top edge. Calmer than
+## cobbles: for interiors that should feel old and still.
+static func flagstones(ci: CanvasItem, r: Rect2, base: Color, course := 18.0, s := 0.0) -> void:
+	ci.draw_rect(r, base.darkened(0.2))
+	var y := r.position.y
+	var row := 0
+	while y < r.end.y:
+		var h := minf(course, r.end.y - y)
+		var x := r.position.x - hash01(row, 0.0, s) * course
+		while x < r.end.x:
+			var w := course * (0.9 + hash01(x, y, s) * 0.8)
+			var slab := Rect2(x + 1.0, y + 1.0, w - 2.0, h - 2.0).intersection(r)
+			if slab.size.x > 1.0 and slab.size.y > 1.0:
+				var tone := (hash01(x, y, s + 3.0) - 0.5) * 0.1
+				var col := base.lightened(tone) if tone > 0.0 else base.darkened(-tone)
+				ci.draw_rect(slab, col)
+				ci.draw_rect(Rect2(slab.position, Vector2(slab.size.x, 1.0)), Color(col.lightened(0.1), 0.5))
+				# The odd worn chip or crack keeps it from looking printed.
+				if hash01(x, y, s + 7.0) > 0.82:
+					var p := slab.position + slab.size * Vector2(hash01(x, y, s + 8.0), 0.6)
+					ci.draw_line(p, p + Vector2(5, 3), Color(base.darkened(0.3), 0.6), 0.7)
+			x += w
+		y += course
+		row += 1
+
+
 ## Grass ground: a soft base with tufts and the odd flower, never busy.
 static func grass(ci: CanvasItem, r: Rect2, base: Color, s := 0.0, density := 0.004) -> void:
 	ci.draw_rect(r, base)

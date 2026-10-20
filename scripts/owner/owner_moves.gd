@@ -478,7 +478,7 @@ func _draw() -> void:
 	# A little floppy disk in the middle.
 	draw_rect(Rect2(p - Vector2(4, 4), Vector2(8, 8)), Color(0.75, 0.75, 0.8))
 	draw_rect(Rect2(p - Vector2(2, 4), Vector2(4, 3)), Color(0.3, 0.3, 0.35))
-	draw_string(ThemeDB.fallback_font, p + Vector2(-30, 21), "SAVING  %d%%" % int(save_progress * 100.0),
+	draw_string(UiStyle.system_font(), p + Vector2(-30, 21), "SAVING  %d%%" % int(save_progress * 100.0),
 			HORIZONTAL_ALIGNMENT_CENTER, 60, 8, col)
 
 
@@ -488,4 +488,4 @@ func _draw_ring(p: Vector2, k: float, text: String) -> void:
 	draw_arc(p, 9.0, -PI * 0.5, -PI * 0.5 + TAU * k, 32, Color(1.0, 0.25, 0.3), 2.5)
 	draw_line(p + Vector2(-4, -4), p + Vector2(4, 4), Color(1.0, 0.4, 0.4), 2.0)
 	draw_line(p + Vector2(4, -4), p + Vector2(-4, 4), Color(1.0, 0.4, 0.4), 2.0)
-	draw_string(ThemeDB.fallback_font, p + Vector2(-40, 20), text, HORIZONTAL_ALIGNMENT_CENTER, 80, 8, Color(1.0, 0.5, 0.5))
+	draw_string(UiStyle.system_font(), p + Vector2(-40, 20), text, HORIZONTAL_ALIGNMENT_CENTER, 80, 8, Color(1.0, 0.5, 0.5))

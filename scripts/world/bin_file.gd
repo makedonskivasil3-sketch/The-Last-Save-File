@@ -77,9 +77,9 @@ func _draw() -> void:
 	draw_polyline(PackedVector2Array([Vector2(-7, -9), Vector2(3, -9), Vector2(7, -5), Vector2(7, 9), Vector2(-7, 9), Vector2(-7, -9)]), Color("8a8f98"), 1.0)
 	draw_line(Vector2(3, -9), Vector2(3, -5), Color("8a8f98"), 1.0)
 	draw_line(Vector2(3, -5), Vector2(7, -5), Color("8a8f98"), 1.0)
-	draw_string(ThemeDB.fallback_font, Vector2(-40, 20), file_name(), HORIZONTAL_ALIGNMENT_CENTER, 80, 7, Color("8a8f98"))
+	draw_string(UiStyle.system_font(), Vector2(-40, 20), file_name(), HORIZONTAL_ALIGNMENT_CENTER, 80, 7, Color("8a8f98"))
 	if asset != "":
-		draw_string(ThemeDB.fallback_font, Vector2(-50, 28), "taken by: [no such entity]", HORIZONTAL_ALIGNMENT_CENTER, 100, 6, Color("8a8f98", 0.7))
+		draw_string(UiStyle.system_font(), Vector2(-50, 28), "taken by: [no such entity]", HORIZONTAL_ALIGNMENT_CENTER, 100, 6, Color("8a8f98", 0.7))
 	if progress >= 0.0:
 		draw_rect(Rect2(-16, 24, 32, 3), Color(0, 0, 0, 0.7))
 		draw_rect(Rect2(-16, 24, 32 * progress, 3), Color("8cf2ff"))

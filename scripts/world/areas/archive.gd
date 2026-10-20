@@ -251,7 +251,7 @@ func _paint(ci: CanvasItem) -> void:
 	# things, the Archivist's desk on a worn runner. Warm, a little dusty:
 	# the one place that remembers kindly.
 	var r := bounds
-	Decor.cobbles(ci, r, FLOOR.lightened(0.16), 16.0, 5.0)
+	Decor.flagstones(ci, r, FLOOR.lightened(0.12), 26.0, 5.0)
 	Decor.rug(ci, Rect2(DESK.position.x - 22, DESK.position.y - 30, DESK.size.x + 44, 56), Color("4a2e30"), Color("a07a50"))
 	for sh in SHELVES:
 		var top := Decor.furniture(ci, sh, SHELF, 3.0)

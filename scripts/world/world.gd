@@ -1311,6 +1311,14 @@ func _keep_in_journal(node: Node2D, result: Dictionary) -> void:
 
 # --- endings ------------------------------------------------------------------
 
+## The death card's last line: what the next run keeps, and how far the purge is.
+static func death_kept_line() -> String:
+	if OwnerMemory.is_purged():
+		return ""
+	return "kept for next run: %d/%d memories, your glitches, the journal  ·  purge %d/%d" % [
+		OwnerMemory.fragments.size(), Story.FRAGMENTS.size(), OwnerMemory.purge, OwnerMemory.MAX_PURGE]
+
+
 ## cause picks the death effect ("erased", "overwritten", "selected");
 ## reason picks the explanation and tip (a key of Story.DEATHS).
 func kill(cause: String, reason := "") -> void:
@@ -1354,7 +1362,7 @@ func kill(cause: String, reason := "") -> void:
 	await get_tree().create_timer(0.6).timeout
 	if not is_inside_tree():
 		return
-	hud.show_death(title, body, cause, tip)
+	hud.show_death(title, body, cause, tip, death_kept_line())
 	# The card waits for the player: the advice is read, then a press retries.
 	# A moment first, so a press still held from play doesn't skip it; less
 	# for a death the player has had before (the repeat player's fast path).

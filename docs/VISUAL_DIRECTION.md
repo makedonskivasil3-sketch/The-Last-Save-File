@@ -7,6 +7,39 @@
 - **Inspected:** looked at in screenshots.
 - **Pending:** not done.
 
+## Art specification (the rules every new drawing follows)
+
+| Topic | Rule | Why / trade-off |
+|---|---|---|
+| Perspective | Top-down three-quarter: floors seen from above, solid things show a lit top and a shaded front face toward the camera | Readable footprints: what you see as a front face is exactly what blocks you (collision = footprint) |
+| Proportions | About 3 heads tall for adults, 2.5 for Wren; heads large for faces at 640×360 | Faces must read at gameplay scale; realistic proportions would make expressions vanish |
+| Outline | One dark ink outline around the whole figure or object, none inside except features | Separates characters from busy floors without the noise of per-part outlines |
+| Light | Two tones per material (lit/shade) plus the area's 2D lights. Light comes from a named source in each place (lamp, sun, console, TV) | Pools of light give each room a focal point; flat colour alone looked unfinished |
+| Shadow | Soft ground ellipse under every figure; walls cast a short band | Grounds characters; shadows never imply cover that isn't there |
+| Materials | Wood: planks with grain; stone: cobbles/flags; cloth: soft folds; system spaces: grids, wire, flat fills | Inhabited places are textured; the owner's spaces are not, so the contrast is the story |
+| Detail density | Dense at the focal point and along walls, sparse in movement space | The open floor is where the player plays: keep it legible |
+| Colour hierarchy | 1. Rue's cyan (and her restored colours), 2. danger (owner orange/red, Arin's cone), 3. interactables (pink brackets, prompts), 4. people, 5. scenery in muted, warm mid-tones | The player finds themselves and the threat first, then what they can use |
+| Character animation | Same rig for all, different body language: Mira sways and watches, Wren hops, Tobben waves, the Archivist reads, Arin patrols and points | One system, distinct people; visual easing never delays control (movement is immediate) |
+| Portraits | A bust of the same figure, same palette and current state (missing, restored, borrowed, frayed) and mood | The face in the box is always the face on screen |
+| Typography | Inter (Regular for text, SemiBold for headings) for the world and interface; DejaVu Sans Mono only for the owner's system (file names, slot labels, system-space signage, redactions) | A neutral, highly legible face keeps text calm; the mono face marks what belongs to the owner |
+| Corruption | Off at rest. Rises with awareness (colour split, tearing), spikes on events (thresholds, deletion, cursor, death). Never touches the HUD text layer. Scaled by Glitch intensity and Reduce flashing | Corruption is the owner acting; constant noise would make it meaningless |
+
+### Interface type and spacing
+
+- **Sizes (logical px at 640×360, ×1.25 with Large text):** 9 secondary HUD (objective, status, hints), 10–11 body and prompts, 12–14 section headings, 16 page headings, 28 death titles.
+- **Spacing:** multiples of 2 logical px; panels have 16 px content margins, 6 px between stacked items; the HUD keeps a 14×10 px safe margin.
+- **States:** hover = owner orange border; keyboard/gamepad focus = Rue's cyan border and text; pressed = orange fill. Back from any page returns focus to the button that opened it.
+- **Motion:** fades of 0.3 s for tips and prompts; 0.6–1.2 s holds before a death card accepts input, so a held key doesn't skip it.
+
+### HUD priority (what wins when things compete)
+
+1. **Immediate danger:** warnings (on their own dark strip), the awareness meter, the status line (HIDDEN, SEEN). A tip waits while a warning is up.
+2. **Current interaction:** the prompt above its target. A tip that covers the prompt fades back to 20%.
+3. **Immediate intention:** the objective line.
+4. **Secondary:** the objective hint, tips (one at a time, never during the act card, dialogue, choices, scenes or warnings), the console.
+
+Right-aligned HUD lines grow to the left, so Large text never pushes them off screen.
+
 ## Rendering strategy (implemented)
 
 **Simulation is unchanged.**
@@ -42,6 +75,22 @@ Text is never distorted by the effects; the world can be.
 - The objective shows one line, with the truth-route hint as a quieter line under it.
 - The dialogue box is rounded, with the speaker's illustrated portrait.
 - **Not done:** fully converting the HUD to containers. The fixed layout already scales with the window and text size. A container rewrite is listed as remaining work rather than done partially.
+
+## Area composition (review, pass 4)
+
+Inspected from `tests/tour_visual.gd` screenshots at 1280×720 (visual inspection by the developer, not by players).
+
+| Area | Emotional purpose | Focal point | Routes | Danger / shelter | Evidence of history | State and next step |
+|---|---|---|---|---|---|---|
+| Arin's room | Familiar, watched, trapped | The lamp-lit desk and the console's green light; Mira by the bed | Door (locked by the owner), the thin wall to the nook (PHASE) | The owner's attention; no patrol here | Personal objects flat on the floor, the bed nook, a note | Good. The open floor reads as movement space. The rug draws the eye to the centre, where nothing is: acceptable, it frames the act card |
+| Village square | Open, public, exposed | The well at the crossroads | Cobbled road east (Archive), north road, Arin's house door; the dirt path ties them | Arin's patrol and cone; shelter beside Wren, behind the stall | The notice board ("MISSING: ONE (1) INTRUDER"), Tobben's stall | Good. Canopies turn see-through over anyone beneath them. The well's label sits under the act card on arrival (minor) |
+| Archive | Relief and curiosity | The Archivist at the desk on the runner | West back to Ashvale, east to the Recycle Bin | A quiet place: the owner can't see in | Shelves of unfinished books | **Improved in pass 4:** the floor was drawn with the cobble brush at a large size and read as "bubble wrap"; it is now laid flagstones (`Decor.flagstones`). Shelves are still thin bands: next step is taller shelf fronts |
+| Arin's house | Domestic warmth beside absence | The TV-lit living room | Front door back to Ashvale | Arin comes home (door chime); closets hide you | Player 2's room: the same boards gone cold and blue, outlines where furniture was | Good contrast. Closets are small for their importance: next step is a lit edge on closet doors |
+| Recycle Bin | Clinical, emptied | The system files' cyan shadows | Back to the Archive | The sweep line; shelter in a system file's shadow | Deleted files with names | Readable but sparse: it reads as a void with icons. Next step: a floor grid with hierarchy (a lit lane between files) |
+| Out of Bounds | Vertigo, unfinished | The far ledge where Pip sleeps | Anchors joined by streaming floor chunks | Floor that flickers red before it goes | Debug labels left in the void ("TODO: nobody should ever see this") | Good hierarchy: solid = outlined anchors, unsafe = red grid |
+| The Edge | Collapse, the end of the map | Slot 2 (top right) | Open field toward the slot | The cursor and the spreading static | Fragments of unloaded data | **Weakest:** the magenta checker blocks are as loud as the hazard, and Rue is hard to find at the bottom. Next step: dim the static that isn't dangerous yet, keep full saturation for cells that kill |
+
+Collision check: solid furniture is drawn with `Decor.furniture`, which returns its top face from the same rect the area registers as solid, so what looks solid is solid. Flat decoration (rugs, papers) has no front face and doesn't block, and doesn't look like cover.
 
 ## Characters (implemented, inspected)
 
@@ -142,7 +191,7 @@ The `scripts/art/decor.gd` kit:
 - **Turning and stop animations** beyond the existing four facings, and a hand-made walk cycle.
 - **A full container-based HUD.**
 - **A taller wall face** along interior top walls (it would sit in the margin above the play area).
-- **A typography pass:** the engine's built-in default font is still used, and no font file was added.
+- **Typography:** done in pass 4 (Inter and DejaVu Sans Mono, see above). Still pending: a dedicated display face for titles, if the author wants one.
 - **Visual evaluation by a person** on a real display: not run.
 
 ## Screenshots

@@ -18,6 +18,8 @@ var _records_box: VBoxContainer
 var _records: RecordsPanel
 var _help_box: VBoxContainer
 var _help: HowToPlayPanel
+## The menu button that opened the page now showing (focus goes back to it).
+var _opener: Button
 var _credits_box: VBoxContainer
 var _credits: CreditsPanel
 var _journal_box: VBoxContainer
@@ -260,36 +262,49 @@ func _show_menu() -> void:
 	_panel_of(_help_box).visible = false
 	_panel_of(_credits_box).visible = false
 	_panel_of(_journal_box).visible = false
-	_load.grab_focus()
+	# Back from a page: focus returns to the button that opened it.
+	if is_instance_valid(_opener) and _opener.is_visible_in_tree():
+		_opener.grab_focus()
+	else:
+		_load.grab_focus()
+	_opener = null
+
+
+## Leaving the menu for a page: remember the button that opened it.
+func _leave_menu() -> void:
+	var f := get_viewport().gui_get_focus_owner()
+	if f is Button and _menu.is_ancestor_of(f):
+		_opener = f
+	_panel_of(_menu).visible = false
 
 
 func _show_records() -> void:
-	_panel_of(_menu).visible = false
+	_leave_menu()
 	_panel_of(_records_box).visible = true
 	_records.focus_first()
 
 
 func _show_credits() -> void:
-	_panel_of(_menu).visible = false
+	_leave_menu()
 	_panel_of(_credits_box).visible = true
 	_credits.focus_first()
 
 
 func _show_journal() -> void:
-	_panel_of(_menu).visible = false
+	_leave_menu()
 	_journal.refresh()
 	_panel_of(_journal_box).visible = true
 	_journal.focus_first.call_deferred()
 
 
 func _show_help() -> void:
-	_panel_of(_menu).visible = false
+	_leave_menu()
 	_panel_of(_help_box).visible = true
 	_help.focus_first()
 
 
 func _show_settings() -> void:
-	_panel_of(_menu).visible = false
+	_leave_menu()
 	_panel_of(_records_box).visible = false
 	_panel_of(_settings_box).visible = true
 	_settings.focus_first()

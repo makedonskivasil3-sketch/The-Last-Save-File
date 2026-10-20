@@ -26,7 +26,7 @@ This branch therefore carries PR #3's commits as well as its own. Merge PR #3 fi
 | Manifest independent of the save | VERIFIED | `test_the_manifest_does_not_depend_on_the_save` |
 | Manifest matches the script | VERIFIED | `test_the_manifest_matches_the_story_text`; regenerated this pass (197 lines) |
 | Missing recordings fall back | VERIFIED | `test_missing_recordings_fall_back_to_text`, `test_an_unrecorded_line_is_silent_and_harmless` |
-| Voice files exist where delivery was claimed | VERIFIED (none claimed) | `audio/voice/` holds only the manifest. The pilot takes are local and unshipped (`VOICE_PILOT.md`) |
+| Voice files exist where delivery was claimed | VERIFIED (none claimed) | `audio/voice/` holds only the manifest. The pilot takes are local and unshipped (`VOICE_PILOT.md`); they sit untracked in `narration_review/`, which every export preset now excludes (2026-10-20) |
 | Playback, ducking, interruption and replay together | PARTIAL | Covered by tests with silent clips. **Not testable here:** how it sounds |
 | Mira integrated in gameplay | VERIFIED | `test_talking_to_mira_shows_her_face_and_mood`; screenshot `review/after_mira_dialogue_portrait.png` |
 | Portraits match sprites | VERIFIED | `test_mira_s_portrait_is_her_sprite` (pixel colours) |

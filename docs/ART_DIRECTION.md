@@ -1,5 +1,7 @@
 # Art direction: The Last Save File
 
+> **Superseded (2026-10-19):** the pixel-art direction below was replaced by the illustrated direction in `docs/VISUAL_DIRECTION.md`, which is current. The lighting rules here still hold. For overall project status see `docs/RELEASE_READINESS.md`.
+
 This is a living document. Each rule is marked **[in game]** if it already holds in the code, or **[target]** if it's a direction not yet implemented. The evidence is the visual tour (`docs/CREATIVE_AUDIT.md` §F).
 
 ## The idea

@@ -47,7 +47,7 @@ func test_the_first_glitch_teaches_its_price() -> void:
 	var w := await start_session(true, true)
 	settings().tips_seen.append_array(["move", "watched", "quit", "wren", "interact", "way_out", "crack", "glitch"])
 	w.glitches_used = 1
-	await wait_until(func() -> bool: return w.hud.is_tip_shown(), 4.0, "a tip")
+	await wait_until(func() -> bool: return w.hud.is_tip_shown(), 8.0, "a tip")  # after the act card
 	check(w.hud._tip_title.text == Story.PRICE_TIP[0], "THE PRICE (%s)" % w.hud._tip_title.text)
 
 

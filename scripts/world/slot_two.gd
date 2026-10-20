@@ -71,13 +71,13 @@ func _draw() -> void:
 		draw_circle(Vector2(0, bob), 10.0 + i * 6.0 + sin(_t * 3.0 + i) * 2.0, Color(0.55, 0.95, 1.0, 0.06))
 	draw_rect(Rect2(Vector2(-7, -9 + bob), Vector2(14, 18)), Color("0c1a1f"))
 	draw_rect(Rect2(Vector2(-7, -9 + bob), Vector2(14, 18)), Color("8cf2ff"), false, 1.0)
-	draw_string(ThemeDB.fallback_font, Vector2(-6, 3 + bob), "02", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("8cf2ff"))
+	draw_string(UiStyle.system_font(), Vector2(-6, 3 + bob), "02", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("8cf2ff"))
 	if progress > 0.0:
 		# Writing yourself in: the slot fills, and says so.
 		draw_rect(Rect2(Vector2(-7, 9 + bob - 18 * progress), Vector2(14, 18 * progress)), Color("8cf2ff", 0.35))
 		draw_rect(Rect2(-16, 14, 32, 3), Color(0, 0, 0, 0.7))
 		draw_rect(Rect2(-16, 14, 32 * progress, 3), Color("8cf2ff"))
-		draw_string(ThemeDB.fallback_font, Vector2(-40, 26), "WRITING SLOT 2 · %d%%" % int(progress * 100.0),
+		draw_string(UiStyle.system_font(), Vector2(-40, 26), "WRITING SLOT 2 · %d%%" % int(progress * 100.0),
 				HORIZONTAL_ALIGNMENT_CENTER, 80, 7, Color("e8ffff"))
 	else:
-		draw_string(ThemeDB.fallback_font, Vector2(-30, 24), "SLOT 2 · EMPTY", HORIZONTAL_ALIGNMENT_CENTER, 60, 7, Color("8cf2ff", 0.7))
+		draw_string(UiStyle.system_font(), Vector2(-30, 24), "SLOT 2 · EMPTY", HORIZONTAL_ALIGNMENT_CENTER, 60, 7, Color("8cf2ff", 0.7))

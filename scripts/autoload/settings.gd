@@ -69,6 +69,7 @@ var _path := PATH
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	UiStyle.install_fonts()
 	if "--test-mode" in OS.get_cmdline_user_args():
 		_path = TEST_PATH
 	_load()

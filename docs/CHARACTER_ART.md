@@ -1,6 +1,8 @@
 # Character art: direction, briefs, expressions
 
-The cast is code-drawn pixel art, like the rest of the game. This document sets the look for **in-world sprites, portraits, animation and interface**.
+> **Superseded for the in-game look (2026-10-19):** the cast is now drawn as illustrated vector figures (`IllustratedCharacter`); see `docs/VISUAL_DIRECTION.md`. The briefs, palettes and expression lists below still apply; the pixel-grid specifics are historical.
+
+The cast was code-drawn pixel art, like the rest of the game. This document sets the look for **in-world sprites, portraits, animation and interface**.
 - **Rue** (the reference), **Mira** and **Wren** (supporting characters) are fully integrated.
 - The others have briefs, ready to build the same way.
 

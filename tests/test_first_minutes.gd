@@ -20,6 +20,8 @@ func test_facing_the_nook_wall_does_not_freeze_mira() -> void:
 func test_owner_banner_has_priority_over_tips() -> void:
 	var w := await start_session(true, true)
 	settings().tutorial_tips = true
+	await wait(3.0)  # the act card comes up after waking...
+	w.hud._clear_title()  # ...and tips wait for it; skip it here
 	var tutorial := _tutorial(w)
 	tutorial._show("move")
 	await frames(3)
@@ -52,6 +54,8 @@ func test_wren_is_taught_where_the_player_can_find_her() -> void:
 func test_modal_choices_suspend_the_lesson() -> void:
 	var w := await start_session(true, true)
 	settings().tutorial_tips = true
+	await wait(3.0)  # the act card comes up after waking...
+	w.hud._clear_title()  # ...and tips wait for it; skip it here
 	var tutorial := _tutorial(w)
 	tutorial._show("move")
 	await frames(2)

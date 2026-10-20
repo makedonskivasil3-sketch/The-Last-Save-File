@@ -84,6 +84,8 @@ var _banner: Label
 var _warning: Label
 var _warning_tween: Tween
 var _overlay_retry: Label
+## The death card's last line: what carries into the next run.
+var _overlay_kept: Label
 ## A choice: a question and a list of options (choose()).
 var _choice: PanelContainer
 var _choice_question: Label
@@ -176,6 +178,7 @@ func _ready() -> void:
 
 	_status = _make_label(root, Vector2(640 - SAFE.x - 220, SAFE.y + 36), Vector2(220, 12), 9, STATUS_COLOR)
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_status.grow_horizontal = Control.GROW_DIRECTION_BEGIN  # large text grows left, never off screen
 
 	# The console grows upward from the bottom edge, with a dark backing
 	# exactly as tall as its lines.
@@ -203,6 +206,7 @@ func _ready() -> void:
 
 	_glitch_prompt = _make_label(root, Vector2(640 - SAFE.x - 220, 360 - SAFE.y - 78), Vector2(220, 14), 10, GLITCH_COLOR)
 	_glitch_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_glitch_prompt.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 
 	# The choice box: bottom of the screen, like the dialogue box.
 	_choice = PanelContainer.new()
@@ -253,11 +257,12 @@ func _ready() -> void:
 
 	_hint = _make_label(root, Vector2(640 - SAFE.x - 176, 360 - SAFE.y - 14), Vector2(176, 12), 9, Color(SYSTEM_COLOR, 0.8))
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_hint.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 
 	# Tutorial tips: a small card, centred under the top bar.
 	var tip_row := VBoxContainer.new()
 	tip_row.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	tip_row.position.y = SAFE.y + 34
+	tip_row.position.y = SAFE.y + 50  # under the status line, not over it
 	tip_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(tip_row)
 	_tip = PanelContainer.new()
@@ -321,6 +326,9 @@ func _ready() -> void:
 	_overlay_retry = _make_label(_overlay, Vector2(80, 318), Vector2(480, 14), 10, SLOT_COLOR)
 	_overlay_retry.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_overlay_retry.visible = false
+	_overlay_kept = _make_label(_overlay, Vector2(40, 334), Vector2(560, 14), 9, Color("8a8f98"))
+	_overlay_kept.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_overlay_kept.visible = false
 
 	_area_title = _make_label(root, Vector2(0, 150), Vector2(640, 24), 16, SLOT_COLOR)
 	_area_title.add_theme_color_override("font_outline_color", Color.BLACK)
@@ -1063,14 +1071,19 @@ func set_prompt(text: String, at := Vector2.INF) -> void:
 
 
 var _prompt_at := Vector2.INF
-var _prompt_corner := Vector2.ZERO
 
 
+## Where the prompt sits with no target: bottom right, clear of the on-screen
+## E button on phones.
+func _prompt_corner() -> Vector2:
+	return Vector2(640 - SAFE.x - 176 - (72.0 if Settings.using_touch else 0.0), 360 - SAFE.y - 62)
+
+
+## One place decides where the prompt goes (set_prompt and every frame), so it
+## never jumps between the corner and its target within a frame.
 func _place_prompt() -> void:
-	if _prompt_corner == Vector2.ZERO:
-		_prompt_corner = _prompt.position
 	if _prompt_at == Vector2.INF or _prompt.text == "":
-		_prompt.position = _prompt_corner
+		_prompt.position = _prompt_corner()
 		_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		return
 	var screen := get_viewport().canvas_transform * _prompt_at
@@ -1181,6 +1194,16 @@ func hide_tip(immediate := false) -> void:
 	_tip_tween.tween_callback(func() -> void: _tip.visible = false)
 
 
+## The area's title card is up (tips wait for it: one message at a time).
+func is_area_title_shown() -> bool:
+	return _area_title.modulate.a > 0.05
+
+
+## A danger warning is on screen (tips make way for it).
+func is_warning_shown() -> bool:
+	return _warning.visible
+
+
 func is_tip_shown() -> bool:
 	return _tip.visible and _tip.modulate.a > 0.0
 
@@ -1192,7 +1215,8 @@ func awareness_jolt() -> void:
 
 ## Death screen, styled per cause ("erased", "overwritten", "selected"):
 ## the title shakes with colour-split ghosts and keeps corrupting itself.
-func show_death(title: String, body: String, cause: String, tip := "") -> void:
+## kept: what carries into the next run (memories, journal, the purge count).
+func show_death(title: String, body: String, cause: String, tip := "", kept := "") -> void:
 	_death_style = cause
 	_death_title = title
 	var colors := {"erased": OWNER_COLOR, "overwritten": Color("8fb4e8"), "selected": Color.WHITE}
@@ -1203,6 +1227,8 @@ func show_death(title: String, body: String, cause: String, tip := "") -> void:
 		g.text = title
 	_overlay_tip.text = ("TIP  ·  " + tip) if tip != "" else ""
 	_overlay_tip.visible = tip != ""
+	_overlay_kept.text = kept
+	_overlay_kept.visible = kept != ""
 
 
 func death_tip_text() -> String:
@@ -1228,6 +1254,7 @@ func show_overlay(title: String, body: String, title_color: Color = OWNER_COLOR)
 	_overlay_tip.text = ""
 	_overlay_tip.visible = false
 	_overlay_retry.visible = false
+	_overlay_kept.visible = false
 
 
 func hide_overlay() -> void:
@@ -1236,9 +1263,12 @@ func hide_overlay() -> void:
 
 func _process(delta: float) -> void:
 	_playtime += delta
-	# On phones the on-screen E button sits bottom right: keep the prompt clear of it.
-	_prompt.position.x = 640 - SAFE.x - 176 - (72.0 if Settings.using_touch else 0.0)
-	_glitch_prompt.position.x = _prompt.position.x + 176 - 220
+	_place_prompt()
+	_glitch_prompt.position.x = _prompt_corner().x + 176 - 220
+	# The current interaction outranks a tip: a tip over the prompt steps back.
+	var over := _tip.visible and _prompt.visible and _prompt.text != "" and _tip.get_global_rect().intersects(_prompt.get_global_rect())
+	var tip_row := _tip.get_parent() as Control  # (the card's own alpha is its show/hide fade)
+	tip_row.modulate.a = move_toward(tip_row.modulate.a, 0.2 if over else 1.0, delta * 4.0)
 	_glitch_prompt.visible = _prompt.visible
 	_update_slot()
 	_meter.value = _awareness

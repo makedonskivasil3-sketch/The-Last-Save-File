@@ -5,7 +5,8 @@ extends Node
 ##
 ## The room tips play in order as soon as you wake; the contextual ones
 ## (interacting, the locked door, being hidden, Arin, the Archive, Slot 2)
-## jump in the first time their moment comes. Each tip is shown once ever (Settings.tips_seen), and none
+## jump in the first time their moment comes. Each tip counts as seen (Settings.tips_seen) once it has
+## been up long enough to read, so one cut short by a door or a death comes back. None
 ## at all with Settings > Tutorial tips off. Turning tips back on replays them.
 
 ## id -> [title, body]. {move} / {interact} / {pause} become button glyphs.
@@ -14,15 +15,15 @@ const TIPS := {
 	"watched": ["THE OWNER IS WATCHING", "The bar at the top right fills while you're here, faster when you're seen or idle. Each tick is a new reaction. When it's full, they come for you."],
 	"quit": ["QUITTING COUNTS", "Dying and quitting both count against you. Close the game and the owner remembers you tried to leave."],
 	"wren": ["HIDE WITH WREN", "Some people here will protect you. In the village square, stand right beside Wren and the owner's eyes slide past you."],
-	"interact": ["LOOK CLOSER", "Press {interact} to talk, read and touch things."],
+	"interact": ["LOOK CLOSER", "Tap {interact} to talk, read and touch things. The prompt above the thing says what a tap does."],
 	"way_out": ["LOCKED OUT", "The door is the owner's, not yours. Rooms change when the owner gets suspicious: watch the walls."],
 	"hidden": ["HIDDEN", "Arin can't see you here, and the owner slowly loses track of you. But if the owner finds out who helped you, they pay for it."],
 	"arin": ["ARIN IS THE OWNER", "The owner plays as Arin. Stay out of the light cone, and never let Arin touch you."],
 	"quiet": ["A QUIET PLACE", "The owner can't see in here. Awareness slowly cools, but never below what the owner has already done."],
 	"oob": ["THE FLOOR ISN'T THERE", "Only the anchors are solid. Chunks of floor stream in and out: cross while they're there, and get off when they flicker red."],
 	"pip": ["PIP", "Pip follows you and runs ahead toward whatever you need next. Pip yips when Arin is close. The owner can't see Pip."],
-	"crack": ["A THIN WALL", "Something glints behind that crack. Face the wall and hold {interact} to glitch through it. Every glitch costs awareness: the bar jumps."],
-	"glitch": ["GLITCH", "Hold {interact} to corrupt whatever is in the pink brackets. It works, but the owner feels every glitch: each one raises awareness."],
+	"crack": ["A THIN WALL", "Something glints behind that crack. Face the wall and hold {interact} (don't tap) to glitch through it. Every glitch costs awareness: the bar jumps."],
+	"glitch": ["GLITCH", "Tapping {interact} talks. Holding it glitches whatever is in the pink brackets; the prompt says what and what it costs. Step closer to something else to change the target. The owner feels every glitch: awareness rises."],
 	"bin": ["THE RECYCLE BIN", "Stand beside a deleted file to restore them. When the bin empties, a line sweeps the room: get into a system file's cyan shadow."],
 	"house": ["ARIN'S HOUSE", "Arin comes home now and then: the door chimes first. Get into a closet before they walk in, and stay there until they leave."],
 	"slot": ["SLOT 2", "Stand in the slot to write yourself in. It takes a few seconds, and the cursor selects anything that holds still. Lead it away first."],
@@ -44,6 +45,8 @@ var _shown_for := 0.0
 var _gap := 1.0
 var _moved := 0.0
 var _last_pos := Vector2.ZERO
+## The tip text as last shown (re-shown when the input device changes its glyphs).
+var _shown_body := ""
 
 
 ## Starts the tips for this session (does nothing if tips are off or seen).
@@ -64,7 +67,8 @@ func _process(delta: float) -> void:
 		_dismiss()  # a warning about the room must not follow you into a safe area
 	var hud := _world.hud
 	# Tips wait while you talk, remember, or the session is ending.
-	if _world.ending != "" or _world.in_cutscene() or hud.is_dialogue_open() or hud.is_cinematic() or hud.is_choosing() or hud.banner_text() != "":
+	if _world.ending != "" or _world.in_cutscene() or hud.is_dialogue_open() or hud.is_cinematic() or hud.is_choosing() or hud.banner_text() != "" \
+			or hud.is_warning_shown() or hud.is_area_title_shown():  # danger first; one message at a time
 		if _current != "":
 			hud.hide_tip(true)
 		return
@@ -73,9 +77,12 @@ func _process(delta: float) -> void:
 	_last_pos = p
 
 	if _current != "":
-		if not hud.is_tip_shown():
-			hud.show_tip(_title(_current), _body(_current))  # back after a pause
+		if not hud.is_tip_shown() or _body(_current) != _shown_body:
+			_shown_body = _body(_current)
+			hud.show_tip(_title(_current), _shown_body)  # back after a pause, or new glyphs
 		_shown_for += delta
+		if _shown_for >= MIN_TIME:
+			_mark_seen(_current)
 		# Long tips stay up long enough to read (StoryPacing), never less than MAX_TIME.
 		var limit := maxf(MAX_TIME, StoryPacing.reading_time(_body(_current)) * 1.5)
 		if _shown_for >= limit or (_shown_for >= MIN_TIME and _done(_current)):
@@ -104,11 +111,12 @@ func _next_tip() -> String:
 		return "price"
 	# The cracked wall in the first room teaches the first glitch.
 	var cracked: Variant = _world.area.get("cracked")
-	if cracked is CrackedWall and not cracked.is_open() and _unseen("crack") and "move" in Settings.tips_seen \
+	if cracked is CrackedWall and not cracked.is_open() and _unseen("crack") and _knows_awareness() \
 			and _world.player.global_position.distance_to(cracked.crack) < 90.0:
 		return "crack"
-	# The glitch tip waits until you've learned to move.
-	if _world.glitch and not _world.glitch.target.is_empty() and _unseen("glitch") and "move" in Settings.tips_seen:
+	# The glitch tip waits until you've learned to move and what awareness is:
+	# a glitch's price only means something once the bar does.
+	if _world.glitch and not _world.glitch.target.is_empty() and _unseen("glitch") and _knows_awareness():
 		return "glitch"
 	if _world.pip != null and _unseen("pip"):
 		return "pip"
@@ -127,12 +135,26 @@ func _next_tip() -> String:
 	return ""
 
 
+## One lesson at a time: the bar is explained before anything that raises it.
+static func _knows_awareness() -> bool:
+	return "move" in Settings.tips_seen and "watched" in Settings.tips_seen
+
+
 func _show(id: String) -> void:
 	_current = id
 	_shown_area = _world.area.area_id
 	_shown_for = 0.0
 	if id == "move":
 		_moved = 0.0
+	_shown_body = _body(id)
+	_world.hud.show_tip(_title(id), _shown_body)
+	Sfx.ui("ui_move")
+
+
+## Read long enough: this tip won't come back, nor the ones it covers.
+func _mark_seen(id: String) -> void:
+	if id in Settings.tips_seen:
+		return
 	Settings.mark_tip_seen(id)
 	if id == "hidden":
 		Settings.mark_tip_seen("wren")  # already experiencing the shelter lesson
@@ -142,13 +164,13 @@ func _show(id: String) -> void:
 		_world.get_tree().create_timer(2.5).timeout.connect(func() -> void:
 			if is_instance_valid(_world) and _world.ending == "":
 				_world.director.say("...is something in the walls?"))
-	_world.hud.show_tip(_title(id), _body(id))
-	Sfx.ui("ui_move")
 
 
 func _dismiss() -> void:
 	if _current == "":
 		return
+	if _shown_for >= MIN_TIME or _done(_current):
+		_mark_seen(_current)
 	_current = ""
 	_gap = GAP
 	if _world:

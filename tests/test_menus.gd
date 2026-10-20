@@ -54,3 +54,29 @@ func _title_text() -> String:
 	for l in scene().find_children("*", "Label", true, false):
 		out += (l as Label).text + "\n"
 	return out
+
+
+func test_back_from_a_page_returns_to_its_button() -> void:
+	var w := await start_session()
+	var menu: PauseMenu = w._pause_menu
+	menu.open()
+	await frames(2)
+	menu._show_main()
+	var help_button: Button = null
+	for b in menu._main.find_children("*", "Button", true, false):
+		if (b as Button).text == "How to Play":
+			help_button = b
+	check(help_button != null, "the pause menu has How to Play")
+	help_button.grab_focus()
+	await frames(1)
+	help_button.pressed.emit()
+	await frames(2)
+	check(menu._panel_of(menu._help_box).visible, "the help page opens in a run")
+	menu._help.closed.emit()
+	await frames(2)
+	check_eq(get_focus(menu._main), help_button, "focus comes back to the button that opened it")
+	menu.close()
+
+
+func get_focus(c: Control) -> Control:
+	return c.get_viewport().gui_get_focus_owner()

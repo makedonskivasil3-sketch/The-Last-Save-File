@@ -15,9 +15,47 @@ const INTRUDER := Color("8cf2ff")
 const TEXT_GROUP := "ui_text"
 const BASE_THEME_FONT := 11
 
+## Type: Inter for the world and the interface, a monospace for the owner's
+## system (file names, slot labels, system-space signage). See
+## docs/VISUAL_DIRECTION.md "Typography".
+const BODY_FONT := "res://assets/fonts/Inter-Regular.otf"
+const STRONG_FONT := "res://assets/fonts/Inter-SemiBold.otf"
+const SYSTEM_FONT := "res://assets/fonts/DejaVuSansMono.ttf"
+static var _fonts: Dictionary = {}
+
 ## Menu themes made by make_theme() (weak refs), so a text-size change
 ## reaches open menus live.
 static var _themes: Array[WeakRef] = []
+
+
+static func _font(path: String) -> Font:
+	if not _fonts.has(path):
+		var f := load(path) as FontFile
+		if f == null:
+			return ThemeDB.fallback_font
+		if path != SYSTEM_FONT:
+			var mono := load(SYSTEM_FONT) as FontFile
+			if mono:
+				f.fallbacks = [mono]  # block elements for redactions
+		_fonts[path] = f
+	return _fonts[path]
+
+
+static func body_font() -> Font:
+	return _font(BODY_FONT)
+
+
+static func strong_font() -> Font:
+	return _font(STRONG_FONT)
+
+
+static func system_font() -> Font:
+	return _font(SYSTEM_FONT)
+
+
+## Makes Inter the font of everything that doesn't choose one (called once at boot).
+static func install_fonts() -> void:
+	ThemeDB.fallback_font = body_font()
 
 
 ## Give a control a font size that follows the Large text setting.
@@ -49,6 +87,7 @@ static func outline(c: Control, px := 3) -> void:
 static func make_theme() -> Theme:
 	var t := Theme.new()
 	t.default_font_size = roundi(BASE_THEME_FONT * Settings.text_scale())
+	t.default_font = body_font()
 	_themes = _themes.filter(func(ref: WeakRef) -> bool: return ref.get_ref() != null)
 	_themes.append(weakref(t))
 	for type in ["Button", "CheckButton"]:
@@ -99,6 +138,7 @@ static func heading(parent: Control, text: String, color := OWNER, size := 16) -
 	l.text = text
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sized(l, size)
+	l.add_theme_font_override("font", strong_font())
 	l.add_theme_color_override("font_color", color)
 	parent.add_child(l)
 	return l

@@ -159,7 +159,7 @@ These should be measured on one mid-range PC and one mid-range phone, recording 
 ## Licensing and credits
 
 - **Licence: all rights reserved** (author's decision, 2026-10-16). See `LICENSE`.
-- **Third-party assets:** none. All graphics and audio are generated in code, and the font is Godot's built-in fallback. Godot itself is MIT-licensed and must be credited.
+- **Third-party assets:** two fonts (2026-10-20): Inter (SIL OFL 1.1) and DejaVu Sans Mono (Bitstream Vera licence), subset, in `assets/fonts` with their licences; the credits screen shows both licences. All graphics and audio are generated in code. Godot itself is MIT-licensed and must be credited.
 - **Credits screen:** on the title screen. It reads Godot's licence and every third-party notice from the engine at runtime (`tests/test_polish.gd` checks it).
 
 ## Release blockers
