@@ -415,7 +415,10 @@ func _publish_web_state(delta: float) -> void:
 		return
 	_web_tick = 0.5
 	var playable := ending == "" and not player.frozen and not _cutscene and not hud.is_cinematic() and area != null
-	WebState.publish({"scene": "game", "playable": playable, "area": area.area_id if area else "",
+	# "reading": text is open that a press of E moves on (the browser check
+	# presses E only then, instead of pressing into the world's interactions).
+	var reading := hud.is_cinematic() or hud.is_dialogue_open() or hud.is_choosing()
+	WebState.publish({"scene": "game", "playable": playable, "reading": reading, "area": area.area_id if area else "",
 		"x": snappedf(player.global_position.x, 0.1), "y": snappedf(player.global_position.y, 0.1)})
 
 

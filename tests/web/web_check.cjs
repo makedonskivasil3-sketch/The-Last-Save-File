@@ -126,8 +126,11 @@ const pick = (d) => d ? { sessions: d.sessions, deaths: d.deaths, quits: d.quits
   expect(true, 'holding E skips into the run');
   const t0 = Date.now();
   let s = await state(page);
+  // E moves text on; it is pressed only while text is open (pressing it into
+  // the world starts interactions, which on a slow machine can keep a poll
+  // from ever seeing the run playable).
   while (!(s && s.playable) && Date.now() - t0 < 90000) {
-    await page.keyboard.press('e');
+    if (!s || s.reading) await page.keyboard.press('e');
     await page.waitForTimeout(600);
     s = await state(page);
   }
