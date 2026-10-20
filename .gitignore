@@ -15,3 +15,6 @@ export_credentials.cfg
 Thumbs.db
 .vscode/
 .idea/
+
+# Accidental output from a check run without a screenshot directory
+/undefined/

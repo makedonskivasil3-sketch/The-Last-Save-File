@@ -19,7 +19,7 @@ enum Stage { MEMORIES, INVESTIGATE, FILE, KNOWN }
 const WITNESSES := ["mira", "wren", "tobben"]
 
 const HINT_INVESTIGATE := "Every memory is back. Someone who has watched you may have noticed something."
-const HINT_FILE := "Something on the Archivist's shelf has your name on it now."
+const HINT_FILE := "Something on the Archivist's desk has your name on it now."
 const HINT_KNOWN := "You know what you are. Slot 2 is still north of the square."
 
 

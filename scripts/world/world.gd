@@ -402,7 +402,22 @@ func _took_false_memory(f: Dictionary) -> void:
 	owner_moves.start_save_over()
 
 
+## For the browser check: is the run playable yet, and where is Rue (WebState).
+var _web_tick := 0.0
+
+
+func _publish_web_state(delta: float) -> void:
+	_web_tick -= delta
+	if _web_tick > 0.0 or not OS.has_feature("web"):
+		return
+	_web_tick = 0.5
+	var playable := ending == "" and not player.frozen and not _cutscene and not hud.is_cinematic() and area != null
+	WebState.publish({"scene": "game", "playable": playable, "area": area.area_id if area else "",
+		"x": snappedf(player.global_position.x, 0.1), "y": snappedf(player.global_position.y, 0.1)})
+
+
 func _process(delta: float) -> void:
+	_publish_web_state(delta)
 	_handle_wipe(delta)
 	# Before anything returns early: a scene holds the owner like a question
 	# does (the cursor, the erasure and Arin wait), whichever scene it is.

@@ -1,22 +1,30 @@
-// Real-browser check of the web export (docs/RELEASE_READINESS.md):
-//   1. audio starts after the first user gesture (browser autoplay rules)
-//   2. the owner's memory is saved to IndexedDB and survives a reload
-//   3. what a tab closed mid-run does to the purge count
+// Real-browser check of the web export (docs/RELEASE_READINESS.md). Fails
+// (exit 1) unless every step holds:
+//   1. the title loads with no page errors
+//   2. Load Slot 1 reaches actual gameplay: the game reports a playable run
+//      (window.__lsf, see scripts/web_state.gd) and Rue moves on real input
+//   3. the open run is saved to IndexedDB (session open, last_exit "active")
+//   4. closing the tab mid-run asks first, and counts as a quit on reopening
+//      (quits +1, purge +1, last_exit "crash")
+// Audio output is checked separately (audio_output_check.cjs).
 //
 // Usage (needs Playwright + a web export served over http):
-//   NODE_PATH=/opt/node-tools/node_modules node tests/web/web_check.cjs http://127.0.0.1:8765/index.html
+//   NODE_PATH=/opt/node-tools/node_modules node tests/web/web_check.cjs http://127.0.0.1:8765/index.html [shot_dir]
+// Screenshots go to shot_dir, $SHOT_DIR, or build/web_check (in that order).
+const fs = require('fs');
+const path = require('path');
 const { chromium } = require('playwright');
-const url = process.argv[2];
 
-// Wrap AudioContext so the page's contexts can be inspected.
-const audioSpy = () => {
-  const Real = window.AudioContext || window.webkitAudioContext;
-  window.__ctxs = [];
-  const Spy = function (...a) { const c = new Real(...a); window.__ctxs.push(c); return c; };
-  Spy.prototype = Real.prototype;
-  window.AudioContext = Spy;
-  window.webkitAudioContext = Spy;
-};
+const url = process.argv[2];
+if (!url) { console.error('usage: web_check.cjs <url> [shot_dir]'); process.exit(2); }
+const shotDir = process.argv[3] || process.env.SHOT_DIR || path.join(__dirname, '..', '..', 'build', 'web_check');
+fs.mkdirSync(shotDir, { recursive: true });
+
+const failures = [];
+function expect(ok, what, detail) {
+  console.log(`${ok ? 'PASS' : 'FAIL'}: ${what}${detail === undefined ? '' : '  ' + JSON.stringify(detail)}`);
+  if (!ok) failures.push(what);
+}
 
 // Everything Godot saved under user://, read from IndexedDB (IDBFS).
 async function readSave(page) {
@@ -25,6 +33,7 @@ async function readSave(page) {
     req.onerror = () => resolve({ error: 'no /userfs db' });
     req.onsuccess = () => {
       const db = req.result;
+      if (!db.objectStoreNames.length) return resolve({ error: 'empty db' });
       const tx = db.transaction(db.objectStoreNames[0], 'readonly');
       const store = tx.objectStore(db.objectStoreNames[0]);
       const keys = store.getAllKeys();
@@ -41,63 +50,100 @@ async function readSave(page) {
   }));
 }
 
-async function waitForGame(page) {
-  await page.waitForFunction(() => {
-    const s = document.querySelector('#status');  // Godot removes it once the engine runs
-    return !s || getComputedStyle(s).display === 'none';
-  }, null, { timeout: 120000 });
-  await page.waitForTimeout(4000); // the title builds its first sounds
+const state = (page) => page.evaluate(() => window.__lsf || null);
+
+// Bounded wait for a game state, with what it last saw if it times out.
+async function waitForState(page, pred, label, timeoutMs) {
+  const t0 = Date.now();
+  let last = null;
+  while (Date.now() - t0 < timeoutMs) {
+    last = await state(page);
+    if (last && pred(last)) return last;
+    await page.waitForTimeout(250);
+  }
+  throw new Error(`timed out after ${timeoutMs} ms waiting for ${label}; last state ${JSON.stringify(last)}`);
 }
 
-const pick = (d) => d && d.data ? { sessions: d.data.sessions, deaths: d.data.deaths, quits: d.data.quits, purge: d.data.purge, last_exit: d.data.last_exit } : d;
+// Saved state can lag IDBFS sync: poll it until it matches (bounded).
+async function waitForSave(page, pred, timeoutMs) {
+  const t0 = Date.now();
+  let last = null;
+  while (Date.now() - t0 < timeoutMs) {
+    last = await readSave(page);
+    if (last && last.data && pred(last.data)) return last.data;
+    await page.waitForTimeout(500);
+  }
+  return last && last.data ? last.data : last;
+}
+
+const pick = (d) => d ? { sessions: d.sessions, deaths: d.deaths, quits: d.quits, purge: d.purge, last_exit: d.last_exit } : d;
 
 (async () => {
   const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=user-gesture-required'] });
   const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
-  await context.addInitScript(audioSpy);
   const errors = [];
+  const watch = (p) => {
+    p.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+    p.on('pageerror', (e) => errors.push(String(e)));
+  };
   let page = await context.newPage();
-  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-  page.on('pageerror', (e) => errors.push(String(e)));
+  watch(page);
 
+  // 1. The title.
   await page.goto(url);
-  await waitForGame(page);
-  await page.screenshot({ path: process.env.SHOT_DIR + '/web_1_title.png' });
-  const before = await page.evaluate(() => (window.__ctxs || []).map((c) => c.state));
-  console.log('AUDIO before any gesture:', JSON.stringify(before));
+  await waitForState(page, (s) => s.scene === 'title', 'the title screen', 120000);
+  await page.screenshot({ path: path.join(shotDir, 'web_1_title.png') });
+  expect(true, 'the title screen loads');
 
-  // The first gesture: a click on the canvas, then Enter on "Load Slot 1".
+  // 2. Into the game: click (the browser's first gesture), Enter on Load Slot 1,
+  // then E to read through the opening until Rue is the player's.
   await page.mouse.click(640, 360);
-  await page.waitForTimeout(500);
-  const afterClick = await page.evaluate(() => (window.__ctxs || []).map((c) => c.state));
-  console.log('AUDIO after the first click:', JSON.stringify(afterClick));
-
-  await page.keyboard.press('Escape'); // in case the click focused something else
   await page.waitForTimeout(300);
-  // Focus starts on Load Slot 1; Enter starts the session (first launch: the boot log, skipped with E).
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(200);
   await page.keyboard.press('Enter');
-  for (let i = 0; i < 14; i++) { await page.waitForTimeout(700); await page.keyboard.press('e'); }
-  await page.waitForTimeout(3000);
-  await page.screenshot({ path: process.env.SHOT_DIR + '/web_2_in_game.png' });
-  await page.waitForTimeout(3000); // let IDBFS sync
-  const midRun = await readSave(page);
-  console.log('SAVE mid-run (session open):', JSON.stringify(pick(midRun)));
+  await waitForState(page, (s) => s.scene === 'game', 'the game scene', 60000);
+  const t0 = Date.now();
+  let s = await state(page);
+  while (!(s && s.playable) && Date.now() - t0 < 90000) {
+    await page.keyboard.press('e');
+    await page.waitForTimeout(600);
+    s = await state(page);
+  }
+  expect(Boolean(s && s.playable), 'the run becomes playable (Rue under the player\'s control)', s);
+  const before = await state(page);
+  await page.keyboard.down('ArrowRight');
+  await page.waitForTimeout(900);
+  await page.keyboard.up('ArrowRight');
+  await page.waitForTimeout(700);
+  const after = await state(page);
+  const moved = before && after ? Math.hypot(after.x - before.x, after.y - before.y) : 0;
+  expect(moved > 10, 'Rue moves on real keyboard input', { before, after, moved });
+  await page.screenshot({ path: path.join(shotDir, 'web_2_in_game.png') });
 
-  // The player closes the tab mid-run: the browser should ask first.
+  // 3. The open run is in the save.
+  const midRun = await waitForSave(page, (d) => d.last_exit === 'active' && d.sessions >= 1, 15000);
+  expect(midRun && midRun.last_exit === 'active' && midRun.sessions === 1 && midRun.quits === 0 && midRun.purge === 0,
+    'the open run is saved (session 1, last_exit active, no quits)', pick(midRun));
+
+  // 4. Closing the tab mid-run asks first, and counts on reopening.
   let asked = false;
   page.on('dialog', async (d) => { asked = d.type() === 'beforeunload'; await d.accept(); });
   await page.close({ runBeforeUnload: true });
   await new Promise((r) => setTimeout(r, 1500));
-  console.log('CLOSING MID-RUN asks first (beforeunload):', asked);
+  expect(asked, 'closing the tab mid-run asks first (beforeunload)');
   page = await context.newPage();
-  page.on('pageerror', (e) => errors.push(String(e)));
+  watch(page);
   await page.goto(url);
-  await waitForGame(page);
-  await page.waitForTimeout(3000);
-  const afterReopen = await readSave(page);
-  console.log('SAVE after closing the tab and reopening:', JSON.stringify(pick(afterReopen)));
-  await page.screenshot({ path: process.env.SHOT_DIR + '/web_3_reopened.png' });
+  await waitForState(page, (st) => st.scene === 'title', 'the title after reopening', 120000);
+  const reopened = await waitForSave(page, (d) => d.last_exit === 'crash', 15000);
+  expect(reopened && reopened.quits === 1 && reopened.purge === 1 && reopened.last_exit === 'crash',
+    'a tab closed mid-run counts as a quit (quits 1, purge 1, last_exit crash)', pick(reopened));
+  await page.screenshot({ path: path.join(shotDir, 'web_3_reopened.png') });
 
-  console.log('PAGE ERRORS:', JSON.stringify(errors.slice(0, 10)));
+  expect(errors.length === 0, 'no page or runtime errors', errors.slice(0, 10));
   await browser.close();
-})().catch((e) => { console.error('FAILED', e); process.exit(1); });
+  console.log(`screenshots: ${shotDir}`);
+  if (failures.length) { console.error(`FAILED: ${failures.length} check(s): ${failures.join('; ')}`); process.exit(1); }
+  console.log('ALL WEB CHECKS PASSED');
+})().catch((e) => { console.error('FAILED', e.message || e); process.exit(1); });

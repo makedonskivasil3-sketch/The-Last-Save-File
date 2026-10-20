@@ -60,12 +60,18 @@ func build() -> void:
 	archivist.accent_color = Color("c8a040")
 	archivist.lines_provider = _archivist_lines
 
-	add_readable("SESSION LOG", Vector2(180, 138), Readable.Look.BOOK, _session_log)
-	add_readable("DELETED ASSETS", Vector2(440, 138), Readable.Look.BOOK, _deleted_assets)
-	add_readable("CUT CONTENT", Vector2(200, 84), Readable.Look.BOOK, _cut_content)
-	add_readable("THE OWNER", Vector2(440, 84), Readable.Look.BOOK, _owner_notes)
+	# The records: open books on stands in front of the shelves, so they read
+	# as things to pick up, not as more spines (docs/VISUAL_DIRECTION.md).
+	for rec in [["SESSION LOG", Vector2(180, 138), _session_log], ["DELETED ASSETS", Vector2(440, 138), _deleted_assets],
+			["CUT CONTENT", Vector2(200, 84), _cut_content], ["THE OWNER", Vector2(440, 84), _owner_notes]]:
+		var book := add_readable(rec[0], rec[1], Readable.Look.RECORD, rec[2])
+		var title: String = rec[0]
+		book.was_read = func() -> bool: return OwnerMemory.journal.any(func(e: Dictionary) -> bool: return e.get("title", "") == title)
 	# Filed long ago, at the Archivist's desk: what Rue is (docs/DARK_TRUTH_DESIGN.md).
+	# It pulses only once the story points at it (Progression FILE), and says
+	# nothing about what's inside.
 	_file = add_readable(Story.CHARACTER_FILE_TITLE, Vector2(DESK.end.x + 10, DESK.get_center().y), Readable.Look.TERMINAL, _character_file)
+	_file.emphasis = func() -> bool: return Progression.stage() == Progression.Stage.FILE
 	world.conversation_completed.connect(_on_completed)
 
 

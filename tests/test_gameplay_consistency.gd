@@ -47,7 +47,7 @@ func test_progression_stages_follow_the_save() -> void:
 	check(not Progression.open_witnesses().has("tobben"), "Tobben only notices once his guestbook has her name")
 	memory().truth_pieces.assign(["mira", "pip"])
 	check_eq(Progression.stage(), Progression.Stage.FILE, "two pieces: the file reads whole")
-	check_eq(Progression.goal_hint(), Progression.HINT_FILE, "the hint points at the shelf")
+	check_eq(Progression.goal_hint(), Progression.HINT_FILE, "the hint points at the desk, where the file is")
 	check(Progression.journal_summary().contains("CHARACTER FILE"), "the journal says more")
 	memory().save_memory()
 	memory().load_memory()
@@ -290,3 +290,23 @@ func test_dialogue_fits_with_largest_text_and_a_portrait() -> void:
 	check(w.hud._objective.position.y + hint.position.y + hint.size.y <= 360.0, "and stays on screen")
 	settings().set_value("large_text", false)
 	settings().set_value("subtitle_size", 0)
+
+
+func test_archive_records_look_like_records_and_the_file_pulses_when_relevant() -> void:
+	var w := await start_session()
+	await go_to(w, "archive", "west")
+	var records := 0
+	var file: Readable = null
+	for n in w.area.interactables:
+		if n is Readable and (n as Readable).look == Readable.Look.RECORD:
+			records += 1
+		if n is Readable and (n as Readable).title == Story.CHARACTER_FILE_TITLE:
+			file = n
+	check_eq(records, 4, "the four records are drawn as records, not as more spines")
+	check(file != null and file.emphasis.is_valid(), "the CHARACTER FILE can be marked")
+	check(not file.emphasis.call() or Progression.stage() == Progression.Stage.FILE, "it pulses only when the story points at it")
+	# Every record can be reached and read from the floor in front of it.
+	for n in w.area.interactables:
+		if n is Readable and (n as Readable).look == Readable.Look.RECORD:
+			var p: Vector2 = (n as Readable).global_position + Vector2(0, 8)
+			check(w.husk_spot_ok(p, Vector2(-999, -999)), "%s has clear floor in front of it" % n.title)

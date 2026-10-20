@@ -717,7 +717,7 @@ const MESSAGE_TRUTH := [
 	"> ...i will. she should know a part of her stayed.",
 ]
 ## The Archivist, once you remember everything but don't know yet.
-const ARCHIVIST_FILE_HINT := "There's a file on my shelf with your name on it now. Ask the ones who've watched you first. They've noticed things I can't."
+const ARCHIVIST_FILE_HINT := "There's a file on my desk with your name on it now. Ask the ones who've watched you first. They've noticed things I can't."
 const ARCHIVIST_KNOWS := "You read it. I'm sorry. I filed it a long time ago, and I didn't know how to hand it to you."
 
 
