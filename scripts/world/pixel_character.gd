@@ -62,6 +62,11 @@ var eye_color := Color("1a0c0c")
 
 ## Animation state.
 var facing := Vector2.DOWN
+## Seconds left of the settle after stopping, and of the squeeze through a turn.
+var settle := 0.0
+var turn := 0.0
+const SETTLE_TIME := 0.18
+const TURN_TIME := 0.12
 var moving := false
 var talking := false
 ## "", "sway", "hop", "wave", "read".
@@ -110,6 +115,8 @@ func eye_position() -> Vector2:
 ## Advance animation. `velocity` in px/s; zero means standing.
 func update(delta: float, velocity: Vector2) -> void:
 	_t += delta
+	var was_moving := moving
+	var was_facing := facing
 	moving = velocity.length() > 2.0
 	if moving:
 		_walk += delta * clampf(velocity.length() / 9.0, 3.0, 9.0)
@@ -117,6 +124,14 @@ func update(delta: float, velocity: Vector2) -> void:
 			facing = Vector2.RIGHT if velocity.x > 0.0 else Vector2.LEFT
 		else:
 			facing = Vector2.DOWN if velocity.y > 0.0 else Vector2.UP
+	# Weight (pass 8): stopping settles the body a moment; turning squeezes
+	# it through the turn instead of flipping in one frame.
+	if was_moving and not moving:
+		settle = SETTLE_TIME
+	if facing != was_facing:
+		turn = TURN_TIME
+	settle = maxf(0.0, settle - delta)
+	turn = maxf(0.0, turn - delta)
 	_blink_timer -= delta
 	if _blink_timer <= 0.0:
 		_blink = 0.13

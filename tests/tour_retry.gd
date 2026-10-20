@@ -20,6 +20,10 @@ func test_full_game_escape_purge_3() -> void:
 	pass
 
 
+func test_full_game_escape_purge_5() -> void:
+	pass
+
+
 func test_wren_ending() -> void:
 	pass
 

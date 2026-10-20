@@ -100,8 +100,12 @@ func draw(ci: CanvasItem, opts: Dictionary = {}) -> void:
 	var side := facing.x != 0.0
 	var flip := -1.0 if facing.x < 0.0 else 1.0
 	var k: float = opts.get("scale", 1.0)
-	var turn: float = opts.get("rotation", 0.0)
-	ci.draw_set_transform(offset + Vector2(0, FEET_Y).rotated(turn) * k, turn, Vector2(flip, 1.0) * k)
+	var rot: float = opts.get("rotation", 0.0)
+	# A turn squeezes the figure through its middle; a stop settles it down
+	# and back up (scales about the feet, so it stays standing where it is).
+	var squeeze := 1.0 - 0.28 * sin(clampf(turn / TURN_TIME, 0.0, 1.0) * PI)
+	var sink := sin(clampf(settle / SETTLE_TIME, 0.0, 1.0) * PI) * 0.06
+	ci.draw_set_transform(offset + Vector2(0, FEET_Y).rotated(rot) * k, rot, Vector2(flip * squeeze * (1.0 + sink * 0.5), 1.0 - sink) * k)
 	if solid == null and alpha > 0.5:
 		_shadow(ci, alpha)
 	# Motion, eased: a step bounce, a breath, a hop, a sway, a shiver.

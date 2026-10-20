@@ -236,12 +236,21 @@ func _ready() -> void:
 	_choice_list.add_theme_constant_override("separation", 3)
 	choice_v.add_child(_choice_list)
 
-	_banner = _make_label(root, Vector2(0, 70), Vector2(640, 24), 16, SELF_COLOR)
+	# A compact plate high on the screen (pass 8): a warning that names the
+	# danger, not a headline across the play area.
+	_banner = _make_label(root, Vector2(170, 50), Vector2(300, 18), 13, SELF_COLOR)
 	_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_banner.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	var plate := _backing(0.55)
+	plate.set_corner_radius_all(3)
+	plate.content_margin_left = 8
+	plate.content_margin_right = 8
+	_banner.add_theme_stylebox_override("normal", plate)
+	_banner.visible = false  # the plate shows only with something on it
 
 	# Warnings sit under the banner on their own dark strip: never queued
 	# behind the console, never hidden by a conversation.
-	_warning = _make_label(root, Vector2(120, 98), Vector2(400, 18), 11, OWNER_COLOR)
+	_warning = _make_label(root, Vector2(120, 72), Vector2(400, 18), 11, OWNER_COLOR)
 	_warning.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_warning.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var warn_bg := StyleBoxFlat.new()
@@ -1144,6 +1153,7 @@ func glitch_cost(amount: float, why := "") -> void:
 ## A big line under the top bar ("" hides it).
 func set_banner(text: String) -> void:
 	_banner.text = text
+	_banner.visible = text != ""
 	if text != "":
 		hide_tip(true)
 

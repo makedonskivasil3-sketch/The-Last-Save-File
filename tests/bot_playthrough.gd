@@ -43,6 +43,12 @@ func test_full_game_escape_purge_3() -> void:
 	await _playthrough("escape", 3)
 
 
+## The last purge step before the save is lost (pass 8: the caps on the
+## owner's growth must keep even this winnable).
+func test_full_game_escape_purge_5() -> void:
+	await _playthrough("escape", 5)
+
+
 func test_wren_ending() -> void:
 	await _playthrough("wren", 0)
 

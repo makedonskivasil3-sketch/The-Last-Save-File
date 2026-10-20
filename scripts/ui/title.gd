@@ -31,6 +31,9 @@ var _music: AudioStreamPlayer
 var _whisper_t := 0.0
 var _owner_line: Label
 var _owner_typed := 0.0
+## The small print under the menu, the controls line first (_fit_menu).
+var _small_print: Array[Label] = []
+var _menu_scroll: ScrollContainer
 
 
 func _ready() -> void:
@@ -67,6 +70,17 @@ func _ready() -> void:
 	# Left column, title type large and flush left; the key art has the
 	# right of the screen (scripts/fx/title_art.gd).
 	_menu = UiStyle.side_panel(_ui, 268)
+	# The column scrolls when it can't fit (large text, every button, a long
+	# slot card): it follows keyboard and controller focus, so every button
+	# stays reachable without shrinking anything (_fit_menu).
+	var column := _menu.get_parent()
+	_menu_scroll = ScrollContainer.new()
+	_menu_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_menu_scroll.follow_focus = true
+	column.remove_child(_menu)
+	column.add_child(_menu_scroll)
+	_menu_scroll.add_child(_menu)
+	_menu.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_title = UiStyle.heading(_menu, TITLE, UiStyle.TEXT, 24)
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -105,6 +119,12 @@ func _ready() -> void:
 		var small := UiStyle.note(_menu, line)
 		small.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		UiStyle.sized(small, 9)
+		_small_print.append(small)
+	# Reflow, not shrink: with large text and every button there, the
+	# controls line (also in How to Play) gives way first; the flashing
+	# warning always stays.
+	_fit_menu.call_deferred()
+	Settings.changed.connect(func() -> void: _fit_menu.call_deferred())
 
 	_settings_box = UiStyle.centered_panel(_ui, 480)
 	_settings = SettingsPanel.new()
@@ -135,6 +155,26 @@ func _ready() -> void:
 	_journal_box.add_child(_journal)
 
 	_show_menu()
+
+
+## Keeps the whole menu on screen: lines that are repeated elsewhere give
+## way when the menu would be taller than the screen.
+func _fit_menu() -> void:
+	if not is_inside_tree() or _small_print.is_empty():
+		return
+	var panel := _menu_scroll.get_parent() as Control
+	var box := panel.get_theme_stylebox("panel")
+	var chrome := box.get_content_margin(SIDE_TOP) + box.get_content_margin(SIDE_BOTTOM) if box else 0.0
+	var room := get_viewport_rect().size.y - 8.0 - chrome
+	_small_print[0].visible = true
+	if _menu.get_combined_minimum_size().y > room:
+		_small_print[0].visible = false
+	# Fits: the column is exactly its content. Doesn't: it is the screen's
+	# height and scrolls.
+	var need := _menu.get_combined_minimum_size().y
+	_menu_scroll.custom_minimum_size = Vector2(_menu.get_combined_minimum_size().x, minf(need, room))
+	_menu_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO if need > room else ScrollContainer.SCROLL_MODE_DISABLED
+	panel.reset_size()
 
 
 func _process(delta: float) -> void:

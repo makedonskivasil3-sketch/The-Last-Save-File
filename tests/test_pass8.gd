@@ -331,3 +331,72 @@ func test_a_death_elsewhere_keeps_the_room_closed() -> void:
 	await frames(5)
 	check(not w.area.back_from_the_edge(), "a death in the square isn't a finale retry")
 	check(not w.area.seam.open, "the seam waits for the owner as before")
+
+
+# --- the title -------------------------------------------------------------------------
+
+func test_the_title_menu_fits_with_large_text_and_every_button() -> void:
+	memory().sessions = 3
+	memory().wins = 1
+	memory().last_ending = "rue"
+	memory().record_read("memory:controller", "memory", "THE SECOND CONTROLLER", "ARIN'S ROOM", ["x"])
+	settings().opening_seen = true
+	settings().large_text = true
+	settings().using_touch = true
+	tree.change_scene_to_file("res://scenes/title.tscn")
+	await wait(0.8)
+	var t := scene()
+	var panel: Control = t._menu.get_parent()
+	var view: Vector2 = t.get_viewport_rect().size
+	check(Rect2(Vector2.ZERO, view).encloses(panel.get_global_rect()), "the menu is wholly on screen (%s)" % panel.get_global_rect())
+	check(t._small_print[1].visible, "the flashing warning always stays")
+	var buttons := 0
+	for b in t._menu.find_children("*", "Button", true, false):
+		buttons += 1
+		# Reachable: focusing it (keyboard, controller) brings it on screen.
+		(b as Button).grab_focus()
+		await frames(3)
+		check(Rect2(Vector2.ZERO, view).grow(0.5).encloses((b as Button).get_global_rect()), "%s is reachable on screen (%s)" % [(b as Button).text, (b as Button).get_global_rect()])
+	check(buttons >= 7, "every button is there (%d)" % buttons)
+	settings().large_text = false
+	settings().using_touch = false
+	settings().opening_seen = false
+
+
+# --- the balance as one system -------------------------------------------------------
+
+func test_hiding_holds_against_everything_at_a_late_purge() -> void:
+	memory().purge = 4
+	var w := await start_session()
+	await _hunted_square(w)
+	var wren: Npc = null
+	for n in w.area.interactables:
+		if n is Npc and n.npc_id == "wren":
+			wren = n
+	check(wren != null, "Wren is in the square")
+	if wren == null:
+		return
+	w.player.global_position = wren.global_position + Vector2(6, 0)
+	await frames(3)
+	check(w.is_hidden_now(), "beside Wren, Rue is hidden")
+	w.owner_moves.start_save_over()  # the owner tries anyway
+	# (At HUNT the owner may go after Wren for hiding her: a designed move
+	# with its own warning. Only the time Rue is actually hidden is judged.)
+	var rise := 0.0
+	var hidden_for := 0.0
+	var last: float = w.director.awareness
+	var t := 0.0
+	while t < 6.0 and w.ending == "":
+		await tree.process_frame
+		var dt := tree.root.get_process_delta_time()
+		t += dt
+		if w.is_hidden_now():
+			hidden_for += dt
+			rise += maxf(0.0, w.director.awareness - last)
+		last = w.director.awareness
+	print("PASS8 hidden %.1f of 6 s · wren deleted %s" % [hidden_for, memory().is_deleted("wren")])
+	check_eq(w.ending, "", "hidden at purge 4 with the cursor out, Rue lives through it")
+	check(hidden_for > 1.0, "she was hidden for a real stretch (%.1f s)" % hidden_for)
+	check(rise < 0.5, "awareness doesn't climb while she's hidden (+%.2f)" % rise)
+	check(w.owner_moves.save_progress < 0.2, "the save ring waits (%.2f)" % w.owner_moves.save_progress)
+	check(w.area.cursor.speed < w.player.speed, "and the cursor is still slower than she walks")

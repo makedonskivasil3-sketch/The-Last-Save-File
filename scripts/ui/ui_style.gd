@@ -79,9 +79,16 @@ static func rescale_text(tree: SceneTree) -> void:
 
 
 ## A black outline: keeps small text legible on top of the CRT pass.
+## Text over the world: a thin outline and a soft drop shadow (pass 8),
+## legible on any floor without the heavy black rim of a terminal. `px` is
+## the old rim's weight; the outline is half of it, the shadow carries the rest.
 static func outline(c: Control, px := 3) -> void:
-	c.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-	c.add_theme_constant_override("outline_size", px)
+	c.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	c.add_theme_constant_override("outline_size", maxi(1, px / 2))
+	c.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.55))
+	c.add_theme_constant_override("shadow_offset_x", 0)
+	c.add_theme_constant_override("shadow_offset_y", 1)
+	c.add_theme_constant_override("shadow_outline_size", px)
 
 
 static func make_theme() -> Theme:

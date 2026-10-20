@@ -152,8 +152,24 @@ static func wall_shadow(ci: CanvasItem, r: Rect2, depth := 10.0, strength := 0.3
 ## wall's face. `gaps` as Area.draw_walls (side, from, to): left open.
 static func walls(ci: CanvasItem, r: Rect2, t: float, face: Color, cap: Color, gaps: Array = []) -> void:
 	var outer := r.grow(t)
-	ci.draw_rect(Rect2(outer.position, Vector2(outer.size.x, t)), face)
-	# The top wall's face: a skirting board and a lighter upper band.
+	var wall := Rect2(outer.position, Vector2(outer.size.x, t))
+	ci.draw_rect(wall, face)
+	# The top wall's face, built up (pass 8): light falling off towards the
+	# ceiling, a faint wallpaper stripe, a darker wainscot with panels and a
+	# rail, then the skirting board. Depth from shading, not from height:
+	# the collision is unchanged.
+	_grad(ci, Rect2(wall.position, Vector2(wall.size.x, t * 0.6)), Color(0, 0, 0, 0.32), Color(0, 0, 0, 0), true)
+	var x := wall.position.x + 3.0
+	while x < wall.end.x:
+		ci.draw_line(Vector2(x, wall.position.y + 2.0), Vector2(x, wall.end.y - t * 0.42), Color(face.lightened(0.25), 0.07), 0.6)
+		x += 5.0
+	var wains := Rect2(wall.position.x, wall.end.y - t * 0.42, wall.size.x, t * 0.42 - 2.0)
+	ci.draw_rect(wains, face.darkened(0.18))
+	ci.draw_line(wains.position, Vector2(wains.end.x, wains.position.y), face.lightened(0.22), 0.8)  # the rail
+	var px := wains.position.x + 9.0
+	while px < wains.end.x - 4.0:
+		ci.draw_rect(Rect2(px, wains.position.y + 1.4, 14.0, maxf(wains.size.y - 2.6, 1.0)), Color(face.darkened(0.35), 0.5), false, 0.5)
+		px += 18.0
 	ci.draw_rect(Rect2(r.position.x, r.position.y - 2.0, r.size.x, 2.0), face.darkened(0.25))
 	ci.draw_rect(Rect2(outer.position.x, outer.position.y, outer.size.x, 2.0), cap)
 	ci.draw_rect(Rect2(outer.position.x, r.end.y, outer.size.x, t), cap)
@@ -188,6 +204,33 @@ static func furniture(ci: CanvasItem, r: Rect2, top: Color, front := 4.0) -> Rec
 	ci.draw_rect(r, INK, false, 0.8)
 	ci.draw_line(Vector2(r.position.x, t.end.y), Vector2(r.end.x, t.end.y), Color(INK, 0.6), 0.6)
 	return t
+
+
+## Unloaded geometry (the Edge, docs/VISUAL_DIRECTION.md pass 8): a grey-box
+## block, the untextured stand-in a level has before it is finished. A lit
+## top face, a darker front face for depth, one crisp edge (the collision
+## boundary, unmistakable), a faint wireframe diagonal, and only a small
+## missing-texture tag in one corner where the old full checkerboard was.
+static func greybox(ci: CanvasItem, r: Rect2, t: float, seed_x: float) -> void:
+	var front := clampf(r.size.y * 0.18, 4.0, 9.0)
+	ci.draw_rect(Rect2(r.position + Vector2(2.0, front + 2.0), r.size), Color(0, 0, 0, 0.35))
+	var top := Rect2(r.position, Vector2(r.size.x, r.size.y - front))
+	ci.draw_rect(Rect2(r.position.x, top.end.y, r.size.x, front), Color("1d2230"))
+	ci.draw_rect(top, Color("2e3446"))
+	# The unfinished mesh: a diagonal and a faint edge loop on the top face.
+	ci.draw_line(top.position, top.end, Color(0.62, 0.78, 1.0, 0.07), 0.8)
+	ci.draw_rect(top.grow(-3.0), Color(0.62, 0.78, 1.0, 0.05), false, 0.6)
+	ci.draw_line(top.position, Vector2(top.end.x, top.position.y), Color(0.75, 0.85, 1.0, 0.35), 0.8)
+	# The edge you collide with.
+	ci.draw_rect(r, Color(0.7, 0.85, 1.0, 0.55), false, 1.0)
+	ci.draw_line(Vector2(r.position.x, top.end.y), Vector2(r.end.x, top.end.y), Color(0, 0, 0, 0.5), 0.8)
+	# The missing texture, as a small tag: a 2x2 check that slowly flickers.
+	var tag := Rect2(top.position + Vector2(3, 3), Vector2(6, 6))
+	var on := 0.55 + 0.25 * sin(t * 1.3 + seed_x * 0.05)
+	ci.draw_rect(Rect2(tag.position, Vector2(3, 3)), Color(1.0, 0.0, 0.86, on))
+	ci.draw_rect(Rect2(tag.position + Vector2(3, 3), Vector2(3, 3)), Color(1.0, 0.0, 0.86, on))
+	ci.draw_rect(Rect2(tag.position + Vector2(3, 0), Vector2(3, 3)), Color("120812"))
+	ci.draw_rect(Rect2(tag.position + Vector2(0, 3), Vector2(3, 3)), Color("120812"))
 
 
 ## A bed in a footprint (headboard at the top): frame, mattress, a quilt

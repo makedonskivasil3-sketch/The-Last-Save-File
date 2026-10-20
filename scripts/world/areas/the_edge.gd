@@ -80,7 +80,8 @@ func build() -> void:
 		add_solid(m)
 	add_exit(Rect2(SOUTH_GAP.x, bounds.end.y, SOUTH_GAP.y - SOUTH_GAP.x, 8), "square", "north")
 
-	add_sign(Vector2((SOUTH_GAP.x + SOUTH_GAP.y) * 0.5, bounds.end.y - 12), "ASHVALE", Vector2.DOWN)
+	# Beside the gap, not on it: Rue arrives in the gap, and the sign mustn't sit on her.
+	add_sign(Vector2(SOUTH_GAP.y + 30, bounds.end.y - 10), "ASHVALE", Vector2.DOWN)
 	slot = SlotTwo.new()
 	slot.position = SLOT_POS
 	# (First: a hand still on its way stops before the choice opens.)
@@ -371,24 +372,11 @@ func _draw() -> void:
 		draw_line(Vector2(x, r.position.y), Vector2(x, r.end.y), grid)
 	for y in range(int(r.position.y), int(r.end.y) + 1, 16):
 		draw_line(Vector2(r.position.x, y), Vector2(r.end.x, y), grid)
-	# Missing textures: the classic magenta and black checkerboard, muted so
-	# these walls don't shout louder than the static that kills. Full
-	# saturation is kept for danger (the cracks, the static, the cursor).
+	# Unloaded geometry: grey-box blocks (Decor.greybox), the stand-ins of a
+	# level nobody finished. Solid and readable, quieter than anything that
+	# kills: full saturation is kept for danger (cracks, static, the cursor).
 	for m in MISSING:
-		draw_rect(m.grow(1.0), Color(1.0, 0.0, 0.86, 0.35), false, 1.0)
-		var cell := 6.0
-		var y := m.position.y
-		var row := 0
-		while y < m.end.y:
-			var x := m.position.x
-			var col := 0
-			while x < m.end.x:
-				var c := Color("6e2a64") if (row + col) % 2 == 0 else Color("120812")
-				draw_rect(Rect2(x, y, minf(cell, m.end.x - x), minf(cell, m.end.y - y)), c)
-				x += cell
-				col += 1
-			y += cell
-			row += 1
+		Decor.greybox(self, m, _t, m.position.x)
 	for pos: Vector2 in LABELS:
 		var a := 0.13 + 0.04 * sin(_t * 1.5 + pos.x)  # decoration: quieter than anything that matters
 		draw_string(UiStyle.system_font(), pos, LABELS[pos], HORIZONTAL_ALIGNMENT_LEFT, -1, 7, Color(0.55, 0.95, 1.0, a))
