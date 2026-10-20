@@ -1031,4 +1031,4 @@ static func win_text(found: int) -> String:
 		return "you wrote yourself into the last save file.\nyou know your name now. RUE.\nyou don't know yet what you are."
 	if found >= 3:
 		return "you wrote yourself into the last save file.\nyou almost remember whose it was.\n(memories recovered: %d of %d)" % [found, FRAGMENTS.size()]
-	return "you wrote yourself into the last save file.\nthe owner saw where you went. next time, they'll look.\n(memories recovered: %d of %d)" % [found, FRAGMENTS.size()]
+	return "you wrote yourself into the last save file.\nthe owner doesn't know this slot survived. not yet.\n(memories recovered: %d of %d)" % [found, FRAGMENTS.size()]

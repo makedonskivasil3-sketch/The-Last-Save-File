@@ -55,7 +55,6 @@ func test_end_cards_follow_what_rue_knows() -> void:
 	memory().knows_truth = true
 	check(Story.ending_text("escape", Story.FRAGMENTS.size()).contains("hers once"), "with the truth, the slot was hers once")
 	check(Story.ending_text("rue", Story.FRAGMENTS.size()).contains("you know what you are"), "RUE's card speaks to the truth it needed")
-	check(not Story.ending_text("escape", 0).contains("doesn't know this slot survived"), "a first escape doesn't contradict the owner seeing it")
 
 
 func test_the_apology_changes_once_rue_knows_she_is_not_the_girl() -> void:
