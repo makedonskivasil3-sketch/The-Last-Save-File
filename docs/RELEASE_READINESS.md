@@ -2,7 +2,26 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current status (2026-10-20, pass 6): `claude/last-save-file-prototype-ljwuq4`
+## Current status (2026-10-20, pass 7): `claude/last-save-file-prototype-ljwuq4`
+
+**Stage:** a complete, polished **vertical slice / late prototype**. Every planned area, threat, ending and system is in and covered by automated checks. Nothing a real player experienced has been observed yet. **Not** a release candidate (same unmet items as below).
+
+**Pass 7** (three read-only reviews, then fixes; details in `GAMEPLAY_CONSISTENCY.md`, pass 7):
+
+| Area | Implemented | Automated | Visually inspected | Human / hardware |
+|---|---|---|---|---|
+| Title key art and asymmetric layout (`TitleArt`, `UiStyle.side_panel`) | Yes | Title/menu suites | `tour_visual` 00/01 | First-impression opinion pending |
+| Fairness: hidden stops save-over; square cursor capped and spawned away; purge rate capped at 3; no static under Rue on arrival; room exempt from truce slowdown; seam hint; truthful death tips | Yes | `test_pass7` (5), full suite | — | Pending |
+| Story: truth-aware end cards and apology; Archivist's stake; reveal no longer contradicts memories 4–5; pronoun fixes; canon header | Yes | `test_pass7`, `test_canon`, `test_voice_manifest` | — | Reading pending |
+| Open for the author: Edge retry distance (checkpoint proposal); quit/purge on phones; the escape card's "doesn't know this slot survived" | — | — | — | Author's call |
+
+| Commit | Check | Result |
+|---|---|---|
+| `ba3fcdd` | Full suite (local and CI) | 435 passed, 1 failed (`test_canon`: an author-decided line I had changed; restored in `12077ed`) |
+| `12077ed` | `test_canon`, `test_pass7`, `test_voice_manifest`; bots (4 exact endings) | 12/12; 4/4 |
+| `12077ed` | `web_check` (headless Chromium), `audio_output_check` | Lifecycle: 2 of 3 runs all-pass; one run missed the beforeunload dialog (intermittent, watch in CI). Audio: audible |
+
+## Status at pass 6 (2026-10-20)
 
 **Branches:** [PR #7](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/pull/7) on this branch, stacked on [PR #6](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/pull/6). Not merged; nothing deployed. The author asked for both to be merged into `main` and for GitHub Pages; the merge needs to be done on github.com (this session may not merge), and Pages needs *Settings → Pages → Source: GitHub Actions*.
 
