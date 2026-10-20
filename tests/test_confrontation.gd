@@ -6,6 +6,8 @@ extends "res://tests/test_case.gd"
 func _at_edge(w: Node) -> void:
 	w.flags["pointer"] = true
 	await go_to(w, "edge", "south")
+	# Arrival is safe: nothing moves until the act card has gone.
+	await wait_until(func() -> bool: return not w.hud.is_act_shown(), 8.0, "the act card")
 	w.area.grace = 99.0  # no static in these tests
 
 

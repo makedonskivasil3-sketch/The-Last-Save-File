@@ -43,6 +43,12 @@ var _arin_x := 0.0
 var _rue_x := 0.0
 var _caption: Label
 var _hint: Label
+## The title's theme carries on under the film (it was silent apart from
+## three cues: on a phone that sounded like the music had stopped), and
+## thins out as the picture goes, until only the one note is left.
+var _music: AudioStreamPlayer
+const MUSIC_DB := -15.0
+var _prewarmed := false
 
 
 ## Plays the opening on the next run? (First launch only, unless asked to
@@ -79,6 +85,10 @@ func _ready() -> void:
 	_caption = _label(layer, Vector2(40, 316), 10, Color(0.85, 0.85, 0.82))
 	_hint = _label(layer, Vector2(40, 340), 9, Color(0.6, 0.62, 0.66))
 	_hint.modulate.a = 0.0
+	_music = AudioStreamPlayer.new()
+	_music.bus = "Music"
+	_music.volume_db = MUSIC_DB
+	add_child(_music)
 	_arin_x = TV.position.x + 120.0
 	_rue_x = TV.position.x + 92.0
 
@@ -110,6 +120,7 @@ func _process(delta: float) -> void:
 	if _done or _held:
 		return
 	_t += delta
+	_update_music()
 	_cue(0.4, func() -> void: _caption.text = "[a television, late at night]")
 	_cue(4.5, func() -> void: _caption.text = "")
 	_cue(9.0, func() -> void:
@@ -142,6 +153,23 @@ func _process(delta: float) -> void:
 	queue_redraw()
 	if _t >= LENGTH:
 		_finish()
+
+
+func _update_music() -> void:
+	if not _music.playing and _t < 21.0:
+		var key := "theme_%d_normal" % MusicBox.held_level(OwnerMemory.fragments.size())
+		if OwnerMemory.runtime_cache.has(key):
+			_music.stream = OwnerMemory.runtime_cache[key]
+			_music.play()
+		elif not _prewarmed:
+			_prewarmed = true  # (normally already built while the title was up)
+			MusicBox.prewarm(MusicBox.held_level(OwnerMemory.fragments.size()))
+	# Full while they play together; down as the interface goes out; gone
+	# before the note.
+	var k := 1.0 - clampf((_t - 17.0) / 5.0, 0.0, 1.0)
+	_music.volume_db = MUSIC_DB + linear_to_db(maxf(k, 0.0001))
+	if k <= 0.0 and _music.playing:
+		_music.stop()
 
 
 func _cue(at: float, what: Callable) -> void:

@@ -90,6 +90,8 @@ func test_reaching_slot_two_wins() -> void:
 	var w := await start_session()
 	w.flags["pointer"] = true
 	await go_to(w, "edge", "south")
+	# Arrival is safe: nothing moves until the act card has gone.
+	await wait_until(func() -> bool: return not w.hud.is_act_shown(), 8.0, "the act card")
 	w.area.cursor.position = Vector2(60, 270)  # lured away
 	w.player.global_position = Vector2(580, 66)
 	await wait(0.5)
@@ -107,6 +109,8 @@ func test_cursor_guards_slot_two() -> void:
 	var w := await start_session()
 	w.flags["pointer"] = true
 	await go_to(w, "edge", "south")
+	# Arrival is safe: nothing moves until the act card has gone.
+	await wait_until(func() -> bool: return not w.hud.is_act_shown(), 8.0, "the act card")
 	check(w.area.cursor.position.distance_to(TheEdge.SLOT_POS) < 60.0, "the cursor waits beside Slot 2")
 	w.player.global_position = Vector2(580, 66)
 	await wait_until(func() -> bool: return w.ending != "", 4.0, "the cursor reaching you")

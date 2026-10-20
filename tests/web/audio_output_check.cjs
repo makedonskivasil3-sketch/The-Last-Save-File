@@ -120,6 +120,16 @@ async function waitForGame(page) {
   await page.keyboard.press('Escape');
   await page.waitForTimeout(300);
   await page.keyboard.press('Enter');
+  // A first launch plays the opening film first: it must not be silent
+  // either. Then hold E to skip it and measure the room itself.
+  await page.waitForTimeout(3000);
+  const scene = await page.evaluate(() => (window.__lsf || {}).scene || '');
+  if (scene === 'opening') {
+    results.opening = await measure(page, 5000);
+    await page.keyboard.down('e');
+    await page.waitForTimeout(1200);
+    await page.keyboard.up('e');
+  }
   for (let i = 0; i < 10; i++) { await page.waitForTimeout(600); await page.keyboard.press('e'); }
   results.first_room = await measure(page, 8000);
 
@@ -131,6 +141,7 @@ async function waitForGame(page) {
   const failures = [];
   if (!audible(results.title) && !audible(results.first_room)) failures.push('silent after the first gesture (title and first room)');
   if (!audible(results.first_room)) failures.push('the first room is silent');
+  if (results.opening && !audible(results.opening)) failures.push('the opening film is silent');
   if (results.title.clipped_samples > 0 || results.first_room.clipped_samples > 0) failures.push('clipping');
   if (results.sound_state !== 'running') failures.push(`the page says sound is "${results.sound_state}" after a click`);
   if (errors.length) failures.push(`${errors.length} page error(s)`);

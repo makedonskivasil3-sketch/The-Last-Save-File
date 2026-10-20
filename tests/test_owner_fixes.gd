@@ -42,7 +42,7 @@ func test_closets_count_as_hiding() -> void:
 	w.player.global_position = ArinsHouse.CLOSETS[0].get_center()
 	await wait(1.0)
 	check(w.player.sheltered, "the player knows they're hidden")
-	check_eq(w.hud._status.text, "HIDDEN", "the HUD says so")
+	check(w.hud._status.text.begins_with("HIDDEN"), "the HUD says so (%s)" % w.hud._status.text)
 	check(w.director.awareness < before, "and the owner loses track, like beside Wren")
 
 
