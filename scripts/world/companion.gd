@@ -20,8 +20,6 @@ const WHITE := Color("f4ead8")
 const NAME_COLOR := Color("f0a050")
 ## Arin closer than this gets a warning yip.
 const WARN_DISTANCE := 85.0
-## Drawn a little bigger than 1:1 so the fox reads next to Rue (who is 2x).
-const DRAW_SCALE := 1.5
 
 var mode: Mode = Mode.WAITING
 var world: World
@@ -105,46 +103,74 @@ func _warn_about_arin() -> void:
 
 
 func _draw() -> void:
-	# A small fox, about 12 x 9 pixels (x1.5), drawn facing right and flipped.
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2(DRAW_SCALE, DRAW_SCALE))
-	var step := floori(_t * 10.0) % 2 if _moving else 0
+	# A small fox, illustrated like the cast (docs/VISUAL_DIRECTION.md): soft
+	# shapes with the shared outline, drawn facing right and mirrored.
+	var f := _facing
 	var sit := mode == Mode.WAITING or not _moving
-	var bob := 0.0 if _moving else roundf(sin(_t * 2.0) * 0.5)
-	var tail := roundf(sin(_t * (9.0 if _moving else 3.0)) * 1.0)
+	var bob := 0.0 if _moving else sin(_t * 2.0) * 0.4
+	var swish := sin(_t * (9.0 if _moving else 3.0)) * 1.4
+	var step := sin(_t * 18.0) * 1.2 if _moving else 0.0
+	Decor.disc(self, Vector2(0, 0.6), 6.0, Color(0, 0, 0, 0.28), 10)  # contact shadow
 	if mode == Mode.WAITING:
-		# Curled up asleep: a round orange heap with a white tail tip.
-		_px(-5, -3, 10, 4, ORANGE)
-		_px(-6, -2, 3, 3, ORANGE)
-		_px(-7, -1, 2, 2, WHITE)
-		_px(3, -4, 2, 1, DARK)
+		# Curled up asleep: a round orange heap, the tail wrapped round it.
+		_blob(Vector2(0, -2.5), Vector2(6.8, 3.6), ORANGE, true)
+		_blob(Vector2(-4.0 * f, -1.5), Vector2(3.4, 2.2), ORANGE.darkened(0.08), true)
+		_blob(Vector2(-6.4 * f, -1.2), Vector2(1.6, 1.3), WHITE, false)
+		draw_line(Vector2(2.6 * f, -3.6), Vector2(4.0 * f, -3.4), DARK, 0.6)  # a closed eye
 		var z := fmod(_t, 2.0)
 		if z < 1.2:
-			draw_string(ThemeDB.fallback_font, Vector2(4, -6 - z * 4.0), "z", HORIZONTAL_ALIGNMENT_LEFT, -1, 7, Color(1, 1, 1, 0.6))
+			draw_string(ThemeDB.fallback_font, Vector2(5, -8 - z * 4.0), "z", HORIZONTAL_ALIGNMENT_LEFT, -1, 7, Color(1, 1, 1, 0.6))
 		return
-	var y := -1.0 + bob
-	# Tail (behind), then body, legs, head, ears.
-	_px(-9, y - 4 + tail, 4, 2, ORANGE)
-	_px(-10, y - 5 + tail, 2, 2, WHITE)
-	_px(-5, y - 4, 8, 4 if not sit else 3, ORANGE)
-	_px(-4, y - (2 if sit else 1), 5, 1, WHITE)  # white chest
-	if sit:
-		_px(-4, y, 3, 1, DARK)
-		_px(1, y, 2, 1, DARK)
-	else:
-		_px(-4 + step, y, 1, 2, DARK)
-		_px(1 - step, y, 1, 2, DARK)
-	_px(2, y - 7, 4, 4, ORANGE)
-	_px(5, y - 5, 2, 2, WHITE)
-	_px(6, y - 5, 1, 1, DARK)  # nose
-	_px(4, y - 6, 1, 1, Color(0.1, 0.05, 0.05))  # eye
-	_px(2, y - 9, 1, 2, ORANGE)
-	_px(4, y - 9, 1, 2, ORANGE)
+	var y := -1.5 + bob
+	# Tail behind, then legs, body, chest, head, ears.
+	var tail := PackedVector2Array([Vector2(-5 * f, y - 4), Vector2(-11 * f, y - 6 + swish), Vector2(-13 * f, y - 4 + swish), Vector2(-6 * f, y - 2)])
+	_poly(tail, ORANGE)
+	_blob(Vector2(-12.4 * f, y - 4.8 + swish), Vector2(1.6, 1.3), WHITE, false)
+	for leg: float in [-3.0, 2.0]:
+		var lift := step if leg < 0.0 else -step
+		var top := Vector2(leg * f, y - 2.0)
+		var foot := Vector2((leg + (lift * 0.5 if not sit else 0.0)) * f, y + 1.2 - (maxf(0.0, lift) * 0.6 if not sit else 0.0))
+		draw_line(top, foot, Decor.INK, 2.4)
+		draw_line(top, foot, DARK, 1.4)
+	_blob(Vector2(-0.6 * f, y - 4.0 + (0.6 if sit else 0.0)), Vector2(5.4, 3.0), ORANGE, true)
+	_blob(Vector2(1.4 * f, y - 2.8), Vector2(2.2, 1.4), WHITE, false)  # white chest
+	var head := Vector2(4.4 * f, y - 7.6 + (0.4 if sit else 0.0))
+	for ear: float in [-1.4, 1.4]:
+		_poly(PackedVector2Array([head + Vector2((ear - 1.0) * f, -1.6), head + Vector2(ear * f, -5.0), head + Vector2((ear + 1.2) * f, -1.8)]), ORANGE)
+	_poly(PackedVector2Array([head + Vector2(-2.6 * f, -1.8), head + Vector2(2.2 * f, -2.2), head + Vector2(4.6 * f, 0.6), head + Vector2(1.6 * f, 2.2), head + Vector2(-2.4 * f, 1.4)]), ORANGE)
+	_poly(PackedVector2Array([head + Vector2(1.4 * f, 0.2), head + Vector2(4.6 * f, 0.6), head + Vector2(1.8 * f, 2.2)]), WHITE, false)  # muzzle
+	Decor.disc(self, head + Vector2(4.6 * f, 0.5), 0.7, Decor.INK, 8)  # nose
+	Decor.disc(self, head + Vector2(0.9 * f, -0.4), 0.7, Color(0.1, 0.05, 0.05), 8)  # eye
+	Decor.disc(self, head + Vector2(0.7 * f, -0.7), 0.25, Color(1, 1, 1, 0.9), 6)
 	if _yip > 0.0:
 		var c := Color(1.0, 0.85, 0.45, minf(1.0, _yip * 3.0))
-		draw_rect(Rect2(-1, y - 18, 2, 5), c)
-		draw_rect(Rect2(-1, y - 12, 2, 2), c)
+		draw_rect(Rect2(-1, y - 22, 2, 6), c)
+		draw_rect(Rect2(-1, y - 15, 2, 2), c)
 
 
-func _px(x: float, y: float, w: float, h: float, c: Color) -> void:
-	var rx := x if _facing > 0.0 else -x - w
-	draw_rect(Rect2(rx, y, w, h), c)
+## A soft blob (with the shared outline behind it if `outline`).
+func _blob(c: Vector2, r: Vector2, col: Color, outline := true) -> void:
+	if outline:
+		_ellipse(c, r + Vector2(0.75, 0.75), Decor.INK)
+	_ellipse(c, r, col)
+
+
+func _ellipse(c: Vector2, r: Vector2, col: Color) -> void:
+	var pts := PackedVector2Array()
+	for i in 12:
+		var a := TAU * i / 12.0
+		pts.append(c + Vector2(cos(a) * r.x, sin(a) * r.y))
+	draw_colored_polygon(pts, col)
+
+
+func _poly(pts: PackedVector2Array, col: Color, outline := true) -> void:
+	if outline:
+		var centre := Vector2.ZERO
+		for q in pts:
+			centre += q
+		centre /= pts.size()
+		var grown := PackedVector2Array()
+		for q in pts:
+			grown.append(q + (q - centre).normalized() * 0.75)
+		draw_colored_polygon(grown, Decor.INK)
+	draw_colored_polygon(pts, col)

@@ -100,7 +100,8 @@ func draw(ci: CanvasItem, opts: Dictionary = {}) -> void:
 	var side := facing.x != 0.0
 	var flip := -1.0 if facing.x < 0.0 else 1.0
 	var k: float = opts.get("scale", 1.0)
-	ci.draw_set_transform(offset + Vector2(0, FEET_Y) * k, 0.0, Vector2(flip, 1.0) * k)
+	var turn: float = opts.get("rotation", 0.0)
+	ci.draw_set_transform(offset + Vector2(0, FEET_Y).rotated(turn) * k, turn, Vector2(flip, 1.0) * k)
 	if solid == null and alpha > 0.5:
 		_shadow(ci, alpha)
 	# Motion, eased: a step bounce, a breath, a hop, a sway, a shiver.

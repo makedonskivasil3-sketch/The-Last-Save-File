@@ -554,6 +554,9 @@ func _cinematic_line(line: String, vid: String, title: String, base_color: Color
 	var original_color := _cine_text.get_theme_color("font_color")
 	if owner_line:
 		_cine_text.add_theme_color_override("font_color", OWNER_COLOR)
+	# The face beside the scene is the character's: it steps back while the
+	# owner speaks, so a portrait never seems to say the owner's words.
+	_cine_portrait.modulate.a = 0.25 if owner_line else 1.0
 	var spoken := line.trim_prefix(">").strip_edges() if owner_line else line
 	var recorded := VoiceOver.play(self, vid)
 	if recorded == null:

@@ -746,6 +746,9 @@ static func truth_ready() -> bool:
 ## who hid her; never how she walks. The piece stays taken (that person is
 ## "frayed") until it's brought back from the Recycle Bin.
 
+## Rue went through a wall her companion can't (%s: their id).
+const ESCORT_CUT := "(%s can't follow me through that. i'll have to go back for her.)"
+
 const SHED_TARGETS := ["wren", "mira", "tobben"]
 const SHED_MAX_PER_RUN := 2
 ## How much the owner's awareness drops (never below the last threshold).

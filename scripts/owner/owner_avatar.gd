@@ -101,7 +101,30 @@ func can_see(pos: Vector2) -> bool:
 		return false
 	if absf(_facing.angle_to(to)) > view_angle * 0.5:
 		return false
+	if _blocked(pos) != pos:
+		return false  # a wall, a house, the stall, the crates: Arin can't see through them
 	return not (is_hidden.is_valid() and is_hidden.call(pos))
+
+
+## Where a look from Arin toward `pos` stops: the first solid in the way
+## (the same walls and furniture that stop walking), else `pos` itself. The
+## view cone is drawn to the same points, so what you see is what Arin sees.
+func _blocked(pos: Vector2) -> Vector2:
+	if not is_inside_tree():
+		return pos
+	var q := PhysicsRayQueryParameters2D.create(global_position, pos)
+	if player is CollisionObject2D:
+		q.collision_mask = player.collision_mask
+		q.exclude = [player.get_rid()]
+	# People don't block the view (a child beside you isn't a wall): look past them.
+	for i in 4:
+		var hit := get_world_2d().direct_space_state.intersect_ray(q)
+		if hit.is_empty():
+			return pos
+		if not (hit.collider is Npc):
+			return hit.position
+		q.exclude = q.exclude + [hit.rid]
+	return pos
 
 
 func _ready() -> void:
@@ -181,9 +204,10 @@ func _draw() -> void:
 	# View cone: faint, brighter when it has you.
 	var a := 0.18 if _seeing else 0.06
 	var pts := PackedVector2Array([Vector2.ZERO])
-	for i in 9:
-		var ang := _facing.angle() - view_angle * 0.5 + view_angle * i / 8.0
-		pts.append(Vector2.from_angle(ang) * view_distance)
+	for i in 13:
+		var ang := _facing.angle() - view_angle * 0.5 + view_angle * i / 12.0
+		var tip := global_position + Vector2.from_angle(ang) * view_distance
+		pts.append(_blocked(tip) - global_position)  # stops at walls, like the look itself
 	draw_colored_polygon(pts, cone_color(a))
 	_sprite.pointing = _seeing  # points at you: still, not a friendly wave
 	if stunned > 0.0:

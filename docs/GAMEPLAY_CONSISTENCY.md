@@ -69,3 +69,29 @@ No saved field was added or renamed, so no migration is needed. Truth pieces alr
 **Bot coverage vs human play:**
 - The four bots reach exact endings (escape, message, escape with purge, Wren), and focused tests cover RUE, unseen and overwrite.
 - A human-equivalent playthrough of each ending: **not run**.
+
+## Pass 3: moment-to-moment rules
+
+**Threat line of sight (`OwnerAvatar.can_see`, `_blocked`).**
+- Arin sees Rue only if a ray from Arin to Rue reaches her without crossing a wall, stall, furniture or any other solid on Rue's collision mask. People don't block sight.
+- The drawn cone is the same rays (13 of them), clipped where they hit something. What the cone covers is what Arin can see; standing behind the stall is safe and looks safe.
+- Covered by `tests/test_threat_fairness.gd`.
+
+**Interaction targeting (`GlitchController._retarget`).**
+- When two things in the world are both in reach, the target changes only after the new one has stayed best for 0.15 s, so the prompt and brackets don't flicker between them.
+- Rue's own actions (PAUSE standing still, DECOY, PHASE at a wall) and losing the old target switch at once.
+- A hold keeps the thing it started on. If that thing stops being valid mid-hold, the glitch fizzles instead of landing on something else.
+
+**Escorts (`World._update_escort`, `Npc.follow`).**
+- Steps taken within 16 px of her are forgotten, so fidgeting beside her isn't replayed.
+- She takes the shortest way along the trail (skips ahead to the nearest of the next crumbs) and hurries, up to 96 px/s, when more than 24 px behind.
+- If Rue PHASEs through a wall, the trail is cut; Rue says once that the companion can't follow. The companion waits until Rue is back beside her, within 40 px with nothing between them.
+- After a door, she arrives just behind Rue on open floor, never inside a wall.
+
+**Scenes always end cleanly.**
+- Any scene (memory, the truth, Mira pinning her note) holds the owner exactly like reading does. Nobody dies, and awareness doesn't grow, while the player can't act.
+- If the run ends during a scene's waits, the scene stops; nothing from it is recorded.
+- Sound: each muffle has a source (pause menu, memory). The music opens only when every source has let go, so closing the pause menu during a memory no longer un-muffles it. A new run or the title screen clears every muffle and duck (`Sfx.reset_scene_state`).
+- Covered by `tests/test_moment_safety.gd`.
+
+**Noted, not changed:** a companion being escorted can't be talked to; tap focus ignores facing (it's sticky, so it doesn't flicker).

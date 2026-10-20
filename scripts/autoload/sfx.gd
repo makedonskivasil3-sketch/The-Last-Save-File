@@ -339,11 +339,35 @@ func loop_player(name: String, parent: Node) -> AudioStreamPlayer:
 
 
 ## Dull the world: low-pass on SFX and Music (pause menu, flashbacks).
-func muffle(on: bool, cutoff_hz: float = 700.0) -> void:
+## `source` keeps them apart: the pause menu closing mustn't clear a
+## memory's muffle, and the sound opens up only when no one wants it closed.
+## The lowest cutoff asked for wins.
+func muffle(on: bool, cutoff_hz: float = 700.0, source := "pause") -> void:
+	if on:
+		_muffles[source] = cutoff_hz
+	else:
+		_muffles.erase(source)
+	var any := not _muffles.is_empty()
+	var hz := 20000.0
+	for k in _muffles:
+		hz = minf(hz, float(_muffles[k]))
 	for bus in _lowpass:
 		var f: AudioEffectLowPassFilter = _lowpass[bus]
-		f.cutoff_hz = cutoff_hz
-		AudioServer.set_bus_effect_enabled(AudioServer.get_bus_index(bus), 1 if bus == "SFX" else 0, on)
+		if any:
+			f.cutoff_hz = hz
+		AudioServer.set_bus_effect_enabled(AudioServer.get_bus_index(bus), 1 if bus == "SFX" else 0, any)
+
+
+var _muffles: Dictionary = {}
+
+
+## A run or the title starts clean: no muffle, no duck left over from a
+## scene that ended mid-way (a reload, a quit during a memory).
+func reset_scene_state() -> void:
+	_muffles.clear()
+	muffle(false)
+	_duck_sources.clear()
+	_duck_target = 0.0
 
 
 ## 0..1 multiplier for harsh sounds, from the accessibility settings.

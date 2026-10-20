@@ -79,6 +79,7 @@ var _win_card_shown := false
 
 
 func _ready() -> void:
+	Sfx.reset_scene_state()  # nothing muffled or ducked carries in from the last scene
 	# The Archivist's pointer to Slot 2 is kept in the save once given: the
 	# north road isn't an errand to repeat every run.
 	flags["pointer"] = OwnerMemory.met_archivist
@@ -193,7 +194,7 @@ func recover_fragment(m: MemoryFragment) -> void:
 	Sfx.play("fragment")
 	# The world goes muffled and the music box plays while you remember: the
 	# theme with this memory's layer added, so you hear it grow.
-	Sfx.muffle(true, 500.0)
+	Sfx.muffle(true, 500.0, "memory")
 	var music := AudioStreamPlayer.new()
 	music.bus = "Memory"
 	# The owner's version plays the theme upside down.
@@ -206,8 +207,8 @@ func recover_fragment(m: MemoryFragment) -> void:
 	# memory that isn't hers.
 	var face := CharacterArt.rue("afraid" if planted else "remembering", player.palette())
 	await hud.cinematic(f.title, f.lines, Color("ffb0a0") if planted else Hud.SELF_COLOR, 0.45, "memory." + f.id, face)
-	if not is_inside_tree():
-		return
+	if not is_inside_tree() or ending != "":
+		return  # the run ended during the scene: nothing here is kept
 	# Kept only once it has been lived through: quitting mid-memory changes
 	# nothing (no fragment, no journal entry), so the next run is coherent.
 	if planted:
@@ -217,7 +218,7 @@ func recover_fragment(m: MemoryFragment) -> void:
 		# two writes can leave one without the other.
 		OwnerMemory.keep_memory(f.id, f.title, area.display_name, f.lines)
 	fx.memory(false)
-	Sfx.muffle(false)
+	Sfx.muffle(false, 700.0, "memory")
 	var out := create_tween()
 	out.tween_property(music, "volume_db", -40.0, 1.2)
 	out.tween_callback(music.queue_free)
@@ -254,15 +255,15 @@ func reveal_truth() -> void:
 	hud.set_prompt("")
 	fx.memory(true)
 	Sfx.play("fragment", -2.0, 0.6, 0.0)
-	Sfx.muffle(true, 500.0)
+	Sfx.muffle(true, 500.0, "memory")
 	await hud.cinematic("WHAT I AM", Story.TRUTH_REVEAL, Hud.SELF_COLOR, 0.6, "truth.reveal", CharacterArt.rue("remembering", player.palette()))
-	if not is_inside_tree():
-		return
+	if not is_inside_tree() or ending != "":
+		return  # the run ended during the scene: nothing here is kept
 	# The page and the truth are one save, like a memory.
 	OwnerMemory.record_read("truth:reveal", "memory", "WHAT I AM", area.display_name, Story.TRUTH_REVEAL, false)
 	OwnerMemory.learn_truth()
 	fx.memory(false)
-	Sfx.muffle(false)
+	Sfx.muffle(false, 700.0, "memory")
 	player.frozen = false
 	director.paused = false
 	_cutscene = false
@@ -403,6 +404,10 @@ func _took_false_memory(f: Dictionary) -> void:
 
 func _process(delta: float) -> void:
 	_handle_wipe(delta)
+	# Before anything returns early: a scene holds the owner like a question
+	# does (the cursor, the erasure and Arin wait), whichever scene it is.
+	if ending == "" and not purged and area:
+		_update_reading_hold()
 	if purged or ending != "" or _transitioning or _cutscene:
 		_focus_marker.target = null
 		return
@@ -584,8 +589,17 @@ func _load_area(next: Area, arrival: String) -> void:
 	if pip:
 		pip.arrive(player.position)
 	_crumbs.clear()
+	_escort_cut = false
+	player.jumped = false
 	if escort:
-		escort.global_position = player.position + Vector2(-16, 4)
+		# Behind Rue, toward the way she came in, on open floor.
+		var back := (player.position - area.bounds.get_center()).normalized()
+		var spot := player.position + back * 14.0
+		if not husk_spot_ok(spot, player.position + back * 100.0):
+			spot = player.position + Vector2(-16, 4)
+			if not husk_spot_ok(spot, player.position + Vector2(100, 0)):
+				spot = player.position
+		escort.global_position = spot
 	_light.color = _base_light()
 	# Rue's own faint glow, only where the area is lit (and so darker).
 	player.glow.enabled = area.ambient < 1.0
@@ -774,6 +788,22 @@ func _update_escort(delta: float) -> void:
 	if escort == null:
 		return
 	var p := player.global_position
+	# Rue jumped (PHASE through a wall, a reload pulling her back):
+	# the trail is cut. Her companion can't walk through walls, so she waits
+	# where she is until Rue comes back within sight, and Rue notices once.
+	if player.jumped:
+		player.jumped = false
+		_crumbs.clear()
+		_escort_cut = true
+		if not _escort_cut_said:
+			_escort_cut_said = true
+			hud.say(Story.ESCORT_CUT % escort.npc_id, "self")
+	if _escort_cut:
+		if p.distance_to(escort.global_position) < 40.0 and _clear_between(escort.global_position, p):
+			_escort_cut = false  # together again: follow from here
+		else:
+			escort.follow(_crumbs, escort.global_position, delta)  # stands and waits
+			return
 	if _crumbs.is_empty() or _crumbs[-1].distance_to(p) > 6.0:
 		_crumbs.append(p)
 		if _crumbs.size() > 300:
@@ -788,6 +818,28 @@ func _update_escort(delta: float) -> void:
 		var board: Variant = area.get("board")
 		if board is Node2D and escort.global_position.distance_to(board.global_position) < 40.0:
 			mira_pins_note()
+
+
+## Rue went through a wall (PHASE): her companion waits on the other side.
+var _escort_cut := false
+var _escort_cut_said := false
+
+
+## No wall or furniture on the straight line from a to b (people don't count).
+func _clear_between(a: Vector2, b: Vector2) -> bool:
+	var q := PhysicsRayQueryParameters2D.create(a, b)
+	q.collision_mask = player.collision_mask
+	q.exclude = [player.get_rid()]
+	if escort:
+		q.exclude = q.exclude + [escort.get_rid()]
+	for i in 4:
+		var hit := get_world_2d().direct_space_state.intersect_ray(q)
+		if hit.is_empty():
+			return true
+		if not (hit.collider is Npc):
+			return false
+		q.exclude = q.exclude + [hit.rid]
+	return true
 
 
 ## Awareness a second for Mira walking outside her room with you.
@@ -810,8 +862,8 @@ func mira_pins_note() -> void:
 	OwnerMemory.mira_quest = "pinned"
 	OwnerMemory.save_memory()
 	await hud.cinematic("MIRA", Story.MIRA_PIN_SCENE, Color("e0a070"), 0.6, "mira.pin", CharacterArt.for_npc(escort, "proud"))
-	if not is_inside_tree():
-		return
+	if not is_inside_tree() or ending != "":
+		return  # the run ended during the scene: nothing here is kept
 	var board: Variant = area.get("board")
 	if board is Note:
 		board.set_text_now(Story.MIRA_NOTE_TEXT)
@@ -1018,7 +1070,13 @@ func resume_owner() -> void:
 
 
 func is_owner_paused() -> bool:
-	return director.owner_paused > 0.0 or _choice_hold or _reading_hold
+	return director.owner_paused > 0.0 or _choice_hold or _reading_now()
+
+
+## Reading, a question's scene, or a scripted scene, right now (the area's
+## own pause follows this each frame in _update_reading_hold).
+func _reading_now() -> bool:
+	return hud.is_dialogue_open() or hud.is_cinematic() or _cutscene
 
 
 ## Reading is safe (docs/NARRATIVE_RELIABILITY.md, the modal safety matrix):
@@ -1026,12 +1084,11 @@ func is_owner_paused() -> bool:
 ## question. No move starts, a save ring in progress holds where it is, and
 ## awareness doesn't climb. All of it resumes, visibly, when the box closes.
 func _update_reading_hold() -> void:
-	var reading := hud.is_dialogue_open() or hud.is_cinematic()
+	var reading := _reading_now()
 	if reading == _reading_hold:
 		return
-	var was := is_owner_paused()
 	_reading_hold = reading
-	if area and was != is_owner_paused():
+	if area:
 		area.set_owner_paused(is_owner_paused())
 
 

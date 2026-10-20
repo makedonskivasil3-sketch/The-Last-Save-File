@@ -66,7 +66,7 @@ Text is never distorted by the effects; the world can be.
   - Arin: plain tunic and belt;
   - deleted Rue: a void face with two points of light.
 
-**Portraits:** `PortraitView` draws the same figure as a bust, in the speaker's current palette and mood. The face in the box is always the face on screen. Every person has their own portrait; Pip, a creature, has none. The old 32×32 pixel grids remain in `CharacterArt` (with their tests) but are no longer shown.
+**Portraits:** `PortraitView` draws the same figure as a bust, in the speaker's current palette and mood. The face in the box is always the face on screen. Every person has their own portrait; Pip, a creature, has none. During a scene, the portrait dims while the owner's line is shown, so the face never claims a line it isn't saying. The old 32×32 pixel grids remain in `CharacterArt` (with their tests) but are no longer shown.
 
 ## Environments (implemented, inspected)
 
@@ -100,6 +100,8 @@ The `scripts/art/decor.gd` kit:
 | Arin's house | Illustrated: warm living room; Player 2's room as the same boards gone cold, with outlines of missing furniture; wardrobes to hide in |
 | Recycle Bin, Out of Bounds, the Edge | The owner's system spaces. They keep their deliberate digital look (grids, missing textures, sweeps) for contrast with the familiar world; they pick up the new walls |
 | Crate stack (prop) | Illustrated |
+| Pip | Illustrated in pass 3 (was the last pixel creature): soft body, ears, muzzle, curled asleep while waiting |
+| Rue's shed body | Pass 3: Rue's own illustrated figure, grey, lying on its side and breathing faintly (was a pixel sprite) |
 
 ## Performance (measured, software renderer only)
 

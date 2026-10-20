@@ -11,12 +11,16 @@ func _init() -> void:
 	lines_provider = func() -> Array: return Story.HUSK_LINES.duplicate()
 
 
+## The body itself: Rue's own figure, emptied of colour, lying on its side
+## with its eyes closed (docs/DARK_TRUTH_DESIGN.md, layer B).
+var _body := IllustratedCharacter.new("rue", Player.RUE)
+
+
 func _draw() -> void:
-	var ghost := Color(0.6, 0.65, 0.7, 0.45 + 0.1 * sin(_t * 2.0))
-	# Lying on its side: head, body, the empty outline of a raincoat.
-	draw_circle(Vector2(-7, -2), 3.0, ghost)
-	draw_rect(Rect2(-4, -4, 11, 5), ghost)
-	draw_rect(Rect2(-9, -6, 18, 9), Color(0.6, 0.65, 0.7, 0.25), false, 1.0)
+	_body.expression = "relieved"  # lids down: it isn't looking at anything
+	_body._blink = 1.0
+	var breath := 0.42 + 0.06 * sin(_t * 1.2)  # not breathing: a slow flicker of the save
+	_body.draw(self, {"offset": Vector2(-1, -2), "rotation": -PI * 0.5, "grey": true, "alpha": breath})
 
 
 func _process(delta: float) -> void:

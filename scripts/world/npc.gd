@@ -50,6 +50,8 @@ var _noticed := false
 var frozen := 0.0
 ## Escorted: walking behind Rue along her footsteps (World.escort).
 var escorted := false
+## Hurrying to catch up (a little faster than Rue walks).
+const ESCORT_CATCH_UP := 96.0
 const ESCORT_SPEED := 60.0
 var _walk_velocity := Vector2.ZERO
 
@@ -84,12 +86,28 @@ func follow(crumbs: Array[Vector2], leader: Vector2, delta: float) -> void:
 	_walk_velocity = Vector2.ZERO
 	if frozen > 0.0 or not is_present():
 		return
+	# Beside the leader: stand, and forget the steps taken meanwhile (else she
+	# would later walk back over every fidget).
+	if global_position.distance_to(leader) < 16.0:
+		crumbs.clear()
+		return
+	# Skip ahead to the trail point nearest her (never across it).
+	var nearest := 0
+	for i in mini(crumbs.size(), 24):
+		if global_position.distance_to(crumbs[i]) < global_position.distance_to(crumbs[nearest]):
+			nearest = i
+	for i in nearest:
+		crumbs.pop_front()
 	while not crumbs.is_empty() and global_position.distance_to(crumbs[0]) < 3.0:
 		crumbs.pop_front()
-	if crumbs.is_empty() or global_position.distance_to(leader) < 16.0:
+	if crumbs.is_empty():
 		return
+	# Her own pace close by; she hurries when she falls behind, so doors
+	# don't wait on her (Rue walks at 90).
+	var behind := global_position.distance_to(leader)
+	var speed := lerpf(ESCORT_SPEED, ESCORT_CATCH_UP, clampf((behind - 24.0) / 30.0, 0.0, 1.0))
 	var to := crumbs[0] - global_position
-	var step := to.normalized() * minf(ESCORT_SPEED * delta, to.length())
+	var step := to.normalized() * minf(speed * delta, to.length())
 	global_position += step
 	_walk_velocity = step / maxf(delta, 0.0001)
 

@@ -70,7 +70,7 @@ func _process(delta: float) -> void:
 		_held = 0.0
 		_charge = 0.0
 	if not _pressing:
-		target = find_target()
+		_retarget(delta)
 	if _pressing:
 		if Input.is_action_pressed("interact"):
 			_held += delta
@@ -91,10 +91,52 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 
+## A new target takes over only after it has stayed the best for a moment
+## (or the old one is gone): standing between two things, the prompt and the
+## brackets don't flicker from one to the other.
+const RETARGET_DELAY := 0.15
+var _candidate: Dictionary = {}
+var _candidate_t := 0.0
+
+
+func _retarget(delta: float) -> void:
+	var best := find_target()
+	if _same(best, target):
+		_candidate = {}
+		return
+	# Only a switch between two things in the world waits; Rue's own actions
+	# (PAUSE standing still, DECOY running, PHASE at a wall) follow at once.
+	var objects: bool = target.get("node") != null and best.get("node") != null and best.id != "scrub" and target.id != "scrub"
+	if target.is_empty() or best.is_empty() or not objects or not _still_valid(target):
+		target = best
+		_candidate = {}
+		return
+	if _same(best, _candidate):
+		_candidate_t += delta
+		if _candidate_t >= RETARGET_DELAY:
+			target = best
+			_candidate = {}
+	else:
+		_candidate = best
+		_candidate_t = 0.0
+
+
+static func _same(a: Dictionary, b: Dictionary) -> bool:
+	if a.is_empty() or b.is_empty():
+		return a.is_empty() and b.is_empty()
+	return a.id == b.id and a.get("node") == b.get("node")
+
+
 func _charge_up(delta: float) -> void:
 	if _charge <= 0.0:
-		target = find_target()
+		# The thing the prompt named when the press began: never re-picked
+		# mid-hold, so a hold can't land on something else.
 		if target.is_empty():
+			target = find_target()
+		if target.is_empty():
+			return
+		if not _still_valid(target):
+			_fizzle()
 			return
 	elif not _still_valid(target):
 		_fizzle()

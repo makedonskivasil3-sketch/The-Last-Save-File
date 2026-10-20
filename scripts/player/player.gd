@@ -142,7 +142,13 @@ func sprite_snapshot() -> PixelCharacter:
 
 
 ## PHASE: blink through a wall to `to`, leaving a streak of stale frames.
+## Set by phase_to(): Rue passed through something solid this frame (World
+## reads and clears it: a companion can't follow her through a wall).
+var jumped := false
+
+
 func phase_to(to: Vector2) -> void:
+	jumped = true
 	_phase_from = global_position - to
 	_phase_t = 0.0
 	global_position = to

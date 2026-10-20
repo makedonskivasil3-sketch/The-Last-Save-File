@@ -32,6 +32,7 @@ var _owner_typed := 0.0
 
 
 func _ready() -> void:
+	Sfx.reset_scene_state()  # nothing muffled or ducked carries in from the run
 	theme = UiStyle.make_theme()
 	Sfx.prewarm()  # build the common sounds while the title is up
 	($ScreenFX/Effect as ScreenFx).shake_world = false  # no world layer here
