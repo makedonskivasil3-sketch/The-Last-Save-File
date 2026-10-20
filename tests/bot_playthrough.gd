@@ -50,6 +50,7 @@ func test_wren_ending() -> void:
 # --- the run ---------------------------------------------------------------------
 
 func _playthrough(ending: String, purge: int) -> void:
+	_edge_returns = 0
 	memory().wipe()
 	memory().last_exit = "death"  # skip the boot cinematic
 	if purge > 0:
@@ -343,6 +344,23 @@ func _north(w: Node) -> bool:
 	return await _arrived(w, "edge")
 
 
+## Stumbled out of the Edge (into the road home)? Walk back in and start
+## again, as a player would; give up after a few tries.
+var _edge_returns := 0
+
+
+func _back_to_edge(w: Node, ending: String) -> String:
+	_edge_returns += 1
+	_say("back into the Edge (%d)" % _edge_returns)
+	if _edge_returns > 3 or w.ending != "":
+		return "death" if w.ending == "death" else "stuck:left the edge"
+	if w.area.area_id == "square":
+		await _go(w, [Vector2(320, 40), Vector2(320, 20)], 10.0)
+	if not await _arrived(w, "edge"):
+		return "stuck:left the edge"
+	return await _edge(w, ending)
+
+
 func _edge(w: Node, ending: String) -> String:
 	for f in Story.fragments_in("edge"):
 		if not memory().has_fragment(f.id) and w.ending == "":
@@ -352,6 +370,8 @@ func _edge(w: Node, ending: String) -> String:
 				_step(w, "memory: %s" % f.id)
 	if w.ending != "":
 		return "death"
+	if w.area.area_id != "edge":
+		return await _back_to_edge(w, ending)
 	# Lure the cursor far from the slot, then sprint.
 	var cursor: OwnerCursor = w.area.cursor
 	var lure := 0
@@ -366,13 +386,19 @@ func _edge(w: Node, ending: String) -> String:
 		_steer(w, Vector2.ZERO)
 		await frames(3)
 		wait_until_close += 1
+	if w.ending == "" and w.area.area_id != "edge":
+		return await _back_to_edge(w, ending)
 	_step(w, "cursor lured (%d)" % lure)
 	await _go(w, [Vector2(250, 236), Vector2(420, 236), Vector2(520, 230), Vector2(520, 90), TheEdge.SLOT_POS], 15.0)
+	if w.ending == "" and w.area.area_id != "edge":
+		return await _back_to_edge(w, ending)
 	# The owner grabs the slot halfway: chase it, blind the cursor if close,
 	# then write while Arin circles.
 	var slot: SlotTwo = w.area.slot
 	var until := _now() + 60.0
 	while w.ending == "" and not w.hud.is_choosing() and not w._cutscene and _now() < until:
+		if w.area.area_id != "edge":
+			return await _back_to_edge(w, ending)
 		if w.player.global_position.distance_to(slot.global_position) > 6.0:
 			await _go(w, [slot.global_position], 1.0)
 		else:
