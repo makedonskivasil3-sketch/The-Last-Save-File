@@ -156,10 +156,14 @@ const pick = (d) => d ? { sessions: d.sessions, deaths: d.deaths, quits: d.quits
     'the open run is saved (session 1, last_exit active, no quits)', pick(midRun));
 
   // 4. Closing the tab mid-run asks first, and counts on reopening.
+  // The game's side first: the leave guard is armed while the run is open.
+  const armed = await page.evaluate(() => Boolean(window.__tlsfGuard && window.__tlsfRunning));
+  expect(armed, 'the leave guard is armed mid-run (window.__tlsfRunning)');
   let asked = false;
   page.on('dialog', async (d) => { asked = d.type() === 'beforeunload'; await d.accept(); });
   await page.close({ runBeforeUnload: true });
-  await new Promise((r) => setTimeout(r, 1500));
+  // The browser's dialog can arrive late on a slow machine: wait for it (bounded).
+  for (let waited = 0; !asked && waited < 5000; waited += 250) await new Promise((r) => setTimeout(r, 250));
   expect(asked, 'closing the tab mid-run asks first (beforeunload)');
   page = await context.newPage();
   lastPage = page;

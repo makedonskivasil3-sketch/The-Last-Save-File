@@ -1360,7 +1360,8 @@ func _update_typing(delta: float) -> void:
 	line.custom_minimum_size.x = 420
 	match msg.kind:
 		"owner":
-			line.text = "> " + msg.text
+			# (Some owner lines are written with their own prompt: one "> " only.)
+			line.text = msg.text if msg.text.begins_with("> ") else "> " + msg.text
 			line.add_theme_color_override("font_color", OWNER_COLOR)
 			# A colour-split shadow so the owner's words never sit quite still.
 			line.add_theme_color_override("font_shadow_color", Color(0.3, 0.9, 1.0, 0.35 * Settings.glitch_intensity))
