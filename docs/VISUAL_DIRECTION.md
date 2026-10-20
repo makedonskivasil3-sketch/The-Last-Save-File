@@ -92,6 +92,22 @@ Inspected from `tests/tour_visual.gd` screenshots at 1280×720 (visual inspectio
 
 Collision check: solid furniture is drawn with `Decor.furniture`, which returns its top face from the same rect the area registers as solid, so what looks solid is solid. Flat decoration (rugs, papers) has no front face and doesn't block, and doesn't look like cover.
 
+## Level design record (pass 5)
+
+Evidence column: **R** = reproduced defect or measured geometry; **I** = developer inspection of screenshots; **O** = player observation (none yet).
+
+| Area | Main intention | Essential route | Optional | Landmark | Safe space | Threat | Key interaction | Likely confusion | Change made | Evidence |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Arin's room | Get out | Door (locked) or the thin wall (PHASE) | Note, Mira, the save crystal | Lamp-lit desk | None (watched) | The owner's attention | First glitch at the crack | Tap vs hold (pass 4 tips) | None this pass | I |
+| Village square | Find the way on | Cobbled road east; north road (later) | Tobben, notice board, the well, Arin's house | The well | Beside Wren; behind the stall | Arin's patrol and cone | Hiding beside Wren | Whether the stall hides you | Arin no longer walks through the stall, house or well | R |
+| Archive | Learn where Slot 2 went | West to east, past the desk | The four records; the CHARACTER FILE (truth route) | The Archivist's lamp | The whole room (owner can't see in) | None | Reading records | Records vs decorative books | Record stands; file pulses at FILE stage; hint says desk | I, R (hint text) |
+| Arin's house | Find what's under the couch; survive a visit | Front door to couch and back | Player 2's room, photo, TV | The TV glow | Closets | Arin's visits | Hiding in a closet | Closets looked solid; chime too late | Open recesses, cue, status, 4 s chime; Arin's loop uses the doorway | R (route, timing), I |
+| Recycle Bin | Restore deleted people | Along the files | Each file | The system files' cyan shadows | The shadows during the sweep | The sweep line | Standing beside a file | Sparse; reads as a void | None this pass (pending observation) | I |
+| Out of Bounds | Cross to Pip | Anchor to anchor | The labels in the void | The far ledge | Anchors | Floor that flickers red | Timing crossings | None found | None | I |
+| The Edge | Write into Slot 2 | South gap to Slot 2 | Two memories by the sides | Slot 2's glow | None (grace, then static) | Static, cursor, Arin | Luring the cursor, writing | Everything at once on arrival; generic goal | Countdown after the act card; state-tied goal; frozen writing behind text; valid guard routes; Arin goes around blocks | R |
+
+Backtracking after all memories: Pip and the goal hint already point at the next person or the file (Progression); not changed.
+
 ## Characters (implemented, inspected)
 
 `scripts/world/illustrated_character.gd` extends `PixelCharacter`. It uses the same palette keys and animation state, so these all keep working unchanged:

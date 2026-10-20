@@ -95,3 +95,63 @@ No saved field was added or renamed, so no migration is needed. Truth pieces alr
 - Covered by `tests/test_moment_safety.gd`.
 
 **Noted, not changed:** a companion being escorted can't be talked to; tap focus ignores facing (it's sticky, so it doesn't flicker).
+
+## Pass 5 (2026-10-20): ledger
+
+| Item | Category | State |
+|---|---|---|
+| Arin walked through walls, furniture and missing-texture blocks (patrol, learned spots, decoy, husk guard, house, Edge) | Confirmed defect | **Fixed.** Reproduced first (146 frames inside a solid chasing a decoy; 93 on a patrol with learned spots) |
+| Arin's house loop crossed the wall to Player 2's room | Confirmed defect | **Fixed:** the loop uses the doorway |
+| Edge guard corners outside the area (3 of 4 at the slot's start; the drop spots too) | Confirmed defect | **Fixed:** `TheEdge.guard_route` |
+| Edge countdown ran under the act card | Confirmed defect | **Fixed:** countdown and cursor wait for the card |
+| Slot 2 filled and drained behind dialogue and scenes | Confirmed defect | **Fixed:** frozen while Rue can't act; PAUSE (Rue acting) still writes |
+| Edge goal line didn't follow the confrontation | Design weakness | **Fixed:** goal from live state |
+| FILE hint and the Archivist said "shelf"; the file is on the desk | Confirmed defect | **Fixed** |
+| Archive records looked like 8 px floor scraps among decorative spines | Design weakness | **Changed:** record stands; see below |
+| Closets drawn as closed wardrobes but entered by walking in | Design weakness | **Changed:** open recesses; see below |
+| Door chime gave 2.5 s for a ~2.1 s walk | Design weakness | **Changed:** 4 s |
+| Browser check printed results without asserting; screenshots in `undefined/` | Confirmed defect | **Fixed** |
+| Do players find the shelves, closets, Edge objective? | Hypothesis | **Needs player observation** (pending) |
+| Does the opening help? | Hypothesis | **Needs player observation** (intro on/off variants ready) |
+| Real-GPU performance, phones, gamepads, Windows | Unverified platform | **Pending** (no hardware here) |
+
+## Pass 5: decisions (problem → evidence → decision → intended effect → validation)
+
+**Threat navigation.**
+- **Problem:** Arin's movement set `position` directly. Line of sight used physics; movement didn't.
+- **Evidence:** `tests/test_threat_navigation.gd` failed on the previous code (decoy behind a solid; learned spots inside furniture).
+- **Decision:** a circle shape cast per axis (slides along the rectangular solids). Destinations inside a solid move to the nearest clear floor within 40 px, or are dropped. Blocked for 0.75 s: a waypoint is skipped, a decoy is stared at for 1.5 s, then decoys are ignored for 4 s. Speeds, FREEZE, tells and sight are unchanged.
+- **Intended effect:** what blocks Rue blocks Arin; a decoy behind a wall buys time without Arin ghosting through.
+- **Validation:** the navigation tests pass; owner, house, shedding and Edge suites pass; the four ending bots still reach their endings.
+
+**Edge guard route.**
+- **Problem:** fixed ±46 px corners around Slot 2.
+- **Evidence:** at the slot's start (580, 64), x 626 and y 18 are outside the 24–616 × 36–292 area; each drop spot also loses corners.
+- **Decision:** keep only corners inside the area (12 px margin), clear of solids (5-point check) and walkable from the previous corner; try a smaller ring; else one post beside the slot.
+- **Validation:** `test_every_edge_guard_route_is_walkable` for the start and both drop spots.
+
+**Edge arrival and confrontation.**
+- **Problem:** the act card covered the arena while the 5 s countdown ran; the goal said "lead the cursor away" in every state.
+- **Decision:** the countdown and cursor wait until the card has gone. The goal line follows the state: cursor by the slot; stand in it; writing (stepping out drains it); the owner is dragging it; it's yours again, Arin is coming. Slot 2 neither fills nor drains during dialogue, choices or scenes; the menu pause stops physics; PAUSE is Rue's own action, so writing continues.
+- **Validation:** `tests/test_edge_confrontation.gd`; `test_edge` updated for the card.
+- **Not changed:** the final memory's position (no spatial or observed evidence that it is unfair; reading it already holds the owner).
+
+**Archive records.**
+- **Problem:** the four records were 8×6 px rectangles on the floor under shelves of decorative spines.
+- **Evidence:** inspection of the pass 4 screenshots; no player data.
+- **Decision:** `Readable.Look.RECORD`, an open book on a stand with a pool of light, dimmer once read. The CHARACTER FILE pulses only at the FILE stage, and says nothing about its contents.
+- **Intended effect:** records read as things to pick up; decoration stays decoration.
+- **Validation:** `test_archive_records_look_like_records_and_the_file_pulses_when_relevant`; screenshot. Whether players find them: **pending observation**.
+
+**Closets.**
+- **Problem:** the art showed closed wardrobes (solid-looking furniture); hiding happened by walking into a rectangle; nothing said so.
+- **Decision:** one interaction, walk in.
+  - **Art:** a dark recess with doors swung open and a lit threshold on the side facing the room.
+  - **Cue:** "step in to hide" nearby.
+  - **Inside:** the doors close around Rue, she crouches, and the status reads "HIDDEN · the closet hides you".
+  - **Leaving:** walk out.
+  - **Rules:** a closet stops sight, not touch: Arin walking into you still overwrites you.
+  - **Warning:** the chime moves from 2.5 s to 4 s ahead.
+- **Validation:** both closets entered and left with real movement input; chime timing test; the house loop's segments cross no wall. Whether players notice them: **pending observation**.
+
+**Map.** Not changed. It shows area connections and memory counts. The shelf and closet problems were world-readability problems, fixed in the world; a local floor plan would compensate for them, not fix them. Revisit if observation shows players lost *between* areas.

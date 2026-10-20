@@ -165,3 +165,22 @@ point they wanted to stop ... __ (why)
 Round: pass 4 · date: __ · build: <git rev-parse --short HEAD> · players: 5
 Player __ · device __ · browser/desktop __ · input __ · minutes played __
 ```
+
+## Round focus: pass 5 additions (shelves, closets, the Edge, the opening)
+
+**Status: ready; results pending.** Same five-player protocol as pass 4 (20–30 min each, clean save, build hash and device recorded). Additions:
+
+**Intro variants (same build):** players 1, 3, 5 use `?intro=on`; players 2, 4 use `?intro=off`. (Desktop: the title's Settings can't toggle it; use the web build.) After play, ask: "What did you think was going on at the very start?" Record curiosity, basic understanding, emotional interest, impatience (did they skip? when?) and whether it revealed too much. Keep it only if it helps.
+
+**Watch for (classify every miss as one of: not seen · seen, use not understood · understood, input missed · chose not to · unfair):**
+
+| Moment | Time to discovery | Classification | Failures before success |
+|---|---|---|---|
+| Archive record (first one read) | | | |
+| CHARACTER FILE (only if they reach the FILE stage) | | | |
+| Closet discovered (before or after the first chime?) | | | |
+| First house visit: hid in time? | | | |
+| Edge: understood "write yourself in"? | | | |
+| Edge: cause of first failure | | | |
+
+Report denominators ("2 of 5"), not percentages; five players is exploratory evidence.
