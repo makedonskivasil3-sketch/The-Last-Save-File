@@ -777,7 +777,15 @@ func show_act(act: String, title: String, place: String) -> void:
 	_act_label.text = "—  %s  —" % act
 	_area_sub.text = place
 	_show_title(title, 2.8)
+	# Shown (and holding the owner) from this frame, not from the tween's
+	# first step: no frame of countdown slips in before it appears.
+	_area_title.modulate.a = maxf(_area_title.modulate.a, 0.01)
 	Sfx.play("stinger", -10.0, 0.7, 0.0)
+
+
+## Puts away an act or area card now (as if it had been read).
+func dismiss_title() -> void:
+	_clear_title()
 
 
 func is_act_shown() -> bool:

@@ -135,6 +135,49 @@ func area_process(_delta: float) -> void:
 
 
 ## Rue's PAUSE glitch: everything the owner drives holds still.
+# --- navigation lifecycle (docs/GAMEPLAY_CONSISTENCY.md, pass 8) ------------
+
+var _nav_dirty := Rect2()
+var _nav_full := false
+var _nav_pending := false
+
+
+## Something solid changed here (a door opened or shut, crates were dragged,
+## a wall crumbled): the shared walking grid re-checks that region once
+## physics has the new shapes (deferred collision changes land on the next
+## physics frame), then its version goes up and every walker plans again.
+## Calls in the same frames are merged into one refresh. An empty rect means
+## "somewhere": everything is re-checked.
+func geometry_changed(where := Rect2()) -> void:
+	if not has_meta("nav_grid"):
+		return  # nobody walks here yet; the grid is built fresh on first use
+	if where.size == Vector2.ZERO:
+		_nav_full = true
+	else:
+		_nav_dirty = where if _nav_dirty.size == Vector2.ZERO else _nav_dirty.merge(where)
+	if _nav_pending or not is_inside_tree():
+		return
+	_nav_pending = true
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	_nav_pending = false
+	if not is_inside_tree() or not has_meta("nav_grid"):
+		return
+	var grid: NavGrid = get_meta("nav_grid")
+	grid.refresh(Rect2() if _nav_full else _nav_dirty)
+	_nav_full = false
+	_nav_dirty = Rect2()
+
+
+## For a solid that changed: tell the area it's in (if any).
+static func notify_geometry(node: Node, where := Rect2()) -> void:
+	var n := node
+	while n != null and not (n is Area):
+		n = n.get_parent()
+	if n is Area:
+		(n as Area).geometry_changed(where)
+
+
 func set_owner_paused(on: bool) -> void:
 	if erasure:
 		erasure.set_process(not on)

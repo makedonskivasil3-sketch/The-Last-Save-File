@@ -1092,10 +1092,24 @@ func is_owner_paused() -> bool:
 	return director.owner_paused > 0.0 or _choice_hold or _reading_now()
 
 
-## Reading, a question's scene, or a scripted scene, right now (the area's
-## own pause follows this each frame in _update_reading_hold).
+## The protection policy (docs/GAMEPLAY_CONSISTENCY.md, pass 8): anything
+## that covers the scene or asks for the player's attention holds the owner.
+## That means a conversation, a question, a scene, and a large centre card (an
+## act title or NEW GLITCH). Small things don't: tips, console lines, the
+## goal line, area names. The pause menu stops the whole tree; focus loss
+## opens it. PAUSE (the glitch) holds the owner but not Rue's own progress.
+## Every threat reads this one rule through is_owner_paused() or
+## set_owner_paused(); the area's own pause follows it each frame in
+## _update_reading_hold.
 func _reading_now() -> bool:
-	return hud.is_dialogue_open() or hud.is_cinematic() or _cutscene
+	return hud.is_dialogue_open() or hud.is_cinematic() or _cutscene or hud.is_act_shown()
+
+
+## Is the story holding the action right now (see _reading_now)? Unlike
+## is_owner_paused(), PAUSE (the glitch) doesn't count: Rue's own progress
+## (writing Slot 2) carries on under it.
+func story_holds() -> bool:
+	return _reading_now() or hud.is_choosing()
 
 
 ## Reading is safe (docs/NARRATIVE_RELIABILITY.md, the modal safety matrix):

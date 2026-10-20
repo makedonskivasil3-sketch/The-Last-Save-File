@@ -47,6 +47,7 @@ func force_open(seconds: float) -> void:
 	forced = seconds
 	_col.set_deferred("disabled", true)
 	_flash = 1.0
+	_geometry_changed()
 
 
 ## The owner reloads: the glitched-open door is shut again.
@@ -55,6 +56,7 @@ func relock() -> void:
 		forced = 0.0
 		_col.set_deferred("disabled", false)
 		_flash = 1.0
+		_geometry_changed()
 
 
 func is_forced_open() -> bool:
@@ -68,6 +70,7 @@ func _process(delta: float) -> void:
 		if forced <= 0.0:
 			_col.set_deferred("disabled", false)
 			_flash = 1.0
+			_geometry_changed()
 			Sfx.play("door_lock")
 	_flash = maxf(0.0, _flash - delta * 1.5)
 	queue_redraw()
@@ -106,3 +109,12 @@ func _draw() -> void:
 			while x < r.end.x:
 				draw_line(Vector2(x, r.end.y), Vector2(minf(x + dash, r.end.x), r.end.y), Color(LOCK, 0.35))
 				x += dash * 2.0
+
+
+## The doorway opened or shut: walkers re-plan around it.
+func _geometry_changed() -> void:
+	var r := Rect2(global_position - Vector2(24, 24), Vector2(48, 48))
+	if _col and _col.shape is RectangleShape2D:
+		var sz: Vector2 = (_col.shape as RectangleShape2D).size
+		r = Rect2(_col.global_position - sz * 0.5, sz)
+	Area.notify_geometry(self, r)

@@ -48,6 +48,7 @@ func open() -> void:
 	for c in get_children():
 		if c is CollisionShape2D:
 			c.set_deferred("disabled", true)
+	Area.notify_geometry(self)  # an opening: walkers can use it now
 	for r in rects:
 		GlitchBurst.at(get_parent(), r.get_center(), r.size + Vector2(6, 6), 0.5)
 	Sfx.play("phase", -4.0, 0.7)

@@ -171,6 +171,9 @@ const FINAL_FIGHT := {
 	"placed": "> there. come and get it.",
 	"arin": "> arin. go and get it.",
 	"almost": "> stop. stop. please.",
+	# Slot 2 finished before the hand got there (the cursor lured or blinded
+	# far enough away): a legitimate way through, and the owner knows it.
+	"late": "> no. no, it's already—",
 }
 
 ## The owner's notes: one a run (from the second), in order. Read together

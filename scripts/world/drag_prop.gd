@@ -28,8 +28,25 @@ func rect() -> Rect2:
 	return Rect2(global_position - size * 0.5, size)
 
 
+## Where walkers last heard the stack was (moves under NOTIFY_STEP px are
+## merged: a drag is one refresh every NOTIFY_EVERY s, not one a frame).
+const NOTIFY_STEP := 4.0
+const NOTIFY_EVERY := 0.25
+var _told_at := Vector2.INF
+var _tell_left := 0.0
+
+
 func _process(delta: float) -> void:
 	_t += delta
+	_tell_left = maxf(0.0, _tell_left - delta)
+	if _told_at == Vector2.INF:
+		_told_at = global_position
+	elif _tell_left <= 0.0 and _told_at.distance_to(global_position) > NOTIFY_STEP:
+		# Where it was is open again; where it is now is blocked.
+		var was := Rect2(_told_at - size * 0.5, size)
+		Area.notify_geometry(self, was.merge(rect()))
+		_told_at = global_position
+		_tell_left = NOTIFY_EVERY
 	queue_redraw()
 
 

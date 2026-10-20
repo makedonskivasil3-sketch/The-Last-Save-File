@@ -136,6 +136,11 @@ func wait_for_new_session(old: Node) -> Node:
 func go_to(w: Node, area: String, arrival: String) -> void:
 	w.change_area(area, arrival)
 	await wait_until(func() -> bool: return w.area.area_id == area and not w._transitioning, 5.0, "arriving in " + area)
+	# A first visit's act card holds the owner (the protection policy); tests
+	# about what happens in an area start once it has been read.
+	if w.hud.is_act_shown():
+		w.hud.dismiss_title()
+		await frames(2)
 
 
 ## Presses and releases an input action, giving the game a few frames to see it.

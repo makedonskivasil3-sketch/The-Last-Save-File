@@ -206,9 +206,23 @@ func area_process(_delta: float) -> void:
 	if seam:
 		# The wall tears once the owner gets suspicious and starts rewriting
 		# the room. (Agitating the owner on purpose is a way out.)
-		seam.open = world.director.awareness >= OwnerDirector.SUSPECT
+		# Straight back from a death at the Edge, the way out is still torn
+		# (docs/GAMEPLAY_CONSISTENCY.md, pass 8: a retry of the finale isn't
+		# half a minute of pacing a room you already know how to leave).
+		seam.open = world.director.awareness >= OwnerDirector.SUSPECT or back_from_the_edge()
 		seam.hint = door.state != Door.State.OPEN  # locked behind you counts too
-		seam.reveal = 0.25 + world.director.awareness / 100.0 * 0.6 if seam.open else 0.0
+		var tear := maxf(world.director.awareness / 100.0, 0.35 if back_from_the_edge() else 0.0)
+		seam.reveal = 0.25 + tear * 0.6 if seam.open else 0.0
+
+
+## This session follows a death at the Edge (the last session's last death).
+## Nothing else about the retry changes: purge, deaths, who is deleted and
+## what is known all carry over as always.
+func back_from_the_edge() -> bool:
+	if previous_exit != "death" or OwnerMemory.deaths_log.is_empty():
+		return false
+	var last: Dictionary = OwnerMemory.deaths_log.back()
+	return last.get("area", "") == "edge" and int(last.get("session", -1)) == OwnerMemory.sessions - 1
 
 
 func guide_point() -> Vector2:

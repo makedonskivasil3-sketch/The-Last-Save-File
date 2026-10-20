@@ -61,6 +61,14 @@ const RECOVER_RANGE := 16.0
 var _nav: NavGrid
 var _path := PackedVector2Array()
 var _path_goal := Vector2.INF
+## The grid version the current path was planned on (NavGrid.version).
+var _path_version := -1
+## Keeping watch because nothing on the round could be reached: a change in
+## the level (a new grid version) ends the watch early.
+var _watching_blocked := false
+var _watch_version := -1
+## How far the current recovery has carried Arin (bounded by RECOVER_RANGE).
+var _recovered := 0.0
 var _path_short := false
 var _skipped := 0
 ## The protagonist the owner loves: blue tunic, dark hair, a red scarf.
@@ -135,8 +143,13 @@ func is_chasing() -> bool:
 ## still touches).
 func _patrol(delta: float) -> void:
 	if _wait > 0.0:
-		_wait -= delta
-		return
+		var grid := nav()
+		if _watching_blocked and grid and grid.version != _watch_version:
+			_wait = 0.0  # the level changed: somewhere may be reachable now
+		else:
+			_wait -= delta
+			return
+	_watching_blocked = false
 	if route.is_empty():
 		return
 	_target %= route.size()  # the route may have been changed under us
@@ -152,6 +165,8 @@ func _patrol(delta: float) -> void:
 			if _skipped >= route.size():
 				_skipped = 0
 				_wait = WATCH_TIME  # nowhere it can get to: keep watch, then try again
+				_watching_blocked = true
+				_watch_version = nav().version if nav() else -1
 
 
 enum Go { MOVING, ARRIVED, BLOCKED }
@@ -165,8 +180,11 @@ func _go(goal: Vector2, spd: float, delta: float) -> Go:
 		_path = PackedVector2Array()
 		return Go.ARRIVED
 	var grid := nav()
+	if grid and grid.version != _path_version:
+		_path = PackedVector2Array()  # the level changed: plan again
 	if _path_goal.distance_to(goal) > 4.0 or _path.is_empty():
 		_path_goal = goal
+		_path_version = grid.version if grid else -1
 		_path = grid.path(global_position, goal) if grid else PackedVector2Array([goal])
 		_path_short = _path.is_empty() or _path[_path.size() - 1].distance_to(goal) > 6.0
 		if _path.is_empty():
@@ -182,7 +200,12 @@ func _go(goal: Vector2, spd: float, delta: float) -> Go:
 		_stuck = 0.0
 		_path = PackedVector2Array()
 		_path_goal = Vector2.INF
-		_invalidate_nav()  # the level changed under the grid (a door, crates)
+		# Collision stopped it where the grid said it could walk: the level
+		# changed under the grid. Re-check around here; the new version
+		# makes every walker plan again (no oscillating on the old path).
+		var a := get_parent()
+		if a is Area:
+			(a as Area).geometry_changed(Rect2(global_position - Vector2(24, 24), Vector2(48, 48)))
 		return Go.BLOCKED
 	return Go.MOVING
 
@@ -212,12 +235,57 @@ func _travel(goal: Vector2, dist: float, delta: float) -> bool:
 func _recover(delta: float) -> bool:
 	var grid := nav()
 	if grid == null or grid.clear(global_position, -0.5):
+		_recovered = 0.0
 		return false
-	var out := grid.nearest_open(global_position, RECOVER_RANGE)
-	if out == Vector2.INF:
-		return true  # stuck fast: hold still, safely
-	global_position = global_position.move_toward(out, speed * delta)
-	return true
+	if _recovered >= RECOVER_RANGE or grid.nearest_open(global_position, RECOVER_RANGE) == Vector2.INF:
+		return true  # stuck fast (or gone as far as it may): hold still, safely
+	# Out along the way that reduces the overlap, a step at a time: towards the
+	# nearest face of what it's in, never through it. Each step must lessen
+	# the overlap or it isn't taken.
+	var depth := _penetration(global_position)
+	var push := _push_out()
+	if push == Vector2.ZERO:
+		return true
+	var step := minf(speed * delta, RECOVER_RANGE - _recovered)
+	for k in [1.0, 0.5, 0.25]:
+		var next: Vector2 = global_position + push * step * k
+		if _penetration(next) < depth - 0.01:
+			_recovered += global_position.distance_to(next)
+			global_position = next
+			return true
+	return true  # no step makes it better (an inside corner): hold still
+
+
+## Deepest overlap of Arin's body with the solids (px; 0 when clear).
+func _penetration(at: Vector2) -> float:
+	var q := _body_query(at)
+	var pts := get_world_2d().direct_space_state.collide_shape(q, 16)
+	var deepest := 0.0
+	for i in range(0, pts.size() - 1, 2):
+		deepest = maxf(deepest, (pts[i] as Vector2).distance_to(pts[i + 1]))
+	if deepest == 0.0 and not get_world_2d().direct_space_state.intersect_shape(q, 1).is_empty():
+		deepest = RADIUS  # wholly inside: no contact pair, but still in
+	return deepest
+
+
+## The way out of the deepest overlap: the solid's surface normal there.
+func _push_out() -> Vector2:
+	var info := get_world_2d().direct_space_state.get_rest_info(_body_query(global_position))
+	if info.is_empty():
+		return Vector2.ZERO
+	var n: Vector2 = info.get("normal", Vector2.ZERO)
+	return n.normalized()
+
+
+func _body_query(at: Vector2) -> PhysicsShapeQueryParameters2D:
+	var q := PhysicsShapeQueryParameters2D.new()
+	var circle := CircleShape2D.new()
+	circle.radius = RADIUS
+	q.shape = circle
+	q.transform = Transform2D(0.0, at)
+	q.collision_mask = _mask()
+	q.exclude = _ignored()
+	return q
 
 
 ## How much of `motion` Arin's feet can take before touching a solid (0..1).
@@ -271,13 +339,6 @@ func nav() -> NavGrid:
 	if a:
 		a.set_meta("nav_grid", _nav)
 	return _nav
-
-
-func _invalidate_nav() -> void:
-	var a := get_parent()
-	if a and a.has_meta("nav_grid") and a.get_meta("nav_grid") == _nav:
-		a.remove_meta("nav_grid")
-	_nav = null
 
 
 ## The nearest open floor to `p` with room for Arin's whole body (itself if

@@ -8,6 +8,7 @@ func test_load_last_save_drags_you_back() -> void:
 	await go_to(w, "square", "house")
 	var arin: OwnerAvatar = w.area.arin
 	w.player.global_position = Vector2(150, 260)
+	w.owner_moves.on_area_changed()  # history starts here (not at the doorway)
 	await wait(1.0)
 	var earlier: Vector2 = w.player.global_position
 	w.player.global_position = Vector2(480, 260)

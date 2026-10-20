@@ -49,7 +49,9 @@ const GUARD_RADIUS := 46.0
 var cursor: OwnerCursor
 var slot: SlotTwo
 var arin: OwnerAvatar
-## "", "reach", "drag", "arin", "done".
+## "", "reach", "drag", "arin", "done"; "beaten" when Slot 2 finished
+## before the owner's hand reached it (docs/GAMEPLAY_CONSISTENCY.md, pass 8:
+## a deliberate, earned way through, not a bug).
 var fight := ""
 var _drop_to := Vector2.ZERO
 var _begged := false
@@ -81,10 +83,14 @@ func build() -> void:
 	add_sign(Vector2((SOUTH_GAP.x + SOUTH_GAP.y) * 0.5, bounds.end.y - 12), "ASHVALE", Vector2.DOWN)
 	slot = SlotTwo.new()
 	slot.position = SLOT_POS
+	# (First: a hand still on its way stops before the choice opens.)
+	slot.reached.connect(func() -> void:
+		if fight == "reach":
+			_beaten())
 	slot.reached.connect(world.reach_slot2)
 	# While Rue can't act (reading, answering, a scene), the slot neither fills
 	# nor drains: no progress gained or lost behind a text box.
-	slot.frozen = func() -> bool: return world.hud.is_dialogue_open() or world.hud.is_choosing() or world.hud.is_cinematic() or world.in_cutscene()
+	slot.frozen = world.story_holds
 	add_child(slot)
 	# Slot 2 shines, the one lit thing in an unloaded world (and the light
 	# goes where the owner drags it).
@@ -153,8 +159,12 @@ func goal_text() -> String:
 	if slot == null:
 		return "Reach Slot 2."
 	match fight:
-		"reach", "drag":
+		"reach":
+			return "The owner is reaching for Slot 2. Finish writing first, or stop the hand."
+		"drag":
 			return "The owner has Slot 2 and is dragging it away."
+		"beaten":
+			return ""
 		"arin", "done":
 			if slot.progress > 0.0:
 				return "Slot 2 is yours again. Stay in it to finish writing."
@@ -205,6 +215,8 @@ func _process(delta: float) -> void:
 
 
 func _update_fight(delta: float) -> void:
+	if fight == "beaten":
+		return
 	if fight in ["reach", "drag"]:
 		cursor.paused = true  # the owner's hand is on the slot (PAUSE's resume can't let go of it)
 		if world.is_owner_paused():
@@ -254,6 +266,17 @@ func _update_fight(delta: float) -> void:
 			if not _begged and slot.progress >= 0.85:
 				_begged = true
 				world.director.say(Story.FINAL_FIGHT.almost)
+
+
+## Too late: Slot 2 was written while the owner's hand was still on its way.
+## Everything the confrontation started stops here: the hand stays where it
+## is, the banner goes, nobody is sent for, and the owner says so once.
+func _beaten() -> void:
+	fight = "beaten"
+	cursor.paused = true
+	world.flags["slot2_beaten"] = true
+	world.hud.set_banner("")
+	world.director.say(Story.FINAL_FIGHT.late)
 
 
 ## The owner lets go of the slot (it's yours to write again).

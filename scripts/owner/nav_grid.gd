@@ -14,6 +14,9 @@ const MARGIN := 1.0
 
 var bounds := Rect2()
 var radius := 4.0
+## Goes up every time the grid changes (a full build or a refresh): anything
+## holding a path from an older version plans again.
+var version := 0
 var _astar := AStarGrid2D.new()
 var _space: PhysicsDirectSpaceState2D
 var _mask := 1
@@ -32,10 +35,51 @@ func build(space: PhysicsDirectSpaceState2D, area_bounds: Rect2, mask: int, excl
 	_astar.offset = bounds.position + Vector2(CELL, CELL) * 0.5
 	_astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
 	_astar.update()
-	for x in _astar.region.size.x:
-		for y in _astar.region.size.y:
+	_mark(Rect2i(Vector2i.ZERO, _astar.region.size))
+	version += 1
+
+
+## The level changed inside `where` (a door, a crate, an opening): re-check
+## just those cells (and a body's width around them). An empty rect re-checks
+## everything. Call it once physics has the new collision state (deferred
+## shape changes land on the next physics frame; Area.geometry_changed waits
+## for that).
+func refresh(where := Rect2()) -> void:
+	if _space == null:
+		return
+	if where.size == Vector2.ZERO:
+		_mark(Rect2i(Vector2i.ZERO, _astar.region.size))
+	else:
+		var r := where.grow(radius + MARGIN + CELL)
+		var a := _cell(r.position)
+		var b := _cell(r.end)
+		_mark(Rect2i(a, b - a + Vector2i.ONE))
+	version += 1
+
+
+func _mark(cells: Rect2i) -> void:
+	for x in range(cells.position.x, cells.end.x):
+		for y in range(cells.position.y, cells.end.y):
 			var c := Vector2i(x, y)
 			_astar.set_point_solid(c, not clear(_astar.get_point_position(c)))
+
+
+## Can a body sweep in a straight line from `a` to `b` without touching a
+## solid (the margin included)? The exact first and last steps of a path use
+## it: an exact point is only kept when the step to it is safe.
+func sweep_clear(a: Vector2, b: Vector2) -> bool:
+	if _space == null or a.distance_to(b) < 0.01:
+		return true
+	var q := PhysicsShapeQueryParameters2D.new()
+	var circle := CircleShape2D.new()
+	circle.radius = radius + MARGIN * 0.5
+	q.shape = circle
+	q.transform = Transform2D(0.0, a)
+	q.motion = b - a
+	q.collision_mask = _mask
+	q.exclude = _exclude
+	var r := _space.cast_motion(q)
+	return r.size() == 0 or r[0] >= 1.0
 
 
 ## Is a circle of the body's radius (plus MARGIN) at `p` inside the area and
@@ -101,9 +145,16 @@ func path(from: Vector2, to: Vector2, partial := true) -> PackedVector2Array:
 	var pts := _astar.get_point_path(_cell(a), target, partial)
 	if pts.is_empty():
 		return pts
-	pts[0] = a if a.distance_to(from) > 0.5 else from
-	if b != Vector2.INF and _cell(pts[pts.size() - 1]) == _cell(b):
-		pts[pts.size() - 1] = b
+	# Exact ends instead of cell centres, but only when the straight step
+	# to them is safe for the whole body; otherwise the cell centre stays.
+	var start := a if a.distance_to(from) > 0.5 else from
+	if pts.size() < 2 or sweep_clear(start, pts[1]):
+		pts[0] = start
+	var last := pts.size() - 1
+	if b != Vector2.INF and _cell(pts[last]) == _cell(b):
+		var before := pts[last - 1] if last > 0 else start
+		if sweep_clear(before, b):
+			pts[last] = b
 	return pts
 
 

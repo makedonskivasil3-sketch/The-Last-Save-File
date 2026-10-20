@@ -108,6 +108,9 @@ func blind(seconds: float) -> void:
 func _physics_process(delta: float) -> void:
 	_t += delta
 	if paused:
+		# Nothing banked: a click that was building starts again from zero
+		# once the hold ends, so closing a card never lands an instant click.
+		_select = 0.0
 		_whine.volume_db = -80.0
 		return
 	blinded = maxf(0.0, blinded - delta)
