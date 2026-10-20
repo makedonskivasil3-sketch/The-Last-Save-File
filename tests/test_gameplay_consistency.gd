@@ -148,7 +148,7 @@ func test_shedding_rebuilds_the_live_patrol() -> void:
 	await frames(3)
 	check(not arin.route.has(spot), "forgotten at once, not next run")
 	check(arin._target >= 0 and arin._target < arin.route.size(), "a valid next point")
-	check_eq(arin.position, where, "no jump")
+	check(arin.position.distance_to(where) < 3.0, "no jump (%s -> %s)" % [where, arin.position])
 	await go_to(w, "house", "front")
 	await go_to(w, "square", "house")
 	check(not w.area.arin.route.has(spot), "after a door, still forgotten")

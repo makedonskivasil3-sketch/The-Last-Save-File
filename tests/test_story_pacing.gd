@@ -209,7 +209,9 @@ func test_history_keeps_every_route_with_speakers() -> void:
 	await wait(1.0)
 	check(not w.hud.history.any(func(e: Dictionary) -> bool: return e.text == "a thought said while she talks."), "the console holds its line while dialogue is up")
 	await finish_dialogue(w)
-	await wait_until(func() -> bool: return w.hud.history.any(func(e: Dictionary) -> bool: return e.text == "a thought said while she talks."), 3.0, "the held line")
+	# (After the line already on screen has had its reading time: the run's
+	# opening note can still be typing when this test starts.)
+	await wait_until(func() -> bool: return w.hud.history.any(func(e: Dictionary) -> bool: return e.text == "a thought said while she talks."), 12.0, "the held line")
 	var done := await _start(w, ["> who is in my save?"])
 	await read_through_cinematic(w)
 	var text := PauseMenu.history_text(w.hud.history)

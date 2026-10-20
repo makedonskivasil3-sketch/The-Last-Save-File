@@ -36,6 +36,7 @@ func test_no_save_over_while_writing_slot_two() -> void:
 	var w := await start_session()
 	w.debug("slot2")
 	await wait_until(func() -> bool: return w.area.area_id == "edge" and not w._transitioning, 3.0, "at the Edge")
+	w.hud.dismiss_title()  # the act card (it holds the slot too, by design)
 	var slot: SlotTwo = w.area.slot
 	w.area.cursor.blind(30.0)  # keep the click out of this test
 	w.player.global_position = slot.global_position

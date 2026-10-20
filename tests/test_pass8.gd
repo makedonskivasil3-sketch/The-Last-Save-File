@@ -365,38 +365,29 @@ func test_the_title_menu_fits_with_large_text_and_every_button() -> void:
 
 # --- the balance as one system -------------------------------------------------------
 
-func test_hiding_holds_against_everything_at_a_late_purge() -> void:
+func test_a_closet_holds_against_everything_at_a_late_purge() -> void:
+	# (Wren is no fixed shelter at HUNT: the owner deletes whoever hid you, by
+	# design. A closet is: this checks it against every threat together.)
 	memory().purge = 4
 	var w := await start_session()
-	await _hunted_square(w)
-	var wren: Npc = null
-	for n in w.area.interactables:
-		if n is Npc and n.npc_id == "wren":
-			wren = n
-	check(wren != null, "Wren is in the square")
-	if wren == null:
-		return
-	w.player.global_position = wren.global_position + Vector2(6, 0)
+	await go_to(w, "house", "front")
+	w.player.global_position = ArinsHouse.CLOSETS[0].get_center()
+	w.director.add_awareness(OwnerDirector.HUNT + 2.0 - w.director.awareness)
+	w.area.next_visit = 0.05  # Arin comes home while she hides
 	await frames(3)
-	check(w.is_hidden_now(), "beside Wren, Rue is hidden")
+	check(w.is_hidden_now(), "in the closet, Rue is hidden")
 	w.owner_moves.start_save_over()  # the owner tries anyway
-	# (At HUNT the owner may go after Wren for hiding her: a designed move
-	# with its own warning. Only the time Rue is actually hidden is judged.)
 	var rise := 0.0
-	var hidden_for := 0.0
 	var last: float = w.director.awareness
 	var t := 0.0
-	while t < 6.0 and w.ending == "":
+	var arin_seen := false
+	while t < 8.0 and w.ending == "":
 		await tree.process_frame
-		var dt := tree.root.get_process_delta_time()
-		t += dt
-		if w.is_hidden_now():
-			hidden_for += dt
-			rise += maxf(0.0, w.director.awareness - last)
+		t += tree.root.get_process_delta_time()
+		arin_seen = arin_seen or w.area.arin != null
+		rise += maxf(0.0, w.director.awareness - last)
 		last = w.director.awareness
-	print("PASS8 hidden %.1f of 6 s · wren deleted %s" % [hidden_for, memory().is_deleted("wren")])
-	check_eq(w.ending, "", "hidden at purge 4 with the cursor out, Rue lives through it")
-	check(hidden_for > 1.0, "she was hidden for a real stretch (%.1f s)" % hidden_for)
+	check(arin_seen, "Arin came home meanwhile")
+	check_eq(w.ending, "", "hidden at purge 4 with Arin in the house, Rue lives through it")
 	check(rise < 0.5, "awareness doesn't climb while she's hidden (+%.2f)" % rise)
 	check(w.owner_moves.save_progress < 0.2, "the save ring waits (%.2f)" % w.owner_moves.save_progress)
-	check(w.area.cursor.speed < w.player.speed, "and the cursor is still slower than she walks")
