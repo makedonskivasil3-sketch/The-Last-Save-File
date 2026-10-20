@@ -2,7 +2,36 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current status (2026-10-20, pass 7): `claude/last-save-file-prototype-ljwuq4`
+## Current status (2026-10-20, pass 8): `claude/last-save-file-prototype-ljwuq4`
+
+**Stage:** a complete vertical slice / late prototype. **Not** a release candidate. Unmet: a human playtest (none run), listening (none), a real-GPU measurement (none), Windows, phone and gamepad runs (none), recorded voices (none ship). Not merged, nothing deployed by this pass.
+
+**Pass 8: consistent rules, a navigation lifecycle, a deliberate finale, faster retries, a visible art pass.** Details and evidence are in `GAMEPLAY_CONSISTENCY.md` (pass 8) and `VISUAL_DIRECTION.md` (pass 8); captures are in `docs/review/pass8/`.
+
+| Area | Implemented | Automated | Visually inspected | Human / hardware |
+|---|---|---|---|---|
+| One protection rule: act and NEW GLITCH cards hold the owner everywhere, small text never does; no banked click | Yes | `test_pass8` (4) | — | Pending |
+| Navigation lifecycle: grid versions, partial refresh after physics, doors/wall/crates notify, walkers replan, watch ends on a new way | Yes | `test_pass8` (4) | — | — |
+| Recovery by depenetration (never deepens, never crosses); body-safe path ends | Yes | `test_pass8` (3), `test_threat_navigation` | — | — |
+| Finale: Slot 2 finished before the grab is a deliberate, clean outcome | Yes | `test_pass8` (2), `test_confrontation` | Edge phases sheet | Pending |
+| Retry after an Edge death: the seam is already open | Yes | `test_pass8` (2), `tour_retry` (40.5 → 14.0 s at purge 1) | — | Pending |
+| Edge grey-box geometry, compact banner, softer text, wall faces, motion weight | Yes | Existing suites | `before_after.jpg`, `edge_phases.jpg` | Pending |
+| Title in every state; reflow then focus-following scroll | Yes | `test_the_title_menu_fits…` | `title_states.jpg` | Pending |
+| Balance as a system: a closet at purge 4 against every threat; a purge-5 ending bot | Yes | `test_pass8`, `test_full_game_escape_purge_5` | — | Pending |
+
+| Commit | Check | Result |
+|---|---|---|
+| `306a53f` | Full suite (local) | 453 passed, 0 failed |
+| `306a53f` | Bots, speed 3 (escape, message, escape purge 3, escape purge 5, Wren) | 5/5 reached their exact ending |
+| `306a53f` | `web_check` ×3 | 2 of 3 passed; 1 missed the browser's beforeunload dialog (the check then waited a fixed 1.5 s) |
+| `aa45cf2` | `web_check` ×2 (now: guard armed, bounded wait for the dialog) | 2/2 all pass (and 4/4 on the same check before the final commit) |
+| `aa45cf2` | `audio_output_check` | Audible |
+| `aa45cf2` | Full suite (local) | Running at the time of writing; result added when it finishes |
+| CI | PR #7 | Earlier commits in this pass failed CI: the card hold changed timing in 13 tests (fixed in `84bdd15` and `306a53f`), and the browser check pressed E into the world (`48ffbd4`). See the PR for the run on the head commit |
+
+**Save compatibility:** no save fields were added or changed. `slot2_beaten` is a run-only flag. Settings are unchanged.
+
+## Status at pass 7 (2026-10-20)
 
 **Stage:** a complete, polished **vertical slice / late prototype**. Every planned area, threat, ending and system is in and covered by automated checks. Nothing a real player experienced has been observed yet. **Not** a release candidate (same unmet items as below).
 
