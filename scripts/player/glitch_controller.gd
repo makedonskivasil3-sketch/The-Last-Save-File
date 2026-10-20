@@ -38,13 +38,29 @@ var _cooldown := 0.0
 var _loop: AudioStreamPlayer
 var _reacted: Dictionary = {}
 var _probe_shape := RectangleShape2D.new()
+var _probe_params := PhysicsShapeQueryParameters2D.new()
+var _charge_label: Label
 var _t := 0.0
 
 
 func _ready() -> void:
 	z_index = 16
 	_probe_shape.size = Vector2(7, 7)
+	_probe_params.shape = _probe_shape
+	_probe_params.exclude = [world.player.get_rid()]
 	_loop = Sfx.loop_player("glitch_charge", self)
+	_charge_label = Label.new()
+	_charge_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_charge_label.add_theme_font_override("font", UiStyle.system_font())
+	var backing := StyleBoxFlat.new()
+	backing.bg_color = Color(0.02, 0.02, 0.03, 0.94)
+	backing.content_margin_left = 4
+	backing.content_margin_right = 4
+	backing.content_margin_top = 2
+	backing.content_margin_bottom = 2
+	_charge_label.add_theme_stylebox_override("normal", backing)
+	_charge_label.visible = false
+	add_child(_charge_label)
 
 
 func unlocked(id: String) -> bool:
@@ -57,6 +73,7 @@ func is_charging() -> bool:
 
 func _process(delta: float) -> void:
 	_t += delta
+	var cooldown_before := _cooldown
 	_cooldown = maxf(0.0, _cooldown - delta)
 	if not world.can_act():
 		_cancel()
@@ -73,9 +90,15 @@ func _process(delta: float) -> void:
 		_retarget(delta)
 	if _pressing:
 		if Input.is_action_pressed("interact"):
+			var held_before := _held
 			_held += delta
 			if _held >= HOLD_START and _cooldown <= 0.0:
-				_charge_up(delta)
+				# Only the part of this frame after BOTH gates contributes.
+				# Counting the whole crossing frame made low FPS charge faster.
+				var blocked := maxf(maxf(0.0, HOLD_START - held_before), cooldown_before)
+				var eligible := maxf(0.0, delta - blocked)
+				if eligible > 0.0:
+					_charge_up(eligible)
 		else:
 			# Released: a short press (or a hold with nothing to glitch) is a tap.
 			# Let go early in a charge and it's still a tap (it was a long-ish
@@ -155,6 +178,8 @@ func _cancel() -> void:
 	_pressing = false
 	_held = 0.0
 	_charge = 0.0
+	if _charge_label:
+		_charge_label.visible = false
 	if _loop:
 		_loop.volume_db = -80.0
 
@@ -272,12 +297,9 @@ func _obstacle(q: Vector2) -> bool:
 
 ## The solid thing at q (null if none).
 func _blocker(q: Vector2) -> Object:
-	var params := PhysicsShapeQueryParameters2D.new()
-	params.shape = _probe_shape
-	params.transform = Transform2D(0.0, q + Vector2(0, 2))
-	params.exclude = [world.player.get_rid()]
-	params.collision_mask = world.player.collision_mask
-	var hits := world.get_world_2d().direct_space_state.intersect_shape(params, 1)
+	_probe_params.transform = Transform2D(0.0, q + Vector2(0, 2))
+	_probe_params.collision_mask = world.player.collision_mask
+	var hits := world.get_world_2d().direct_space_state.intersect_shape(_probe_params, 1)
 	return null if hits.is_empty() else hits[0].collider
 
 
@@ -306,7 +328,10 @@ func _fire(t: Dictionary) -> void:
 	match id:
 		"phase":
 			var landing := phase_landing()
-			if landing == Vector2.INF:
+			if landing == Vector2.INF or landing.distance_to(t.pos) > 2.0:
+				# Revalidate, but never silently replace the promised landing
+				# when Rue turns/moves or a crate/floor changes during the hold.
+				world.hud.say("PHASE cancelled: the landing changed.", "system")
 				_fizzle()
 				return
 			GlitchBurst.at(world, world.player.global_position, Vector2(16, 26), 0.4)
@@ -381,6 +406,16 @@ func _react(id: String) -> void:
 
 func _update_prompt() -> void:
 	var charging := _charge > 0.0 and not target.is_empty()
+	if _charge_label:
+		_charge_label.visible = charging
+		if charging:
+			var percent := mini(99, floori(_charge / Glitch.hold_time(target.id) * 100.0))
+			_charge_label.text = "%s %d%%" % [Glitch.SHED.name if target.id == "shed" else Glitch.DEFS[target.id].name, percent]
+			_charge_label.add_theme_font_size_override("font_size", roundi(9 * Settings.text_scale()))
+			_charge_label.reset_size()
+			var at := world.player.global_position + Vector2(-_charge_label.size.x * 0.5, 18)
+			at = at.clamp(Vector2(8, 8), Vector2(632, 352) - _charge_label.size)
+			_charge_label.global_position = at
 	# One description for the prompt, the touch button and the commit.
 	preview = ActionPreview.describe(target, world)
 	world.hud.preview_cost(float(preview.cost) if charging else 0.0)
@@ -419,8 +454,9 @@ func _draw() -> void:
 		if target.id == "phase":
 			_dotted(p + Vector2(0, 6) - global_position, tp - global_position, Color(c, 0.6))
 	if charging:
-		# The charge ring around Rue, filling; wobbling as it nears full.
-		var centre := p - global_position + Vector2(randf_range(-1, 1), 0) * k * Settings.glitch_intensity
+		# Stable progress is readable even with reduced effects and no sound.
+		var centre := p - global_position
+		draw_arc(centre, 15.0, 0.0, TAU, 32, Color(0, 0, 0, 0.9), 4.0)
 		draw_arc(centre, 15.0, 0.0, TAU, 32, Color(1, 1, 1, 0.15), 2.0)
 		draw_arc(centre, 15.0, -PI * 0.5, -PI * 0.5 + TAU * k, 32, MAGENTA.lerp(CYAN, k), 2.0)
 

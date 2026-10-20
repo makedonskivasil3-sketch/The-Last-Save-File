@@ -171,6 +171,7 @@ func _ready() -> void:
 	_objective = _make_label(root, SAFE + Vector2(0, 15), Vector2(400, 12), 9, Color("c8b8a0"))
 	_objective.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_objective.modulate.a = 0.0
+	_objective.add_theme_stylebox_override("normal", _backing(0.82))
 	# A quieter line under it: where the story might lead (Progression).
 	_objective_hint = _make_label(_objective, Vector2(10, 14), Vector2(390, 12), 8, Color(SYSTEM_COLOR, 0.9))
 	_objective_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1171,18 +1172,41 @@ func set_status(text: String) -> void:
 ## Show the current goal for its reading time plus 3 s, then fade it to a
 ## faint reminder (Pause shows it in full).
 func show_objective(text: String, hint := "") -> void:
-	_objective.text = "· " + text
-	_objective_hint.text = hint
 	if _objective_tween:
 		_objective_tween.kill()
+	_objective_tween = null
+	_objective.text = "· " + text if text != "" else ""
+	_objective_hint.text = hint if text != "" else ""
+	_objective_hint.visible = _objective_hint.text != ""
+	if text == "":
+		_objective.modulate.a = 0.0
+		_objective.visible = false
+		return
 	_objective_tween = create_tween()
 	_objective_tween.tween_property(_objective, "modulate:a", 1.0, 0.4)
 	_objective_tween.tween_interval(StoryPacing.reading_time(text) + 3.0)
 	_objective_tween.tween_property(_objective, "modulate:a", 0.0, 1.2)
+	_objective_tween.finished.connect(func() -> void: _objective_tween = null)
+	_update_objective_priority()
 
 
 func objective_text() -> String:
-	return _objective.text if _objective.modulate.a > 0.05 else ""
+	return _objective.text if _objective.visible and _objective.modulate.a > 0.05 else ""
+
+
+func _update_objective_priority() -> void:
+	var bounds := _objective.get_global_rect()
+	if _objective_hint.visible:
+		bounds = bounds.merge(_objective_hint.get_global_rect())
+	var overlaps := _prompt.visible and _prompt.text != "" and bounds.intersects(_prompt.get_global_rect())
+	var blocked := _cinematic or _dialogue.visible or _choice.visible or is_act_shown() \
+		or is_tip_shown() or _banner.visible or _warning.visible or overlaps
+	_objective.visible = _objective.text != "" and not blocked
+	if _objective_tween and _objective_tween.is_valid():
+		if blocked:
+			_objective_tween.pause()
+		elif not _objective_tween.is_running():
+			_objective_tween.play()
 
 
 ## Shows a tutorial tip card (replacing any current one).
@@ -1282,6 +1306,7 @@ func hide_overlay() -> void:
 func _process(delta: float) -> void:
 	_playtime += delta
 	_place_prompt()
+	_update_objective_priority()
 	_glitch_prompt.position.x = _prompt_corner().x + 176 - 220
 	# The current interaction outranks a tip: a tip over the prompt steps back.
 	var over := _tip.visible and _prompt.visible and _prompt.text != "" and _tip.get_global_rect().intersects(_prompt.get_global_rect())

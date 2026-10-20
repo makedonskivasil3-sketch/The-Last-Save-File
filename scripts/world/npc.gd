@@ -236,9 +236,9 @@ func _process(delta: float) -> void:
 	if is_present() and is_instance_valid(player):
 		var d := player.global_position.distance_to(global_position)
 		# They turn to watch you when you're close.
-		if d < 90.0 or talking:
+		if talking or (d < 90.0 and not (escorted and s.moving)):
 			s.look_at(global_position, player.global_position)
-		elif not talking:
+		elif not talking and not (escorted and s.moving):
 			s.facing = Vector2.DOWN
 		if d < 50.0 and not _noticed and notice_emote != "":
 			_noticed = true
