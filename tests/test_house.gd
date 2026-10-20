@@ -81,3 +81,53 @@ func test_arin_catches_you_in_the_open() -> void:
 	w.player.global_position = w.area.arin.global_position + Vector2(0, -6)
 	await wait_until(func() -> bool: return w.ending != "", 3.0, "Arin walking into you")
 	check_eq(w.ending, "death", "there's only room for one of you")
+
+
+func _hold_move(action: String, seconds: float) -> void:
+	Input.action_press(action)
+	await wait(seconds)
+	Input.action_release(action)
+	await frames(2)
+
+
+func test_walking_into_a_closet_hides_you_and_walking_out_ends_it() -> void:
+	var w := await start_session()
+	await go_to(w, "house", "front")
+	w.director.paused = true
+	# Both closets, each from its open side (the side facing the room).
+	for closet: Rect2 in ArinsHouse.CLOSETS:
+		var into := "move_up" if closet.get_center().y < 160.0 else "move_down"
+		var out := "move_down" if into == "move_up" else "move_up"
+		var ty: float = w.area.threshold_y(closet)
+		w.player.global_position = Vector2(closet.get_center().x, ty + (14.0 if into == "move_up" else -14.0))
+		await frames(3)
+		check(not w.is_hidden_now(), "outside, not hidden")
+		await _hold_move(into, 0.4)  # real movement input, through the open side
+		check(w.is_hidden_now(), "walking in hides you")
+		check(w.hud._status.text.contains("closet"), "the status says the closet hides you (%s)" % w.hud._status.text)
+		await _hold_move(out, 0.5)
+		check(not w.is_hidden_now(), "walking out ends it")
+	check_eq(w.hud._status.text, "", "and the status clears")
+
+
+func test_the_chime_leaves_time_to_reach_a_closet() -> void:
+	var entry: Vector2 = ArinsHouse.new().entries["front"]
+	var nearest := INF
+	for c in ArinsHouse.CLOSETS:
+		nearest = minf(nearest, entry.distance_to(Vector2(c.get_center().x, c.end.y - 4)))
+	var walk := nearest / 90.0
+	check(ArinsHouse.CHIME_LEAD >= walk + 0.8, "%.1f s of warning for a %.1f s walk plus a moment to react" % [ArinsHouse.CHIME_LEAD, walk])
+
+
+func test_arin_s_house_loop_goes_through_the_doorway() -> void:
+	var w := await start_session()
+	await go_to(w, "house", "front")
+	var route: Array[Vector2] = ArinsHouse.ARIN_ROUTE
+	var space: PhysicsDirectSpaceState2D = w.get_world_2d().direct_space_state
+	for i in route.size():
+		var a := route[i]
+		var b := route[(i + 1) % route.size()]
+		var q := PhysicsRayQueryParameters2D.create(a, b, 1)
+		q.exclude = [w.player.get_rid()]
+		var hit: Dictionary = space.intersect_ray(q)
+		check(hit.is_empty() or hit.collider is Npc, "segment %s -> %s crosses nothing solid" % [a, b])

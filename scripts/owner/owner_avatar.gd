@@ -32,8 +32,27 @@ var lure: Callable
 ## Seconds left frozen by Rue's FREEZE glitch: no moving, seeing or touching.
 var stunned := 0.0
 
+## Arin's feet: walls, furniture and missing-texture blocks stop a circle this
+## size (people don't: Arin walks past them, as before).
+const RADIUS := 4.0
+## Making less than this share of the expected progress for STUCK_TIME counts
+## as blocked: a patrol point is skipped, a decoy is given up.
+const STUCK_SHARE := 0.25
+const STUCK_TIME := 0.75
+## After giving up on a decoy it can't reach, Arin stares at it this long,
+## then ignores decoys for LURE_COOLDOWN and goes back to the round.
+const INVESTIGATE_TIME := 1.5
+const LURE_COOLDOWN := 4.0
+## How far a destination inside a solid may be moved to the nearest clear floor.
+const FREE_SEARCH := 40.0
+
 var _target := 0
 var _vel := Vector2.ZERO
+var _stuck := 0.0
+var _lure_cooldown := 0.0
+var _chasing := false
+var _ignore: Array[RID] = []
+var _ignore_age := 99.0
 ## The protagonist the owner loves: blue tunic, dark hair, a red scarf.
 var _sprite := IllustratedCharacter.new("adult", {
 	"h": HAIR, "s": SKIN, "c": BODY, "d": Color("2e3f5c"), "a": Color("c0392b"),
@@ -48,6 +67,7 @@ var _last_step := 0
 
 
 func _physics_process(delta: float) -> void:
+	_ignore_age += delta
 	var before := position
 	_physics_step(delta)
 	_vel = (position - before) / maxf(delta, 0.0001)
@@ -65,13 +85,21 @@ func _physics_step(delta: float) -> void:
 		return
 	if route.is_empty() or paused:
 		return
-	var decoy: Vector2 = lure.call() if lure.is_valid() else Vector2.INF
-	if decoy != Vector2.INF and decoy.distance_to(global_position) < 200.0:
+	_lure_cooldown = maxf(0.0, _lure_cooldown - delta)
+	var decoy: Vector2 = lure.call() if lure.is_valid() and _lure_cooldown <= 0.0 else Vector2.INF
+	_chasing = decoy != Vector2.INF and decoy.distance_to(global_position) < 200.0
+	if _chasing:
 		# Fooled: walk at the stale frame of you, staring at it.
 		var to_decoy := decoy - global_position
 		_facing = _facing.lerp(to_decoy.normalized(), minf(1.0, delta * 8.0)).normalized()
-		if to_decoy.length() > 6.0:
-			position += to_decoy.normalized() * speed * 1.2 * delta
+		if to_decoy.length() > 6.0 and _travel(decoy, speed * 1.2 * delta, delta):
+			# Blocked (a wall between): look a moment where it should be, then
+			# give up on it and go back to the round. No walking through walls,
+			# no endless pushing against them.
+			_chasing = false
+			_lure_cooldown = LURE_COOLDOWN
+			_wait = INVESTIGATE_TIME
+			_stuck = 0.0
 		_seeing = false
 		return
 	if _wait > 0.0:
@@ -83,14 +111,116 @@ func _physics_step(delta: float) -> void:
 		if to.length() < 2.0:
 			_target = (_target + 1) % route.size()
 			_wait = GUARD_WAIT if goal == guard_point else 0.6  # pauses at corners, looking around
+			_stuck = 0.0
 		else:
 			_facing = _facing.lerp(to.normalized(), minf(1.0, delta * 6.0)).normalized()
-			position += to.normalized() * minf(speed * delta, to.length())
+			if _travel(goal, minf(speed * delta, to.length()), delta):
+				_target = (_target + 1) % route.size()  # can't get there from here: on to the next
+				_stuck = 0.0
 	_seeing = can_see(player.global_position) if is_instance_valid(player) else false
 	if _seeing:
 		sees_player.emit(delta)
 	if is_instance_valid(player) and player.global_position.distance_to(global_position) < 8.0:
 		touched_player.emit()
+
+
+## True while Arin is walking at a decoy.
+func is_chasing() -> bool:
+	return _chasing
+
+
+## Walks up to `dist` toward `goal` without entering a solid, sliding along
+## walls (the level's solids are rectangles, so moving each axis separately
+## slides cleanly). Returns true once Arin has been blocked for STUCK_TIME.
+func _travel(goal: Vector2, dist: float, delta: float) -> bool:
+	var motion := (goal - global_position).limit_length(dist)
+	var before := global_position
+	if not is_inside_tree() or _solid_at(global_position):
+		global_position += motion  # (already inside something: walk out of it)
+	else:
+		for axis in [Vector2(motion.x, 0.0), Vector2(0.0, motion.y)]:
+			if axis.length() > 0.001:
+				global_position += axis * _free_fraction(axis)
+	var moved := global_position.distance_to(before)
+	if moved < dist * STUCK_SHARE:
+		_stuck += delta
+	else:
+		_stuck = 0.0
+	return _stuck >= STUCK_TIME
+
+
+## How much of `motion` Arin's feet can take before touching a solid (0..1).
+func _free_fraction(motion: Vector2) -> float:
+	var q := PhysicsShapeQueryParameters2D.new()
+	var circle := CircleShape2D.new()
+	circle.radius = RADIUS
+	q.shape = circle
+	q.transform = Transform2D(0.0, global_position)
+	q.motion = motion
+	q.collision_mask = _mask()
+	q.exclude = _ignored()
+	var r := get_world_2d().direct_space_state.cast_motion(q)
+	return r[0] if r.size() > 0 else 1.0
+
+
+## Is `p` inside a solid Arin respects (a wall, furniture, a missing texture)?
+func _solid_at(p: Vector2) -> bool:
+	var q := PhysicsPointQueryParameters2D.new()
+	q.position = p
+	q.collision_mask = _mask()
+	q.exclude = _ignored()
+	return not get_world_2d().direct_space_state.intersect_point(q, 1).is_empty()
+
+
+func _mask() -> int:
+	return player.collision_mask if player is CollisionObject2D else 1
+
+
+## Rue and the people in the area: Arin doesn't collide with them.
+func _ignored() -> Array[RID]:
+	if _ignore_age > 0.5:
+		_ignore_age = 0.0
+		_ignore.clear()
+		if player is CollisionObject2D:
+			_ignore.append(player.get_rid())
+		var a := get_parent()
+		if a:
+			for n in a.get_children():
+				if n is CollisionObject2D and n is Npc:
+					_ignore.append((n as CollisionObject2D).get_rid())
+	return _ignore
+
+
+## The nearest clear floor to `p` (itself if clear), or INF if none is close.
+func free_point(p: Vector2) -> Vector2:
+	if not is_inside_tree() or not _solid_at(p):
+		return p
+	for r in range(4, int(FREE_SEARCH) + 1, 4):
+		for i in 12:
+			var c := p + Vector2.from_angle(TAU * i / 12.0) * r
+			if not _solid_at(c):
+				return c
+	return Vector2.INF
+
+
+## Every destination on clear floor: points inside a solid move to the
+## nearest clear spot, or are dropped if there's none nearby.
+func _sanitize_route() -> void:
+	if not is_inside_tree():
+		return
+	var clean: Array[Vector2] = []
+	for p in route:
+		var f := free_point(p)
+		if f != Vector2.INF and (clean.is_empty() or clean.back().distance_to(f) > 2.0):
+			clean.append(f)
+	if guard_point != Vector2.INF:
+		var g := free_point(guard_point)
+		for i in clean.size():
+			if clean[i] == guard_point:
+				clean[i] = g
+		guard_point = g
+	if not clean.is_empty():
+		route = clean
 
 
 func can_see(pos: Vector2) -> bool:
@@ -130,6 +260,7 @@ func _blocked(pos: Vector2) -> Vector2:
 func _ready() -> void:
 	add_to_group("canopy_reveal")  # never hidden under a tree
 	_guard_husk()
+	_sanitize_route.call_deferred()  # once the area's solids exist
 	_steps = AudioStreamPlayer2D.new()
 	_steps.bus = "SFX"
 	_steps.max_distance = 300.0
@@ -163,6 +294,7 @@ func _insert_guard() -> void:
 func set_route(points: Array[Vector2]) -> void:
 	route = points.duplicate()
 	_insert_guard()
+	_sanitize_route()
 	if route.is_empty():
 		_target = 0
 		return

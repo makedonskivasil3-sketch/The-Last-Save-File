@@ -433,7 +433,8 @@ func _process(delta: float) -> void:
 	if helper:
 		hud.set_status("HIDDEN  ·  %s covers you" % helper.display_name)
 	else:
-		hud.set_status("HIDDEN" if player.sheltered else "")
+		var label: String = area.hide_label() if area.has_method("hide_label") and area.hides_player(player.global_position) else ""
+		hud.set_status(("HIDDEN  ·  " + label if label != "" else "HIDDEN") if player.sheltered else "")
 	if helper:
 		voice("hidden_first")
 	if player.idle_time > OwnerDirector.IDLE_WARN and director.awareness > OwnerDirector.NOTICE:
@@ -708,7 +709,7 @@ func current_goal() -> String:
 		"room":
 			goal = "Get out of Arin's room."
 		"edge":
-			goal = "Lead the cursor away, then stand in Slot 2 to write yourself in."
+			goal = area.goal_text() if area.has_method("goal_text") else "Lead the cursor away, then stand in Slot 2 to write yourself in."
 		"bin":
 			goal = "Stand beside a deleted file to restore them. When the bin empties, get into a system file's cyan shadow."
 		"house":

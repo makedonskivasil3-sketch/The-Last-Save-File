@@ -33,9 +33,17 @@ func _ready() -> void:
 	add_child(col)
 
 
+## Callable() -> bool: true while Rue can't act (dialogue, choices, scenes).
+## PAUSE is Rue acting, so writing goes on through it; the menu pause stops
+## physics altogether.
+var frozen: Callable
+
+
 func _physics_process(delta: float) -> void:
 	if _done:
 		return
+	if frozen.is_valid() and frozen.call():
+		return  # Rue can't act: nothing gained, nothing lost
 	var inside := false
 	for body in get_overlapping_bodies():
 		if body is Player:

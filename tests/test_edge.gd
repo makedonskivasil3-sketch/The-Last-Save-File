@@ -14,6 +14,8 @@ func test_the_static_waits_and_counts_down() -> void:
 	await _at_edge(w)
 	var edge: TheEdge = w.area
 	check(not edge.erasure.active, "no static the moment you arrive")
+	# The act card comes first; the countdown starts once it's gone.
+	await wait_until(func() -> bool: return not w.hud.is_act_shown(), 8.0, "the act card")
 	await wait(1.0)
 	check(w.hud.banner_text().begins_with("THE EDGE IS UNLOADING"), "a countdown says so (%s)" % w.hud.banner_text())
 	await wait(TheEdge.GRACE - 1.5)

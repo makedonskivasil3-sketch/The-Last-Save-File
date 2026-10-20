@@ -58,6 +58,7 @@ var grace := -1.0
 var _t := 0.0
 var _purged_speedup := 1.0
 var _tick := -1
+var _arrival_held := false
 
 
 func _init() -> void:
@@ -81,6 +82,9 @@ func build() -> void:
 	slot = SlotTwo.new()
 	slot.position = SLOT_POS
 	slot.reached.connect(world.reach_slot2)
+	# While Rue can't act (reading, answering, a scene), the slot neither fills
+	# nor drains: no progress gained or lost behind a text box.
+	slot.frozen = func() -> bool: return world.hud.is_dialogue_open() or world.hud.is_choosing() or world.hud.is_cinematic() or world.in_cutscene()
 	add_child(slot)
 	# Slot 2 shines, the one lit thing in an unloaded world (and the light
 	# goes where the owner drags it).
@@ -143,7 +147,42 @@ func on_owner_event(threshold: float) -> void:
 		_purged_speedup = 0.85
 
 
+## The goal line, from what is actually happening (World.current_goal asks).
+## Short: it is read while something is about to kill you.
+func goal_text() -> String:
+	if slot == null:
+		return "Reach Slot 2."
+	match fight:
+		"reach", "drag":
+			return "The owner has Slot 2 and is dragging it away."
+		"arin", "done":
+			if slot.progress > 0.0:
+				return "Slot 2 is yours again. Stay in it to finish writing."
+			return "Slot 2 is yours again. Arin is coming to guard it."
+	if slot.is_writing():
+		return "Writing yourself in. Stay in the slot; stepping out drains it."
+	if cursor and cursor.global_position.distance_to(slot.global_position) < 40.0:
+		return "The cursor is waiting by Slot 2. Lead it away, then write yourself in."
+	return "Stand in Slot 2 to write yourself in."
+
+
+## Arrival is safe: while the act card is up, nothing counts down and the
+## cursor holds still. The card covers the middle of the screen; the player's
+## reaction window starts once it has gone.
+func _arriving() -> bool:
+	if world.hud.is_act_shown() and fight == "":
+		_arrival_held = true
+		cursor.paused = true
+		return true
+	if _arrival_held:
+		_arrival_held = false
+		cursor.paused = world.is_owner_paused()
+	return false
+
+
 func area_process(delta: float) -> void:
+	if _arriving():
+		return
 	_update_fight(delta)
 	if world.is_owner_paused():
 		return  # reading, a question, PAUSE: the countdown waits too
@@ -232,14 +271,57 @@ func _drop(line: String) -> void:
 	fight = "arin"
 
 
+## Where Arin guards Slot 2 at `c`: the corners of a loop around it that lie
+## inside the area, on clear floor (not in a missing-texture block) and that
+## Arin can walk between. Wherever the slot is (its start in the corner, or
+## either drop spot by the edge), corners that don't fit are left out rather
+## than pushed somewhere invalid; with fewer than two, Arin keeps one post
+## beside the slot instead of a loop.
+func guard_route(c: Vector2) -> Array[Vector2]:
+	var out: Array[Vector2] = []
+	for radius: float in [GUARD_RADIUS, GUARD_RADIUS * 0.7]:
+		out.clear()
+		for i in 8:
+			var p := c + Vector2.from_angle(-PI * 0.75 + TAU * i / 8.0) * radius
+			if _guard_ok(p) and (out.is_empty() or _walkable(out.back(), p)):
+				out.append(p)
+		if out.size() >= 3:
+			break
+	if out.size() < 2:
+		out.clear()
+		for i in 16:
+			var p := c + Vector2.from_angle(TAU * i / 16.0) * 26.0
+			if _guard_ok(p):
+				out.append(p)  # one post, beside the slot
+				break
+	return out
+
+
+## Inside the area with room to stand, and not inside anything solid.
+func _guard_ok(p: Vector2) -> bool:
+	if not bounds.grow(-12.0).has_point(p):
+		return false
+	var q := PhysicsPointQueryParameters2D.new()
+	q.collision_mask = 1
+	for d in [Vector2.ZERO, Vector2(5, 0), Vector2(-5, 0), Vector2(0, 5), Vector2(0, -5)]:
+		q.position = p + d
+		if not get_world_2d().direct_space_state.intersect_point(q, 1).is_empty():
+			return false
+	return true
+
+
+## Nothing solid on the straight walk from a to b.
+func _walkable(a: Vector2, b: Vector2) -> bool:
+	var q := PhysicsRayQueryParameters2D.create(a, b, 1)
+	return get_world_2d().direct_space_state.intersect_ray(q).is_empty()
+
+
 ## Arin walks up the road and circles the slot.
 func _send_arin() -> void:
 	if arin:
 		return
 	arin = OwnerAvatar.new()
-	var c := slot.global_position
-	arin.route = [c + Vector2(-GUARD_RADIUS, -GUARD_RADIUS), c + Vector2(GUARD_RADIUS, -GUARD_RADIUS),
-			c + Vector2(GUARD_RADIUS, GUARD_RADIUS), c + Vector2(-GUARD_RADIUS, GUARD_RADIUS)] as Array[Vector2]
+	arin.route = guard_route(slot.global_position)
 	arin.position = Vector2((SOUTH_GAP.x + SOUTH_GAP.y) * 0.5, bounds.end.y - 6)
 	arin.speed = ARIN_SPEED
 	arin.player = world.player

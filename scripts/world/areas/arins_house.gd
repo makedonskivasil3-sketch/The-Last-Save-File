@@ -22,10 +22,17 @@ const OUTLINES: Array[Rect2] = [Rect2(420, 60, 70, 34), Rect2(500, 120, 30, 40),
 const FIRST_VISIT := 8.0
 const VISIT_EVERY := 24.0
 const VISIT_TIME := 15.0
+## Arin's loop: the living room, then through the doorway (never through the
+## wall) into Player 2's room and back out the same way.
 const ARIN_ROUTE: Array[Vector2] = [
-	Vector2(320, 250), Vector2(260, 140), Vector2(330, 90), Vector2(460, 110),
-	Vector2(470, 220), Vector2(400, 216), Vector2(320, 260),
+	Vector2(320, 250), Vector2(260, 140), Vector2(330, 90), Vector2(345, 216),
+	Vector2(420, 216), Vector2(460, 110), Vector2(470, 220), Vector2(400, 216), Vector2(320, 260),
 ]
+## The chime comes this long before Arin walks in: from the front door the
+## nearest closet is about 190 px (2.1 s at Rue's 90 px/s), plus time to react.
+const CHIME_LEAD := 4.0
+## Within this distance of a closet's open side, a small "step in" cue shows.
+const CLOSET_CUE := 36.0
 
 const FLOOR := Color("2b2420")
 const WOOD := Color("4f3a2c")
@@ -74,6 +81,9 @@ func build() -> void:
 	add_readable("PHOTO", Vector2(300, 44), Readable.Look.SIGN, _photo)
 	var couch := add_readable("THE COUCH", Vector2(198, 214), Readable.Look.SIGN, _couch)
 	couch.prompt = "look under"
+	var closets := ClosetView.new()
+	closets.house = self
+	add_child(closets)
 	add_readable("PLAYER 2", Vector2(WALL_X + 20, DOORWAY.x - 8), Readable.Look.SIGN, _player_two)
 
 
@@ -81,6 +91,16 @@ func guide_point() -> Vector2:
 	if not OwnerMemory.found_controller:
 		return Vector2(198, 214)
 	return Vector2((FRONT_GAP.x + FRONT_GAP.y) * 0.5, bounds.end.y)
+
+
+## The y of a closet's open side: the side facing the middle of the room.
+func threshold_y(c: Rect2) -> float:
+	return c.end.y - 1.5 if c.get_center().y < bounds.get_center().y else c.position.y + 1.5
+
+
+## What the status line says while a closet hides you.
+func hide_label() -> String:
+	return "the closet hides you"
 
 
 ## The closets hide you (World.is_player_hidden asks).
@@ -108,7 +128,7 @@ func area_process(delta: float) -> void:
 			world.hud.say("arin left.", "self")
 		return
 	next_visit -= delta
-	if next_visit <= 2.5 and not _chimed:
+	if next_visit <= CHIME_LEAD and not _chimed:
 		_chimed = true
 		Sfx.play("ui_confirm", 0.0, 0.6)  # the door chime
 		world.hud.say("(the door. someone's coming in.)", "self")
@@ -201,16 +221,68 @@ func _paint(ci: CanvasItem) -> void:
 	ci.draw_rect(TV, Color("101014"))
 	# The TV glows with the game.
 	ci.draw_rect(TV.grow(-2), Color(0.55, 0.95, 1.0, 0.3))
-	# Wardrobes you can hide in: doors you can see into, a gap between them.
+	# Closets you walk into: a dark recess with its doors swung open toward
+	# the room and a lit threshold. They're not solid, and they don't look it.
+	# (The doors closing around Rue are drawn live, by ClosetView.)
 	for c in CLOSETS:
-		var top := Decor.furniture(ci, c, WOOD.lightened(0.1), 6.0)
-		ci.draw_rect(top.grow(-3), Color("2b1f18"))
-		ci.draw_line(Vector2(c.get_center().x, top.position.y + 3), Vector2(c.get_center().x, top.end.y - 3), WOOD.lightened(0.25), 1.0)
-		ci.draw_circle(Vector2(c.get_center().x - 2.5, top.get_center().y), 0.8, Color("c8a870"))
-		ci.draw_circle(Vector2(c.get_center().x + 2.5, top.get_center().y), 0.8, Color("c8a870"))
+		ci.draw_rect(c.grow(2.0), Decor.INK)
+		ci.draw_rect(c, WOOD.darkened(0.2))
+		ci.draw_rect(c.grow(-2.0), Color("140e0a"))  # the dark inside
+		ci.draw_rect(Rect2(c.position + Vector2(2, 2), Vector2(c.size.x - 4, 4)), Color("3a2a1e"))  # the rail and shelf
+		for k in 3:
+			ci.draw_line(Vector2(c.position.x + 7 + k * 6, c.position.y + 6), Vector2(c.position.x + 7 + k * 6, c.position.y + 13), Color("6a5a7a", 0.8), 2.0)  # hanging coats
+		# Open doors, swung out flat against the wall on either side.
+		ci.draw_rect(Rect2(c.position.x - 9, c.position.y + 2, 7, c.size.y - 4), WOOD.lightened(0.12))
+		ci.draw_rect(Rect2(c.end.x + 2, c.position.y + 2, 7, c.size.y - 4), WOOD.lightened(0.12))
+		ci.draw_rect(Rect2(c.position.x - 9, c.position.y + 2, 7, c.size.y - 4), Decor.INK, false, 0.8)
+		ci.draw_rect(Rect2(c.end.x + 2, c.position.y + 2, 7, c.size.y - 4), Decor.INK, false, 0.8)
+		# The threshold: a strip of warm light on the floor at the open side,
+		# the side that faces the room.
+		ci.draw_rect(Rect2(c.position.x, threshold_y(c) - 1.5, c.size.x, 3), Color(1.0, 0.85, 0.6, 0.18))
 	# The inner wall, with its doorway.
 	for seg in [Rect2(WALL_X - 3, r.position.y, 6, DOORWAY.x - r.position.y), Rect2(WALL_X - 3, DOORWAY.y, 6, r.end.y - DOORWAY.y)]:
 		ci.draw_rect(seg, Color("2e2620"))
 		ci.draw_rect(seg, Decor.INK, false, 0.8)
 	Decor.wall_shadow(ci, bounds, 12.0, 0.3)
 	Decor.walls(ci, bounds, WALL, Color("6a5848"), Color("2e2620"), [{"side": "bottom", "from": FRONT_GAP.x, "to": FRONT_GAP.y}])
+
+
+## The closets, live: a "step in" cue when Rue is near one, and the doors
+## pulled to around her once she's inside (she can still see out, and so can
+## you). Drawn above the floor, below people.
+class ClosetView:
+	extends Node2D
+	var house: ArinsHouse
+	var _open := {}
+
+	func _process(delta: float) -> void:
+		if house == null or house.world == null:
+			return
+		var p: Vector2 = house.world.player.global_position
+		for i in CLOSETS.size():
+			var inside := CLOSETS[i].has_point(p)
+			_open[i] = move_toward(float(_open.get(i, 0.0)), 1.0 if inside else 0.0, delta * 6.0)
+		queue_redraw()
+
+	func _draw() -> void:
+		if house == null or house.world == null:
+			return
+		var p: Vector2 = house.world.player.global_position
+		for i in CLOSETS.size():
+			var c: Rect2 = CLOSETS[i]
+			var k: float = _open.get(i, 0.0)
+			if k > 0.01:
+				# Doors swing in from the sides, leaving a gap to see through.
+				var w := (c.size.x * 0.5 - 3.0) * k
+				draw_rect(Rect2(c.position.x, c.position.y + 2, w, c.size.y - 4), Color(WOOD.lightened(0.12), 0.85))
+				draw_rect(Rect2(c.end.x - w, c.position.y + 2, w, c.size.y - 4), Color(WOOD.lightened(0.12), 0.85))
+			var ty := house.threshold_y(c)
+			var near := Vector2(c.get_center().x, ty).distance_to(p)
+			if k < 0.5 and near < CLOSET_CUE:
+				var a := 0.8 * (1.0 - near / CLOSET_CUE) + 0.2
+				var font := ThemeDB.fallback_font
+				var text := "step in to hide"
+				var tw := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 7).x
+				var ly := ty + 3.0 if ty > c.get_center().y else ty - 13.0  # on the room side
+				draw_rect(Rect2(c.get_center().x - tw * 0.5 - 3, ly, tw + 6, 10), Color(0, 0, 0, 0.55 * a))
+				draw_string(font, Vector2(c.get_center().x - tw * 0.5, ly + 8), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 7, Color(1.0, 0.92, 0.8, a))
