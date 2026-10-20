@@ -128,3 +128,40 @@ point they wanted to stop ... __ (why)
 **Returning run.** Start the same save once more. Watch whether they notice the deleted door, the owner's note and the characters' lines. Ask "What's different?" and write the answer down.
 
 **Results: not run.** Nobody has played this build. Don't fill in this section from bots or from guesses.
+
+## Round focus: onboarding, threat and recovery (pass 4, `claude/last-save-file-prototype-ljwuq4`)
+
+**Status: ready to run; results pending.** No session has taken place. Do not record expectations as results.
+
+**Who:** 5 players who have never seen the game, about 20–30 minutes each, clean save, `?playtest=1`. Record the build hash (bottom of this section is filled in per round), the device (PC model or phone), browser or desktop build, and the input (keyboard, gamepad or touch).
+
+**What this round tests (pass 4 changes):** awareness is explained before any glitch; tap vs hold is spelled out; tips come back if cut short; the pause menu says pausing is safe and quitting counts; the death card says what's kept and the purge count; the prompt never hides behind a tip.
+
+**Watch for, without coaching** (tick and time each; write what they *did*, not what you think they meant):
+
+| Moment | Observation (what happened, time) | Player's words (verbatim) | Hypothesis (yours, kept separate) |
+|---|---|---|---|
+| First intentional glitch: did they hold on purpose, on what, and did they look at the bar afterwards? | | | |
+| Understanding awareness: do they mention the bar, or change behaviour when it jumps? | | | |
+| First hiding attempt: where (beside Wren, closet, out of the cone) and did it work? | | | |
+| First death: did they read the card; what did they try next run? | | | |
+| Recognising persistence: did they notice a change after death (deleted door, ghost markers, someone remembering)? | | | |
+| Optional exploration: notes, the well, Tobben, the Archive shelves | | | |
+| Attachment: comments about Mira, Wren, Pip; hesitation before shedding | | | |
+| Confusion: stalls over 60 s, misreads, repeated failed inputs | | | |
+| Voluntary stopping: when and why, in their words | | | |
+
+**Ask afterwards, in this order, without explaining anything first:**
+1. What were you trying to do just then? (ask at one or two marked moments, during play if they pause naturally)
+2. What do you think caused that? (after their first death)
+3. What would you try next?
+4. What did you remember most?
+5. What felt unclear or unfair?
+6. Would you continue on your own, and why?
+
+**Keep three columns apart in the report:** observations (what happened), opinions (what the player said), hypotheses (what the team thinks it means). A change is justified only by observations, or by an opinion repeated by several players.
+
+```
+Round: pass 4 · date: __ · build: <git rev-parse --short HEAD> · players: 5
+Player __ · device __ · browser/desktop __ · input __ · minutes played __
+```

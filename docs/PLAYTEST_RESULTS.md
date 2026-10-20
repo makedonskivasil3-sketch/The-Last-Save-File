@@ -1,6 +1,6 @@
 # Playtest results
 
-**Status: no human playtest has taken place yet.** Nothing in this file is a finding. When a round is run, its results go below, in the template from `PLAYTEST_PLAN.md`.
+**Status (2026-10-20): no human playtest has taken place yet.** Nothing in this file is a finding. The next round is ready to run: see "Round focus: onboarding, threat and recovery (pass 4)" in `PLAYTEST_PLAN.md`. When a round is run, its results go below, in the template from `PLAYTEST_PLAN.md`.
 
 ## Running a session
 
