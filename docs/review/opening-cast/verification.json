@@ -1,0 +1,26 @@
+{
+  "runtime_commit": "afb44e7a4122786f59bc29ce00d02ad8c0c87952",
+  "baseline_commit": "decaf1f7f1851358bf0b357f15509d654066d20a",
+  "full_suite": {
+    "passed": 459,
+    "failed": 0,
+    "seconds": 1064.8,
+    "exit_code": 0,
+    "unique_cases": 459
+  },
+  "ending_bots": {
+    "passed": 5,
+    "failed": 0,
+    "seconds": 230.1,
+    "purge_3_stalls": 11
+  },
+  "browser_lifecycle": {
+    "passed": 10,
+    "failed": 0
+  },
+  "human_playtest": false,
+  "human_listening": false,
+  "windows_execution": false,
+  "real_gpu_measurement": false,
+  "teardown_warning": "ObjectDB instances leaked at exit"
+}

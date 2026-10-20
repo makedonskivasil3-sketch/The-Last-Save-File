@@ -2,6 +2,21 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
+## Current local follow-up: opening and cast review (2026-10-20)
+
+Local branch `codex/opening-cast-review`, based on fetched PR #7 head
+`decaf1f7`. Runtime changes: `7a5142a` and `afb44e7`. Nothing from this follow-up
+has been pushed, merged or deployed. The advertised unpublished `a918b79`
+work was not available; `codex/map-experience` on GitHub contains the earlier
+pass-8 code, not that patch.
+
+See [OPENING_CAST_REVIEW.md](OPENING_CAST_REVIEW.md) for the findings ledger,
+preserved/missing features, scope, and uncoached playtest plan, and
+[OPENING_CAST_RESULTS.md](OPENING_CAST_RESULTS.md) for current verification.
+The pass-8 results below remain historical, not evidence for the new code.
+Stage remains a late prototype: human playtesting, listened-to audio,
+Windows execution and real hardware measurements are still pending.
+
 ## Current status (2026-10-20, pass 8): `claude/last-save-file-prototype-ljwuq4`
 
 **Stage:** a complete vertical slice / late prototype. **Not** a release candidate. Unmet: a human playtest (none run), listening (none), a real-GPU measurement (none), Windows, phone and gamepad runs (none), recorded voices (none ship). Not merged, nothing deployed by this pass.

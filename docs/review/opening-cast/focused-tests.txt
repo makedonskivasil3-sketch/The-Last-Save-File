@@ -1,0 +1,10 @@
+Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
+
+  PASS  test_opening_slice.test_charge_counts_only_time_after_hold_and_cooldown
+  PASS  test_opening_slice.test_companion_faces_travel_then_the_speaker
+  PASS  test_opening_slice.test_phase_never_commits_to_a_changed_destination
+  PASS  test_opening_slice.test_a_genuinely_fresh_title_reaches_a_clean_room
+  PASS  test_opening_slice.test_objective_yields_without_spending_its_reading_time
+  PASS  test_opening_slice.test_charge_feedback_fits_large_text_at_the_screen_edge
+
+==== 6 passed, 0 failed (10.4s) ====

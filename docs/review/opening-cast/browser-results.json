@@ -1,0 +1,50 @@
+{
+  "runtime_commit": "afb44e7a4122786f59bc29ce00d02ad8c0c87952",
+  "trials": [
+    {
+      "trial": 1,
+      "passed": true
+    },
+    {
+      "trial": 2,
+      "passed": true
+    },
+    {
+      "trial": 3,
+      "passed": true
+    },
+    {
+      "trial": 4,
+      "passed": true
+    },
+    {
+      "trial": 5,
+      "passed": true
+    },
+    {
+      "trial": 6,
+      "passed": true
+    },
+    {
+      "trial": 7,
+      "passed": true
+    },
+    {
+      "trial": 8,
+      "passed": true
+    },
+    {
+      "trial": 9,
+      "passed": true
+    },
+    {
+      "trial": 10,
+      "passed": true
+    }
+  ],
+  "passed": 10,
+  "failed": 0,
+  "engine": "Godot 4.3",
+  "browser": "system Chromium, Playwright 1.56.1",
+  "human_listening": false
+}
