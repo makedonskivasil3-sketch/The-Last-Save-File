@@ -433,6 +433,15 @@ func _go(w: Node, points: Array, timeout := STEP_TIMEOUT) -> bool:
 				if w.ending == "":
 					_say("left %s unplanned (heading for %s, at %s)" % [area_id, p, w.player.global_position.round()])
 				_release_all()
+				# Let the change finish before handing back: returning in the
+				# same frame let a caller retry without ever yielding, so the
+				# game never got a frame to complete the transition (CI hung
+				# at the Edge's exit this way).
+				var waited := 0
+				while is_instance_valid(w) and w.is_inside_tree() and w._transitioning and waited < 600:
+					await tree.process_frame
+					waited += 1
+				await tree.process_frame
 				return w.ending == ""
 			_heartbeat(w, p)
 			if w._cutscene or w.hud.is_dialogue_open():
