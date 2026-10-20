@@ -115,7 +115,7 @@ jobs:
           path: build/web/
 
       - name: Upload web build for GitHub Pages
-        if: github.ref == 'refs/heads/main' && vars.ENABLE_PAGES == 'true'
+        if: github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3
         with:
           path: build/web/
@@ -155,11 +155,12 @@ jobs:
             gh pr create --base main --head playtest/first-minutes-fairness --title "Improve first-minute fairness and readable threats" --body-file /tmp/playtest-pr.md
           fi
 
-  # Optional: play in the browser. Turn on by setting Settings → Pages → Source to
-  # "GitHub Actions" and adding a repository variable ENABLE_PAGES = true.
+  # Play in the browser: every push to main publishes the web build to GitHub
+  # Pages. Needs Settings → Pages → Source set to "GitHub Actions" (a
+  # repository setting a workflow can't switch on by itself).
   pages:
     needs: export
-    if: github.ref == 'refs/heads/main' && vars.ENABLE_PAGES == 'true'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       pages: write
