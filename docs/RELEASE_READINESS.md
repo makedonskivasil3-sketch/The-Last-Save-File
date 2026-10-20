@@ -2,7 +2,40 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current status (2026-10-20): `claude/last-save-file-prototype-ljwuq4` (pass 4)
+## Current status (2026-10-20, pass 6): `claude/last-save-file-prototype-ljwuq4`
+
+**Branches:** [PR #7](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/pull/7) on this branch, stacked on [PR #6](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/pull/6). Not merged; nothing deployed. The author asked for both to be merged into `main` and for GitHub Pages; the merge needs to be done on github.com (this session may not merge), and Pages needs *Settings → Pages → Source: GitHub Actions*.
+
+**Release candidate?** No. Unmet: human playtest (none run), listening (none), real-GPU measurement (none), Windows/phone/gamepad runs (none), recorded voice (none ships).
+
+### What changed since pass 4 (passes 5–6)
+
+| Area | Implemented | Automated | Visually inspected | Human / hardware |
+|---|---|---|---|---|
+| Arin's navigation (grid paths, clearance, recovery, unreachable targets) | Yes | `test_threat_navigation` (9) | — | Pending |
+| Edge: valid guard routes, safe arrival, state-tied goals, frozen writing behind text, readable floor | Yes | `test_edge_confrontation`, `test_edge`, `test_confrontation` | `docs/review/pass6/edge_confrontation_sheet.jpg` | Pending |
+| Closets as open recesses, cue, status, 4 s chime | Yes | `test_house` | Pass 5 screenshots | Discoverability pending |
+| Archive record stands, file emphasis at FILE stage | Yes | `test_gameplay_consistency` | Pass 5 | Discoverability pending |
+| Opening film (unnamed P2, skip/replay/captions, focus and input hand-off) | Yes | `test_opening` (9) | `docs/review/pass6/opening_storyboard.jpg` | Comprehension pending (intro on/off variants ready) |
+| Phone audio recovery after spoken lines; music under the opening | Yes | `audio_output_check` (headless Chromium: audible) | — | **Listening on an iPhone: pending** |
+| Strict browser lifecycle in CI | Yes | `web_check` locally: all pass | — | — |
+| Benchmark harness | Yes | Smoke run, 9 workloads valid | — | **Real GPU: pending** (`tools/run_benchmark.sh`) |
+
+### Verification tied to commits
+
+| Commit | Check | Result |
+|---|---|---|
+| `c7293fe` | Full suite (local) | 425 passed, 0 failed |
+| `ade8215` | CI (GitHub) | Passed |
+| later commits | Full suite, bots, CI | See the PR; results are not carried forward from earlier commits |
+
+### Measuring on a real GPU
+
+`GODOT=/path/to/Godot_v4.3-stable tools/run_benchmark.sh` on the machine to measure (windowed, nothing heavy running). It needs the Godot 4.3 editor binary and this repository (the harness lives with the tests, which exports leave out). Output: `benchmark-<commit>.json` plus a console table. Each of gameplay (room, square calm, square hunted with Wren, Archive with a portrait on screen, house visit, Edge spreading), stress (CRT and full effects while hunted), transitions and the opening is checked throughout capture; anything that stops being what its label says is listed under `invalid`, never averaged in. Software renderers (llvmpipe, SwiftShader…) are flagged as not a hardware GPU. GPU time is **not** measured separately (frame time is wall clock; CPU time is Godot's process monitor). Development-only change: `World.bench_immune` keeps Rue alive; threats run as in play.
+
+---
+
+## Status at pass 4 (2026-10-20): `claude/last-save-file-prototype-ljwuq4` (pass 4)
 
 **Branches:** this branch carries [PR #7](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/pull/7) (stacked on [PR #6](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/pull/6)). Nothing is merged or deployed. `main` is unchanged.
 

@@ -155,3 +155,19 @@ No saved field was added or renamed, so no migration is needed. Truth pieces alr
 - **Validation:** both closets entered and left with real movement input; chime timing test; the house loop's segments cross no wall. Whether players notice them: **pending observation**.
 
 **Map.** Not changed. It shows area connections and memory counts. The shelf and closet problems were world-readability problems, fixed in the world; a local floor plan would compensate for them, not fix them. Revisit if observation shows players lost *between* areas.
+
+## Pass 6 (2026-10-20): ledger (finding → evidence → player impact → correction → validation)
+
+| Finding | Kind | Evidence | Player impact | Correction | Validation |
+|---|---|---|---|---|---|
+| A fully rejected route kept its invalid points | Confirmed (source) | `_sanitize_route` assigned only a non-empty result | Arin could walk at points inside furniture | Rejected points are dropped; an empty route means "keep watch"; sight and touch still run | `test_a_route_with_nowhere_valid_is_dropped_and_arin_still_watches` |
+| Destinations checked as points, not bodies | Confirmed (source) | `free_point` used a point query | Arin could stop half inside a wall | One clearance rule: a circle of Arin's radius + 1 px, inside the bounds by that much (`NavGrid.clear`) | Every frame of every navigation test checks the body |
+| Inside a solid, movement ignored collision | Confirmed (source) | `_travel` moved freely when overlapping | Arin could cross a whole obstacle | Bounded recovery: step to open floor within 16 px; hold still if none | `test_arin_steps_out_of_a_solid_without_crossing_it`, `test_stuck_fast_it_holds_still_rather_than_walk_through` |
+| Skipping blocked waypoints looked broken; no way round obstacles | Design weakness | Sliding can't find a way round a solid | Arin got stuck on corners and skipped points | `NavGrid` (AStarGrid2D at Arin's clearance): paths round solids and through doorways; partial paths to unreachable targets | Decoy reached around a solid; house loop through the doorway; patrol with points in furniture; Edge guard walked |
+| The opening's skip and focus | Confirmed (source) | Skip input read before the focus check | A key held across alt-tab could skip; a held Load could skip; a held skip could reach the room | Focus pauses film, music and skip; skip needs a fresh press; the scene changes only once input is released | `test_opening` (9 tests) |
+| "P2 RUE" on the television | Spoiler | The late truth: Rue is the character P2 played | Told in the first seconds | Player 2 unnamed | `test_the_opening_names_no_one`; storyboard |
+| The Edge's safe floor as dark as the lethal void | Readability | Screenshot inspection | Couldn't tell ground from death at a glance | Slate floor; quieter grid and labels; Slot 2 pulses | `docs/review/pass6/edge_confrontation_sheet.jpg` |
+| Benchmark samples could be anything (a death card as "pursuit"; a null portrait) | Confirmed | Harness review | Untrustworthy numbers | Workloads asserted before and during capture; invalid samples recorded separately; environment and software renderer recorded | Smoke run: 9 workloads valid |
+| Strict browser lifecycle check not in CI | Confirmed | Workflow review | A broken run lifecycle could ship | Own blocking step; failure evidence uploaded | CI on the next push |
+| **Standing in Slot 2 can finish before the owner's grab** | **Design question (open)** | Tour: from 50% the slot fills in 1.2 s; the cursor needs longer when lured away | The confrontation is skipped by a player who lures the cursor far enough | **Not changed:** freezing writing during the reach would make the confrontation unavoidable but changes the finale's balance and the bots' routes. Author's call | — |
+| Do players find records, closets, the Edge objective? | Hypothesis | No observations | — | — | Pending human play |
