@@ -103,7 +103,7 @@ func test_she_waits_when_rue_goes_through_a_wall() -> void:
 	w.player.phase_to(spot + Vector2(0, -90))  # through, somewhere she can't walk
 	await wait(1.0)
 	check(wren.global_position.distance_to(spot) < 4.0, "she doesn't walk through walls after her")
-	var said := w.hud.history.any(func(e: Dictionary) -> bool: return e.text == Story.ESCORT_CUT % "wren") \
+	var said: bool = w.hud.history.any(func(e: Dictionary) -> bool: return e.text == Story.ESCORT_CUT % "wren") \
 		or w.hud._queue.any(func(m: Dictionary) -> bool: return m.text == Story.ESCORT_CUT % "wren")
 	check(said, "Rue notices she's been left behind")
 	w.player.global_position = spot + Vector2(20, 0)  # back to her
