@@ -58,6 +58,9 @@ var large_text := false
 var tutorial_tips := true
 ## Tip ids already shown, so each one only ever appears once.
 var tips_seen: Array = []
+## The opening film has been seen (or skipped) once: it doesn't play again
+## on its own. The title's "Opening" button replays it.
+var opening_seen := false
 ## Whether the last input came from a gamepad (for button prompts).
 var using_gamepad := false
 ## Whether the last input was a touch (phones, tablets): prompts then name
@@ -217,6 +220,7 @@ func save() -> void:
 	cfg.set_value("accessibility", "large_text", large_text)
 	cfg.set_value("help", "tutorial_tips", tutorial_tips)
 	cfg.set_value("help", "tips_seen", tips_seen)
+	cfg.set_value("help", "opening_seen", opening_seen)
 	cfg.save(_path)
 
 
@@ -255,3 +259,4 @@ func _load() -> void:
 	tutorial_tips = bool(cfg.get_value("help", "tutorial_tips", tutorial_tips))
 	var seen: Variant = cfg.get_value("help", "tips_seen", [])
 	tips_seen = seen if seen is Array else []
+	opening_seen = bool(cfg.get_value("help", "opening_seen", false))

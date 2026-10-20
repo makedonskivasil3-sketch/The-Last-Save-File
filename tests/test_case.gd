@@ -27,6 +27,9 @@ func before_each() -> void:
 	# turns them on.
 	s.tutorial_tips = false
 	s.tips_seen.clear()
+	# The opening film counts as seen, so Load Slot 1 goes straight into a
+	# run; test_opening turns it back off.
+	s.opening_seen = true
 	# Story pacing at its shipped defaults (manual advance).
 	s.text_speed = 1
 	s.advance_mode = 0

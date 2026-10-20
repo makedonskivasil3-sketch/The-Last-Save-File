@@ -1,6 +1,7 @@
 // Real-browser check of the web export (docs/RELEASE_READINESS.md). Fails
 // (exit 1) unless every step holds:
-//   1. the title loads with no page errors
+//   1. the title loads with no page errors; a first launch plays the opening
+//      film, and holding E skips it
 //   2. Load Slot 1 reaches actual gameplay: the game reports a playable run
 //      (window.__lsf, see scripts/web_state.gd) and Rue moves on real input
 //   3. the open run is saved to IndexedDB (session open, last_exit "active")
@@ -102,7 +103,18 @@ const pick = (d) => d ? { sessions: d.sessions, deaths: d.deaths, quits: d.quits
   await page.keyboard.press('Escape');
   await page.waitForTimeout(200);
   await page.keyboard.press('Enter');
+  // A fresh browser is a first launch: the opening film plays first, and
+  // holding E skips it (scripts/ui/opening.gd).
+  const first = await waitForState(page, (s) => s.scene === 'opening' || s.scene === 'game', 'the opening or the game', 60000);
+  expect(first.scene === 'opening', 'a first launch plays the opening film', first);
+  if (first.scene === 'opening') {
+    await page.screenshot({ path: path.join(shotDir, 'web_1b_opening.png') });
+    await page.keyboard.down('e');
+    await page.waitForTimeout(1200);
+    await page.keyboard.up('e');
+  }
   await waitForState(page, (s) => s.scene === 'game', 'the game scene', 60000);
+  expect(true, 'holding E skips into the run');
   const t0 = Date.now();
   let s = await state(page);
   while (!(s && s.playable) && Date.now() - t0 < 90000) {
@@ -112,12 +124,17 @@ const pick = (d) => d ? { sessions: d.sessions, deaths: d.deaths, quits: d.quits
   }
   expect(Boolean(s && s.playable), 'the run becomes playable (Rue under the player\'s control)', s);
   const before = await state(page);
+  // Held until she has moved (software rendering here can run few physics
+  // steps per second), bounded at 6 s: a stuck character still fails.
   await page.keyboard.down('ArrowRight');
-  await page.waitForTimeout(900);
+  let after = before;
+  let moved = 0;
+  for (let waited = 0; waited < 6000 && moved <= 10; waited += 300) {
+    await page.waitForTimeout(300);
+    after = await state(page);
+    moved = before && after ? Math.hypot(after.x - before.x, after.y - before.y) : 0;
+  }
   await page.keyboard.up('ArrowRight');
-  await page.waitForTimeout(700);
-  const after = await state(page);
-  const moved = before && after ? Math.hypot(after.x - before.x, after.y - before.y) : 0;
   expect(moved > 10, 'Rue moves on real keyboard input', { before, after, moved });
   await page.screenshot({ path: path.join(shotDir, 'web_2_in_game.png') });
 

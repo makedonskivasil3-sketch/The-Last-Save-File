@@ -90,6 +90,8 @@ func _ready() -> void:
 	row2.add_theme_constant_override("separation", 6)
 	_menu.add_child(row2)
 	UiStyle.button(row2, "How to Play", _show_help).size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if Settings.opening_seen:
+		UiStyle.button(row2, "Opening", _play_opening.bind(true)).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if not OwnerMemory.journal.is_empty():
 		UiStyle.button(row2, "Journal", _show_journal).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UiStyle.button(row2, "Quit", func() -> void: OwnerMemory.quit_game()).size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -250,7 +252,24 @@ func _slot_status() -> String:
 func _start() -> void:
 	# Deferred: on touch screens the tap that pressed the button is still being
 	# delivered (as an emulated mouse event) when this runs.
+	# The first time, the opening film plays before the run (no run starts
+	# until it has ended or been skipped).
+	if Opening.wanted():
+		_play_opening(false)
+		return
 	get_tree().change_scene_to_file.call_deferred(GAME_SCENE)
+
+
+## The opening film: before the first run, or replayed from the menu.
+func _play_opening(replay: bool) -> void:
+	var film := Opening.new()
+	film.replay = replay
+	var swap := func() -> void:
+		var old := get_tree().current_scene
+		get_tree().root.add_child(film)
+		get_tree().current_scene = film
+		old.queue_free()
+	swap.call_deferred()
 
 
 func _show_menu() -> void:
