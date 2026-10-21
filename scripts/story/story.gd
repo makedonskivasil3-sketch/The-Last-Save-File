@@ -644,7 +644,6 @@ const RECALL := {
 		["ended:wren", "I was somewhere else last night. A whole slot, all mine, and it was so quiet. Then I woke up here again. Was that you?"],
 		["ended:message", "Did you write to them? Everything's quieter. Even the static."],
 		["ended:escape", "You got out, and you came back? For me? ...No. Probably not for me."],
-		["died:eraser", "I saw the static take you. It went right past me after. Like I wasn't worth erasing."],
 	],
 }
 

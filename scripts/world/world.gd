@@ -35,6 +35,9 @@ var purged := false
 
 var _focused: Node2D
 var _talking_to: Node2D
+## What _talking_to said (Npc.interact): its conversation id and the events
+## it commits once read to the end.
+var _talk_result: Dictionary = {}
 var _wipe_hold := 0.0
 var _light: CanvasModulate
 var _pause_menu: PauseMenu
@@ -452,6 +455,10 @@ func _process(delta: float) -> void:
 	_update_reading_hold()
 	var helper := hiding_npc()
 	player.sheltered = is_hidden_now()
+	if player.sheltered and not Relationships.has("wren.sheltered"):
+		var hider := hiding_npc()
+		if hider and hider.npc_id == "wren":
+			Relationships.add("wren.sheltered")
 	if helper:
 		hud.set_status("HIDDEN  ·  %s covers you" % helper.display_name)
 	else:
@@ -774,9 +781,15 @@ func _on_line_shown(line: String) -> void:
 
 func _on_dialogue_closed() -> void:
 	var who := _talking_to
+	var told := _talk_result
 	_talking_to = null
+	_talk_result = {}
 	# Read to its last line, not walked away from or cut off by something else.
 	if who and hud.dialogue_finished:
+		# What was said is committed now, not when the box opened.
+		OwnerMemory.complete_conversation(told.get("conversation", ""))
+		for e in told.get("commit", []):
+			Relationships.add(e)
 		conversation_completed.emit(who)
 	if area and is_instance_valid(who) and area.has_method("on_dialogue_closed"):
 		area.on_dialogue_closed(who)
@@ -926,6 +939,7 @@ func lose_escort() -> void:
 	hud.say(Story.WREN_LAST_WORDS, "npc", "WREN")
 	lost.delete()
 	OwnerMemory.npc_fates["wren"] = "deleted"
+	Relationships.add("wren.promise_broken")
 	OwnerMemory.save_memory()
 	hud.say("wren.npc deleted", "system")
 	director.say(Story.WREN_LOST_OWNER)
@@ -940,6 +954,7 @@ func _wren_sees_edge() -> void:
 	if escort == null or escort.npc_id != "wren" or OwnerMemory.wren_saved:
 		return
 	OwnerMemory.wren_saved = true
+	Relationships.add("wren.promise_kept")
 	OwnerMemory.npc_fates.erase("wren")
 	OwnerMemory.save_memory()
 	for line in Story.WREN_EDGE:
@@ -1222,6 +1237,7 @@ func is_mira_deleted() -> bool:
 
 ## Someone deleted is back (RESTORE, or the Recycle Bin): for good.
 func note_restored(id: String) -> void:
+	Relationships.add(id + ".restored")
 	OwnerMemory.npc_fates.erase(id)
 	OwnerMemory.note_restored(id)
 	if id == "mira":
@@ -1297,6 +1313,7 @@ func _interact(node: Node2D) -> void:
 		hud.show_dialogue(result.speaker, result.color, result.lines, dialogue_voice_prefix(node, result), face, expressions_for(node, result.lines),
 			node is Npc and (node as Npc).mute)
 		_talking_to = node
+		_talk_result = result
 		_keep_in_journal(node, result)
 	elif str(result) != "":
 		hud.say(str(result), "system")
@@ -1380,6 +1397,10 @@ func kill(cause: String, reason := "") -> void:
 	drone.tension = 1.0
 	if escort_id() == "mira":
 		OwnerMemory.mira_quest = "lost"  # the owner found her out of her room, and her note
+	# Wren remembers it only if she saw it: walking with you, or there.
+	var wren_here: Variant = area.get("wren")
+	if escort_id() == "wren" or (wren_here is Npc and is_instance_valid(wren_here) and (wren_here as Npc).is_present()):
+		Relationships.mark("wren.saw_death")
 	var forgiven := OwnerMemory.record_death(area.area_id, player.global_position, reason)
 	last_death = reason
 	var info: Array = Story.DEATHS.get(reason, ["ERASED", "the owner learned something.", "", "", ""])

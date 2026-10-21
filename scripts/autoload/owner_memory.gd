@@ -15,7 +15,7 @@ const MAX_REMEMBERED_DEATHS := 12
 ## The owner never finds the last seam out of Arin's room.
 const SEAM_COUNT := 5
 ## Bump when the save's shape changes, and teach _migrate the old shape.
-const SAVE_VERSION := 1
+const SAVE_VERSION := 2
 
 var sessions: int = 0
 var deaths: int = 0
@@ -110,6 +110,22 @@ var session_frayed: Array[String] = []
 ## "active", so if the process is killed the owner finds out next launch.
 var last_exit: String = "none"
 
+## Lasting narrative state (docs/NARRATIVE_CONTRACT.md §3, layer A): kept
+## through deaths, quits and purges; only a full reset clears it.
+## Who Rue has met: id -> {"first": session, "last": session, "count": n}.
+var encounters: Dictionary = {}
+## Conversations read to their last line (ids from Relationships).
+var conversations: Array[String] = []
+## Relationship events: id -> the session it happened in (Relationships.EVENTS).
+var rel_events: Dictionary = {}
+## Places Rue has been, ever (the session's own visits are World._visited).
+var places: Array[String] = []
+## The well's sequence, in order (docs/NARRATIVE_CONTRACT.md §6).
+var well_events: Array[String] = []
+## The checkpoint (layer C): {"id", "version", "session"} or empty. The place
+## is looked up from the id (World.ANCHORS), never stored as coordinates.
+var anchor: Dictionary = {}
+
 ## Not saved. Resources that should survive scene reloads (e.g. synthesized audio).
 var runtime_cache: Dictionary = {}
 
@@ -203,6 +219,71 @@ func begin_session() -> String:
 	save_memory()
 	_leave_guard(true)
 	return previous
+
+
+## Rue meets someone (a conversation opened). Returns true the first time ever.
+func meet(id: String) -> bool:
+	var first := not encounters.has(id)
+	var e: Dictionary = encounters.get(id, {"first": sessions, "last": sessions, "count": 0})
+	if not first and int(e.last) == sessions:
+		return false  # already counted this session
+	e.last = sessions
+	e.count = int(e.count) + 1
+	encounters[id] = e
+	if first and Relationships.EVENTS.has(id + ".met"):
+		rel_events[id + ".met"] = sessions
+	save_memory()
+	return first
+
+
+func has_met(id: String) -> bool:
+	return encounters.has(id)
+
+
+## Met in an earlier session (so this isn't a first meeting).
+func met_before(id: String) -> bool:
+	return encounters.has(id) and int(encounters[id].first) < sessions
+
+
+func complete_conversation(id: String) -> void:
+	if id != "" and id not in conversations:
+		conversations.append(id)
+		save_memory()
+
+
+func has_conversation(id: String) -> bool:
+	return id in conversations
+
+
+## Records a relationship event once (the first session it happened in).
+func add_event(id: String) -> bool:
+	if rel_events.has(id):
+		return false
+	rel_events[id] = sessions
+	save_memory()
+	return true
+
+
+func has_event(id: String) -> bool:
+	return rel_events.has(id)
+
+
+func discover_place(id: String) -> bool:
+	if id in places:
+		return false
+	places.append(id)
+	save_memory()
+	return true
+
+
+func has_well_event(id: String) -> bool:
+	return id in well_events
+
+
+func add_well_event(id: String) -> void:
+	if id not in well_events:
+		well_events.append(id)
+		save_memory()
 
 
 func has_fragment(id: String) -> bool:
@@ -354,6 +435,7 @@ func learn_truth_piece(who: String) -> void:
 func fray(who: String, area: String, at := Vector2.ZERO) -> void:
 	if _session_closed:
 		return  # the run is over: nothing more is written into it
+	rel_events[who + ".ribbon_taken" if who == "wren" else who + ".piece_taken"] = sessions
 	if who not in frayed:
 		frayed.append(who)
 	if who not in session_frayed:
@@ -372,6 +454,7 @@ func fray(who: String, area: String, at := Vector2.ZERO) -> void:
 ## A piece brought back from the bin: they're whole, and will say so.
 func return_piece(who: String) -> void:
 	if who in frayed and not _session_closed:
+		rel_events[who + ".ribbon_returned" if who == "wren" else who + ".piece_returned"] = sessions
 		frayed.erase(who)
 		session_frayed.erase(who)
 		if who not in returned_pending:
@@ -452,6 +535,12 @@ func clear_state() -> void:
 	acts_seen.clear()
 	fragments.clear()
 	last_exit = "none"
+	encounters.clear()
+	conversations.clear()
+	rel_events.clear()
+	places.clear()
+	well_events.clear()
+	anchor.clear()
 	session_helpers.clear()
 	session_seam = -1
 	_session_closed = true
@@ -525,6 +614,12 @@ func save_memory() -> void:
 		"returned_pending": returned_pending,
 		"shed_said": shed_said,
 		"last_exit": last_exit,
+		"encounters": encounters,
+		"conversations": conversations,
+		"rel_events": rel_events,
+		"places": places,
+		"well_events": well_events,
+		"anchor": anchor,
 	}
 	SafeFile.write_atomic(_path, JSON.stringify(data, "\t"))
 
@@ -539,6 +634,43 @@ func _migrate(data: Dictionary) -> Dictionary:
 	if version > SAVE_VERSION:
 		push_warning("OwnerMemory: save is from a newer version (%d > %d)" % [version, SAVE_VERSION])
 	# (version 0 -> 1: nothing to convert, the reader handles both.)
+	if version < 2:
+		data = _from_v1(data)
+	return data
+
+
+## Version 2 added lasting encounters, relationship events and places. An
+## older save already implies some of them: carry those over, so nobody
+## greets a returning player as a stranger.
+func _from_v1(data: Dictionary) -> Dictionary:
+	var met := {}
+	var events := {}
+	var at := maxi(1, _int(data, "sessions", 1))
+	var fates: Variant = data.get("npc_fates", {})
+	var restored_ids := _strings(data, "restored")
+	if _bool(data, "wren_saved") or (fates is Dictionary and fates.has("wren")) or "wren" in restored_ids:
+		met["wren"] = true
+		events["wren.met"] = at
+	if _bool(data, "wren_saved"):
+		events["wren.promised"] = at
+		events["wren.promise_kept"] = at
+	if "wren" in restored_ids:
+		events["wren.restored"] = at
+	if _str(data, "mira_quest", "") != "":
+		met["mira"] = true  # her request was made, so you spoke
+	if _bool(data, "met_archivist"):
+		met["archivist"] = true
+	if _bool(data, "found_guestbook") or _bool(data, "guestbook_restored"):
+		met["tobben"] = true
+	var enc := {}
+	for id in met:
+		enc[id] = {"first": 1, "last": at, "count": 1}
+	data["encounters"] = enc
+	data["rel_events"] = events
+	var seen: Array = []
+	for a in _strings(data, "acts_seen"):
+		seen.append(a)
+	data["places"] = seen
 	return data
 
 
@@ -654,6 +786,26 @@ func load_memory() -> void:
 	if fates is Dictionary:
 		for k in fates:
 			npc_fates[str(k)] = str(fates[k])
+	encounters.clear()
+	var enc: Variant = data.get("encounters", {})
+	if enc is Dictionary:
+		for k in enc:
+			var e: Variant = enc[k]
+			if e is Dictionary and _num(e, "first") and _num(e, "last"):
+				encounters[str(k)] = {"first": int(e.first), "last": int(e.last), "count": maxi(1, _int(e, "count", 1))}
+	conversations.assign(_strings(data, "conversations"))
+	rel_events.clear()
+	var ev: Variant = data.get("rel_events", {})
+	if ev is Dictionary:
+		for k in ev:
+			if ev[k] is float or ev[k] is int:
+				rel_events[str(k)] = int(ev[k])
+	places.assign(_strings(data, "places"))
+	well_events.assign(_strings(data, "well_events"))
+	anchor.clear()
+	var an: Variant = data.get("anchor", {})
+	if an is Dictionary and an.get("id") is String and _num(an, "version"):
+		anchor = {"id": an.id, "version": int(an.version), "session": _int(an, "session", 0)}
 
 	# The last session never closed properly: the game was killed or crashed.
 	# The owner treats that as running away.

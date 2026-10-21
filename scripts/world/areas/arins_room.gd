@@ -43,6 +43,8 @@ const MIRA_LINES := [
 	"If you get out, find Wren in the square. She sees things too.",
 	"Arin never talks about the other one. The one who used to sit next to them.",
 ]
+## Her first-meeting lines are MIRA_LINES[0..2]; a reunion starts after them.
+const MIRA_REUNION_LINE := 3
 const MIRA_RESTRICTED := [
 	"I'm not allowed to talk to you anymore.",
 	"Please go away. They're reading this.",
@@ -153,6 +155,11 @@ func build() -> void:
 		mira.notice_emote = "!"
 		mira.dark_color = Color("a85a2e")
 		mira.lines_provider = _mira_lines
+		if OwnerMemory.met_before("mira") and OwnerMemory.mira_quest != "reset":
+			# Met in an earlier run: no "Arin! You're up early." again
+			# (unless the owner reset her: then she doesn't know you).
+			_mira_line = MIRA_REUNION_LINE
+			_mira_ask_at = MIRA_REUNION_LINE + 1
 		mira.awareness_cost = 8.0
 
 	save_point = SavePoint.new()

@@ -71,7 +71,8 @@ static func wren_expression(line: String) -> String:
 static func voice_lines() -> Dictionary:
 	return {
 		"npc.wren": Story.recall_lines("wren") + [Story.TRUTH_LINES.wren] + Story.FRAY_TAKEN.wren
-			+ [Story.FRAY_LINES.wren, Story.FRAY_RECALL.wren, Story.FRAY_RETURNED.wren] + WREN_LINES + Story.WREN_SAVED_LINES + [Story.WREN_ASK, Story.WREN_ASK_SAVED] + Story.WREN_JOINS + Story.WREN_DECLINED,
+			+ [Story.FRAY_LINES.wren, Story.FRAY_RECALL.wren, Story.FRAY_RETURNED.wren] + WREN_LINES + Story.WREN_SAVED_LINES + [Story.WREN_ASK, Story.WREN_ASK_SAVED] + Story.WREN_JOINS + Story.WREN_DECLINED
+			+ Relationships.wren_lines(),
 		# (Frayed, he writes: only the line when his voice comes back is said.)
 		"npc.tobben": Story.recall_lines("tobben") + [Story.TRUTH_LINES.tobben, Story.FRAY_RETURNED.tobben] + TOBBEN_LINES,
 	}
@@ -193,6 +194,9 @@ func build() -> void:
 		wren = make_wren(self, Vector2(126, 246))
 		interactables.append(wren)
 		wren.lines_provider = _wren_lines
+		if OwnerMemory.met_before("wren"):
+			_wren_line = 1  # no "You're the one Mira talks about." again
+			_wren_ask_at = 3
 
 	tobben = add_npc("tobben", Vector2(488, 92))
 	tobben.display_name = "TOBBEN"
@@ -312,6 +316,7 @@ func on_dialogue_closed(who: Node) -> void:
 	world.player.frozen = false
 	if pick == 0:
 		world.hud.show_dialogue("WREN", wren.name_color, Story.WREN_JOINS, "npc.wren", CharacterArt.for_npc(wren), World.expressions_for(wren, Story.WREN_JOINS))
+		Relationships.add("wren.promised")
 		world.start_escort(wren)
 		wren = null
 	else:
@@ -420,7 +425,13 @@ static func make_wren(parent: Node, pos: Vector2) -> Npc:
 	return n
 
 
-func _wren_lines() -> Array:
+func _wren_lines() -> Variant:
+	# What happened between you comes first (Relationships.wren).
+	var told := Relationships.wren(_wren_line, _wren_line >= _wren_ask_at - 1, world.escort_id() == "wren")
+	if not told.is_empty():
+		if told.get("ask", false):
+			_wren_asked = true
+		return told
 	if OwnerMemory.wren_saved:
 		# Saved for good, but she still wants to come: there's a slot out there.
 		if _wren_line >= _wren_ask_at - 1 and world.escort == null:  # she asks sooner: she has seen it

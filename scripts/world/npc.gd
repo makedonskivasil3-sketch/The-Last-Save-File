@@ -200,7 +200,20 @@ func interact_prompt() -> String:
 
 
 func interact() -> Dictionary:
-	var lines: Array = lines_provider.call()
+	# Meeting someone counts when the conversation opens (Relationships);
+	# what was said counts only once it's read to the end (World).
+	var conversation := ""
+	var commit: Array = []
+	var told: Variant = lines_provider.call()
+	var lines: Array = []
+	if told is Dictionary:
+		lines = told.get("lines", [])
+		conversation = told.get("id", "")
+		commit = told.get("commit", [])
+	else:
+		lines = told
+	if state != State.DELETED:
+		OwnerMemory.meet(npc_id)
 	# A piece Rue took (or gave back): said once a session, before anything.
 	if state != State.DELETED:
 		if npc_id in OwnerMemory.returned_pending and Story.FRAY_RETURNED.has(npc_id):
@@ -218,14 +231,19 @@ func interact() -> Dictionary:
 		lines = [truth] + lines
 	# ...and the first time you talk this session, anything they remember
 	# from your last runs comes first of all.
+	# (Not when they're already answering something that happened: a
+	# reunion or a promise says it in its own words.)
 	if state != State.DELETED and npc_id not in OwnerMemory.session_recalled:
 		OwnerMemory.session_recalled.append(npc_id)
-		var memory := Story.recall(npc_id)
+		var memory := Story.recall(npc_id) if conversation == "" else ""
+		if memory == "" and conversation == "":
+			memory = Relationships.greeting(npc_id)
 		if memory != "":
 			lines = [memory] + lines
 	if on_talk.is_valid():
 		on_talk.call()
-	return {"speaker": Story.TOBBEN_WRITTEN if npc_id == "tobben" and is_frayed() else display_name, "color": name_color, "lines": lines}
+	return {"speaker": Story.TOBBEN_WRITTEN if npc_id == "tobben" and is_frayed() else display_name, "color": name_color, "lines": lines,
+		"conversation": conversation, "commit": commit}
 
 
 func _process(delta: float) -> void:
