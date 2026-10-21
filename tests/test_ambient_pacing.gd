@@ -59,3 +59,26 @@ func test_urgent_warnings_never_queue() -> void:
 	w.director.warn(Story.RELOAD_WARNING)
 	await frames(1)
 	check(w.hud._warning.visible and w.hud._warning.text.ends_with(Story.RELOAD_WARNING), "a warning is on its strip at once, over a thought being read")
+
+
+func test_a_short_goal_doesnt_cover_the_wall_notes() -> void:
+	var w := await start_session()
+	for big in [false, true]:
+		settings().large_text = big
+		UiStyle.rescale_text(tree)
+		w.hud.apply_subtitle_style()
+		w.hud.show_objective("Get out of Arin's room.")
+		await frames(2)
+		var o: Label = w.hud._objective
+		check(o.size.x < Hud.OBJECTIVE_W * 0.6, "large %s: a short goal's backing fits its words (%.0f px)" % [big, o.size.x])
+		check(o.get_line_count() == 1, "and it is still one line")
+		var long := "Explore the village. The road east leads somewhere old. The well looks deeper than it should."
+		w.hud.show_objective(long)
+		await frames(2)
+		check(o.size.x <= Hud.OBJECTIVE_W + 0.5, "a long goal wraps at the usual width (%.0f px)" % o.size.x)
+		var needed: float = o.get_line_count() * o.get_line_height()
+		check(needed <= o.size.y + 1.0, "with every line inside its backing")
+		check(o.size.y <= needed + 4.0, "and no taller than its lines (%.0f px for %d lines)" % [o.size.y, o.get_line_count()])
+	settings().large_text = false
+	UiStyle.rescale_text(tree)
+	w.hud.apply_subtitle_style()

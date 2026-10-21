@@ -432,6 +432,7 @@ func _ready() -> void:
 ## Subtitle size and backing from Settings (subtitle_size, subtitle_bg,
 ## large_text, speaker_labels). Called again whenever a setting changes.
 func apply_subtitle_style() -> void:
+	_fit_objective.call_deferred()  # large text: the goal's backing follows its words
 	var k := Settings.text_scale() * Settings.subtitle_scale()
 	for pair in [[_dialogue_text, 11], [_dialogue_speaker, 10], [_cine_text, 12], [_cine_title, 9]]:
 		(pair[0] as Label).add_theme_font_size_override("font_size", roundi(pair[1] * k))
@@ -1251,6 +1252,7 @@ func show_objective(text: String, hint := "") -> void:
 		_objective_tween.kill()
 	_objective_tween = null
 	_objective.text = "· " + text if text != "" else ""
+	_fit_objective()
 	_objective_hint.text = hint if text != "" else ""
 	_objective_hint.visible = _objective_hint.text != ""
 	if text == "":
@@ -1263,6 +1265,24 @@ func show_objective(text: String, hint := "") -> void:
 	_objective_tween.tween_property(_objective, "modulate:a", 0.0, 1.2)
 	_objective_tween.finished.connect(func() -> void: _objective_tween = null)
 	_update_objective_priority()
+
+
+## The goal's backing is as wide as its words (up to OBJECTIVE_W), not a
+## fixed band: a short goal doesn't cover the room's wall notes beside it.
+const OBJECTIVE_W := 400.0
+
+
+func _fit_objective() -> void:
+	if _objective.text == "":
+		return
+	var font := _objective.get_theme_font("font")
+	var fs := _objective.get_theme_font_size("font_size")
+	var w := font.get_string_size(_objective.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x + 6.0
+	# Width first, then height: the height is measured at the new width
+	# (one call would keep the height wrapped at the old, narrower one).
+	_objective.size.x = minf(w, OBJECTIVE_W)
+	_objective.update_minimum_size()
+	_objective.size.y = 0.0
 
 
 func objective_text() -> String:
