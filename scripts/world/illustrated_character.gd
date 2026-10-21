@@ -128,7 +128,7 @@ func draw(ci: CanvasItem, opts: Dictionary = {}) -> void:
 	parts.flush()
 	if solid == null and not (facing == Vector2.UP):
 		_face(ci, Vector2(s_head + sway, dy + breath), side, alpha, grey)
-	if idle_style == "read" and not moving and solid == null:
+	if shows_book() and solid == null:
 		_book(ci, Vector2(s_body, dy), alpha)
 	ci.draw_set_transform(Vector2.ZERO)
 

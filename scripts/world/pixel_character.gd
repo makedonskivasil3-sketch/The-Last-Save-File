@@ -146,6 +146,12 @@ func update(delta: float, velocity: Vector2) -> void:
 	startled = maxf(0.0, startled - delta)
 
 
+## The reading book is out: only while reading in place, facing the viewer
+## or to the side (never drawn on the back), and lowered while talking.
+func shows_book() -> bool:
+	return idle_style == "read" and not moving and not talking and facing != Vector2.UP
+
+
 ## Jump a little (startle, excitement). Seconds of airtime.
 func hop(seconds := 0.3) -> void:
 	_hop = seconds
@@ -253,7 +259,7 @@ func draw(ci: CanvasItem, opts: Dictionary = {}) -> void:
 	_draw_legs(ci, base + Vector2(float(slices[2]) / SCALE, rows.size() - (1.0 if crouch else 0.0)), step, solid, grey, alpha)
 	if solid == null and not back:
 		_draw_face(ci, base + Vector2(sway + float(slices[0]) / SCALE, breath), alpha, grey)
-	if idle_style == "read" and not moving and solid == null:
+	if shows_book() and solid == null:
 		_draw_book(ci, base + Vector2(0, template.arm_row), alpha)
 	ci.draw_set_transform(Vector2.ZERO)
 

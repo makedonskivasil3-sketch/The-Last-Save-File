@@ -669,9 +669,12 @@ func _advance_pressed() -> bool:
 ## stem; a line plays voice_id(voice_prefix, text) if it was recorded.
 ## portrait: the speaker's face (CharacterArt), or null; expressions: one per
 ## line ("" keeps the portrait's own).
-func show_dialogue(speaker: String, color: Color, lines: Array, voice_prefix := "", portrait: CharacterArt.Portrait = null, expressions: Array = []) -> void:
+## silent: the speaker can't speak (mute, or answering in writing): no
+## system speech and no mouth movement, while the text still types.
+func show_dialogue(speaker: String, color: Color, lines: Array, voice_prefix := "", portrait: CharacterArt.Portrait = null, expressions: Array = [], silent := false) -> void:
 	if lines.is_empty():
 		return
+	dialogue_silent = silent or speaker == Story.TOBBEN_WRITTEN
 	_dialogue_voice_prefix = voice_prefix
 	var paged := paginate(lines, voice_prefix)
 	_dialogue_source_lines = lines.duplicate()
@@ -843,6 +846,8 @@ var _dialogue_source_lines: Array = []
 var _dialogue_sources: Array[int] = []
 ## Per page: a continuation of the take already playing, and where it ends.
 var _dialogue_carry: Array[bool] = []
+## The open conversation's speaker can't speak (show_dialogue silent).
+var dialogue_silent := false
 var _dialogue_cue: Array[float] = []
 
 
@@ -858,7 +863,7 @@ func _show_dialogue_line() -> void:
 	var carried := _dialogue_index < _dialogue_carry.size() and _dialogue_carry[_dialogue_index]
 	var cue := _dialogue_cue[_dialogue_index] if _dialogue_index < _dialogue_cue.size() else 1.0
 	var recorded: AudioStreamPlayer = VoiceOver.current() if carried else VoiceOver.play(self, _dialogue_voice)
-	if recorded == null and not carried and _dialogue_speaker.text != Story.TOBBEN_WRITTEN:  # written, not said
+	if recorded == null and not carried and not dialogue_silent:  # written or mute: not said
 		narrator.speak(text, _dialogue_speaker.text)
 	_dialogue_text.visible_characters = 0
 	_dialogue_typed = 0.0
@@ -890,16 +895,26 @@ func _update_dialogue_face(delta: float) -> void:
 	_face_t += delta
 	var expr: String = _dialogue_exprs[_dialogue_index] if _dialogue_index < _dialogue_exprs.size() else ""
 	var face := _dialogue_face.with(expr) if expr != "" else _dialogue_face
-	var speaking := (_pacer != null and _pacer.phase == LinePacer.Phase.REVEALING) or voice_busy()
 	var frame := ""
-	if speaking and not Settings.reduce_flashing:
-		frame = "talk" if int(_face_t / 0.12) % 2 == 0 else ""
+	# "talk" holds for as long as the line is being said; the portrait's own
+	# clock opens and closes the mouth (one rhythm, not two).
+	if is_line_speaking() and not Settings.reduce_flashing:
+		frame = "talk"
 	elif fmod(_face_t, 3.2) > 3.05:
 		frame = "blink"
 	if _dialogue_portrait.portrait == null or _dialogue_portrait.portrait.expression != face.expression \
 			or _dialogue_portrait.portrait.who != face.who or _dialogue_portrait.portrait.palette != face.palette:
 		_dialogue_portrait.portrait = face
 	_dialogue_portrait.frame = frame
+
+
+## The open conversation's line is being said right now: typing out or
+## voiced, and the speaker can speak (not mute, not writing). Mouths in the
+## world and in the portrait follow this, not the box merely being open.
+func is_line_speaking() -> bool:
+	if not _dialogue.visible or dialogue_silent or _cinematic:
+		return false
+	return (_pacer != null and _pacer.phase == LinePacer.Phase.REVEALING) or voice_busy()
 
 
 ## The expression the portrait shows now ("" without one).

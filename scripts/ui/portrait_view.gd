@@ -84,9 +84,16 @@ func _draw() -> void:
 ## no moving text). Without a talk frame the face lifts a pixel on the beat.
 func _draw_art() -> void:
 	var r := art_rect()
-	if frame == "talk" and not _art.frames.has("talk"):
+	if mouth_open() and not _art.frames.has("talk"):
 		r.position.y -= 1.0
-	draw_texture_rect(_art.texture(frame), r, false)
+	draw_texture_rect(shown_texture(), r, false)
+
+
+## Is the mouth open in this frame? While the line is spoken (frame "talk")
+## it opens and closes on one clock, the figure's own, for the drawn bust and
+## the finished art alike; nothing else toggles it.
+func mouth_open() -> bool:
+	return frame == "talk" and (_figure == null or fmod(_figure._t, 0.24) < 0.12)
 
 
 ## Where the finished art is drawn: from the set's face anchor and zoom only,
@@ -102,4 +109,8 @@ func art_rect() -> Rect2:
 
 ## The texture on screen now (finished art only; null for the drawn bust).
 func shown_texture() -> Texture2D:
-	return _art.texture(frame) if _art else null
+	if _art == null:
+		return null
+	if frame == "talk":
+		return _art.texture("talk" if mouth_open() else "")
+	return _art.texture(frame)

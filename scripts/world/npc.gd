@@ -29,6 +29,10 @@ var notice_emote := ""
 var talking := false
 ## Never moves their mouth (the real Arin only says "...").
 var mute := false
+## In a conversation with Rue (World): they face her and pay attention.
+## Their mouth moves only while `speaking` (their line is being typed or
+## voiced), never just because the box is open, and never when mute.
+var speaking := false
 ## Their own colours, kept the first time a piece is taken from the drawing.
 var _unfrayed: Dictionary = {}
 var player: Node2D
@@ -231,7 +235,10 @@ func _process(delta: float) -> void:
 		queue_redraw()
 		return
 	s.update(delta, _walk_velocity)
-	s.talking = talking and not mute
+	s.talking = speaking and not mute
+	# Restricted (the owner's lock on them): no greeting hop or wave, no
+	# reading; they stand and look. Their own idle comes back when freed.
+	s.idle_style = "" if state == State.RESTRICTED else idle_style
 	_emote_t = maxf(0.0, _emote_t - delta)
 	if is_present() and is_instance_valid(player):
 		var d := player.global_position.distance_to(global_position)
@@ -243,7 +250,7 @@ func _process(delta: float) -> void:
 		if d < 50.0 and not _noticed and notice_emote != "":
 			_noticed = true
 			emote(notice_emote)
-		s.waving = idle_style == "wave" and d < 70.0 and not talking
+		s.waving = idle_style == "wave" and d < 70.0 and not talking and state != State.RESTRICTED
 	if state == State.DELETING:
 		_delete_t += delta
 		if _delete_t > 1.6:

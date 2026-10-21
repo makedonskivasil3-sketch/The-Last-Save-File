@@ -437,6 +437,7 @@ func _process(delta: float) -> void:
 	for node in area.interactables:
 		if node is Npc:
 			node.talking = node == _talking_to and hud.is_dialogue_open()
+			node.speaking = node.talking and hud.is_line_speaking()
 	player.instability = director.awareness / 100.0
 	if player.velocity.length() > 1.0:
 		PlaytestLog.mark("first movement", "", true)
@@ -1293,7 +1294,8 @@ func _interact(node: Node2D) -> void:
 	var result: Variant = node.interact()
 	if result is Dictionary:
 		var face: CharacterArt.Portrait = CharacterArt.for_npc(node) if node is Npc else null
-		hud.show_dialogue(result.speaker, result.color, result.lines, dialogue_voice_prefix(node, result), face, expressions_for(node, result.lines))
+		hud.show_dialogue(result.speaker, result.color, result.lines, dialogue_voice_prefix(node, result), face, expressions_for(node, result.lines),
+			node is Npc and (node as Npc).mute)
 		_talking_to = node
 		_keep_in_journal(node, result)
 	elif str(result) != "":
