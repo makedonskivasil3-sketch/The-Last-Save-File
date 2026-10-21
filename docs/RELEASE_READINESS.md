@@ -12,6 +12,11 @@ for reproduced defects and evidence boundaries, and
 [NEXT_GAMEPLAY_VISUAL_PROMPT.md](NEXT_GAMEPLAY_VISUAL_PROMPT.md) for the detailed
 next implementation assignment. Follow the new PR's current checks for broad
 validation; historical results below do not validate this revision.
+Current runtime `2ffc036`: full suite **468/468**, focused **40/40**, and five
+exact-ending bots **5/5** complete locally. Two recovered stalls occurred in
+the purge-3 bot; shutdown ObjectDB/resource diagnostics remain unresolved.
+The subsequent evidence-only commit changes no runtime/test code. New CI,
+exports and browser checks were still running when that evidence was recorded.
 Human playtests, current animation review, listening, real-GPU measurements and
 physical platform/input checks remain pending. This is still a late prototype.
 

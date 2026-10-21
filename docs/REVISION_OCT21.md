@@ -84,10 +84,30 @@ rate defects in this revision.
 
 ## Validation and evidence boundaries
 
-The final PR's checks and validation section record the completed broad-suite
-and bot results for this revision. At the time this report was prepared, those
-runs were ongoing; the four-case red/green result above is complete. This avoids
-substituting the inherited 464-test / five-bot results for current verification.
+Validation of runtime commit `2ffc0366fa43cd48b3fc3d929c37c88eea651159`
+completed using official Godot 4.3. The subsequent evidence-only commit changes
+no runtime or test code. Final publication/check status is recorded in
+[PR #8](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/pull/8).
+
+| Check | Completed result | Limits |
+|---|---|---|
+| New regression red run | 0 passed, 4 failed, 4.2 s | Unmodified baseline with the four new cases |
+| New regression green run | 4 passed, 0 failed, 4.1 s; exit 0 | Isolated cases |
+| Integrated focused run | 40 passed, 0 failed, 86.1 s; exit 0 | Finale, pass8, opening slice, integration, new revision |
+| Full headless suite | **468 passed, 0 failed, 1082.4 s; exit 0** | Completed nonempty summary; no script/parse errors |
+| Five exact-ending bots | **5 passed, 0 failed, 228.3 s; exit 0** | Escape, message, escape purge 3/5, Wren; all report zero deaths |
+| Bot navigation | Purge-3 escape: two recovered stalls; others: zero | Not a stall-free campaign claim |
+| Published source | Exact tree match with tested local commit | `c3c8d288a0fa959e276bfd6c10a15490f27c20bb` |
+
+An earlier redirected bot attempt ended without a completed summary and is
+not counted as a pass. The recorded completed repeat above is the acceptance
+run. The first redirected focused log was also incomplete as evidence; its
+completed stdout repeat provides the 40-case result above. The completed full
+suite log is retained in `review/revision-oct21/full-suite.log`.
+
+These are current results, separate from the inherited 464-test/five-bot report.
+GitHub's new CI/export/browser pipeline was still running at evidence commit
+time. The preceding main build passed, but is not evidence for this revision.
 
 Commands, from the repository with a writable temporary directory and isolated
 test user data:
@@ -99,8 +119,9 @@ GODOT=/path/to/Godot_v4.3-stable_linux.x86_64 bash tests/run.sh
 GODOT=/path/to/Godot_v4.3-stable_linux.x86_64 bash tests/run.sh --bots --speed=3
 ```
 
-The isolated new regression run reports ObjectDB leakage and three resources
-still in use during teardown. These diagnostics are retained, not suppressed.
+The new regression and full-suite runs report ObjectDB leakage and three
+resources still in use during teardown; the bot repeat reports four resources.
+These diagnostics are retained, not suppressed.
 Passing gameplay assertions do not establish leak-free shutdown. No new
 browser lifecycle, export, listening, Windows execution, real-GPU, physical
 controller, phone or human-playtest result is claimed here. CI checks on the
