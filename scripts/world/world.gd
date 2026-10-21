@@ -490,11 +490,29 @@ func _process(delta: float) -> void:
 func open_pause() -> void:
 	_pause_menu.debug_available = debug_enabled()
 	_pause_menu.goal = current_goal()
-	_pause_menu.current_area = area.area_id
-	_pause_menu.visited_areas = _visited.duplicate()
-	if OwnerMemory.found_pip:
-		_pause_menu.visited_areas["oob"] = true
+	var map := map_state()
+	_pause_menu.current_area = map.current
+	_pause_menu.visited_areas = map.visited
+	_pause_menu.discovered_areas = map.discovered
+	_pause_menu.closed_areas = map.closed
 	_pause_menu.open()
+
+
+## What the map shows (MapView): where Rue is, where she has been this run,
+## everywhere she has found in any run, and which found places have no way
+## in right now (and why). Never a place she hasn't found.
+func map_state() -> Dictionary:
+	var discovered := {}
+	for id in OwnerMemory.places:
+		discovered[id] = true
+	var closed := {}
+	if area and area.area_id != "room":
+		closed["room"] = "no way back in"  # Arin's front door locks behind you
+	if not flags.get("pointer", false):
+		closed["edge"] = "not loaded"
+	if not (glitch and glitch.unlocked("unlock")) and not (area and area.area_id == "house"):
+		closed["house"] = "locked"
+	return {"current": area.area_id if area else "", "visited": _visited.duplicate(), "discovered": discovered, "closed": closed}
 
 
 ## Paused only because the window lost focus (no menu to close): resumes

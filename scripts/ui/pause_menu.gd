@@ -43,9 +43,12 @@ var _confirm_label: Label
 var _goal_label: Label
 ## Shown under the title: what to do next (set by World before open()).
 var goal := ""
-## For the map (set by World before open()): current area id, areas visited.
+## For the map (set by World before open(), World.map_state()): current
+## area id, places visited this run, places found in any run, closed ones.
 var current_area := ""
 var visited_areas: Dictionary = {}
+var discovered_areas: Dictionary = {}
+var closed_areas: Dictionary = {}
 
 
 func _ready() -> void:
@@ -267,6 +270,8 @@ func _debug(action: String) -> void:
 func _show_map() -> void:
 	_map.current = current_area
 	_map.visited = visited_areas
+	_map.discovered = discovered_areas
+	_map.closed = closed_areas
 	_show_only(_map_box)
 	_map_back.grab_focus()
 
