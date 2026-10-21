@@ -31,6 +31,8 @@ var console_history: Array[String] = []
 ## Keep text this far from the screen edges: the curved CRT glass and its
 ## bezel eat the corners.
 const SAFE := Vector2(14, 10)
+## The tallest the dialogue box may grow (logical px): its pages are sized to fit.
+const DIALOGUE_MAX_H := 132.0
 const STATUS_COLOR := Color("8cf2ff")
 const TYPE_SPEED := 36.0  # characters per second (console), x Settings.text_rate()
 const DIALOGUE_SPEED := 55.0  # characters per second (dialogue box), x pace x text_rate()
@@ -520,12 +522,16 @@ func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: floa
 	var shown: Array = paged[0]
 	var ids: Array[String] = []
 	ids.assign(paged[1])
+	var carry: Array = paged[3]
+	var cue: Array = paged[4]
 	for i in shown.size():
 		if _skip_requested:
 			# Skipped lines are still part of the story: keep them readable.
 			_log_line(title, str(shown[i]), _cine_kind(str(shown[i]), color), "")
 			continue
-		await _cinematic_line(str(shown[i]), ids[i], title, color)
+		var next_carries: bool = i + 1 < carry.size() and carry[i + 1]
+		var began: float = cue[i - 1] if i > 0 and paged[2][i - 1] == paged[2][i] else 0.0
+		await _cinematic_line(str(shown[i]), ids[i], title, color, carry[i], cue[i], next_carries, float(cue[i]) - began)
 		if not is_inside_tree():
 			return
 	VoiceOver.stop()
@@ -567,7 +573,7 @@ func _cine_kind(line: String, _color: Color) -> String:
 	return "owner" if line.begins_with(">") else "scene"
 
 
-func _cinematic_line(line: String, vid: String, title: String, base_color: Color) -> void:
+func _cinematic_line(line: String, vid: String, title: String, base_color: Color, carried := false, cue := 1.0, keep_voice := false, share := 1.0) -> void:
 	var owner_line := line.begins_with(">")
 	var original_color := _cine_text.get_theme_color("font_color")
 	if owner_line:
@@ -576,15 +582,16 @@ func _cinematic_line(line: String, vid: String, title: String, base_color: Color
 	# owner speaks, so a portrait never seems to say the owner's words.
 	_cine_portrait.modulate.a = 0.25 if owner_line else 1.0
 	var spoken := line.trim_prefix(">").strip_edges() if owner_line else line
-	var recorded := VoiceOver.play(self, vid)
-	if recorded == null:
+	# A caption page of a take already playing carries it on (no restart).
+	var recorded: AudioStreamPlayer = VoiceOver.current() if carried else VoiceOver.play(self, vid)
+	if recorded == null and not carried:
 		narrator.speak(spoken, "OWNER" if owner_line else "")
 	_log_line("OWNER" if owner_line else title, spoken if owner_line else line, _cine_kind(line, base_color), vid if recorded else "")
 	_cine_text.text = line
 	_cine_text.visible_characters = 0
 	_cine_hint.text = ""
 	_fit_cinematic()
-	var pacer := LinePacer.new(line, StoryPacing.is_auto(), voice_busy)
+	var pacer := LinePacer.new(line, StoryPacing.is_auto(), voice_busy if recorded == null else _take_busy.bind(cue))
 	_cine_pacer = pacer
 	var typed := 0.0
 	var start_frame := Engine.get_process_frames()
@@ -601,7 +608,7 @@ func _cinematic_line(line: String, vid: String, title: String, base_color: Color
 			break
 		if pacer.phase == LinePacer.Phase.REVEALING:
 			var shown := int(typed)
-			var cps := _reveal_rate(40.0, line)
+			var cps := _reveal_rate(40.0, line, share)
 			typed = float(line.length()) if is_inf(cps) else typed + cps * delta
 			_cine_text.visible_characters = int(typed)
 			if int(typed) > shown and not is_inf(cps) and not VoiceOver.is_playing() and not (Settings.narration and narrator.supported):
@@ -620,8 +627,9 @@ func _cinematic_line(line: String, vid: String, title: String, base_color: Color
 				_cine_text.visible_characters = -1
 		_cine_hint.text = _skip_text() if _skip_hold > 0.25 else (_continue_text(false) if pacer.is_shown() else "")
 		_fit_cinematic()  # wrapping can change after the font or text settles
-	VoiceOver.stop()
-	narrator.stop()
+	if not keep_voice:
+		VoiceOver.stop()
+		narrator.stop()
 	_cine_text.add_theme_color_override("font_color", original_color)
 
 
@@ -668,6 +676,8 @@ func show_dialogue(speaker: String, color: Color, lines: Array, voice_prefix := 
 	var paged := paginate(lines, voice_prefix)
 	_dialogue_source_lines = lines.duplicate()
 	_dialogue_sources.assign(paged[2])
+	_dialogue_carry.assign(paged[3])
+	_dialogue_cue.assign(paged[4])
 	_dialogue_lines = paged[0]
 	_dialogue_ids.assign(paged[1])
 	_dialogue_face = portrait if portrait and CharacterArt.has_portrait(portrait.who) else null
@@ -831,6 +841,9 @@ func fade(to_black: bool, duration: float = 0.25) -> Tween:
 ## For line_shown: the lines as given, and which of them each page is from.
 var _dialogue_source_lines: Array = []
 var _dialogue_sources: Array[int] = []
+## Per page: a continuation of the take already playing, and where it ends.
+var _dialogue_carry: Array[bool] = []
+var _dialogue_cue: Array[float] = []
 
 
 func _show_dialogue_line() -> void:
@@ -842,12 +855,17 @@ func _show_dialogue_line() -> void:
 		if last_page and src < _dialogue_source_lines.size():
 			line_shown.emit(str(_dialogue_source_lines[src]))
 	_dialogue_voice = _dialogue_ids[_dialogue_index] if _dialogue_index < _dialogue_ids.size() else ""
-	var recorded := VoiceOver.play(self, _dialogue_voice)
-	if recorded == null and _dialogue_speaker.text != Story.TOBBEN_WRITTEN:  # written, not said
+	var carried := _dialogue_index < _dialogue_carry.size() and _dialogue_carry[_dialogue_index]
+	var cue := _dialogue_cue[_dialogue_index] if _dialogue_index < _dialogue_cue.size() else 1.0
+	var recorded: AudioStreamPlayer = VoiceOver.current() if carried else VoiceOver.play(self, _dialogue_voice)
+	if recorded == null and not carried and _dialogue_speaker.text != Story.TOBBEN_WRITTEN:  # written, not said
 		narrator.speak(text, _dialogue_speaker.text)
 	_dialogue_text.visible_characters = 0
 	_dialogue_typed = 0.0
-	_pacer = LinePacer.new(text, StoryPacing.is_auto(), voice_busy)
+	# A caption page of a take waits for its own words; the last page for the
+	# end of the take (its last words are never cut to suit a timer).
+	var busy: Callable = voice_busy if recorded == null else _take_busy.bind(cue)
+	_pacer = LinePacer.new(text, StoryPacing.is_auto(), busy)
 	_log_line(_dialogue_speaker.text, text, "npc", _dialogue_voice if recorded else "")
 	_dialogue_hint.text = ""
 	_face_t = 0.0
@@ -895,25 +913,60 @@ func dialogue_expression() -> String:
 ## Same text, same id, in whatever order or variant a scene shows it; a
 ## change to the text makes a new id, so an outdated recording never plays
 ## under new words (audio/voice/manifest.csv lists them all).
-## Lines too long for one box become pages (StoryPacing.pages), each with
-## its own reading time. A recorded line stays whole (it is one
-## performance). Returns [lines, voice ids, index of the line each came
-## from]; a continuation page has no id.
+## Lines too long for one box become pages (StoryPacing.pages, sized for the
+## current text settings), each with its own reading time. A recorded line is
+## one performance: its pages are captions over the one take, which starts
+## with the first page and carries on through the rest (never restarted per
+## page, never cut to fit a page). Returns [lines, voice ids, index of the
+## line each came from, carries (a continuation of a recorded take), cue end
+## (share of the line's text, 0..1, where the page ends)]; a continuation page
+## has no id.
 static func paginate(lines: Array, prefix: String) -> Array:
 	var out: Array = []
 	var ids: Array[String] = []
 	var source: Array[int] = []
+	var carry: Array[bool] = []
+	var cue_end: Array[float] = []
 	for n in lines.size():
 		var line := str(lines[n])
 		var id := voice_id(prefix, line)
-		var pages: Array[String] = [line]
-		if not VoiceOver.has_line(id):
-			pages = StoryPacing.pages(line)
+		var recorded := VoiceOver.has_line(id)
+		var pages: Array[String] = StoryPacing.pages(line, page_chars())
+		var done := 0
 		for i in pages.size():
 			out.append(pages[i])
 			ids.append(id if i == 0 else "")
 			source.append(n)
-	return [out, ids, source]
+			carry.append(recorded and i > 0)
+			done += pages[i].length() + (1 if i + 1 < pages.size() else 0)
+			cue_end.append(1.0 if i + 1 == pages.size() else float(done) / maxf(1.0, float(line.length())))
+	return [out, ids, source, carry, cue_end]
+
+
+## Characters per page for the current subtitle and text size: bigger text,
+## fewer words per page, so a page always fits the box (DIALOGUE_MAX_H).
+static func page_chars() -> int:
+	var k := Settings.subtitle_scale() * Settings.text_scale()
+	return clampi(int(StoryPacing.PAGE_CHARS / (k * k)), 70, StoryPacing.PAGE_CHARS)
+
+
+## The current dialogue page's share of its whole line (1 for a one-page line).
+func _page_share() -> float:
+	if _dialogue_index >= _dialogue_sources.size():
+		return 1.0
+	var src := _dialogue_sources[_dialogue_index]
+	var whole := str(_dialogue_source_lines[src]) if src < _dialogue_source_lines.size() else _dialogue_text.text
+	return float(_dialogue_text.text.length()) / maxf(1.0, float(whole.length()))
+
+
+## While a recorded take is speaking the part of its line up to `until`
+## (a share of the line, 1 = the whole take): a page waits for its own words.
+func _take_busy(until: float) -> bool:
+	if not VoiceOver.is_playing():
+		return false
+	if until >= 1.0:
+		return true
+	return VoiceOver.progress() < until
 
 
 static func voice_id(prefix: String, text: String) -> String:
@@ -929,14 +982,15 @@ func voice_busy() -> bool:
 
 ## Characters per second for the typewriter: the player's text speed, but
 ## never slower than a recording needs (text keeps up with the voice).
-func _reveal_rate(base_cps: float, text: String) -> float:
+func _reveal_rate(base_cps: float, text: String, share := 1.0) -> float:
 	var rate := Settings.text_rate()
 	if is_inf(rate):
 		return INF
 	var cps := base_cps * rate
 	var p := VoiceOver.current()
 	if p and p.stream and p.stream.get_length() > 0.1:
-		cps = maxf(cps, text.length() / (p.stream.get_length() * 0.85))
+		# A caption page keeps up with its own share of the take.
+		cps = maxf(cps, text.length() / (p.stream.get_length() * clampf(share, 0.05, 1.0) * 0.85))
 	return cps
 
 
@@ -948,8 +1002,10 @@ func _continue_text(last: bool) -> String:
 
 
 func _next_dialogue_line() -> void:
-	VoiceOver.stop()
-	narrator.stop()
+	var carries := _dialogue_index + 1 < _dialogue_carry.size() and _dialogue_carry[_dialogue_index + 1]
+	if not carries:
+		VoiceOver.stop()  # advancing deliberately ends this line's speech (manual)
+		narrator.stop()
 	if _dialogue_index < _dialogue_lines.size() - 1:
 		_dialogue_index += 1
 		_show_dialogue_line()
@@ -968,6 +1024,7 @@ func _fit_dialogue() -> void:
 	var h := top + _dialogue_text.size.y + 14.0
 	if _dialogue_face:
 		h = maxf(h, PORTRAIT_SIZE + 14.0)  # the face never overhangs the box
+	h = minf(h, DIALOGUE_MAX_H)  # pages are sized to fit (page_chars)
 	_dialogue.size.y = h
 	_dialogue.position.y = 360 - SAFE.y - h
 	_dialogue_hint.position.y = h - 14.0
@@ -981,7 +1038,7 @@ func _update_dialogue(delta: float) -> void:
 	var total := _dialogue_text.get_total_character_count()
 	if _pacer.phase == LinePacer.Phase.REVEALING:
 		var before := int(_dialogue_typed)
-		var cps := _reveal_rate(DIALOGUE_SPEED * Sfx.voice_pace(_dialogue_speaker.text), _dialogue_text.text)
+		var cps := _reveal_rate(DIALOGUE_SPEED * Sfx.voice_pace(_dialogue_speaker.text), _dialogue_text.text, _page_share())
 		if is_inf(cps):
 			_dialogue_typed = float(total)  # Text: Instant
 		else:

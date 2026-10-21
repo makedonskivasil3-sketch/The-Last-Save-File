@@ -93,17 +93,17 @@ static func is_auto() -> bool:
 ## `text` split into pages of at most PAGE_CHARS: between sentences where
 ## possible, else between words. Joining the pages with spaces gives the text
 ## back exactly. Short text is one page.
-static func pages(text: String) -> Array[String]:
+static func pages(text: String, page_chars := PAGE_CHARS) -> Array[String]:
 	var out: Array[String] = []
 	var rest := text
-	while rest.length() > PAGE_CHARS:
+	while rest.length() > page_chars:
 		var cut := -1
-		for i in range(PAGE_CHARS, 0, -1):
+		for i in range(page_chars, 0, -1):
 			if rest[i] == " " and rest[i - 1] in [".", "!", "?", "…"]:
 				cut = i
 				break
-		if cut < PAGE_CHARS / 3:
-			cut = rest.rfind(" ", PAGE_CHARS)
+		if cut < page_chars / 3:
+			cut = rest.rfind(" ", page_chars)
 		if cut <= 0:
 			break  # one unbroken word: show it whole rather than cut it
 		out.append(rest.substr(0, cut))

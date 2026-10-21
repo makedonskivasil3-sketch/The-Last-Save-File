@@ -115,6 +115,14 @@ static func current_id() -> String:
 	return _current_id if current() != null else ""
 
 
+## How far the current take has played, 0..1 (0 with none).
+static func progress() -> float:
+	var p := current()
+	if p == null or p.stream == null or p.stream.get_length() <= 0.0:
+		return 0.0
+	return clampf(p.get_playback_position() / p.stream.get_length(), 0.0, 1.0)
+
+
 ## True while a story voice is speaking. A paused line still counts: the
 ## player is freed only when it finishes or is stopped. (While the game is
 ## paused Godot reports playing = false, so that flag alone can't be used.)
