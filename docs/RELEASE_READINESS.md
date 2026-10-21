@@ -2,7 +2,30 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current combined presentation/functionality revision (2026-10-21)
+## Current prompt implementation: first presentation milestone (2026-10-21)
+
+Runtime `eec7e576` preserves combined main `1e371b1` and implements the supplied
+prompts' first presentation milestone: live approved portrait resources with
+palette-safe fallback, continuous recording playback across readable caption
+pages, coherent world/portrait speaking and gaze, and an independent system-
+speech rate preference. No new production artwork or recorded cast is claimed.
+
+See [PROMPT_IMPLEMENTATION.md](PROMPT_IMPLEMENTATION.md) for implementation,
+evidence and remaining scope, [CAPTION_VOICE_CONTRACT.md](CAPTION_VOICE_CONTRACT.md)
+for route semantics, and [PORTRAIT_ASSETS.md](PORTRAIT_ASSETS.md) for the asset
+contract. All **482 unique cases across 71 files** passed in isolated coverage,
+including a correctly uncapped **6/6 CPU-budget rerun** after a verifier-cap
+failure. This is not a completed monolithic local run. Focused actual-HUD
+compatibility: **18/18**; exact-ending bots **5/5**; staged rendered checks **2/2**.
+The message bot required one death/retry and 17 recovered navigation stalls;
+other acceptance routes reported zero deaths/stalls. CI/export/browser status
+is tracked separately in PR #9, not inferred from older builds.
+
+The first-room/Square and wider map milestones remain open, as do authored
+assets, human listening/playtests, Windows execution, real GPU/device/input
+checks and shutdown diagnostics. The game remains a late prototype.
+
+## Previous combined presentation/functionality revision (2026-10-21)
 
 The combined branch retains main `2644629` / PR #8 (`2ffc036`): finale cursor
 ownership, reading-held confrontation transitions, completed-objective clearing,

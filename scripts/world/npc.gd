@@ -230,8 +230,11 @@ func _process(delta: float) -> void:
 		frozen -= delta
 		queue_redraw()
 		return
-	s.update(delta, _walk_velocity)
+	# Conversation gaze owns facing while speaking; locomotion still owns
+	# gait, but cannot flip away and restart the same turn every frame.
+	s.update(delta, _walk_velocity, not talking)
 	s.talking = talking and not mute
+	s.idle_style = "" if state == State.RESTRICTED or talking else idle_style
 	_emote_t = maxf(0.0, _emote_t - delta)
 	if is_present() and is_instance_valid(player):
 		var d := player.global_position.distance_to(global_position)

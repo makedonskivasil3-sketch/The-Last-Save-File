@@ -1,0 +1,758 @@
+{
+  "runtime_commit": "eec7e576463fd41f6854159a177809e06e5ec957",
+  "coverage": "Every test_*.gd file in an isolated process/profile; not a completed monolithic run",
+  "expected_unique": 482,
+  "passed_unique_after_correctly_configured_performance_rerun": 482,
+  "files": 71,
+  "first_parallel_run": {
+    "runtime_local_commit": "df9a2e3bc42e3cdd451313e4183c40bb9a790e8d",
+    "expected_unique": 482,
+    "passed_unique": 481,
+    "files": 71,
+    "all_complete": false,
+    "seconds": 350.0,
+    "results": [
+      {
+        "file": "test_art.gd",
+        "expected": 3,
+        "passed": 3,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_audio.gd",
+        "expected": 10,
+        "passed": 10,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_audio_routing.gd",
+        "expected": 6,
+        "passed": 6,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": true
+      },
+      {
+        "file": "test_baked_audio.gd",
+        "expected": 4,
+        "passed": 4,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_bin.gd",
+        "expected": 8,
+        "passed": 8,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_canon.gd",
+        "expected": 4,
+        "passed": 4,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_character.gd",
+        "expected": 3,
+        "passed": 3,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_character_presentation.gd",
+        "expected": 7,
+        "passed": 7,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": true
+      },
+      {
+        "file": "test_character_tells.gd",
+        "expected": 3,
+        "passed": 3,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_cohesion_fairness.gd",
+        "expected": 5,
+        "passed": 5,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_cohesion_story.gd",
+        "expected": 7,
+        "passed": 7,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_confrontation.gd",
+        "expected": 3,
+        "passed": 3,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_dark_truth.gd",
+        "expected": 7,
+        "passed": 7,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_edge.gd",
+        "expected": 6,
+        "passed": 6,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_edge_confrontation.gd",
+        "expected": 5,
+        "passed": 5,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_effects.gd",
+        "expected": 4,
+        "passed": 4,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_endings.gd",
+        "expected": 11,
+        "passed": 11,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_expansion.gd",
+        "expected": 10,
+        "passed": 10,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": true
+      },
+      {
+        "file": "test_experience_fixes.gd",
+        "expected": 15,
+        "passed": 15,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": true
+      },
+      {
+        "file": "test_fairness.gd",
+        "expected": 7,
+        "passed": 7,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": true
+      },
+      {
+        "file": "test_final_pass.gd",
+        "expected": 4,
+        "passed": 4,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_first_minutes.gd",
+        "expected": 6,
+        "passed": 6,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": true
+      },
+      {
+        "file": "test_fonts.gd",
+        "expected": 2,
+        "passed": 2,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_gameplay_consistency.gd",
+        "expected": 13,
+        "passed": 13,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_glitch.gd",
+        "expected": 10,
+        "passed": 10,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_house.gd",
+        "expected": 8,
+        "passed": 8,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_integration_followup.gd",
+        "expected": 6,
+        "passed": 6,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_journal.gd",
+        "expected": 6,
+        "passed": 6,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_lighting.gd",
+        "expected": 2,
+        "passed": 2,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_memory.gd",
+        "expected": 11,
+        "passed": 11,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_menus.gd",
+        "expected": 5,
+        "passed": 5,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_moment_safety.gd",
+        "expected": 6,
+        "passed": 6,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_narrative_reliability.gd",
+        "expected": 12,
+        "passed": 12,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_onboarding.gd",
+        "expected": 10,
+        "passed": 10,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_opening.gd",
+        "expected": 9,
+        "passed": 9,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_opening_slice.gd",
+        "expected": 6,
+        "passed": 6,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_owner_fixes.gd",
+        "expected": 6,
+        "passed": 6,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_owner_moves.gd",
+        "expected": 9,
+        "passed": 9,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_pass7.gd",
+        "expected": 5,
+        "passed": 5,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": true
+      },
+      {
+        "file": "test_pass8.gd",
+        "expected": 17,
+        "passed": 17,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_performance.gd",
+        "expected": 6,
+        "passed": 5,
+        "failed": 1,
+        "exit": 1,
+        "complete": true,
+        "ok": false,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_phase2.gd",
+        "expected": 7,
+        "passed": 7,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_playtest_log.gd",
+        "expected": 2,
+        "passed": 2,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_polish.gd",
+        "expected": 4,
+        "passed": 4,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_presentation.gd",
+        "expected": 6,
+        "passed": 6,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_presentation_revision.gd",
+        "expected": 2,
+        "passed": 2,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_prompt_assets.gd",
+        "expected": 3,
+        "passed": 3,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_prompt_captions.gd",
+        "expected": 5,
+        "passed": 5,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": true
+      },
+      {
+        "file": "test_prompt_speaking.gd",
+        "expected": 3,
+        "passed": 3,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_purge.gd",
+        "expected": 5,
+        "passed": 5,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_records.gd",
+        "expected": 7,
+        "passed": 7,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_regressions.gd",
+        "expected": 13,
+        "passed": 13,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_review_fixes.gd",
+        "expected": 11,
+        "passed": 11,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_revision_oct21.gd",
+        "expected": 4,
+        "passed": 4,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_save_safety.gd",
+        "expected": 6,
+        "passed": 6,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_session_readability.gd",
+        "expected": 5,
+        "passed": 5,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_shedding.gd",
+        "expected": 14,
+        "passed": 14,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": true
+      },
+      {
+        "file": "test_side_stories.gd",
+        "expected": 8,
+        "passed": 8,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_sound_check.gd",
+        "expected": 7,
+        "passed": 7,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_story.gd",
+        "expected": 5,
+        "passed": 5,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_story_deep.gd",
+        "expected": 6,
+        "passed": 6,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_story_pacing.gd",
+        "expected": 22,
+        "passed": 22,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": true
+      },
+      {
+        "file": "test_threat_fairness.gd",
+        "expected": 2,
+        "passed": 2,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_threat_navigation.gd",
+        "expected": 8,
+        "passed": 8,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_touch.gd",
+        "expected": 4,
+        "passed": 4,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_verification_probes.gd",
+        "expected": 4,
+        "passed": 4,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_voice_manifest.gd",
+        "expected": 3,
+        "passed": 3,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_voice_over.gd",
+        "expected": 2,
+        "passed": 2,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_voices.gd",
+        "expected": 7,
+        "passed": 7,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_world.gd",
+        "expected": 13,
+        "passed": 13,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      },
+      {
+        "file": "test_wren.gd",
+        "expected": 7,
+        "passed": 7,
+        "failed": 0,
+        "exit": 0,
+        "complete": true,
+        "ok": true,
+        "shutdown_resources": false
+      }
+    ]
+  },
+  "performance_rerun": {
+    "file": "test_performance.gd",
+    "passed": 6,
+    "failed": 0,
+    "seconds": 19.6,
+    "wrapper_exit": 0,
+    "frame_cap": "none",
+    "evidence": "completed tool stdout"
+  },
+  "performance_initial_failure_reason": "The verifier imposed --max-fps 60, forcing 16.67 ms against the uncapped 4 ms CPU budget. The expectation was not relaxed.",
+  "bots": {
+    "passed": 5,
+    "failed": 0,
+    "seconds": 257.7,
+    "exit": 0,
+    "message": {
+      "deaths": 1,
+      "stalls": 17
+    },
+    "other_routes": {
+      "deaths": 0,
+      "stalls": 0
+    }
+  },
+  "rendered": {
+    "passed": 2,
+    "failed": 0,
+    "seconds": 9.1,
+    "renderer": "llvmpipe software GL",
+    "audio": "Dummy; system speech library absent"
+  }
+}
