@@ -450,26 +450,34 @@ arise.
 
 ---
 
-## 9. Status
+## 9. Status (rev 2)
 
-- **Implemented on the branch:**
-  - this contract
-  - the text rewrites in §7
-  - encounters, conversations and relationship events, with the Wren slice
-  - People and archive sections
-  - the anchor checkpoint
-  - the well sequence
-  - removal of the iPhone badge
-  - the opening animatic
-  - the tests named in `docs/CONTINUITY_MILESTONE.md`
-- **Proposed:** the selector for Mira, Tobben and the Archivist; a larger
-  Square (§10).
+- **Implemented on the branch, for review:**
+  - §0 (rev 2), and the text rewrites in §7 plus C1–C5;
+  - save v3, with lasting encounters, conversations, ordered relationship
+    events and facts;
+  - the single selection path, with Wren, Mira and Tobben arcs;
+  - the archive (SEEN / SAID / RUE / UNKNOWN, observed conditions, object
+    statuses, "updated" marks, the reader's place);
+  - the map's four states;
+  - the earned, opt-in kept place;
+  - the well's honest evidence;
+  - opening shot 8 to canon;
+  - the iPhone badge removed;
+  - the tests named in `docs/COHERENCE_MILESTONE.md` §4.
+- **Proposed:** a larger Square, behind a camera
+  (`docs/COHERENCE_MILESTONE.md` §3b); the Archivist on the same selector.
 - **Deferred:**
-  - other areas' expansion
-  - a local map for every area
-  - full relationship arcs for every character
-- **Blocked:** observing unfamiliar players (none available to this
-  session); human voice recording.
+  - other areas' expansion;
+  - live animation contact sheets;
+  - humour and irritation passes;
+  - a relationship-dependent sacrifice (no new endings this milestone).
+- **Blocked:**
+  - observing unfamiliar players (none available to this session);
+  - human voice recording and listening (no one can listen here);
+  - hardware (Windows execution, phones, real GPUs, gamepads).
+- **Needs the author:** §0.7: the canon, trace-only versus live contact,
+  the earlier kept place, and the opening's length.
 
 ## 10. Map continuity (audit and proposal)
 
