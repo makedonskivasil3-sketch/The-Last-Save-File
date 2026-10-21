@@ -1,0 +1,12 @@
+PASS: the title screen loads
+PASS: a first launch plays the opening film  {"playable":false,"scene":"opening"}
+PASS: holding E skips into the run
+PASS: the run becomes playable (Rue under the player's control)  {"area":"room","playable":true,"reading":false,"scene":"game","x":320,"y":270}
+PASS: Rue moves on real keyboard input  {"before":{"area":"room","playable":true,"reading":false,"scene":"game","x":320,"y":270},"after":{"area":"room","playable":true,"reading":false,"scene":"game","x":344,"y":270},"moved":24}
+PASS: the open run is saved (session 1, last_exit active, no quits)  {"sessions":1,"deaths":0,"quits":0,"purge":0,"last_exit":"active"}
+PASS: the leave guard is armed mid-run (window.__tlsfRunning)
+PASS: closing the tab mid-run asks first (beforeunload)
+PASS: a tab closed mid-run counts as a quit (quits 1, purge 1, last_exit crash)  {"sessions":1,"deaths":0,"quits":1,"purge":1,"last_exit":"crash"}
+PASS: no page or runtime errors  []
+screenshots: /workspace/integration-review/browser/trial-08
+ALL WEB CHECKS PASSED

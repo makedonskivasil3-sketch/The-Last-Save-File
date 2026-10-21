@@ -28,6 +28,13 @@ class CastSheet:
 				fig.draw(self, {"offset": Vector2(42 + i * 90, 90 + j * 80), "scale": 1.5})
 
 func test_cast_directions() -> void:
+	# A previous tour may leave a world/CanvasLayer alive. A reference sheet
+	# must not inherit its HUD, lighting or corruption shader.
+	if tree.current_scene != null:
+		var previous := tree.current_scene
+		tree.current_scene = null
+		previous.queue_free()
+		await frames(3)
 	var sheet := CastSheet.new()
 	tree.root.add_child(sheet)
 	await frames(3)

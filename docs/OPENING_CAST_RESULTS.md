@@ -1,5 +1,10 @@
 # Opening/cast verification
 
+Historical verification. The combined cast capture could inherit the preceding
+scene HUD/effects. The integration follow-up isolates the scene and supplies a
+clean replacement in `review/integration-followup/cast_directions.png`. See
+[the current integration results](INTEGRATION_FOLLOWUP_RESULTS.md).
+
 Runtime source: `afb44e7a4122786f59bc29ce00d02ad8c0c87952`, including
 `7a5142a`'s preceding fixes.
 Baseline: `decaf1f7f1851358bf0b357f15509d654066d20a`.

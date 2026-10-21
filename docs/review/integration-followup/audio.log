@@ -1,0 +1,7 @@
+AUDIO before_gesture: {"state":"running","contexts":1,"rms_dbfs":-31.4,"peak_dbfs":-25,"audible_share":100,"clipped_samples":0,"mid_to_low_db":-13.8,"top_pitches_hz":[388,495,549,603,581]}
+AUDIO title: {"state":"running","contexts":1,"rms_dbfs":-29.1,"peak_dbfs":-15.1,"audible_share":97,"clipped_samples":0,"mid_to_low_db":-4.6,"top_pitches_hz":[441,657,388,883,1314]}
+AUDIO sound_state: "running"
+AUDIO opening: {"state":"running","contexts":1,"rms_dbfs":-35.6,"peak_dbfs":-19.1,"audible_share":22,"clipped_samples":0,"mid_to_low_db":2.5,"top_pitches_hz":[657,441,388,1314,883]}
+AUDIO first_room: {"state":"running","contexts":1,"rms_dbfs":-32.3,"peak_dbfs":-23.7,"audible_share":100,"clipped_samples":0,"mid_to_low_db":-9.3,"top_pitches_hz":[388,657,441,883,1314]}
+PAGE ERRORS: []
+PASS: the web build is audible after a gesture
