@@ -31,8 +31,12 @@ const FLOOR_Y := 196.0
 const HANDS_Y := 284.0
 const P1_HANDS := Vector2(232, HANDS_Y)
 const P2_HANDS := Vector2(408, HANDS_Y)
-## What she started typing, months later (it never finishes).
-const UNFINISHED := "still have my sa"
+## Shot 8, months later (docs/NARRATIVE_CONTRACT.md §0.4 C1): her message
+## arrives whole; the owner's reply stops mid-word and is never sent.
+const HER_MESSAGE := "still have my save?"
+const OWNER_REPLY := "yes i still have your sa"
+## When shot 8 cuts in (months later): no push, her hands gone.
+const LATER := 38.5
 ## The figures on the television, large enough to read a posture.
 const FIGURE := 1.35
 
@@ -183,8 +187,11 @@ func _process(delta: float) -> void:
 		_play_tune()
 		_caption.text = "[a music box, from somewhere it can't be. one note missing.]")
 	_cue(33.0, func() -> void: _caption.text = "")
-	# 8. The sentence crossing over, and the matching click.
-	_cue(39.0, func() -> void: Sfx.play("key_system", -12.0, 1.1, 0.0))
+	# 8. Months later: her message, the owner's reply that stops, and the
+	# owner's one click (hers were always two light taps first).
+	_cue(LATER + 0.1, func() -> void: _caption.text = "[months later. her message. the owner starts to answer.]")
+	_cue(LATER + 0.5, func() -> void: Sfx.play("key_system", -12.0, 1.1, 0.0))
+	_cue(42.8, func() -> void: _caption.text = "")
 	_cue(44.0, func() -> void: Sfx.play("click", -12.0, 1.0, 0.0))
 	# On the television: they walk together; Arin stops when player 1 is
 	# gone; she keeps going with nobody's hands on her, even through PAUSE.
@@ -295,7 +302,7 @@ func _draw() -> void:
 	var paused := _t > 22.0 and _t < 33.0
 	var room_light := 1.0 - clampf((_t - 33.0) / 3.0, 0.0, 1.0)
 	# The push in on her as she looks out (not with reduced motion).
-	var push := 1.0 if calm() else 1.0 + 0.5 * smoothstep(33.0, 38.5, _t)
+	var push := 1.0 if calm() or _t >= LATER else 1.0 + 0.5 * smoothstep(33.0, LATER, _t)
 	var focus := Vector2(_rue_x, FLOOR_Y)
 	draw_set_transform(focus * (1.0 - push), 0.0, Vector2(push, push))
 	var a := fade_in * fade_out
@@ -329,7 +336,8 @@ func _draw() -> void:
 		_arin.draw(self, {"offset": Vector2(_arin_x, FLOOR_Y), "scale": FIGURE, "alpha": a * (1.0 - clampf((_t - 31.0) / 2.0, 0.0, 1.0)) * (0.55 if paused else 1.0)})
 	# (Once her colours start to go, her eyes are the two points of light the
 	# missing palette gives her: she looks out at the hands with them.)
-	_rue.draw(self, {"offset": Vector2(_rue_x, FLOOR_Y), "scale": FIGURE, "alpha": a})
+	# (Months later she is still in there, fainter, watching the words.)
+	_rue.draw(self, {"offset": Vector2(_rue_x, FLOOR_Y), "scale": FIGURE, "alpha": a * (0.55 if _t >= LATER else 1.0)})
 	var font := UiStyle.system_font()
 	var labels_a := a * (1.0 - clampf((_t - 33.0) / 1.0, 0.0, 1.0))
 	draw_string(font, TV.position + Vector2(8, 14), "P1  ARIN", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.55, 0.7, 1.0, labels_a * (1.0 if _t < 12.5 else 0.4)))
@@ -349,19 +357,32 @@ func _draw() -> void:
 		draw_string(font, Vector2(TV.get_center().x - 18, TV.position.y + 40), "PAUSE", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(1, 1, 1, pa))
 	draw_set_transform(Vector2.ZERO)
 	_draw_hands(a)
-	# Shot 8: the sentence she started typing, months later, crossing from
-	# the room into the glass.
-	if _t > 39.0:
-		var n := clampi(int((_t - 39.0) / 3.2 * UNFINISHED.length()), 0, UNFINISHED.length())
-		var ty := lerpf(HANDS_Y + 8.0, TV.get_center().y, smoothstep(39.0, 42.5, _t))
-		draw_string(font, Vector2(TV.get_center().x - 46, ty), UNFINISHED.substr(0, n) + ("_" if fmod(_t, 0.8) < 0.4 else " "),
-			HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(0.75, 0.95, 1.0, fade_out))
+	# Shot 8, months later: her message on the screen, whole; under it the
+	# owner's reply, typed and then stopping mid-word. Never sent.
+	if _t > LATER + 0.4:
+		var ma := fade_out * clampf((_t - LATER - 0.4) / 0.4, 0.0, 1.0)
+		var box := Rect2(TV.position.x + 24, TV.position.y + 24, TV.size.x - 48, 46)
+		draw_rect(box, Color(0.02, 0.03, 0.05, 0.9 * ma))
+		draw_rect(box, Color(0.55, 0.7, 0.8, 0.5 * ma), false, 1.0)
+		draw_string(font, box.position + Vector2(8, 15), HER_MESSAGE, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(1.0, 0.85, 0.6, ma))
+		var n := clampi(int((_t - 39.6) / 3.0 * OWNER_REPLY.length()), 0, OWNER_REPLY.length()) if _t > 39.6 else 0
+		var cursor := "_" if fmod(_t, 0.8) < 0.4 else " "
+		draw_string(font, box.position + Vector2(8, 34), "> " + OWNER_REPLY.substr(0, n) + cursor,
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(0.75, 0.95, 1.0, ma))
 
 
 ## Two pairs of hands on two controllers, below the screen: player 1's leave
 ## (12–13.5 s); hers stay, tap twice before pressing (7 s), then go slack.
+## Her controller's cable is taped where the dog chewed it (the memory THE
+## SECOND CONTROLLER). Months later (shot 8) only the owner's hands are
+## there; hers is on the floor where she dropped it.
 func _draw_hands(a: float) -> void:
 	var skin := Color(0.78, 0.62, 0.5)
+	if _t >= LATER:
+		_controller(P2_HANDS + Vector2(80, 12), skin, a, 0.6, 0.0, true, false)
+		var typing := 1.5 if _t > 39.6 and _t < 42.6 and fmod(_t, 0.25) < 0.12 else 0.0
+		_controller(P1_HANDS, skin, a * clampf((_t - LATER) / 0.4, 0.0, 1.0), 0.0, typing)
+		return
 	var p1_off := smoothstep(12.0, 13.5, _t) * 70.0
 	var slack := smoothstep(13.0, 15.0, _t)
 	_controller(P1_HANDS + Vector2(-p1_off, p1_off * 0.4), skin, a * (1.0 - smoothstep(12.5, 13.5, _t)), 0.0, 0.0)
@@ -369,17 +390,25 @@ func _draw_hands(a: float) -> void:
 	for at in [7.0, 7.25, 7.6]:
 		if _t > at and _t < at + 0.12:
 			tap = 2.0
-	_controller(P2_HANDS + Vector2(0, slack * 6.0), skin, a, slack * 0.25, tap)
+	_controller(P2_HANDS + Vector2(0, slack * 6.0), skin, a, slack * 0.25, tap, true)
 
 
-func _controller(at: Vector2, skin: Color, a: float, tilt: float, thumb: float) -> void:
+func _controller(at: Vector2, skin: Color, a: float, tilt: float, thumb: float, taped := false, hands := true) -> void:
 	if a <= 0.0:
 		return
 	draw_set_transform(at, tilt, Vector2.ONE)
+	if taped:
+		# The cable, out of the bottom and away; a band of tape halfway.
+		draw_line(Vector2(0, 8), Vector2(6, 30), Color(0.1, 0.1, 0.12, a), 2.0)
+		draw_line(Vector2(6, 30), Vector2(-4, 60), Color(0.1, 0.1, 0.12, a), 2.0)
+		draw_rect(Rect2(2, 18, 6, 4), Color(0.85, 0.85, 0.78, a))
 	draw_rect(Rect2(-24, -6, 48, 14), Color(0.12, 0.12, 0.14, a))
 	draw_circle(Vector2(-22, 2), 8.0, Color(0.12, 0.12, 0.14, a))
 	draw_circle(Vector2(22, 2), 8.0, Color(0.12, 0.12, 0.14, a))
 	draw_circle(Vector2(14, -1), 2.0, Color(0.85, 0.3, 0.3, a))
+	if not hands:
+		draw_set_transform(Vector2.ZERO)
+		return
 	# Thumbs on top, the rest of the hand around the grips.
 	draw_circle(Vector2(-26, 6), 7.0, Color(skin, a))
 	draw_circle(Vector2(26, 6), 7.0, Color(skin, a))

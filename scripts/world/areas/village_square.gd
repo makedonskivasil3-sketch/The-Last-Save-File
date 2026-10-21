@@ -598,7 +598,11 @@ func _well_process(delta: float) -> void:
 	var near := world.player.global_position.distance_to(WELL.get_center()) < 40.0
 	if near and not WellSequence.done("click") and not world.in_cutscene() and not world.is_talking():
 		WellSequence.record("click")
-		Sfx.play("click", -10.0, 0.9, 0.0)
+		# Her habit from the opening film: two light taps, then the press.
+		for beat in WellSequence.CLICK_PATTERN:
+			get_tree().create_timer(beat[0]).timeout.connect(func() -> void:
+				if is_inside_tree():
+					Sfx.play("click", beat[1], beat[2], 0.0))
 		world.hud.say(WellSequence.CLICK_LINE, "self")
 	rim.prompt = WellSequence.ANSWER_PROMPT if WellSequence.done("compared") and not WellSequence.done("answered") else "listen"
 	if _answer_t < 0.0:

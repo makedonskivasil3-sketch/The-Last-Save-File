@@ -21,7 +21,10 @@ extends RefCounted
 
 const STEPS := ["click", "tune", "words", "compared", "answered"]
 
-const CLICK_LINE := "(that was a button. a real one. like a controller, very far up.)"
+const CLICK_LINE := "(that was a button. a real one. two light taps, then a press. like someone very far up, holding a controller.)"
+## [delay s, volume dB, pitch]: the same gesture as the opening's shot 2
+## (Opening: taps at 7.0 and 7.25 s, the press at 7.6 s).
+const CLICK_PATTERN := [[0.0, -16.0, 1.3], [0.25, -16.0, 1.3], [0.6, -10.0, 0.9]]
 const TUNE_LINE := "(the tune from up there. the same note's missing. it was always missing.)"
 ## Down here, after the tune: the place she climbed back in, once.
 const ANCHOR_OFFER := "(this is where i climbed back in, the time i fell out of the world. nothing down here is saved. nothing down here can be saved over.)"

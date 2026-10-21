@@ -437,7 +437,12 @@ shorter on purpose. Skip (hold), replay, focus pause, captions and the
 | 5 | 22–28 s | The TV | PAUSE appears; the screen dims; everything stops except Rue | Silence | [PAUSE] | Pause stops everything except her |
 | 6 | 28–33 s | The TV, the well in the room picture | A drip, then the music-box note with the missing one | Wrong-context well sound | [one note, from a music box, in the wrong place] | The well |
 | 7 | 33–39 s | Push in | Rue turns and looks out of the screen at the hands | — | — | A character looks out |
-| 8 | 39–45 s | Black, then the room | Typed letters cross from the room into the game: "still have my sa" (unfinished). Fade into Arin's room; Rue at the same angle; the first move is hers | A click that matches shot 2 | — | The unfinished sentence; the handoff |
+| 8 | 38.5–45 s (rev 2) | Cut: no push. The TV; below it, the owner's hands alone; her controller on the floor, its cable taped | Her message arrives whole: "still have my save?". Under it the owner types "yes i still have your sa" and stops. Rue, fainter, still in the picture. Fade; the first move in Arin's room is hers | A key tone; the owner's single click (hers was always two taps, then a press) | [months later. her message. the owner starts to answer.] | The unfinished sentence is the **owner's** (rev 2, §0.4 C1); the handoff |
+
+**Rev 2, carried into play.** The well's first click (step 1) is her
+gesture from shot 2: two light taps, then a press (`CLICK_PATTERN`). It is
+the sound that crosses the screen. The taped cable in shots 1–3 is the
+controller of the memory THE SECOND CONTROLLER.
 
 Hands and silhouettes are drawn in-engine, the same pixel style as the
 game. No filmed or photoreal people are needed, so no rights questions

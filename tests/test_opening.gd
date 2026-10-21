@@ -162,3 +162,24 @@ func test_the_impossible_event_happens_on_screen() -> void:
 	film._finish()
 	Input.action_release("interact")
 	await wait_until(func() -> bool: return scene() is World, 4.0, "the room after")
+
+
+func test_the_last_shot_matches_the_canon() -> void:
+	# docs/NARRATIVE_CONTRACT.md §0.4 C1: her message arrived whole; the
+	# owner's reply stopped mid-word and was never sent.
+	check_eq(Opening.HER_MESSAGE, "still have my save?", "her message, whole, as in DELETE and owner note 6")
+	check(Opening.OWNER_REPLY.begins_with("yes i still have your") and not Opening.OWNER_REPLY.ends_with("save"),
+		"the owner's reply, unfinished, as in the Bin's draft")
+	check(Story.OWNER_NOTES.any(func(n: String) -> bool: return n.contains("i started typing yes")), "the owner's note says the same")
+	check(Opening.LATER > 33.0 and Opening.LATER < Opening.LENGTH - 4.0, "months later is its own shot, before the end")
+	var src := FileAccess.get_file_as_string("res://scripts/ui/opening.gd")
+	check(not src.contains("UNFINISHED"), "no unfinished sentence of hers")
+
+
+func test_the_well_clicks_with_her_gesture() -> void:
+	# The opening's shot 2 (taps at 7.0 and 7.25 s, the press at 7.6 s) and
+	# the well's first click are the same gesture: two taps, then a press.
+	var p: Array = WellSequence.CLICK_PATTERN
+	check_eq(p.size(), 3, "three clicks")
+	check(is_equal_approx(p[1][0] - p[0][0], 0.25) and is_equal_approx(p[2][0] - p[0][0], 0.6), "the same spacing as hers")
+	check(p[0][1] < p[2][1] and p[1][1] < p[2][1], "two light taps, then a firmer press")
