@@ -234,6 +234,21 @@ body proportions, palette roles, materials, light direction, UI typography,
 portrait crop, allowable corruption and asset scale/import settings.
 Use existing Inter/DejaVu assets and their licences consistently.
 
+Make the people more approachable and expressive without making the world
+safe. Rue should invite sympathy; Mira's warmth should become brittle under
+restriction; Wren should read as earnest and brave; Tobben's welcome should
+permit guilt; the Archivist should feel quietly attentive. Fear comes from
+context and changing behavior, not a permanent frightened mouth on every face.
+Do not give every character identical large eyes, childlike proportions or
+the same smile. Keep age/body/silhouette differences and preserve facial voids.
+
+If a larger character redesign is warranted, prototype one small contact
+sheet with a refined-current option and one coherent new illustrated option.
+Judge it in the room, at native size, beside its dialogue bust and missing/
+restored variants. Carry the chosen art direction through the real resolver;
+a concept sheet alone is not delivered character integration. Ask for a
+creative decision only if the alternatives materially change the agreed tone.
+
 For each scene, prioritize: immediate danger → player/interaction → destination
 → landmark → optional story detail → decoration. Do not use colour alone.
 Give danger a shape/motion/audio cue and shelter a clear environmental reason.

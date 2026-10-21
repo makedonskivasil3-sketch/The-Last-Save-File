@@ -5,6 +5,9 @@ Reviewed baseline: `da83f01aeaab6015914a7d7d028783e9c84b9558` (fetched GitHub
 During verification, GitHub main advanced to `2644629` (PR #8, runtime
 `2ffc036`). That incoming finale/gaze revision is reviewed and integrated
 before final publication; its historical evidence remains separate.
+Combined runtime/merge source: `1c21266c5ac34c07b09cf7004867003e8aa05a8e`.
+The 467-case pre-integration suite below is retained as historical evidence;
+the integrated tree contains 471 cases and requires separate acceptance.
 
 ## Judgment
 
@@ -121,9 +124,11 @@ Results are added only after the corresponding process completes.
 | Final navigation compatibility group | 33 passed, 0 failed, 105.4 s | pass8, threat navigation, integration and new portraits |
 | Rendered live portrait | 1 passed, 0 failed, 0.8 s | Actual mouth-region pixels differ between 0/150 ms; software OpenGL, no speech listening |
 
-Runtime source for final checks/exports is `9117b18` (includes `e69ab5c`).
-The final full suite, strict bots and export checks are recorded below only
-once complete. Raw evidence: [review/presentation-revision](review/presentation-revision/).
+Runtime source for final checks/exports is `9117b18` (includes `e69ab5c`), before the `1c21266` merge.
+The pre-integration full suite completed **467 passed, 0 failed, 1062.3 s**,
+exit 0, with 467 unique cases and no script/parse errors. This run predates
+the incoming PR #8 changes. Its shutdown resource warnings remain visible.
+The post-merge 471-case run is recorded separately after completion. Raw evidence: [review/presentation-revision](review/presentation-revision/).
 
 The rendered images show a controlled live-portrait sample:
 [0 ms](review/presentation-revision/live_portrait_clock_000.png) and
@@ -147,7 +152,7 @@ is not a full browser ending route. Local export hashes do not necessarily
 match a later CI package with a different evidence commit.
 
 
-| Final combined-runtime check | Completed result | Limits |
+| Pre-integration runtime check (`9117b18`) | Completed result | Limits |
 |---|---|---|
 | Strict bots | 5 passed, 0 failed, 241.1 s; wrapper exit 0, no script errors | Purge 3 needed 2 sessions with 1 Edge-erasure death; all routes recorded 0 stalls. Other routes recorded 0 deaths. This does not erase the initial failed run. |
 | Browser lifecycle | Completed, exit 0, ALL WEB CHECKS PASSED | Fresh title/opening/input/save/quit/reopen; one final-runtime trial, not ten new trials |
@@ -204,3 +209,82 @@ under Reduce flashing. The code and four new regressions were reviewed.
 [NEXT_GAMEPLAY_VISUAL_PROMPT.md](NEXT_GAMEPLAY_VISUAL_PROMPT.md) remain preserved.
 Our current prompt builds on them; A08 is now implemented upstream rather than
 remaining work. The final combined runtime needs its own verification.
+
+
+## Combined integration acceptance
+
+Source: `1c21266c5ac34c07b09cf7004867003e8aa05a8e`. The merge preserves all four
+new PR #8 regressions and our three new behavior regressions: 471 ordinary
+cases in total. Only RELEASE_READINESS.md conflicted; its resolution retains
+both histories and adds one authoritative combined status. No code conflict
+was resolved by choosing an older implementation.
+
+Post-merge checks are recorded here after completion. Earlier green runs
+above do not substitute for this combined-runtime verification.
+
+
+| Post-merge check | Completed result | Limits |
+|---|---|---|
+| Strict ending bots | 5 passed, 0 failed, 247.5 s; exit 0; no script/parse errors | Escape: 4 recovered movement stalls, no deaths. Message: 1 Edge-erasure death, 2 sessions, 0 stalls. Purge-3 escape, purge-5 escape and Wren: 0 deaths/0 stalls. |
+| Browser lifecycle | Completed, exit 0, ALL WEB CHECKS PASSED | One post-merge trial; not a full browser ending route |
+| Browser audio output | Passed, exit 0; page errors empty, sampled clipping 0 | Signal measurement, not listening |
+| Windows / Linux / Web export | All exit 0 | Same `1c21266` runtime |
+| Linux smoke | 240 exported headless frames, exit 0 | No Windows execution or GPU claim |
+| Windows PE/embedded pack/ZIP | Structure and CRC verified | Export integrity only |
+| Rendered Edge + live portrait | 3 passed, 0 failed, 34.1 s | Xvfb/llvmpipe; Edge tour uses bench immunity and scripted positioning |
+
+[Combined logs and build hashes](review/presentation-revision/combined/)
+are separate from the pre-integration evidence. The graphical tour checks
+confrontation phases and reduced effects, but its invulnerability means it
+cannot establish survivability or fair difficulty. The
+[drag-phase image](review/presentation-revision/combined/e6_dragging.png) and
+[reduced-effects image](review/presentation-revision/combined/e9_reduced_effects.png)
+were visually inspected. Full effects visibly fringe the ambient console;
+critical first-reading comfort still needs human testing. Dialogue portraits
+remain a separate clean UI route. No actor speech or listening was added.
+
+
+## Pinned implementation entry points
+
+These links target the reviewed combined commit, so later line shifts do not
+change the evidence location.
+
+| Concern | Source |
+|---|---|
+| Live portrait clock | [scripts/ui/portrait_view.gd:44](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/blob/1c21266c5ac34c07b09cf7004867003e8aa05a8e/scripts/ui/portrait_view.gd#L44) |
+| Shared mouth activity | [scripts/ui/hud.gd:869](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/blob/1c21266c5ac34c07b09cf7004867003e8aa05a8e/scripts/ui/hud.gd#L869) |
+| Unused external portrait route | [scripts/ui/character_art.gd:244](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/blob/1c21266c5ac34c07b09cf7004867003e8aa05a8e/scripts/ui/character_art.gd#L244) |
+| Recorded-line pagination | [scripts/ui/hud.gd:902](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/blob/1c21266c5ac34c07b09cf7004867003e8aa05a8e/scripts/ui/hud.gd#L902) |
+| Dialogue height | [scripts/ui/hud.gd:962](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/blob/1c21266c5ac34c07b09cf7004867003e8aa05a8e/scripts/ui/hud.gd#L962) |
+| Ambient allowance | [scripts/ui/story_pacing.gd:79](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/blob/1c21266c5ac34c07b09cf7004867003e8aa05a8e/scripts/ui/story_pacing.gd#L79) |
+| NPC pose driver | [scripts/world/npc.gd:227](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/blob/1c21266c5ac34c07b09cf7004867003e8aa05a8e/scripts/world/npc.gd#L227) |
+| Turn and gaze | [scripts/world/pixel_character.gd:160](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/blob/1c21266c5ac34c07b09cf7004867003e8aa05a8e/scripts/world/pixel_character.gd#L160) |
+| Player visual timing | [scripts/player/player.gd:205](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/blob/1c21266c5ac34c07b09cf7004867003e8aa05a8e/scripts/player/player.gd#L205) |
+| Deferred area refresh | [scripts/world/areas/area.gd:152](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/blob/1c21266c5ac34c07b09cf7004867003e8aa05a8e/scripts/world/areas/area.gd#L152) |
+| Bin safety boundary | [scripts/world/areas/recycle_bin.gd:166](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/blob/1c21266c5ac34c07b09cf7004867003e8aa05a8e/scripts/world/areas/recycle_bin.gd#L166) |
+| Recovery gate | [scripts/owner/owner_avatar.gd:235](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/blob/1c21266c5ac34c07b09cf7004867003e8aa05a8e/scripts/owner/owner_avatar.gd#L235) |
+| Guidance eligibility | [scripts/story/progression.gd:75](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/blob/1c21266c5ac34c07b09cf7004867003e8aa05a8e/scripts/story/progression.gd#L75) |
+| OOB fallback | [scripts/world/areas/out_of_bounds.gd:105](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/blob/1c21266c5ac34c07b09cf7004867003e8aa05a8e/scripts/world/areas/out_of_bounds.gd#L105) |
+| Preferences loading | [scripts/autoload/settings.gd:227](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/blob/1c21266c5ac34c07b09cf7004867003e8aa05a8e/scripts/autoload/settings.gd#L227) |
+
+
+## Why adding portrait PNGs alone does not update dialogue
+
+The reviewed live view and legacy texture route are separate:
+
+```mermaid
+flowchart TD
+    W[World interaction] --> D[CharacterArt portrait data: identity, palette, expression]
+    D --> H[HUD dialogue / cinematic]
+    H --> V[PortraitView]
+    V --> I[IllustratedCharacter drawing]
+    V --> C[Animation clock: repaired here]
+    L[Legacy CharacterArt.texture_for] --> P[External PNG when available]
+    L --> R[Legacy raster fallback]
+```
+
+The live PortraitView has no call into the legacy texture route. A03 proposes
+one explicit resolver/fallback contract before producing and importing a
+large new cast. That integration must preserve restoration and fraying as
+well as expressions. This diagram describes source structure, not a delivered
+new asset system.
