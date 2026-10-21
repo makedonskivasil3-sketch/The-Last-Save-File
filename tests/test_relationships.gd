@@ -57,19 +57,38 @@ func test_an_interrupted_mira_conversation_is_said_again() -> void:
 	check(memory().has_conversation("mira.after_death:2"), "read to the end: heard")
 
 
-func test_several_sessions_later_only_a_greeting() -> void:
+func test_several_sessions_later() -> void:
+	# She saw you taken in session 2 and hasn't seen you since (you woke
+	# elsewhere, or quit): the first time you meet again, she says so.
 	memory().sessions = 5
 	memory().encounters["mira"] = {"first": 1, "last": 2, "count": 2}
 	memory().event_at("mira.met", 1)
-	memory().event_at("mira.saw_death", 2)  # three sessions ago: old news
+	memory().event_at("mira.saw_death", 2)
 	memory().last_exit = "quit"
 	memory().purge = 0
 	var w := await start_session()
 	var told: Dictionary = w.area.mira.interact()
 	w.hud.close_dialogue()
-	check(not " ".join(told.lines).contains("You went grey"), "an old death isn't a fresh reunion")
+	check(" ".join(told.lines).contains("You went grey"), "not met since: she still says it, three runs later")
+	# Met since, and said: then it's old news, and only a greeting.
+	memory().complete_conversation(told.conversation)
+	memory().session_recalled.clear()
+	told = w.area.mira.interact()
+	w.hud.close_dialogue()
+	check(not " ".join(told.lines).contains("You went grey"), "said once")
 	check(told.lines[0] == Relationships.MIRA_GREETING, "a familiar greeting (%s)" % str(told.lines))
 	check(not " ".join(told.lines).contains("You're up early"), "not an introduction")
+
+
+func test_a_consequence_waits_for_the_next_meeting() -> void:
+	# Met in session 3 after a death in session 2 that she didn't talk about
+	# (say, the box was never opened): met since, so it isn't brought up as new.
+	memory().sessions = 4
+	memory().encounters["mira"] = {"first": 1, "last": 3, "count": 3}
+	memory().event_at("mira.saw_death", 2)
+	check_eq(Relationships.unacknowledged("mira", "mira.saw_death"), -1, "seen since: not the first meeting after it")
+	memory().encounters["mira"].last = 2
+	check_eq(Relationships.unacknowledged("mira", "mira.saw_death"), 2, "not seen since: still to be said")
 
 
 func test_each_restoration_is_its_own_moment() -> void:

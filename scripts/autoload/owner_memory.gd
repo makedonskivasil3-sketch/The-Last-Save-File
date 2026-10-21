@@ -252,6 +252,8 @@ func meet(id: String, where := "", look: Dictionary = {}) -> bool:
 	encounters[id] = e
 	if not first and int(e.last) == sessions:
 		return false  # already counted this session
+	if not first:
+		e.prev = int(e.last)  # the meeting before this session's (Relationships.unacknowledged)
 	e.last = sessions
 	e.count = int(e.count) + 1
 	encounters[id] = e
@@ -977,6 +979,8 @@ func load_memory() -> void:
 				var kept := {"first": int(e.first), "last": int(e.last), "count": maxi(1, _int(e, "count", 1))}
 				if e.get("area") is String:
 					kept.area = e.area
+				if _whole(e, "prev"):
+					kept.prev = _int(e, "prev", 0)
 				var sn: Variant = e.get("seen")
 				if sn is Dictionary and sn.get("state") is String and _whole(sn, "session"):
 					kept.seen = {"state": sn.state, "session": _int(sn, "session", 0)}

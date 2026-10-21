@@ -142,6 +142,24 @@ static func last_session(id: String) -> bool:
 	return has(id) and OwnerMemory.event_session(id) == OwnerMemory.sessions - 1
 
 
+## The session an event last happened in, if `who` hasn't been met since
+## (so this is the first meeting after it), else -1. The selector runs before
+## the conversation's own meeting is counted, so "since" means before now.
+## A witnessed death keeps until the next time they see Rue, however many
+## runs later (waking under the well can skip Mira's room for a run).
+static func unacknowledged(who: String, event: String) -> int:
+	if not has(event):
+		return -1
+	var at := OwnerMemory.event_session(event)
+	var e: Dictionary = OwnerMemory.encounters.get(who, {})
+	# This session's own meeting doesn't count as "since": a reunion cut off
+	# halfway is still the first meeting after it.
+	var seen_last := int(e.get("last", -1))
+	if seen_last >= OwnerMemory.sessions:
+		seen_last = int(e.get("prev", -1))
+	return at if seen_last <= at and at < OwnerMemory.sessions else -1
+
+
 ## Did `a` happen after `b` (latest occurrences)? A never-happened `b` counts
 ## as before everything.
 static func after(a: String, b: String) -> bool:
@@ -195,11 +213,12 @@ static func wren(_talk: int, ask_ready: bool, escorting: bool) -> Dictionary:
 			WREN_AFTER_RESTORE_BROKEN if has("wren.promise_broken") else WREN_AFTER_RESTORE)
 		if not told.is_empty():
 			return told
-	if last_session("wren.saw_death"):
+	var died_at := unacknowledged("wren", "wren.saw_death")
+	if died_at >= 0:
 		var seen: Array = WREN_AFTER_DEATH.duplicate()
-		if OwnerMemory.last_death == "eraser":
+		if OwnerMemory.last_death == "eraser" and died_at == OwnerMemory.sessions - 1:
 			seen[0] = WREN_SAW_STATIC
-		var told := _once("wren.after_death:%d" % OwnerMemory.event_session("wren.saw_death"), seen, ["wren.reunited"])
+		var told := _once("wren.after_death:%d" % died_at, seen, ["wren.reunited"])
 		if not told.is_empty():
 			return told
 	var ending := _last_ending()
@@ -238,8 +257,9 @@ static func _mira_news(ask_ready: bool) -> Dictionary:
 		var told := _once("mira.after_restore:%d" % OwnerMemory.event_count("mira.restored"), MIRA_AFTER_RESTORE)
 		if not told.is_empty():
 			return told
-	if last_session("mira.saw_death"):
-		var told := _once("mira.after_death:%d" % OwnerMemory.event_session("mira.saw_death"), MIRA_AFTER_DEATH)
+	var died_at := unacknowledged("mira", "mira.saw_death")
+	if died_at >= 0:
+		var told := _once("mira.after_death:%d" % died_at, MIRA_AFTER_DEATH)
 		if not told.is_empty():
 			return told
 	if has("mira.note_lost"):
@@ -264,7 +284,8 @@ static func _mira_news(ask_ready: bool) -> Dictionary:
 		var told := _once("mira.after_ending:%d" % (OwnerMemory.sessions - 1), [_recall("mira", "ended:" + ending)])
 		if not told.is_empty():
 			return told
-	if OwnerMemory.previous_exit == "death" and OwnerMemory.last_death == "arin" and not last_session("mira.saw_death"):
+	if OwnerMemory.previous_exit == "death" and OwnerMemory.last_death == "arin" \
+			and not (has("mira.saw_death") and OwnerMemory.event_session("mira.saw_death") == OwnerMemory.sessions - 1):
 		# Arin walks back into her room alone: she sees that much.
 		var told := _once("mira.arin_alone:%d" % (OwnerMemory.sessions - 1), [_recall("mira", "died:arin")])
 		if not told.is_empty():

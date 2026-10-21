@@ -237,3 +237,36 @@ func test_a_place_from_an_earlier_run_isnt_new_again() -> void:
 	await frames(3)
 	check(not _said(w2, Story.VOICE["square_first"][0]), "next run: not again")
 	check(_said(w2, Story.VOICE_BACK["square"]), "a short 'back' instead")
+
+
+func test_malformed_anchor_data_falls_back_to_the_room() -> void:
+	var m := memory()
+	for bad in [{"id": "oob:pillar", "version": 1.5}, {"id": "oob:pillar", "version": "1"}, {"id": 7, "version": 1},
+			{"id": "oob:pillar"}, "oob:pillar", {"id": "oob:pillar", "version": 1e400}]:
+		var f := FileAccess.open(OwnerMemory.TEST_SAVE_PATH, FileAccess.WRITE)
+		# 1e400 can't be written by JSON.stringify: write it as text.
+		var text := JSON.stringify({"version": 3, "sessions": 2, "last_exit": "death", "anchor": bad})
+		f.store_string(text.replace("inf", "1e400"))
+		f.close()
+		m.load_memory()
+		check(m.anchor.is_empty(), "unreadable anchor dropped: %s" % str(bad))
+	var w := await start_session()
+	check_eq(w.area.area_id, "room", "so a death with a broken anchor wakes in the room")
+
+
+func test_waking_at_the_anchor_keeps_what_the_owner_learned() -> void:
+	memory().found_pip = true
+	memory().route_memory.append({"area": "square", "x": 300.0, "y": 200.0, "w": 3.0})
+	memory().owner_notes_seen = 2
+	var w := await start_session()
+	check(w.set_anchor("oob:pillar"), "kept")
+	await go_to(w, "square", "house")
+	w.kill("arin", "test")
+	var deaths: int = memory().deaths_log.size()
+	var w2 := await wait_for_new_session(w)
+	check_eq(w2.area.area_id, "oob", "woke under the well")
+	check(w2.pip != null and w2.pip.global_position.distance_to(w2.player.global_position) < 40.0, "Pip is beside her, not left behind")
+	check(memory().route_memory.size() >= 1, "the owner still knows her routes")
+	check_eq(memory().deaths_log.size(), deaths, "and every death")
+	check(memory().owner_notes_seen >= 2, "the owner's notes aren't reset (one more a run, as always)")
+	check(w2.escort == null, "no escort carried over")

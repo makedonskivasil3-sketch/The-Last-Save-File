@@ -231,124 +231,158 @@ answer, a missing word, recognition that arrives a moment late.
 
 ---
 
-## 3. Persistence contract
+## 3. Persistence contract (rev 2)
 
 All three layers use stable ids, never node paths. Transient presentation
-(timers, animation phase) is rebuilt from state, never saved.
+(timers, animation phase, positions) is rebuilt from state, never saved.
+Save version 3 (`OwnerMemory.SAVE_VERSION`). v0, v1 and v2 saves migrate:
+`_from_v1` and `_from_v2` run in order. `SafeFile` writes atomically and
+recovers `.tmp`/`.bak`. Every number read back must be finite and whole
+where it is used as one (`_whole`).
 
-**A. Lasting narrative state** (`OwnerMemory`; survives death, quit and
-purge, and is cleared only by a full reset). **Implemented** for:
-- `encounters`: id → `{first_session, last_session, count}`. Written when a
-  conversation **opens**: meeting someone counts even if you walk away.
-- `conversations`: completed conversation ids. Written only when the box
-  was read to its last line (`Hud.dialogue_finished`).
-- `rel_events`: relationship event id → session it happened in. Written at
-  the authored completion point. Examples: `wren.met`, `wren.sheltered`,
-  `wren.promised`, `wren.saw_death`, `wren.promise_kept`,
-  `wren.promise_broken`, `wren.restored`, `wren.ribbon_returned`.
-- `places`: discovered area ids (separate from this session's visits).
-- `well_events`: the well's sequence (§6).
-- Existing fields, kept: fragments, journal, truth pieces, `mira_quest`,
-  `restored`, `npc_fates`, frayed.
+**Field by field.** Layer **A** is lasting narrative knowledge. Layer **B**
+is a persistent world consequence. Layer **C** is the checkpoint. **T** is
+transient: this attempt only.
 
-**B. Current-world state.**
-- Already persistent: `npc_fates`, `frayed`, `restored`, `patched_seams`,
-  purge, the husk.
-- Session only, unchanged: doors, crates, the owner's awareness, escort
-  position, owner moves.
+| Field (`OwnerMemory`, unless noted) | Layer | Written when | Notes |
+|---|---|---|---|
+| `encounters` {first, last, prev, count, area, look, seen} | A | a conversation **opens** (meeting counts even if you walk away); `seen` whenever Rue sees their state | `seen` is what the journal calls their condition |
+| `conversations` | A | the box is read to its last line | a consequence walked away from is said again |
+| `rel_events` {first, last, count, seq, first_seq} | A | the authored moment (registry: `Relationships.EVENTS`) | one record per id; `seq` keeps order |
+| `event_seq` | A | each event or fact | order counter; repaired to the highest stored order on load |
+| `facts` | A | the line that teaches it is shown (`ArchivePages.FACTS`) | never on meeting alone |
+| `journal` | A | a readable is read | every version of a rewritten note is kept |
+| `fragments`, `truth_pieces`, `knows_truth` | A | memory lived / line shown / file read | unchanged |
+| `places` | A | an area loads | the map's "found" (rev 2: the map uses it) |
+| `well_events` | A | each step's own moment; `words` only when read whole (rev 2) | ordered |
+| `archive_seen` {key: revision} | A | an entry is read (1.5 s on the page, or picked) | v2 keys migrate as "*" (read, revision unknown) |
+| `acts_seen`, `owner_notes_seen`, `endings_seen`, `restored`, `found_*`, `met_archivist`, `guestbook_restored` | A | their moments | unchanged |
+| `npc_fates`, `frayed`, `returned_pending`, `mira_quest`, `wren_saved`, `patched_seams`, husk fields | B | their moments | consequences in the world, unchanged rules |
+| `purge`, `deaths`, `quits`, `wins`, `deaths_log`, `death_causes`, `route_memory` | B | session end | the owner's learning; unchanged |
+| `anchor` {id, version, session} | C | Rue keeps her place (rev 2: the mark by the pillar) | a place by id; no items, choices or coordinates |
+| `World.flags`: `pointer` | B (mirrored) | read from `met_archivist` at session start | the only flag that outlives a session |
+| `World.flags`: `mira_deleted`, `seen_by_arin`, `slot2_beaten`, `*_restored` | T | this attempt | the lasting parts are already in `npc_fates`/`rel_events` |
+| `World._visited`, doors, crates, awareness, escort, owner moves, `session_*` | T | this attempt | the map shows `_visited` as "this run" |
+| `ArchivePages.escort_now`, `JournalPanel` reading place | T | this process | per-viewer conveniences, reset each session / new game |
 
-**C. Checkpoint state.** **Implemented**, one anchor (§5):
-`anchor = {id, version, session}`. The resume place is found from the
-anchor id (`"oob:pillar"`), never from raw coordinates.
+**Commit points tested** (interruption, scene exit, death, restart):
+- **A reunion or consequence cut off halfway** is said again. It is
+  committed only when read whole (`test_relationships`,
+  `test_continuity`).
+- **The well's words cut off** are not heard (`test_well_anchor`).
+- **A witnessed death** waits for the next meeting, however many runs
+  later. This session's own opening of the box doesn't count as "met
+  since" (`Relationships.unacknowledged`).
 
-**Intentional loss stays explicit.** The death card already lists what is
-kept and lost. It now also says where you will wake.
+## 4. Conversations and relationships (rev 2)
 
----
+**One selection path** (`Npc.interact`; first match wins, one topic per
+conversation):
+1. **Urgent:** a piece Rue took or gave back (`Relationships.urgent`),
+   said once a session and alone; escorting. Reset (Mira) and restriction
+   shape delivery. Reset Mira knows nothing; restricted Mira whispers
+   (`MIRA_HUSHED`) and still says it.
+2. **Consequence:** what they witnessed or what happened to them, each
+   said once and committed when read whole.
+3. **Continuation:** an open promise; a second, shorter ask.
+4. **New topic:** what they noticed about Rue (the truth lines); the well.
+5. **Familiar greeting:** once a session, before their usual lines, for
+   someone met in an earlier session.
+6. **Repeat:** the area's own line counters. Introductions are skipped
+   once met.
 
-## 4. Conversations and relationships
+The fray, truth and recall lines that `Npc.interact` used to stack in
+front of the selected conversation now live at their precedence slots.
 
-**Selector precedence** (`Relationships.choose`, **implemented for Wren**,
-first match wins):
-1. **Urgent current condition:** deleted, restricted, frayed, or escorting.
-2. **Consequence of a recent event:** she watched you die last run; she was
-   restored; a returned piece.
-3. **Relationship continuation:** an open promise, or a kept or broken one.
-4. **New story topic:** the ask, a truth line, the well.
-5. **Brief familiar greeting:** met before, nothing new.
-6. **Optional repeat conversation:** the old idle lines.
+**Implemented** for Wren, Mira and Tobben. The Archivist keeps his own
+first meeting, return greeting, pointer and file lines (his events are
+registered).
 
-Recall lines no longer sit in front of a first-meeting introduction. Once
-someone has been met in any session, their introduction is skipped.
-- **Mira:** met-before skips "Arin! You're up early."
-- **Tobben:** already skipped introductions on later sessions; unchanged.
+| | First meeting | Greeting | Shared event | Consequence / changed attitude | Continuation | Repeat |
+|---|---|---|---|---|---|---|
+| Wren | "You're the one Mira talks about." | "You still look like someone." | sheltered, promised, ribbon | after a death she saw; restored; ending | the promise, kept or broken | her lines |
+| Mira | "Arin! You're up early." | two cups (one forgotten); hushed when restricted | asked, walked, pinned, note lost, reset, saw a death, deleted | after a death in her room; restored (each time); pinned; note lost from her hands; Wren leaving the list | the shorter ask | her lines |
+| Tobben | "Welcome to Tobben's!" | "a face with no inventory"; "two names, still" | the guest book | the name back; Wren; the tab | (what he noticed) | his lines |
+| Archivist | his first lines (the pointer) | "Back again. I remember you." | pointer, file | erasure count, shed lines | the file | the pointer |
 
-**Witnessing rule.** A character acknowledges only what they saw, or what
-the story explains they learned:
-- Wren saw a death only if she was escorting you or in the same area.
-- Mira hears only what happens in her room, or what the board says.
+**Witnessing rule (rev 2).** A native acknowledges what they saw where
+they were, and what the save's **lists** show (who is in the save, which
+slots exist). Mira can't leave her room. She knows Wren's name left the
+list, but not how.
 
-**Proposed / deferred:** the same selector for Mira, Tobben and the
-Archivist; authored expressions for them.
+**Erosion differs by character.**
+- Mira still sets out two cups, and forgets why (purge ≥ 3).
+- Wren half-remembers the promise ("You said you'd—").
+- Tobben, frayed, can only write.
 
----
+## 5. The checkpoint: a kept place under the well (rev 2)
 
-## 5. The well anchor (one checkpoint)
+**What it is.** Death recovery, not a save-and-resume system. It keeps a
+**place** (by id). It keeps no items, no choices and no coordinates. A
+quit or a crash still starts in Arin's room. The pause menu has no "Save
+and Exit"; its quit button says that quitting counts, like dying.
 
-**Where.** Under the well, at the pillar out of bounds (`oob:pillar`).
-Awareness cools there, there are no threats, and nothing is saved there,
-so the owner cannot overwrite it.
-
-**How it is set.** It is set by the well's answer (§6, step 5), never by a
-menu.
+**When it is offered (rev 2, changed).** The first revision set it only
+when Rue answered the well. That needs DELETE (at the Edge) or the
+owner's draft (in the Bin), so recovery arrived near the end of the game.
+Now it is offered as soon as the well's tune has played under the well
+(the memory THE WELL, out of bounds; an optional route the Square points
+to). That place is where Rue climbed back in the first time she fell out
+of the world. Rue **chooses** it: "keep my place here", on a mark beside
+the pillar. Answering the well no longer sets it.
 
 | Situation | Behaviour |
 |---|---|
-| First activation | Set by answering at the well. A light appears at the pillar, and Rue says it out loud. Saved at once. |
-| Replacing the anchor | There is only one anchor; answering again re-confirms it. |
-| Death | Purge +1, as before (unchanged). The next session starts at the anchor instead of Arin's room, after the wake-up. Lasting state is untouched. |
-| Save and Exit / Quit | Unchanged: it counts a quit (purge +1); the next session starts in Arin's room. The anchor is for failure, not for leaving. The pause warning says so. |
-| Abrupt closure / crash | Counts as a quit (unchanged). Next start is in Arin's room. |
-| Phone suspension | Pausing is free (unchanged). Resuming continues where you were. |
-| Corrupt save | `SafeFile` recovers `.tmp`/`.bak`. A bad anchor value falls back to Arin's room. |
-| Restart after an update | Anchor `version` mismatch: fall back to the room and clear the anchor. |
-| Resume place deleted or blocked | Unknown id, or no open floor at the place: fall back to the room. |
-| Active escort | An escort is never stored. Death already ends an escort (unchanged rules). The anchor cannot be set while escorting. |
-| Major story transition | An ending, a purge or a full reset clears the anchor. |
-| Never inside a hazard / dialogue / transition | Activation is refused during a conversation, a scene, a transition or an escort. The resume point is the pillar's landing, which is solid floor that never streams. |
-| No death loop | OOB has no killers. Falling into the void is not a death. |
-| No duplicated items or reversed choices | The anchor stores a place only: no items, no choices. |
+| Activation | The mark by the pillar, after the tune. Explicit. A light at the pillar; "PLACE KEPT · under the well"; Rue says what it means. Saved at once. |
+| Activating again | "it's still here. it'll keep." Nothing changes. |
+| Death | Purge +1 (unchanged). The next session starts at the kept place, on the landing (solid, never streams), after the wake-up. The death card says where you'll wake. Lasting and world state are untouched. |
+| Save and Exit | Doesn't exist. The pause menu's quit warns that it counts. |
+| Ordinary quit | Counts (purge +1, unchanged). Next start: Arin's room. The anchor stays for the next death. |
+| Abrupt closure / crash / tab closed | Counts as a quit (unchanged). Next start: Arin's room. |
+| Phone suspension / focus loss | Pausing is free (unchanged); resuming continues where you were. |
+| Restart after an update | A `version` mismatch: the room, and the anchor is dropped. |
+| Invalid or malformed anchor | Unknown id, missing or non-whole version, unreadable value: the room, and the anchor is dropped (`test_malformed_anchor_data_falls_back_to_the_room`). |
+| Companion | Pip (never in the save) arrives beside Rue. An escort is never stored; death already ends one; the place can't be kept while escorting. |
+| Endings | Any ending clears it (a new start). |
+| Purge | At the purge ending nothing resumes. A full reset clears it. |
+| Never mid-anything | Refused during a conversation, a scene, a move between areas, an escort or an ending. |
+| No death loop | Out of bounds has no killers; falling is not a death. The tests wait 2 s at the wake point. |
+| No duplicates, no reversals | Memories, promises and the owner's learning (routes, deaths, notes) are kept, never duplicated (tested). |
 
-**What this changes from current behaviour (documented):**
-- After a death with an anchor, a run no longer always begins in Arin's
-  room.
-- The room's per-run owner note is skipped on such a run. The owner's
-  wake-up line still plays.
+**Consequences of the change, for the author to judge:**
+- A run after a death can skip Arin's room. Mira's reaction to a death
+  she saw waits for the next time you see her, so it isn't lost.
+- The room's per-run owner note is skipped on such a run.
 
----
+## 6. The well's sequence (rev 2)
 
-## 6. The well's sequence
+The explanation (§0.5): the well **keeps** what the saves lose. That
+includes sounds from the real room, and it plays them back identically.
+It sends nothing up. Every step needs the previous one, commits once
+(`well_events`), survives restart, and gives observable feedback.
 
-All five steps share one explanation: sound from the real room carries
-down the well, and the unsaved space under it keeps what saves lose.
-Every step needs the previous one and is stored in `well_events`.
-**Implemented.**
-
-| # | Event | Prerequisite | What happens | Evidence |
+| # | Event | Eligible when | What happens | Evidence, and what it proves |
 |---|---|---|---|---|
-| 1 | `click`, the oddity | First time near the well | A single real-sounding controller click. "(that was a button. a real one.)" | Sound + line |
-| 2 | `tune`, a personal detail | `click`, plus the memory THE WELL recovered | At the pillar below: the music-box tune with one note missing. "(the same note's missing. it was always missing.)" | Sound + line |
-| 3 | `words`, not an echo | `tune`; listen at the well (new LISTEN prompt) | Up from below, as typed text: "still have my save?". No one in Ashvale has said it. | Line + journal "lead" |
-| 4 | `compared`, a testable clue | `words`, plus the memory DELETE (which holds the same words) or the owner's half-written reply in the Recycle Bin | Rue connects them: the girl's own words, from outside. Journal links the document, the place and the person. | Journal link |
-| 5 | `answered`, a costly contact | `compared`; answer at the rim and stay there 2 s, in the open Square (holding [E] is for glitches) | Costs +20 awareness (Arin can see you). Rue answers ("i'm here.") and the anchor is set. | The pillar lights; the next death wakes you under the well |
+| 1 | `click` | first time near the well | a real controller click | a sound from outside the game |
+| 2 | `tune` | `click` + the memory THE WELL, at the pillar | the music box, one note missing; the place can be kept | the well holds the room's sounds; recovery becomes possible |
+| 3 | `words` | `tune`; listen at the rim; **read to the end** | "still have my save?", typed | someone typed in the real room |
+| — | (replay) | after `words` | exactly the same, the same pause | it's a recording, not someone speaking now |
+| 4 | `compared` | `words` + DELETE or the owner's draft, then listen | her message, months after she left | it was her, then. It is **not** proof that she is asking now |
+| 5 | `answered` | `compared`; answer at the rim for 2 s, in the open, no escort | +20 awareness; "i'm here." | — |
+| — | (replay) | after `answered` | the well plays **Rue's** answer back | it keeps what is said here; it carries nothing up |
 
-**How characters change the interpretation.**
-- **Wren** (met, after `words`): "You heard it too? It hums sometimes. I
-  thought it was just me."
-- **Tobben:** "Don't lean over that. Things come back up wrong."
+Every step's prerequisites lie on routes the player already takes:
+- the well is in the Square;
+- THE WELL memory is out of bounds, which the goal line points to;
+- DELETE is at the Edge, and the draft is in the Bin, both on the way to
+  endings.
 
-**The first hopeful response has an observable result.** After step 5, a
-death no longer sends you to the start: you wake where the well keeps you.
+No trip exists only to trigger a line. The journal's leads say what is
+known and what isn't (`WellSequence.leads`).
+
+**Characters' readings.**
+- **Wren** (after `words`): "It hums like the people who used to play."
+- **Tobben:** "Things come back up wrong."
 
 ---
 
