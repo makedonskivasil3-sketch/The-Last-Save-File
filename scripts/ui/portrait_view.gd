@@ -23,6 +23,7 @@ var frame := "":
 var tint := Color("8a7a9a")
 
 var _figure: IllustratedCharacter
+var _asset: PortraitAsset
 
 
 func _ready() -> void:
@@ -32,6 +33,7 @@ func _ready() -> void:
 
 func _rebuild() -> void:
 	_figure = null
+	_asset = PortraitResolver.resolve(portrait)
 	if portrait and CharacterArt.has_portrait(portrait.who):
 		_figure = IllustratedCharacter.new(CharacterArt.kind_for(portrait.who), portrait.palette)
 		_figure.leg_color = portrait.palette.get("l", _figure.leg_color)
@@ -58,6 +60,14 @@ func _draw() -> void:
 	draw_style_box(bg, r)
 	# A soft light behind the head.
 	draw_circle(Vector2(size.x * 0.5, size.y * 0.4), size.x * 0.34, Color(tint, 0.16))
+	if _asset:
+		var shown_frame := frame
+		if shown_frame == "talk" and _figure and fmod(_figure._t, 0.24) >= 0.12:
+			shown_frame = ""
+		var tex := _asset.texture(shown_frame)
+		var source := Rect2(_asset.crop.position * tex.get_size(), _asset.crop.size * tex.get_size())
+		draw_texture_rect_region(tex, r.grow(-3), source)
+		return
 	if _figure == null:
 		return
 	var head_r := float(_figure.body.head)

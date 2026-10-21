@@ -113,17 +113,18 @@ func eye_position() -> Vector2:
 
 
 ## Advance animation. `velocity` in px/s; zero means standing.
-func update(delta: float, velocity: Vector2) -> void:
+func update(delta: float, velocity: Vector2, face_motion := true) -> void:
 	_t += delta
 	var was_moving := moving
 	var was_facing := facing
 	moving = velocity.length() > 2.0
 	if moving:
 		_walk += delta * clampf(velocity.length() / 9.0, 3.0, 9.0)
-		if absf(velocity.x) > absf(velocity.y):
-			facing = Vector2.RIGHT if velocity.x > 0.0 else Vector2.LEFT
-		else:
-			facing = Vector2.DOWN if velocity.y > 0.0 else Vector2.UP
+		if face_motion:
+			if absf(velocity.x) > absf(velocity.y):
+				facing = Vector2.RIGHT if velocity.x > 0.0 else Vector2.LEFT
+			else:
+				facing = Vector2.DOWN if velocity.y > 0.0 else Vector2.UP
 	# Weight (pass 8): stopping settles the body a moment; turning squeezes
 	# it through the turn instead of flipping in one frame.
 	if was_moving and not moving:

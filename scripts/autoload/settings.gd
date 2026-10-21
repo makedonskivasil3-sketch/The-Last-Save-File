@@ -17,6 +17,9 @@ var sfx_volume := 0.9
 var voice_volume := 0.9
 ## Opt-in system speech for dialogue and cinematic narration.
 var narration := false
+## System TTS only; recorded performances retain their authored speed.
+var speech_rate := 2
+const SPEECH_RATES := [0.75, 0.85, 1.0, 1.1]
 ## The world shaking and jittering (events and high awareness). Off keeps
 ## every other effect; nothing gameplay-relevant is shown only by shake.
 var screen_shake := true
@@ -202,6 +205,7 @@ func save() -> void:
 	cfg.set_value("audio", "sfx_volume", sfx_volume)
 	cfg.set_value("audio", "voice_volume", voice_volume)
 	cfg.set_value("accessibility", "narration", narration)
+	cfg.set_value("accessibility", "speech_rate", speech_rate)
 	cfg.set_value("accessibility", "text_speed", text_speed)
 	cfg.set_value("story", "advance_mode", advance_mode)
 	cfg.set_value("story", "auto_speed", auto_speed)
@@ -245,6 +249,8 @@ func _load() -> void:
 	pause_on_focus_loss = bool(cfg.get_value("story", "pause_on_focus_loss", pause_on_focus_loss))
 	var narration_v: Variant = cfg.get_value("accessibility", "narration", false)
 	narration = narration_v if narration_v is bool else false
+	var speech_v: Variant = cfg.get_value("accessibility", "speech_rate", 2)
+	speech_rate = clampi(int(speech_v), 0, SPEECH_RATES.size() - 1) if (speech_v is int or speech_v is float) and is_finite(float(speech_v)) else 2
 	var shake_v: Variant = cfg.get_value("accessibility", "screen_shake", screen_shake)
 	screen_shake = shake_v if shake_v is bool else true
 	fullscreen = bool(cfg.get_value("video", "fullscreen", fullscreen))

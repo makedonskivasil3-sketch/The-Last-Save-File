@@ -88,6 +88,7 @@ func _ready() -> void:
 	var narration := _check(right, "Spoken narration", Settings.narration, func(on: bool) -> void: Settings.set_value("narration", on))
 	narration.disabled = not Narration.available()
 	narration.tooltip_text = "Reads dialogue and story scenes using an English system voice. Uses Master and Voices volume." if not narration.disabled else "No English system voice is available. Install a system voice and restart the game. Text and character sounds remain available."
+	_cycler(right, "speech_rate", ["Speech: 0.75x", "Speech: 0.85x", "Speech: 1.0x", "Speech: 1.1x"], "System speech only. A change stops the current utterance; captions remain and the next line uses the new rate. Recordings are unchanged.")
 	if show_reset:
 		_reset_button = UiStyle.button(right, "Reset owner memory", _on_reset)
 

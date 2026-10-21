@@ -1,6 +1,6 @@
 class_name VoiceOver
 extends RefCounted
-## Recorded or generated voice lines (docs/VOICE_PRODUCTION.md). A line plays
+## Recorded or generated voice lines (docs/ASSET_PRODUCTION.md). A line plays
 ## only if its file exists, at res://audio/voice/<id>.ogg (or .wav / .mp3),
 ## where <id> is the line's stable dialogue id (audio/voice/manifest.csv).
 ## Everything else keeps its readable text and procedural voice: a missing

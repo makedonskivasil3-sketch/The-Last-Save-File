@@ -119,7 +119,8 @@ func utterance_event(ev: int) -> void:
 static func speech_for(speaker: String, voices: int) -> Dictionary:
 	var c: Dictionary = CHARACTER_SPEECH.get(speaker, CHARACTER_SPEECH[""])
 	var n := maxi(voices, 1)
-	return {"voice": int(c.voice) % n, "pitch": float(c.pitch), "rate": float(c.rate), "say_name": n < 3}
+	var multiplier: float = Settings.SPEECH_RATES[clampi(Settings.speech_rate, 0, Settings.SPEECH_RATES.size() - 1)]
+	return {"voice": int(c.voice) % n, "pitch": float(c.pitch), "rate": float(c.rate) * multiplier, "say_name": n < 3}
 
 
 func is_speaking() -> bool:
