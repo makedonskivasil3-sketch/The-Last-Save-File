@@ -33,12 +33,15 @@ const READ_SPEED_NAMES := ["Slow", "Normal", "Fast"]
 const VOICE_DELAYS := [0.0, 0.5, 1.0, 2.0]
 ## Holding interact/confirm this long skips the rest of a cinematic.
 const SKIP_HOLD := 1.2
-## Console (ambient) lines: never longer than this, and only MIN_TIME each
-## when this many more lines are already waiting (no stale backlog).
+## Console (ambient) lines come in two kinds (docs/STORY_TEXT_ROUTES.md):
+## story (thoughts, people, the owner talking) keeps its full reading time;
+## telemetry ("system": counters, file events) is capped at AMBIENT_MAX and
+## moves at MIN_TIME each when BACKLOG more lines are already waiting.
 const AMBIENT_MAX := 6.0
 const BACKLOG := 3
-## The longest an owner line (they carry the warnings) waits behind the
-## line before it. Owner lines also go ahead of queued thoughts.
+## An owner line goes ahead of queued lines, and cuts the pause after a
+## telemetry line to this; it never cuts a story line short. (Urgent owner
+## warnings don't queue at all: Hud.warn shows them at once.)
 const OWNER_GAP := 0.8
 
 
@@ -73,13 +76,19 @@ static func reading_time(text: String, speed := -1) -> float:
 
 
 ## How long a console line stays the newest before the next one starts.
-## A backlog is shown at the minimum pace; everything is in the history.
-## Only system lines are hurried by a backlog: thoughts, people and the owner
-## keep their reading time (capped at AMBIENT_MAX; the History has the rest).
+## Story lines: their reading time. Telemetry: at most AMBIENT_MAX, and the
+## minimum pace in a backlog. Everything is in the History either way.
 static func ambient_time(text: String, waiting: int, kind := "system") -> float:
-	if waiting >= BACKLOG and kind == "system":
+	if not is_telemetry(kind):
+		return reading_time(text)
+	if waiting >= BACKLOG:
 		return MIN_TIME
 	return minf(reading_time(text), AMBIENT_MAX)
+
+
+## A console kind that reports state rather than telling the story.
+static func is_telemetry(kind: String) -> bool:
+	return kind == "system"
 
 
 static func voice_delay() -> float:

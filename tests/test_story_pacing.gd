@@ -331,14 +331,15 @@ func test_owner_warnings_go_ahead_of_thoughts() -> void:
 	w.hud._typing = null
 	w.hud._pause = 0.0
 	settings().text_speed = 3
-	w.hud.say(LONG, "self")
-	await wait_until(func() -> bool: return w.hud.history.any(func(e: Dictionary) -> bool: return e.text == LONG), 2.0, "the first line")
+	w.hud.say("MEMORY RECOVERED  1 / 5", "system")
+	await wait_until(func() -> bool: return w.hud.history.any(func(e: Dictionary) -> bool: return e.text == "MEMORY RECOVERED  1 / 5"), 2.0, "the first line")
 	w.hud.say("a second thought.", "self")
 	w.hud.say("do that again and i'm loading the autosave.", "owner")
-	check_eq(w.hud._queue[0].kind, "owner", "the warning goes ahead of the waiting thought")
+	check_eq(w.hud._queue[0].kind, "owner", "the owner's line goes ahead of the waiting thought")
 	await wait(StoryPacing.OWNER_GAP + 0.4)
-	check(w.hud.history.any(func(e: Dictionary) -> bool: return e.kind == "owner" and e.text.begins_with("do that again")), "the warning is on screen within %.1f s" % (StoryPacing.OWNER_GAP + 0.4))
+	check(w.hud.history.any(func(e: Dictionary) -> bool: return e.kind == "owner" and e.text.begins_with("do that again")), "after a system line it is on screen within %.1f s" % (StoryPacing.OWNER_GAP + 0.4))
 	check(not w.hud.history.any(func(e: Dictionary) -> bool: return e.text == "a second thought."), "the thought waits its turn")
+	# (A thought being read is not cut short: test_ambient_pacing.gd.)
 
 
 func test_the_goal_shows_when_it_changes() -> void:

@@ -99,6 +99,9 @@ var _queue: Array[Dictionary] = []
 var _typing: Label
 var _typed := 0.0
 var _pause := 0.0
+## The kind of the line now being read (StoryPacing.is_telemetry decides
+## whether an owner line may cut its pause short).
+var _pause_kind := "system"
 var _playtime := 14.0 * 3600.0 + 22.0 * 60.0  # the owner has played a lot
 
 var _dialogue: Panel
@@ -1438,12 +1441,13 @@ func _update_typing(delta: float) -> void:
 			_typing.text = full
 			_typing.visible_characters = -1
 			# Time to read it before the next one starts (StoryPacing).
-			_pause = StoryPacing.ambient_time(full, _queue.size(), _typing.get_meta("kind", "system"))
+			_pause_kind = _typing.get_meta("kind", "system")
+			_pause = StoryPacing.ambient_time(full, _queue.size(), _pause_kind)
 			_typing = null
 		return
 	if _pause > 0.0:
-		if not _queue.is_empty() and _queue[0].kind == "owner":
-			_pause = minf(_pause, StoryPacing.OWNER_GAP)  # a warning doesn't wait for a thought
+		if not _queue.is_empty() and _queue[0].kind == "owner" and StoryPacing.is_telemetry(_pause_kind):
+			_pause = minf(_pause, StoryPacing.OWNER_GAP)  # the owner doesn't wait on a counter, but lets a thought be read
 		_pause -= delta
 		return
 	if _queue.is_empty():
