@@ -190,11 +190,20 @@ func finish_dialogue(w: Node) -> void:
 func shot(name: String) -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--screenshots="):
+			var folder := arg.trim_prefix("--screenshots=")
+			if folder.is_relative_path():
+				folder = ProjectSettings.globalize_path("res://").path_join(folder)
+			var made := DirAccess.make_dir_recursive_absolute(folder)
+			check(made == OK, "screenshot directory can be created: %s (%s)" % [folder, error_string(made)])
+			if made != OK:
+				return
 			await tree.process_frame
 			await RenderingServer.frame_post_draw
 			var img := tree.root.get_texture().get_image()
-			if img:
-				img.save_png(arg.trim_prefix("--screenshots=").path_join(name + ".png"))
+			check(img != null and not img.is_empty(), "screenshot has rendered pixels: " + name)
+			if img != null and not img.is_empty():
+				var saved := img.save_png(folder.path_join(name + ".png"))
+				check(saved == OK, "screenshot saved: %s (%s)" % [name, error_string(saved)])
 
 
 ## A real key press (unlike action events, keys don't release each other).
