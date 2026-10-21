@@ -29,6 +29,9 @@ var advance_mode := 0
 var auto_speed := 1
 ## Pause after a voiced line ends, in auto mode (StoryPacing.VOICE_DELAYS).
 var voice_delay := 1
+## How fast the system voice speaks (Narration.SPEECH_RATES): 0 slower,
+## 1 normal, 2 faster, 3 fastest. Text speed is separate.
+var speech_rate := 1
 ## Subtitle text size (dialogue, cinematics, console): 0 normal, 1 large, 2 larger.
 var subtitle_size := 0
 ## Opacity of the backing behind subtitles and the console, 0..1.
@@ -206,6 +209,7 @@ func save() -> void:
 	cfg.set_value("story", "advance_mode", advance_mode)
 	cfg.set_value("story", "auto_speed", auto_speed)
 	cfg.set_value("story", "voice_delay", voice_delay)
+	cfg.set_value("story", "speech_rate", speech_rate)
 	cfg.set_value("story", "subtitle_size", subtitle_size)
 	cfg.set_value("story", "subtitle_bg", subtitle_bg)
 	cfg.set_value("story", "speaker_labels", speaker_labels)
@@ -239,6 +243,7 @@ func _load() -> void:
 	advance_mode = clampi(int(cfg.get_value("story", "advance_mode", advance_mode)), 0, 1)
 	auto_speed = clampi(int(cfg.get_value("story", "auto_speed", auto_speed)), 0, 2)
 	voice_delay = clampi(int(cfg.get_value("story", "voice_delay", voice_delay)), 0, 3)
+	speech_rate = clampi(int(cfg.get_value("story", "speech_rate", speech_rate)), 0, 3)
 	subtitle_size = clampi(int(cfg.get_value("story", "subtitle_size", subtitle_size)), 0, 2)
 	subtitle_bg = clampf(float(cfg.get_value("story", "subtitle_bg", subtitle_bg)), 0.0, 1.0)
 	speaker_labels = bool(cfg.get_value("story", "speaker_labels", speaker_labels))

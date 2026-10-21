@@ -34,17 +34,43 @@ var _owns_speech := false
 var last_text := ""
 var supported := false
 
+## Settings.speech_rate: how fast the system voice speaks (a multiplier on
+## each character's own pace). Separate from text speed and auto reading.
+const SPEECH_RATES := [0.8, 1.0, 1.25, 1.5]
+const SPEECH_RATE_NAMES := ["Slower", "Normal", "Faster", "Fastest"]
+## The device's speech service is asked for voices only when speech may be
+## used (narration on, or the settings / sound check on screen), and while
+## the answer is still "none", at most once per PROBE_INTERVAL_MS (A24).
+const PROBE_INTERVAL_MS := 2000
+## How many times the device has been asked (tests, diagnostics).
+static var probes := 0
+static var _probed_at := -PROBE_INTERVAL_MS
+
+
 func _ready() -> void:
-	supported = available()
+	supported = available() if Settings.narration else false
 	Settings.changed.connect(_settings_changed)
 
 ## Asked again while the list is empty: browsers (and some desktops) only
 ## report their voices a moment after startup, and caching the first, empty
-## answer switched narration off for the whole session.
+## answer switched narration off for the whole session. Never asked more
+## often than every PROBE_INTERVAL_MS while nothing has been found.
 static func available() -> bool:
-	if _english_voices.is_empty() and DisplayServer.has_feature(DisplayServer.FEATURE_TEXT_TO_SPEECH):
+	if not _english_voices.is_empty():
+		return true
+	var now := Time.get_ticks_msec()
+	if now - _probed_at < PROBE_INTERVAL_MS:
+		return false
+	_probed_at = now
+	probes += 1
+	if DisplayServer.has_feature(DisplayServer.FEATURE_TEXT_TO_SPEECH):
 		_english_voices = DisplayServer.tts_get_voices_for_language("en")
 	return not _english_voices.is_empty()
+
+
+## The player's speech-rate multiplier (Settings.speech_rate).
+static func speech_rate() -> float:
+	return SPEECH_RATES[clampi(Settings.speech_rate, 0, SPEECH_RATES.size() - 1)]
 
 func speak(text: String, speaker := "") -> void:
 	if not Settings.narration or Settings.voice_volume <= 0.001 or Settings.volume <= 0.001:
@@ -119,7 +145,7 @@ func utterance_event(ev: int) -> void:
 static func speech_for(speaker: String, voices: int) -> Dictionary:
 	var c: Dictionary = CHARACTER_SPEECH.get(speaker, CHARACTER_SPEECH[""])
 	var n := maxi(voices, 1)
-	return {"voice": int(c.voice) % n, "pitch": float(c.pitch), "rate": float(c.rate), "say_name": n < 3}
+	return {"voice": int(c.voice) % n, "pitch": float(c.pitch), "rate": clampf(float(c.rate) * speech_rate(), 0.5, 2.0), "say_name": n < 3}
 
 
 func is_speaking() -> bool:
@@ -136,6 +162,8 @@ func stop() -> void:
 func _settings_changed() -> void:
 	# A volume or accessibility change must also affect an active utterance.
 	stop()
+	if Settings.narration and not supported:
+		supported = available()  # switched on: now it's worth asking
 
 func _notification(what: int) -> void:
 	if not _owns_speech:

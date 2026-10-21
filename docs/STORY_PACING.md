@@ -117,3 +117,19 @@ Separate **Master, Music, Effects and Voices** volumes are under Sound. **No obj
 - every voiced line is also its subtitle (`test_no_line_needs_audio_to_be_understood`);
 - warnings are banners and the warning strip;
 - recordings that are missing fall back to text.
+
+## Spoken speech rate
+
+`Settings.speech_rate` (Settings → Help → *Speech rate*: Slower, Normal,
+Faster, Fastest = 0.8×, 1×, 1.25×, 1.5×) scales how fast the optional
+system voice (`Narration`) speaks, on top of each character's own pace,
+clamped to 0.5–2.0. It is separate from *text speed* (how fast letters
+appear) and *auto reading* (how long a line stays). In Auto, a line still
+waits for the voice to finish, so a slower voice keeps a line up longer;
+in Manual, the player advances as always. Recorded takes (`VoiceOver`)
+are not retimed.
+
+The device is asked for system voices only when speech may be used:
+narration on, or the settings / sound check on screen. While it answers
+"none", it is asked at most every 2 s (`Narration.PROBE_INTERVAL_MS`), so
+voices a browser reports late are still found (A24).

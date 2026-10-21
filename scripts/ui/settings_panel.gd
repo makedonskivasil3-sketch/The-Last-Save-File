@@ -17,6 +17,7 @@ var _music_slider: HSlider
 var _effects: HSlider
 var _reset_button: Button
 var _reset_armed := false
+var _narration: CheckButton
 
 
 func _ready() -> void:
@@ -85,13 +86,26 @@ func _ready() -> void:
 	_check(left, "Speaker names", Settings.speaker_labels, func(on: bool) -> void: Settings.set_value("speaker_labels", on))
 	_section(right, "HELP")
 	_check(right, "Tutorial tips", Settings.tutorial_tips, func(on: bool) -> void: Settings.set_value("tutorial_tips", on))
-	var narration := _check(right, "Spoken narration", Settings.narration, func(on: bool) -> void: Settings.set_value("narration", on))
-	narration.disabled = not Narration.available()
-	narration.tooltip_text = "Reads dialogue and story scenes using an English system voice. Uses Master and Voices volume." if not narration.disabled else "No English system voice is available. Install a system voice and restart the game. Text and character sounds remain available."
+	_narration = _check(right, "Spoken narration", Settings.narration, func(on: bool) -> void: Settings.set_value("narration", on))
+	_cycler(right, "speech_rate", Narration.SPEECH_RATE_NAMES.map(func(n: String) -> String: return "Speech rate: " + n),
+		"How fast the system voice speaks. Text speed and auto reading are separate.")
+	# The device is asked for voices when these settings are on screen, not
+	# when the menu is built (A24).
+	# (Deferred: a menu built inside a box that is hidden right after, like
+	# the title's, is never on screen and asks nothing.)
+	visibility_changed.connect(_refresh_narration)
+	_refresh_narration.call_deferred()
 	if show_reset:
 		_reset_button = UiStyle.button(right, "Reset owner memory", _on_reset)
 
 	UiStyle.button(self, "Back", func() -> void: closed.emit(), "ui_back")
+
+
+func _refresh_narration() -> void:
+	if not is_visible_in_tree() or _narration == null:
+		return
+	_narration.disabled = not Narration.available()
+	_narration.tooltip_text = "Reads dialogue and story scenes using an English system voice. Uses Master and Voices volume." if not _narration.disabled else "No English system voice is available. Install a system voice and restart the game. Text and character sounds remain available."
 
 
 func focus_first() -> void:
