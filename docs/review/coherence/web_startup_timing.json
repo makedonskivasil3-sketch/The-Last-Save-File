@@ -1,0 +1,27 @@
+{
+  "marks": {
+    "title": 6,
+    "opening": 9.5,
+    "game_scene": 16.7,
+    "boot_text": 19.2,
+    "boot_text_done": 60.8,
+    "playable": 72.4
+  },
+  "fps": {
+    "title": 1,
+    "opening": 5,
+    "game_scene": 12,
+    "boot_text": 4,
+    "boot_text_done": 7,
+    "playable": 7
+  },
+  "holds": {
+    "cinematic": 18,
+    "cutscene": 5
+  },
+  "slowest_ms": 150,
+  "presses": 19,
+  "game_ms": 6022,
+  "wall_ms": 55283,
+  "clock_ratio": 9.2
+}

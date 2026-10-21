@@ -2,7 +2,53 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current: continuity milestone, review branch (2026-10-21)
+## Current: coherence milestone, review branch (2026-10-21)
+
+Branch: `claude/last-save-file-prototype-ljwuq4` (PR #10, draft, **not
+merged**). `main` = `09aeb3b`. The code head is `537df8c`; later commits
+are documents only. The evidence and the remaining work are in
+`docs/COHERENCE_MILESTONE.md`. The contract is
+`docs/NARRATIVE_CONTRACT.md`, **proposed** (revision 2, §0).
+
+**Behaviour changes, each documented and tested:**
+- **Save v3, migrated from v2.** Ordered, counted relationship events.
+  Learned facts. Archive marks by revision.
+- **One selection path for conversations.** Mira and Tobben react to
+  what happened between you. A consequence is said once, when it's read
+  whole; it waits for the next meeting, however many runs later.
+- **The archive** says only what Rue saw, was told, thinks, or doesn't
+  know. It gives each object one status, marks updated entries, and keeps
+  the reader's place.
+- **The map** keeps every place found across runs.
+- **The kept place** under the well is offered earlier (after the well's
+  tune), and Rue chooses it. Answering the well no longer sets it.
+  Quit and crash rules are unchanged.
+- **The well's evidence** is honest: a recording, not live contact.
+- **The opening's last shot** matches canon.
+- **The browser check** measures startup and bounds it by game time.
+
+**Verification on `537df8c`:**
+
+| Check | Result |
+|---|---|
+| Strict full suite (one complete monolithic run) | **547/547**, 1238.3 s, exit 0; 547 unique cases across all 81 test files |
+| Ending bots `--speed=3` | **5/5** exact endings. Two Edge deaths with retries (escape at purge 0 and at purge 3); 14 recovered bot stalls in total |
+| Exports | Web, Windows Desktop, Linux: exit 0. SHA-256 prefixes: exe `a502defdd9b4`, linux `4636f527b6af`, pck `fc6243607296`, wasm `fe5cebc59075` |
+| Linux binary | 300 frames under xvfb, exit 0 (no audio device in the container) |
+| `web_check.cjs` | All passed. Playable after 6.0 s of game time (55.3 s wall on SwiftShader) |
+| `audio_output_check.cjs` | Audible after a gesture, "running", **no visible badge** |
+| Shutdown | ObjectDB warning still printed at the full suite's exit (A14). Owners identified; not filtered |
+
+**Not verified:**
+- Windows execution
+- an iPhone
+- a real GPU, a phone or a gamepad
+- human listening
+- uncoached players
+
+None of these is claimed.
+
+## Previous: continuity milestone, review branch (2026-10-21)
 
 Branch: `claude/last-save-file-prototype-ljwuq4`, not merged. `main` (now
 `09aeb3b`, with PR #9) was merged into it. Where PR #9 and this branch

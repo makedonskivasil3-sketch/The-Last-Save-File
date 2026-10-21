@@ -166,11 +166,78 @@ one.
   `docs/review/continuity/opening_shot8_before.png` (`d4c0df5`) and the
   new capture (§4).
 
-## 4. Verification
+## 4. Verification (on this branch's code head, `537df8c`)
 
-(Filled in from runs on this branch's final head.)
+| Check | Result | Kind of coverage |
+|---|---|---|
+| Strict full suite | **547 passed, 0 failed**, 1238.3 s, exit 0 | One completed monolithic run. 547 unique cases (no duplicate names), all 81 test files (`test_case.gd` is the base). No script errors. |
+| The same, one commit earlier (`9d691a4`) | 546 passed, 1 failed (`test_gameplay_consistency.test_a_truth_piece_counts_when_its_line_is_shown`, encoding the old stacking), plus 2 "freed lambda capture" errors | Both fixed in `537df8c`. CI saw the same on `d4c0df5`. |
+| Ending bots, `--speed=3` | **5/5** exact endings | Requested = actual for each, below. |
+| Exports | Web, Windows Desktop, Linux: exit 0 | Export integrity only. |
+| Linux binary | 300 frames under xvfb, exit 0 | Runs. The container has no audio device (ALSA `ERR_CANT_OPEN`). |
+| `web_check.cjs` (headless Chromium, SwiftShader) | All passed. Playable after **6.0 s of game time** (55.3 s wall), bound 30 s of game time | Timing in `docs/review/coherence/web_startup_timing.json` |
+| `audio_output_check.cjs` | Audible after a gesture; `soundState` "running"; **no visible badge** | Headless Chromium, not an iPhone |
+| Captures | `docs/review/coherence/` (k1–k5, opening shot 8 before/after) | Rendered with the Compatibility renderer under xvfb, 1280×720 |
 
-## 5. Commits
+**Ending bots, requested versus actual:**
 
-| Commit | What |
-|---|---|
+| Requested | Actual | Sessions | Deaths | Retries | Stalls (recovered) |
+|---|---|---|---|---|---|
+| escape, purge 0 | escape | 2 | 1 (eraser at the Edge) | 1 | 10 |
+| message | message | 1 | 0 | 0 | 4 |
+| escape, purge 3 | escape | 2 | 1 (eraser at the Edge) | 1 | 0 |
+| escape, purge 5 | escape | 1 | 0 | 0 | 0 |
+| wren | wren | 1 | 0 | 0 | 0 |
+
+The stalls are the bot's steering recovering, not softlocks: every run
+reached its exact ending. They are bot navigation limits, not player
+difficulty, and are not evidence of either.
+
+**Why the browser takes long to start** (§2 F15, measured, `9257311`):
+- **Where the time goes:** title at 6 s; the boot text from 19 s to 61 s;
+  playable at 72 s. Measured in wall time.
+- **Why:** SwiftShader renders at about 2.5 real frames per second, and
+  the engine clamps each frame's step, so game time runs about 10× slower
+  than wall time.
+- **Not a softlock:** the holds were "cinematic" then "cutscene", with
+  play never stuck.
+
+**Shutdown warnings (A14).** Minimal reproductions and owners are in the
+commit `9d691a4`:
+- **Forced exit** (`--quit-after`): about 19 leaked audio objects before
+  the fix, 3 playbacks after, plus one suspended coroutine.
+- **Exit through `prepare_quit()`:** clean for a minimal run.
+- **The full suite's exit:** still one warning. `test_audio` leaves
+  playbacks and a pending `SceneTreeTimer`.
+
+The warnings are not filtered. They are open, and their owners are named.
+
+## 5. Not verified, blocked, and remaining
+
+- **No unfamiliar players.** None were available, and no results are
+  claimed. The questions to ask, unchanged, are in
+  `docs/CONTINUITY_MILESTONE.md`, plus two more:
+  - "What does the well prove?"
+  - "Why did you come back?"
+- **No listening.** No recorded acting exists. No voice pilot was made,
+  because nobody here can listen, and generating one spends the author's
+  credits.
+- **No hardware.** No Windows execution, iPhone, real GPU, gamepad or
+  rendered-export frame-time profile on real hardware. The browser numbers
+  above are SwiftShader in a container.
+- **Remaining inconsistencies:**
+  - The Archivist still uses his own provider, not `Relationships`.
+  - Tobben's selector has no restricted or reset states (he has none in
+    play).
+  - Frayed people show the colours they were last seen in.
+  - The ObjectDB warning at the full suite's exit.
+  - The larger Square (§3b) is specified, not built.
+- **Needs the author** (`docs/NARRATIVE_CONTRACT.md` §0.7):
+  - the canon;
+  - trace-only versus live contact;
+  - the earlier kept place;
+  - the 45 s opening.
+
+## 6. Commits
+
+See §3. Verification fixes: `537df8c`. Documents and the coherence tour: `0c2a20f`.
