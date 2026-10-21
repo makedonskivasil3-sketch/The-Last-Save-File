@@ -49,7 +49,10 @@ func test_mira_pins_her_note_herself() -> void:
 	var next := await wait_for_new_session(w)
 	await go_to(next, "square", "house")
 	check(next.area.board.text.begins_with("MIRA WAS HERE"), "it stays up, every run")
-	check(Story.recall("mira").contains("With my own hands"), "and Mira knows")
+	await go_to(next, "room", "start")
+	var told := Relationships.mira(next.area.mira.state == Npc.State.RESTRICTED, false, false)
+	check(str(told.get("lines", [])).contains("With my own hands"), "and Mira knows (%s)" % str(told))
+	check(Relationships.has("mira.pinned"), "kept as something that happened between you")
 
 
 func test_the_owner_resets_mira_if_you_let_it() -> void:

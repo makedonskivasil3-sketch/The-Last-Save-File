@@ -53,9 +53,15 @@ func test_mira_remembers_the_message() -> void:
 	m.last_exit = "win"
 	var w := await start_session()
 	var talk: Dictionary = w.area.mira.interact()
-	check(str(talk.lines[0]).contains("watched"), "Mira's first line remembers the message ending (%s)" % talk.lines[0])
+	var said := str(talk.lines[talk.lines.size() - 1])
+	check(said.contains("watched"), "Mira remembers the message ending (%s)" % said)
 	var again: Dictionary = w.area.mira.interact()
-	check(not str(again.lines[0]).contains("watched"), "only once a session")
+	check(str(again.lines[again.lines.size() - 1]).contains("watched"), "walked away from, it is said again")
+	# Read to its last line, it's been said (World commits it).
+	await interact_with(w, w.area.mira)
+	await finish_dialogue(w)
+	var after: Dictionary = w.area.mira.interact()
+	check(not str(after.lines[after.lines.size() - 1]).contains("watched"), "read whole: not again (%s)" % str(after.lines))
 
 
 func test_tobben_misses_wren() -> void:

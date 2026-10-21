@@ -187,7 +187,7 @@ func _archivist_core() -> Array:
 	PlaytestLog.mark("got the pointer (north road open)", "", true)
 	world.hud.say("RECEIVED: slot_2.ptr", "system")
 	OwnerMemory.met_archivist = true
-	OwnerMemory.save_memory()
+	Relationships.add("archivist.pointer")  # saves
 	return ARCHIVIST_FIRST.duplicate()
 
 

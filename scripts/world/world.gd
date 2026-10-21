@@ -825,6 +825,8 @@ func start_escort(npc: Npc) -> void:
 	escort = npc
 	_crumbs.clear()
 	OwnerMemory.note_helper(npc.npc_id)
+	if npc.npc_id == "mira":
+		Relationships.add("mira.walked")
 	hud.say("%s.npc  ·  following" % npc.npc_id, "system")
 	director.say("mira? what is mira doing out of her room." if npc.npc_id == "mira" else "where are you taking her?")
 
@@ -910,7 +912,7 @@ func mira_pins_note() -> void:
 	player.frozen = true
 	director.paused = true
 	OwnerMemory.mira_quest = "pinned"
-	OwnerMemory.save_memory()
+	Relationships.add("mira.pinned")  # saves
 	await hud.cinematic("MIRA", Story.MIRA_PIN_SCENE, Color("e0a070"), 0.6, "mira.pin", CharacterArt.for_npc(escort, "proud"))
 	if not is_inside_tree() or ending != "":
 		return  # the run ended during the scene: nothing here is kept
@@ -940,7 +942,7 @@ func lose_escort() -> void:
 	escort = null
 	if lost.npc_id == "mira":
 		OwnerMemory.mira_quest = "reset"
-		OwnerMemory.save_memory()
+		Relationships.add("mira.reset")  # saves
 		hud.say(Story.MIRA_RESET_LAST, "npc", "MIRA")
 		hud.say("mira.npc  ·  reset to defaults", "system")
 		director.say("there. back where you belong.")
@@ -1251,7 +1253,7 @@ func is_mira_deleted() -> bool:
 
 ## Someone deleted is back (RESTORE, or the Recycle Bin): for good.
 func note_restored(id: String) -> void:
-	Relationships.add(id + ".restored")
+	Relationships.mark(id + ".restored")  # each time: someone can be lost and brought back again
 	OwnerMemory.npc_fates.erase(id)
 	OwnerMemory.note_restored(id)
 	if id == "mira":
@@ -1454,6 +1456,12 @@ func kill(cause: String, reason := "") -> void:
 	drone.tension = 1.0
 	if escort_id() == "mira":
 		OwnerMemory.mira_quest = "lost"  # the owner found her out of her room, and her note
+		Relationships.mark("mira.note_lost")
+	# Mira sees it only if it happens in her room, in front of her.
+	var mira_here: Variant = area.get("mira")
+	if area.area_id == "room" and mira_here is Npc and is_instance_valid(mira_here) and (mira_here as Npc).is_present() \
+			and OwnerMemory.mira_quest != "reset":
+		Relationships.mark("mira.saw_death")
 	# Wren remembers it only if she saw it: walking with you, or there.
 	var wren_here: Variant = area.get("wren")
 	if escort_id() == "wren" or (wren_here is Npc and is_instance_valid(wren_here) and (wren_here as Npc).is_present()):

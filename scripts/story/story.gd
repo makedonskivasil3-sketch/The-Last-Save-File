@@ -328,7 +328,7 @@ const MIRA_NOTE_TEXT := "MIRA WAS HERE.\nI TALK. I REMEMBER.\n— M"
 const MIRA_NOTE_LOST := [
 	"mira_note.txt · confiscated · never pinned",
 	"\"MIRA WAS HERE. I TALK. I REMEM\"",
-	"the owner found it on you. they read it, then threw it away.",
+	"the owner took it off her when they took you. they read it, then threw it away.",
 ]
 
 ## Tobben's guest book: bring the torn page's name back. A quiet moment.
@@ -634,12 +634,9 @@ static func recall_lines(who: String) -> Array:
 ## [condition, line] in order; the first condition that holds wins ("" says
 ## nothing). Conditions are read by _recall_holds().
 const RECALL := {
+	# Mira's pinned note, lost note, restoration and Wren's fate are her own
+	# conversations now (Relationships.mira), said once each.
 	"mira": [
-		["mira_pinned", "I pinned it. Me! With my own hands, in the square. The owner stood at the board for a whole minute. They didn't take it down."],
-		["mira_reset", ""],
-		["mira_lost", "My note... they found it on you, didn't they. It's alright. I'll write another one. I won't."],
-		["mira_restored", "I was deleted. Then I wasn't. I remember the dark in between. Thank you."],
-		["wren_lost", "They took Wren. She wanted to see the Edge so badly."],
 		["ended:message", "The owner sat with the game open for an hour last night. Didn't move Arin once. Just watched."],
 		["ended:wren", "There's a new name in the save menu. Wren's. Did you do that?"],
 		["ended:escape", "You got out. I watched the slot fill. So why are you back?"],
@@ -725,7 +722,7 @@ const CHARACTER_FILE := [
 	"play time: 41:07:12. last session: the night before the move. save: interrupted at 87%.",
 	"player: still in session.",
 	"character: worn by the player.",
-	"rebuilt from: slot2_backup.sav, the owner's recycle bin, cut content, and small things that belonged to other people.",
+	"costume rebuilt from: slot2_backup.sav, the owner's recycle bin, cut content, and small things that belonged to other people.",
 ]
 ## The reveal, once the file has been read whole.
 const TRUTH_REVEAL := [

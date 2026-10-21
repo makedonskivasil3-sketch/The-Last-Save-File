@@ -85,7 +85,7 @@ func test_stepping_away_cuts_the_answer_off() -> void:
 
 func test_after_a_death_you_wake_under_the_well() -> void:
 	memory().fragments.assign(["controller"])
-	memory().rel_events["wren.promised"] = 1
+	memory().event_at("wren.promised", 1)
 	var w := await start_session()
 	check(w.set_anchor("oob:pillar"), "anchor set")
 	check_eq(memory().anchor.keys(), ["id", "version", "session"], "a place by id: no items, no choices, no coordinates")

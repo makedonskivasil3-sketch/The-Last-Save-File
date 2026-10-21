@@ -46,8 +46,8 @@ func test_an_interrupted_reunion_is_not_committed() -> void:
 	# Wren saw you die last run.
 	memory().sessions = 1
 	memory().encounters["wren"] = {"first": 1, "last": 1, "count": 1}
-	memory().rel_events["wren.met"] = 1
-	memory().rel_events["wren.saw_death"] = 1
+	memory().event_at("wren.met", 1)
+	memory().event_at("wren.saw_death", 1)
 	memory().last_exit = "death"
 	memory().last_death = "arin"
 	var w := await start_session()
@@ -103,21 +103,21 @@ func test_characters_acknowledge_only_what_they_saw() -> void:
 func test_a_promise_and_a_restoration_are_remembered() -> void:
 	memory().sessions = 2
 	memory().encounters["wren"] = {"first": 1, "last": 1, "count": 2}
-	memory().rel_events["wren.met"] = 1
-	memory().rel_events["wren.promised"] = 1
-	memory().rel_events["wren.promise_broken"] = 1
+	memory().event_at("wren.met", 1)
+	memory().event_at("wren.promised", 1)
+	memory().event_at("wren.promise_broken", 1)
 	var w := await start_session()
 	w.note_restored("wren")
 	await go_to(w, "square", "house")
 	var told: Dictionary = _wren(w).interact()
 	w.hud.close_dialogue()
 	check(" ".join(told.lines).contains("You said you'd"), "restored after a broken promise: she half-remembers it (%s)" % [told.lines])
-	check_eq(told.conversation, "wren.after_restore", "a conversation of its own")
+	check_eq(told.conversation, "wren.after_restore:1", "a conversation of its own, for this restoration")
 	check_eq(Relationships.unresolved("wren"), "You promised her the Edge. She was deleted before you got there.", "the promise is still open in the journal")
 	var hist := Relationships.history("wren")
 	check(hist.has(Relationships.EVENTS["wren.restored"]) and hist.has(Relationships.EVENTS["wren.promised"]), "history lists what happened (%s)" % [hist])
 	check(not hist.has(Relationships.EVENTS["wren.promise_kept"]), "and nothing that didn't")
-	memory().rel_events["wren.sheltered"] = 1
+	memory().event_at("wren.sheltered", 1)
 	hist = Relationships.history("wren")
 	check(hist.find(Relationships.EVENTS["wren.met"]) < hist.find(Relationships.EVENTS["wren.sheltered"]), "same run: meeting her comes first (%s)" % [hist])
 

@@ -57,7 +57,8 @@ const MIRA_RESTRICTED := [
 ## (VoiceManifest), including what she remembers (Story.recall_lines).
 static func voice_lines() -> Dictionary:
 	return {"npc.mira": Story.recall_lines("mira") + [Story.TRUTH_LINES.mira] + Story.FRAY_TAKEN.mira
-		+ [Story.FRAY_LINES.mira, Story.FRAY_RECALL.mira, Story.FRAY_RETURNED.mira] + MIRA_LINES + MIRA_RESTRICTED + Story.MIRA_RESET_LINES + Story.MIRA_ASK + Story.MIRA_JOINS + Story.MIRA_DECLINED}
+		+ [Story.FRAY_LINES.mira, Story.FRAY_RECALL.mira, Story.FRAY_RETURNED.mira] + MIRA_LINES + MIRA_RESTRICTED + Story.MIRA_RESET_LINES + Story.MIRA_ASK + Story.MIRA_JOINS + Story.MIRA_DECLINED
+		+ Relationships.mira_lines()}
 
 
 ## How Mira looks saying each of her lines (CharacterArt expressions; the
@@ -80,6 +81,19 @@ static func mira_expression(line: String) -> String:
 	for entry in Story.RECALL["mira"]:
 		if recall.has(entry[0]):
 			by_line[entry[1]] = recall[entry[0]]
+	# What happened between you (Relationships.mira).
+	var R := Relationships
+	for pair in [[R.MIRA_AFTER_DEATH, "afraid"], [R.MIRA_AFTER_RESTORE, "remembering"], [R.MIRA_AFTER_PINNED, "proud"],
+			[R.MIRA_AFTER_NOTE_LOST, "concerned"], [R.MIRA_ASK_AGAIN, "eager"], [R.MIRA_ESCORT, "determined"]]:
+		for l in pair[0]:
+			by_line[l] = pair[1]
+	by_line[R.MIRA_HUSHED] = "afraid"
+	by_line[R.MIRA_WREN_GONE] = "concerned"
+	by_line[R.MIRA_WREN_SAFE] = "relieved"
+	by_line[R.MIRA_GREETING] = "relieved"
+	by_line[R.MIRA_GREETING_FADED] = "concerned"
+	by_line[R.MIRA_GREETING_HUSHED] = "afraid"
+	by_line[R.MIRA_AFTER_PINNED[1]] = "eager"
 	return by_line.get(line, "neutral")
 
 
@@ -258,6 +272,7 @@ func on_owner_event(event: float) -> void:
 		OwnerDirector.SILENCE:
 			if not mira.escorted and mira.delete():
 				world.flags["mira_deleted"] = true
+				Relationships.mark("mira.deleted")  # Rue is in the room: she sees it
 				world.fx.spike(0.8, 1.2)
 				world.director.say("don't talk to it, mira.")
 				world.voice("mira_deleted")
@@ -286,17 +301,25 @@ func _on_seam(s: Seam) -> void:
 	OwnerMemory.note_seam(s.id)
 
 
-func _mira_lines() -> Array:
-	# Reset by the owner: she doesn't know you any more.
+func _mira_lines() -> Variant:
+	# Reset by the owner: she doesn't know you any more, so nothing that
+	# happened between you is hers to mention.
 	if OwnerMemory.mira_quest == "reset":
 		var reset: String = Story.MIRA_RESET_LINES[mini(_mira_line, Story.MIRA_RESET_LINES.size() - 1)]
 		_mira_line += 1
 		return [reset]
-	# Her request, once she trusts you a little: take her to the square.
-	if mira.state == Npc.State.NORMAL and OwnerMemory.mira_quest in ["", "carried"] and _mira_line >= _mira_ask_at \
-			and world.escort == null:
+	# Her request, once she trusts you a little: take her to the square
+	# (only while the owner hasn't locked her down; that rule is unchanged).
+	var ask_ready := mira.state == Npc.State.NORMAL and OwnerMemory.mira_quest == "" and _mira_line >= _mira_ask_at \
+			and world.escort == null
+	# What happened between you comes first (Relationships.mira).
+	var told := Relationships.mira(mira.state == Npc.State.RESTRICTED, ask_ready, world.escort_id() == "mira")
+	if not told.is_empty():
+		_mira_asked = told.get("ask", false)
+		return told
+	if ask_ready:
 		_mira_asked = true
-		return Story.MIRA_ASK
+		return {"lines": Story.MIRA_ASK, "id": "mira.ask", "commit": ["mira.asked"]}
 	var lines: Array = MIRA_LINES if mira.state == Npc.State.NORMAL else MIRA_RESTRICTED
 	var line: String = lines[mini(_mira_line, lines.size() - 1)]
 	_mira_line += 1

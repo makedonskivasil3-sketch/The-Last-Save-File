@@ -213,11 +213,17 @@ func _where() -> String:
 
 
 func interact() -> Dictionary:
-	# Meeting someone counts when the conversation opens (Relationships);
-	# what was said counts only once it's read to the end (World).
+	# One selection path (Relationships): an urgent remark about how they are
+	# stands alone; otherwise the area asks the character's selector for a
+	# consequence, continuation or new topic, and falls back to their usual
+	# lines, which a familiar greeting may open (once a session).
+	# Meeting someone counts when the conversation opens; what was said
+	# counts only once it's read to the end (World).
+	var present := state != State.DELETED and not mute
+	var urgent := Relationships.urgent(self) if present else {}
+	var told: Variant = urgent if not urgent.is_empty() else lines_provider.call()
 	var conversation := ""
 	var commit: Array = []
-	var told: Variant = lines_provider.call()
 	var lines: Array = []
 	if told is Dictionary:
 		lines = told.get("lines", [])
@@ -227,32 +233,13 @@ func interact() -> Dictionary:
 		lines = told
 	if state != State.DELETED:
 		OwnerMemory.meet(npc_id, _where(), sprite().palette)
-	# A piece Rue took (or gave back): said once a session, before anything.
-	if state != State.DELETED:
-		if npc_id in OwnerMemory.returned_pending and Story.FRAY_RETURNED.has(npc_id):
-			OwnerMemory.returned_pending.erase(npc_id)
-			OwnerMemory.save_memory()
-			lines = [Story.FRAY_RETURNED[npc_id]] + lines
-		elif is_frayed() and "fray:" + npc_id not in OwnerMemory.session_recalled:
-			OwnerMemory.session_recalled.append("fray:" + npc_id)  # once a session, not once a visit
-			lines = [Story.FRAY_LINES[npc_id] if npc_id in OwnerMemory.session_frayed else Story.FRAY_RECALL[npc_id]] + lines
-	# What they've noticed about what Rue is, once it's time (said once ever),
-	# goes before their usual lines...
-	# (Counted when the line is actually shown: World._on_line_shown.)
-	var truth := Story.truth_line(npc_id) if state != State.DELETED else ""
-	if truth != "":
-		lines = [truth] + lines
-	# ...and the first time you talk this session, anything they remember
-	# from your last runs comes first of all.
-	# (Not when they're already answering something that happened: a
-	# reunion or a promise says it in its own words.)
-	if state != State.DELETED and npc_id not in OwnerMemory.session_recalled:
-		OwnerMemory.session_recalled.append(npc_id)
-		var memory := Story.recall(npc_id) if conversation == "" else ""
-		if memory == "" and conversation == "":
-			memory = Relationships.greeting(npc_id)
-		if memory != "":
-			lines = [memory] + lines
+	# Their usual lines (no conversation id): a greeting first, if they knew
+	# Rue in an earlier session. Never before something that happened: a
+	# reunion or a promise says it in its own words.
+	if present and urgent.is_empty() and conversation == "" and told is Array:
+		var hello := Relationships.greeting(self)
+		if hello != "":
+			lines = [hello] + lines
 	if on_talk.is_valid():
 		on_talk.call()
 	return {"speaker": Story.TOBBEN_WRITTEN if npc_id == "tobben" and is_frayed() else display_name, "color": name_color, "lines": lines,

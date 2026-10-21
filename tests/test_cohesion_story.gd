@@ -45,8 +45,12 @@ func test_restricted_mira_still_remembers() -> void:
 	var w := await start_session()
 	check_eq(w.area.mira.state, Npc.State.RESTRICTED, "after a death she isn't allowed to talk to you")
 	var heard: Array = await _talk(w, w.area.mira)
-	check(not heard.is_empty() and heard[0] == Story.recall("mira"), "but the first thing she says is what she remembers (%s)" % str(heard))
-	check(heard.size() >= 2 and heard[1] == ArinsRoom.MIRA_RESTRICTED[0], "then that she isn't allowed to talk")
+	# One topic per conversation (Relationships): locked down, she still
+	# says what she saw, quickly; the lock shapes how, not whether.
+	check_eq(heard, [Relationships.MIRA_HUSHED, Story.RECALL.mira.filter(func(e: Array) -> bool: return e[0] == "died:arin")[0][1]],
+		"she whispers what she saw: Arin coming back alone")
+	heard = await _talk(w, w.area.mira)
+	check_eq(heard, [ArinsRoom.MIRA_RESTRICTED[0]], "said once: then she isn't allowed to talk")
 
 
 func test_the_pointer_is_kept_between_runs() -> void:

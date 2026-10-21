@@ -15,7 +15,7 @@ const MAX_REMEMBERED_DEATHS := 12
 ## The owner never finds the last seam out of Arin's room.
 const SEAM_COUNT := 5
 ## Bump when the save's shape changes, and teach _migrate the old shape.
-const SAVE_VERSION := 2
+const SAVE_VERSION := 3
 
 var sessions: int = 0
 var deaths: int = 0
@@ -118,8 +118,17 @@ var last_exit: String = "none"
 var encounters: Dictionary = {}
 ## Conversations read to their last line (ids from Relationships).
 var conversations: Array[String] = []
-## Relationship events: id -> the session it happened in (Relationships.EVENTS).
+## Relationship events (Relationships.EVENTS): id -> {"first": session,
+## "last": session, "count": n, "seq": order of the latest occurrence,
+## "first_seq": order of the first}. One record per id, so the save never
+## grows with play; the sequence keeps the order of events in one session
+## and of repeats (a ribbon taken again after it was given back).
 var rel_events: Dictionary = {}
+## The last sequence number handed out (rel_events, learned facts).
+var event_seq := 0
+## Facts Rue has learned, by id (ArchivePages.FACTS): id -> sequence number.
+## Learned when the line that tells her is actually shown, never on meeting.
+var facts: Dictionary = {}
 ## Places Rue has been, ever (the session's own visits are World._visited).
 var places: Array[String] = []
 ## The well's sequence, in order (docs/NARRATIVE_CONTRACT.md §6).
@@ -127,8 +136,10 @@ var well_events: Array[String] = []
 ## The checkpoint (layer C): {"id", "version", "session"} or empty. The place
 ## is looked up from the id (World.ANCHORS), never stored as coordinates.
 var anchor: Dictionary = {}
-## Archive entries opened at least once (ArchivePages keys): the rest are new.
-var archive_seen: Array[String] = []
+## Archive entries opened: key -> the revision that was read (ArchivePages
+## builds a revision from what an entry says, as ids, never its wording).
+## Missing: new. A different revision: updated.
+var archive_seen: Dictionary = {}
 
 ## Not saved. Resources that should survive scene reloads (e.g. synthesized audio).
 var runtime_cache: Dictionary = {}
@@ -245,7 +256,7 @@ func meet(id: String, where := "", look: Dictionary = {}) -> bool:
 	e.count = int(e.count) + 1
 	encounters[id] = e
 	if first and Relationships.EVENTS.has(id + ".met"):
-		rel_events[id + ".met"] = sessions
+		_occur(id + ".met")
 	save_memory()
 	return first
 
@@ -258,10 +269,22 @@ func look_of(id: String) -> Dictionary:
 	return out
 
 
-func mark_seen_in_archive(key: String) -> void:
-	if key not in archive_seen:
-		archive_seen.append(key)
+func mark_seen_in_archive(key: String, rev := "") -> void:
+	if archive_seen.get(key, null) != rev:
+		archive_seen[key] = rev
 		save_memory()
+
+
+## "new" (never opened), "updated" (opened, but it says more now) or "".
+## A key carried over from a v2 save ("*") adopts the current revision the
+## first time it is asked about: it was read, its old contents are unknown.
+func archive_mark(key: String, rev := "") -> String:
+	if not archive_seen.has(key):
+		return "new"
+	if archive_seen[key] == "*":
+		archive_seen[key] = rev
+		return ""
+	return "updated" if archive_seen[key] != rev else ""
 
 
 func has_met(id: String) -> bool:
@@ -283,17 +306,73 @@ func has_conversation(id: String) -> bool:
 	return id in conversations
 
 
-## Records a relationship event once (the first session it happened in).
+## Records a relationship event once: later calls change nothing. Returns
+## true the first time.
 func add_event(id: String) -> bool:
 	if rel_events.has(id):
 		return false
-	rel_events[id] = sessions
+	_occur(id)
 	save_memory()
 	return true
 
 
+## Records another occurrence of an event that can happen again (a death
+## witnessed, a piece taken, a restoration).
+func mark_event(id: String) -> void:
+	_occur(id)
+	save_memory()
+
+
+## One occurrence, in memory (callers save). Unknown ids still record, but
+## warn: the registry (Relationships.EVENTS) is what the journal can show.
+func _occur(id: String, at := -1) -> void:
+	if not Relationships.EVENTS.has(id):
+		push_warning("OwnerMemory: event %s isn't in Relationships.EVENTS" % id)
+	var s := sessions if at < 0 else at
+	event_seq += 1
+	var e: Dictionary = rel_events.get(id, {"first": s, "count": 0, "first_seq": event_seq})
+	e.last = s
+	e.count = int(e.count) + 1
+	e.seq = event_seq
+	rel_events[id] = e
+
+
+## Tests and migrations: an event that happened in `session`.
+func event_at(id: String, session: int) -> void:
+	_occur(id, session)
+
+
 func has_event(id: String) -> bool:
 	return rel_events.has(id)
+
+
+## The session an event last happened in (-1: never).
+func event_session(id: String) -> int:
+	return int(rel_events[id].last) if rel_events.has(id) else -1
+
+
+## The order of an event's latest occurrence (0: never). Compare two of
+## these to know which happened last.
+func event_order(id: String) -> int:
+	return int(rel_events[id].seq) if rel_events.has(id) else 0
+
+
+func event_count(id: String) -> int:
+	return int(rel_events[id].count) if rel_events.has(id) else 0
+
+
+## Rue learned a fact (ArchivePages.FACTS). Once; returns true the first time.
+func learn_fact(id: String) -> bool:
+	if facts.has(id):
+		return false
+	event_seq += 1
+	facts[id] = event_seq
+	save_memory()
+	return true
+
+
+func knows_fact(id: String) -> bool:
+	return facts.has(id)
 
 
 func discover_place(id: String) -> bool:
@@ -467,7 +546,7 @@ func learn_truth_piece(who: String) -> void:
 func fray(who: String, area: String, at := Vector2.ZERO) -> void:
 	if _session_closed:
 		return  # the run is over: nothing more is written into it
-	rel_events[who + ".ribbon_taken" if who == "wren" else who + ".piece_taken"] = sessions
+	_occur(who + ".ribbon_taken" if who == "wren" else who + ".piece_taken")
 	if who not in frayed:
 		frayed.append(who)
 	if who not in session_frayed:
@@ -486,7 +565,7 @@ func fray(who: String, area: String, at := Vector2.ZERO) -> void:
 ## A piece brought back from the bin: they're whole, and will say so.
 func return_piece(who: String) -> void:
 	if who in frayed and not _session_closed:
-		rel_events[who + ".ribbon_returned" if who == "wren" else who + ".piece_returned"] = sessions
+		_occur(who + ".ribbon_returned" if who == "wren" else who + ".piece_returned")
 		frayed.erase(who)
 		session_frayed.erase(who)
 		if who not in returned_pending:
@@ -570,6 +649,8 @@ func clear_state() -> void:
 	encounters.clear()
 	conversations.clear()
 	rel_events.clear()
+	event_seq = 0
+	facts.clear()
 	places.clear()
 	well_events.clear()
 	anchor.clear()
@@ -650,6 +731,8 @@ func save_memory() -> void:
 		"encounters": encounters,
 		"conversations": conversations,
 		"rel_events": rel_events,
+		"event_seq": event_seq,
+		"facts": facts,
 		"places": places,
 		"well_events": well_events,
 		"anchor": anchor,
@@ -670,6 +753,8 @@ func _migrate(data: Dictionary) -> Dictionary:
 	# (version 0 -> 1: nothing to convert, the reader handles both.)
 	if version < 2:
 		data = _from_v1(data)
+	if version < 3:
+		data = _from_v2(data)
 	return data
 
 
@@ -708,14 +793,62 @@ func _from_v1(data: Dictionary) -> Dictionary:
 	return data
 
 
+## Version 3 turned each relationship event (id -> session) into an
+## occurrence record with an order, and archive marks (a list of keys) into
+## key -> revision. Old events are ordered by session, then in story order
+## (Relationships.EVENTS), which is how the journal already sorted them.
+func _from_v2(data: Dictionary) -> Dictionary:
+	var old: Variant = data.get("rel_events", {})
+	var ids: Array = []
+	if old is Dictionary:
+		for k in old:
+			if (old[k] is float or old[k] is int) and is_finite(float(old[k])):
+				ids.append(str(k))
+	var order: Array = Relationships.EVENTS.keys()
+	ids.sort_custom(func(a: String, b: String) -> bool:
+		var sa := int(old[a])
+		var sb := int(old[b])
+		if sa != sb:
+			return sa < sb
+		var oa := order.find(a)
+		var ob := order.find(b)
+		return (oa if oa >= 0 else 1 << 20) < (ob if ob >= 0 else 1 << 20))
+	var events := {}
+	var seq := 0
+	for id in ids:
+		seq += 1
+		var s := maxi(0, int(old[id]))
+		events[id] = {"first": s, "last": s, "count": 1, "seq": seq, "first_seq": seq}
+	data["rel_events"] = events
+	data["event_seq"] = seq
+	var marks := {}
+	for k in _strings(data, "archive_seen"):
+		marks[k] = "*"  # read once; what it said then is unknown
+	data["archive_seen"] = marks
+	# This build has no "carried" note: Mira carries her own on the walk. A
+	# v2 save left at "carried" still has it with her.
+	if _str(data, "mira_quest", "") == "carried":
+		data["mira_quest"] = ""
+	return data
+
+
 # Typed reads: a hand-edited or damaged value falls back to the default
 # instead of stopping the load half-way.
-static func _num(d: Dictionary, key: String) -> bool:
+static func _num(d: Dictionary, key: Variant) -> bool:
 	return d.get(key) is float or d.get(key) is int
 
 
+## A finite, whole number (JSON numbers are floats; 1e400 reads as inf,
+## and int() of inf or NaN is meaningless).
+static func _whole(d: Dictionary, key: Variant) -> bool:
+	if not _num(d, key):
+		return false
+	var f := float(d[key])
+	return is_finite(f) and f == floorf(f) and absf(f) < 1e15
+
+
 static func _int(d: Dictionary, key: String, fallback: int, most := 1 << 30) -> int:
-	return clampi(int(d[key]), 0, most) if _num(d, key) else fallback
+	return clampi(int(d[key]), 0, most) if _whole(d, key) else fallback
 
 
 static func _bool(d: Dictionary, key: String) -> bool:
@@ -797,7 +930,7 @@ func load_memory() -> void:
 	frayed.assign(_strings(data, "frayed").filter(func(id: String) -> bool: return id in Story.SHED_TARGETS))
 	sheds = _int(data, "sheds", 0)
 	husk_area = _str(data, "husk_area", "")
-	husk_session = int(data.husk_session) if _num(data, "husk_session") else -1
+	husk_session = int(data.husk_session) if _whole(data, "husk_session") and float(data.husk_session) >= -1.0 else -1
 	husk_pos = Vector2(float(data.husk_x), float(data.husk_y)) if _num(data, "husk_x") and _num(data, "husk_y") else Vector2.ZERO
 	returned_pending.assign(_strings(data, "returned_pending"))
 	shed_said.assign(_strings(data, "shed_said"))
@@ -825,7 +958,7 @@ func load_memory() -> void:
 	if enc is Dictionary:
 		for k in enc:
 			var e: Variant = enc[k]
-			if e is Dictionary and _num(e, "first") and _num(e, "last"):
+			if e is Dictionary and _whole(e, "first") and _whole(e, "last"):
 				var kept := {"first": int(e.first), "last": int(e.last), "count": maxi(1, _int(e, "count", 1))}
 				if e.get("area") is String:
 					kept.area = e.area
@@ -837,18 +970,35 @@ func load_memory() -> void:
 					kept.look = look
 				encounters[str(k)] = kept
 	conversations.assign(_strings(data, "conversations"))
+	event_seq = _int(data, "event_seq", 0)
 	rel_events.clear()
 	var ev: Variant = data.get("rel_events", {})
 	if ev is Dictionary:
 		for k in ev:
-			if ev[k] is float or ev[k] is int:
-				rel_events[str(k)] = int(ev[k])
+			var r: Variant = ev[k]
+			if r is Dictionary and _whole(r, "first") and _whole(r, "last") and _whole(r, "seq"):
+				var seq := _int(r, "seq", 0)
+				rel_events[str(k)] = {"first": _int(r, "first", 0), "last": _int(r, "last", 0),
+					"count": maxi(1, _int(r, "count", 1)), "seq": seq, "first_seq": _int(r, "first_seq", seq)}
+				event_seq = maxi(event_seq, seq)  # a damaged counter can't reuse an order
+	facts.clear()
+	var fs: Variant = data.get("facts", {})
+	if fs is Dictionary:
+		for k in fs:
+			if _whole(fs, k):
+				facts[str(k)] = _int(fs, k, 0)
+				event_seq = maxi(event_seq, int(facts[str(k)]))
 	places.assign(_strings(data, "places"))
 	well_events.assign(_strings(data, "well_events"))
-	archive_seen.assign(_strings(data, "archive_seen"))
+	archive_seen.clear()
+	var marks: Variant = data.get("archive_seen", {})
+	if marks is Dictionary:
+		for k in marks:
+			if marks[k] is String:
+				archive_seen[str(k)] = marks[k]
 	anchor.clear()
 	var an: Variant = data.get("anchor", {})
-	if an is Dictionary and an.get("id") is String and _num(an, "version"):
+	if an is Dictionary and an.get("id") is String and _whole(an, "version"):
 		anchor = {"id": an.id, "version": int(an.version), "session": _int(an, "session", 0)}
 
 	# The last session never closed properly: the game was killed or crashed.

@@ -97,7 +97,7 @@ func test_talking_to_mira_shows_her_face_and_mood() -> void:
 func test_mira_s_moods_cover_her_story() -> void:
 	check_eq(ArinsRoom.mira_expression(ArinsRoom.MIRA_LINES[2]), "afraid", "'Who are you?' is afraid")
 	check_eq(ArinsRoom.mira_expression(Story.MIRA_ASK[0]), "eager", "asking to go out is eager")
-	check_eq(ArinsRoom.mira_expression(Story.RECALL["mira"][0][1]), "relieved", "after pinning her note: relieved")
+	check_eq(ArinsRoom.mira_expression(Relationships.MIRA_AFTER_PINNED[0]), "proud", "after pinning her note herself: proud")
 	check_eq(ArinsRoom.mira_expression(Story.MIRA_RESET_LINES[0]), "reset", "reset by the owner: the blank smile")
 	var used := {}
 	for stem in ArinsRoom.voice_lines():

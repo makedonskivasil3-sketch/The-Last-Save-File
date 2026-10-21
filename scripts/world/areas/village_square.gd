@@ -74,7 +74,8 @@ static func voice_lines() -> Dictionary:
 			+ [Story.FRAY_LINES.wren, Story.FRAY_RECALL.wren, Story.FRAY_RETURNED.wren] + WREN_LINES + Story.WREN_SAVED_LINES + [Story.WREN_ASK, Story.WREN_ASK_SAVED] + Story.WREN_JOINS + Story.WREN_DECLINED
 			+ Relationships.wren_lines(),
 		# (Frayed, he writes: only the line when his voice comes back is said.)
-		"npc.tobben": Story.recall_lines("tobben") + [Story.TRUTH_LINES.tobben, Story.FRAY_RETURNED.tobben] + TOBBEN_LINES,
+		"npc.tobben": Story.recall_lines("tobben") + [Story.TRUTH_LINES.tobben, Story.FRAY_RETURNED.tobben] + TOBBEN_LINES
+			+ Relationships.tobben_lines(),
 	}
 
 
@@ -459,10 +460,14 @@ func _wren_lines() -> Variant:
 	return [line]
 
 
-func _tobben_lines() -> Array:
+func _tobben_lines() -> Variant:
+	# What happened between you comes first (Relationships.tobben).
+	var told := Relationships.tobben()
+	if not told.is_empty():
+		return told
 	var i := _tobben_line
-	if OwnerMemory.sessions > 1 and i == 0:
-		i = 2  # he remembers what he's for
+	if OwnerMemory.met_before("tobben") and i == 0:
+		i = 2  # met in an earlier run: no "Welcome to Tobben's!" introduction again
 	_tobben_line = i + 1
 	return [TOBBEN_LINES[mini(i, TOBBEN_LINES.size() - 1)]]
 
@@ -479,7 +484,7 @@ func _offer_guestbook() -> void:
 	if pick != 0:
 		return
 	OwnerMemory.guestbook_restored = true
-	OwnerMemory.save_memory()
+	Relationships.add("tobben.guestbook")  # saves
 	world.player.frozen = true
 	# A quiet moment: two notes of the theme, the name, the owner noticing.
 	var music := AudioStreamPlayer.new()

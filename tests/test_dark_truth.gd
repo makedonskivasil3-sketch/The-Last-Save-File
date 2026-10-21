@@ -56,7 +56,10 @@ func test_tobben_notices_the_handwriting() -> void:
 	memory().guestbook_restored = true
 	var w := await start_session()
 	await go_to(w, "square", "house")
+	# One topic per conversation: the guest book itself first, then what he noticed.
 	var heard: Array = await _read(w, w.area.tobben)
+	check(heard.any(func(l: String) -> bool: return l.contains("Two names")), "the book first (%s)" % str(heard))
+	heard = await _read(w, w.area.tobben)
 	check(Story.TRUTH_LINES.tobben in heard, "once the name is back in his book (%s)" % str(heard))
 	check("tobben" in memory().truth_pieces, "kept")
 

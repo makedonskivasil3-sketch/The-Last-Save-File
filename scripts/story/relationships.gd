@@ -1,20 +1,29 @@
 class_name Relationships
 extends RefCounted
-## What happened between Rue and the people of Ashvale, as event ids that
-## survive death and restart (OwnerMemory.rel_events), and the choice of what
-## someone says next (docs/NARRATIVE_CONTRACT.md §4).
+## What happened between Rue and the people of Ashvale, as event records that
+## survive death and restart (OwnerMemory.rel_events), and the one place that
+## chooses what someone says next (docs/NARRATIVE_CONTRACT.md §4).
 ##
 ## A conversation is a Dictionary: {"lines": Array, "id": String,
-## "commit": Array of event ids}. The ids in "commit" are written only when
-## the box is read to its last line (World._on_dialogue_closed), so walking
-## away halfway never marks a confession heard.
+## "commit": Array of event ids, "ask": bool}. The conversation id and the
+## ids in "commit" are written only when the box is read to its last line
+## (World._on_dialogue_closed), so walking away halfway never marks a
+## confession heard; it is said again next time.
 ##
-## Precedence, first match wins:
-##   1. urgent current condition    2. consequence of a recent event
-##   3. relationship continuation   4. a new story topic
-##   5. a brief familiar greeting   6. an optional repeat
+## Precedence, first match wins (one topic per conversation):
+##   1. urgent current condition    (urgent(): a piece taken or given back;
+##                                   escorting; the area's reset/restricted
+##                                   state shapes how the rest is said)
+##   2. consequence of a recent event
+##   3. relationship continuation   (an open promise, a second ask)
+##   4. a new story topic           (what they noticed, the well)
+##   5. a brief familiar greeting   (greeting(), before their usual lines)
+##   6. an optional repeat          (the area's own line counters)
+## The per-character selectors below cover 2–4; Npc.interact applies 1 and 5.
 
-## Events and what they mean (the journal and the selector read these).
+## Events, and how the journal says each one (every id the game writes is
+## here: an event without a label would vanish from the People page).
+## Listed in the order they can happen, which breaks ties within a session.
 const EVENTS := {
 	"wren.met": "Met Wren in the square.",
 	"wren.sheltered": "Wren hid you from Arin.",
@@ -28,8 +37,23 @@ const EVENTS := {
 	"wren.ribbon_returned": "You gave Wren's ribbon back.",
 	"wren.heard_well": "Wren hears the well too.",
 	"mira.met": "Met Mira in Arin's room.",
+	"mira.asked": "Mira told you she has never left the room, and asked you to take her out.",
+	"mira.walked": "You walked Mira out of her room.",
+	"mira.pinned": "Mira pinned her note on the square's board.",
+	"mira.note_lost": "You were taken while Mira walked with you. The owner took her note.",
+	"mira.reset": "The owner reset Mira while she was with you.",
+	"mira.saw_death": "Mira saw you taken, in her room.",
+	"mira.deleted": "The owner deleted Mira in front of you.",
+	"mira.restored": "You brought Mira back from the Recycle Bin.",
+	"mira.piece_taken": "You took Mira's colour.",
+	"mira.piece_returned": "You gave Mira her colour back.",
 	"tobben.met": "Met Tobben at his stall.",
+	"tobben.guestbook": "You wrote RUE back in Tobben's guest book.",
+	"tobben.restored": "You brought Tobben back from the Recycle Bin.",
+	"tobben.piece_taken": "You took Tobben's voice.",
+	"tobben.piece_returned": "You gave Tobben his voice back.",
 	"archivist.met": "Met the Archivist.",
+	"archivist.pointer": "The Archivist gave you a pointer to Slot 2.",
 }
 
 ## Wren's lines for each step (the order is the precedence above).
@@ -49,11 +73,54 @@ const WREN_WELL := [
 ]
 const WREN_GREETING := "Oh. It's you. Hi. You still look like someone."
 
+## Mira. She can't leave her room, so she knows what happens there, what
+## the save's lists say (who's in it, which slots), and what you tell her.
+const MIRA_ESCORT := ["I'm behind you. Don't look at me, look where we're going."]
+const MIRA_ASK_AGAIN := [
+	"The square. I keep thinking about it.",
+	"Will you take me? I've still got the note.",
+]
+const MIRA_HUSHED := "I'm not supposed to talk to you. So I'll be quick."
+const MIRA_AFTER_DEATH := [
+	"You went grey. Right there, on the rug. And then you were gone, and the room said everything was fine.",
+	"Is it always like that? You don't have to answer. I'm just glad it's you again.",
+]
+const MIRA_AFTER_RESTORE := [
+	"I was deleted. Then I wasn't. I remember the dark in between.",
+	"You came and got me. Nobody comes and gets anybody. Thank you.",
+]
+const MIRA_AFTER_PINNED := [
+	"I pinned it. Me! With my own hands, in the square. The owner stood at the board for a whole minute. They didn't take it down.",
+	"I keep wondering if it's still up. I can't check. You can. Tell me if it is?",
+]
+const MIRA_AFTER_NOTE_LOST := [
+	"My note... they took it off me, after they took you. I had it in both hands.",
+	"It's alright. I'll write another one. ...I won't. I don't think I can, twice.",
+]
+const MIRA_WREN_GONE := "Wren's name went out of the list last night. I felt it go. She wanted to see the Edge so badly."
+const MIRA_WREN_SAFE := "Wren's name moved. It's somewhere the list can't reach now. Was that you?"
+const MIRA_GREETING := "You're back. I set out two cups again. I don't know who the other one's for."
+## Further down the purge she still sets them out, and has forgotten why.
+const MIRA_GREETING_FADED := "Two cups again. I don't drink. I don't know why I do it."
+const MIRA_GREETING_HUSHED := "...You're back. I'm not supposed to say that."
 
-## Every line Wren can say from here (the voice manifest lists them).
+const TOBBEN_GREETING := "Back again! I'd know a face with no inventory anywhere."
+const TOBBEN_GREETING_BOOK := "Two names, still. I check every morning. Welcome back."
+
+
+## Every line said from here (the voice manifest lists them).
 static func wren_lines() -> Array:
 	return WREN_ESCORT + WREN_AFTER_DEATH + [WREN_SAW_STATIC] + WREN_AFTER_RESTORE + WREN_AFTER_RESTORE_BROKEN \
 		+ [WREN_PROMISE_OPEN, WREN_PROMISE_BROKEN] + WREN_WELL + [WREN_GREETING]
+
+
+static func mira_lines() -> Array:
+	return MIRA_ESCORT + MIRA_ASK_AGAIN + [MIRA_HUSHED] + MIRA_AFTER_DEATH + MIRA_AFTER_RESTORE + MIRA_AFTER_PINNED \
+		+ MIRA_AFTER_NOTE_LOST + [MIRA_WREN_GONE, MIRA_WREN_SAFE, MIRA_GREETING, MIRA_GREETING_FADED, MIRA_GREETING_HUSHED]
+
+
+static func tobben_lines() -> Array:
+	return [TOBBEN_GREETING, TOBBEN_GREETING_BOOK]
 
 
 ## Records an event once; the session it happened in is kept.
@@ -61,81 +128,248 @@ static func add(id: String) -> bool:
 	return OwnerMemory.add_event(id)
 
 
-## Records an event that can happen again: the latest session is kept.
+## Records an event that can happen again (counted, latest session kept).
 static func mark(id: String) -> void:
-	OwnerMemory.rel_events[id] = OwnerMemory.sessions
-	OwnerMemory.save_memory()
+	OwnerMemory.mark_event(id)
 
 
 static func has(id: String) -> bool:
 	return OwnerMemory.has_event(id)
 
 
-## Did `id` happen in the session just before this one?
+## Did `id` last happen in the session just before this one?
 static func last_session(id: String) -> bool:
-	return has(id) and int(OwnerMemory.rel_events[id]) == OwnerMemory.sessions - 1
+	return has(id) and OwnerMemory.event_session(id) == OwnerMemory.sessions - 1
 
 
-## Wren's next conversation (village_square.gd asks; `talk` counts her
-## repeat lines this visit, `ask_ready` says whether she would ask now).
-static func wren(talk: int, ask_ready: bool, escorting: bool) -> Dictionary:
+## Did `a` happen after `b` (latest occurrences)? A never-happened `b` counts
+## as before everything.
+static func after(a: String, b: String) -> bool:
+	return has(a) and OwnerMemory.event_order(a) > OwnerMemory.event_order(b)
+
+
+## One conversation, said once, keyed by `id` (committed when read whole).
+static func _once(id: String, lines: Array, commit: Array = []) -> Dictionary:
+	if OwnerMemory.has_conversation(id):
+		return {}
+	return {"lines": lines, "id": id, "commit": commit}
+
+
+## 1. Urgent, for anyone: a piece Rue took, or gave back. Said once a
+## session (a remark about how they are, not a revelation), and alone: the
+## next conversation picks up the rest.
+static func urgent(npc: Npc) -> Dictionary:
+	var id := npc.npc_id
+	if id in OwnerMemory.returned_pending and Story.FRAY_RETURNED.has(id):
+		OwnerMemory.returned_pending.erase(id)
+		OwnerMemory.save_memory()
+		return {"lines": [Story.FRAY_RETURNED[id]], "id": "", "commit": []}
+	if npc.is_frayed() and "fray:" + id not in OwnerMemory.session_recalled and Story.FRAY_LINES.has(id):
+		OwnerMemory.session_recalled.append("fray:" + id)  # once a session, not once a visit
+		return {"lines": [Story.FRAY_LINES[id] if id in OwnerMemory.session_frayed else Story.FRAY_RECALL[id]], "id": "", "commit": []}
+	return {}
+
+
+## A line from Story.RECALL whose condition is `condition`, or "".
+static func _recall(who: String, condition: String) -> String:
+	for entry in Story.RECALL.get(who, []):
+		if entry[0] == condition:
+			return entry[1]
+	return ""
+
+
+## How the last session ended, if it was an ending ("" otherwise).
+static func _last_ending() -> String:
+	return OwnerMemory.last_ending if OwnerMemory.previous_exit in ["win", "escape"] else ""
+
+
+## Wren's next conversation (village_square.gd asks; `ask_ready` says
+## whether she would ask now).
+static func wren(_talk: int, ask_ready: bool, escorting: bool) -> Dictionary:
 	# 1. Urgent: she's with you.
 	if escorting:
 		return {"lines": WREN_ESCORT, "id": "wren.escort", "commit": []}
 	# 2. Consequences of something recent (said once each).
-	if has("wren.restored") and not OwnerMemory.has_conversation("wren.after_restore"):
-		var broken := has("wren.promise_broken")
-		return {"lines": WREN_AFTER_RESTORE_BROKEN if broken else WREN_AFTER_RESTORE, "id": "wren.after_restore", "commit": []}
-	if last_session("wren.saw_death") and not OwnerMemory.has_conversation("wren.after_death:%d" % OwnerMemory.rel_events["wren.saw_death"]):
+	if has("wren.restored"):
+		var told := _once("wren.after_restore:%d" % OwnerMemory.event_count("wren.restored"),
+			WREN_AFTER_RESTORE_BROKEN if has("wren.promise_broken") else WREN_AFTER_RESTORE)
+		if not told.is_empty():
+			return told
+	if last_session("wren.saw_death"):
 		var seen: Array = WREN_AFTER_DEATH.duplicate()
 		if OwnerMemory.last_death == "eraser":
 			seen[0] = WREN_SAW_STATIC
-		return {"lines": seen, "id": "wren.after_death:%d" % OwnerMemory.rel_events["wren.saw_death"], "commit": ["wren.reunited"]}
+		var told := _once("wren.after_death:%d" % OwnerMemory.event_session("wren.saw_death"), seen, ["wren.reunited"])
+		if not told.is_empty():
+			return told
+	var ending := _last_ending()
+	if ending != "" and _recall("wren", "ended:" + ending) != "":
+		var told := _once("wren.after_ending:%d" % (OwnerMemory.sessions - 1), [_recall("wren", "ended:" + ending)])
+		if not told.is_empty():
+			return told
 	# 3. Continuation: an open promise (she asks again: the ask flow follows).
 	if has("wren.promised") and not has("wren.promise_kept") and ask_ready:
 		var open := WREN_PROMISE_BROKEN if has("wren.promise_broken") else WREN_PROMISE_OPEN
 		return {"lines": [open], "id": "wren.promise_open", "commit": [], "ask": true}
-	# 4. A new topic: the well, once Rue has heard it speak.
+	# 4. New topics: what she noticed about Rue; the well, once Rue has heard it.
+	var truth := Story.truth_line("wren")
+	if truth != "":
+		return {"lines": [truth], "id": "", "commit": []}
 	if OwnerMemory.has_well_event("words") and not has("wren.heard_well"):
 		return {"lines": WREN_WELL, "id": "wren.well", "commit": ["wren.heard_well"]}
 	return {}
 
 
-## The familiar greeting, for someone met in an earlier session, said once
-## a session before their usual lines.
-static func greeting(id: String) -> String:
-	if id == "wren" and OwnerMemory.met_before(id):
-		return WREN_GREETING
-	return ""
+## Mira's next conversation (arins_room.gd asks). Not called once she has
+## been reset: then she doesn't know Rue, and the room says only that.
+## `restricted`: the owner told her not to talk to Rue; she still does, quickly.
+static func mira(restricted: bool, ask_ready: bool, escorting: bool) -> Dictionary:
+	if escorting:
+		return {"lines": MIRA_ESCORT, "id": "mira.escort", "commit": []}
+	var told := _mira_news(ask_ready)
+	if not told.is_empty() and restricted:
+		told.lines = [MIRA_HUSHED] + told.lines
+	return told
 
 
-## Short summaries for the journal's People page, oldest first, only for
-## events that happened (never a hint of what hasn't).
+static func _mira_news(ask_ready: bool) -> Dictionary:
+	# 2. Consequences, once each, most recent kinds first.
+	if has("mira.restored"):
+		var told := _once("mira.after_restore:%d" % OwnerMemory.event_count("mira.restored"), MIRA_AFTER_RESTORE)
+		if not told.is_empty():
+			return told
+	if last_session("mira.saw_death"):
+		var told := _once("mira.after_death:%d" % OwnerMemory.event_session("mira.saw_death"), MIRA_AFTER_DEATH)
+		if not told.is_empty():
+			return told
+	if has("mira.note_lost"):
+		var told := _once("mira.after_note_lost", MIRA_AFTER_NOTE_LOST)
+		if not told.is_empty():
+			return told
+	if has("mira.pinned"):
+		var told := _once("mira.after_pinned", MIRA_AFTER_PINNED)
+		if not told.is_empty():
+			return told
+	# What the save's list tells her (not what she saw: she can't leave).
+	if OwnerMemory.is_deleted("wren"):
+		var told := _once("mira.wren_gone:%d" % OwnerMemory.event_count("wren.promise_broken"), [MIRA_WREN_GONE])
+		if not told.is_empty():
+			return told
+	elif OwnerMemory.wren_saved:
+		var told := _once("mira.wren_safe", [MIRA_WREN_SAFE])
+		if not told.is_empty():
+			return told
+	var ending := _last_ending()
+	if ending != "" and _recall("mira", "ended:" + ending) != "":
+		var told := _once("mira.after_ending:%d" % (OwnerMemory.sessions - 1), [_recall("mira", "ended:" + ending)])
+		if not told.is_empty():
+			return told
+	if OwnerMemory.previous_exit == "death" and OwnerMemory.last_death == "arin" and not last_session("mira.saw_death"):
+		# Arin walks back into her room alone: she sees that much.
+		var told := _once("mira.arin_alone:%d" % (OwnerMemory.sessions - 1), [_recall("mira", "died:arin")])
+		if not told.is_empty():
+			return told
+	# 3. Continuation: she asked once and you said not yet. The ask itself
+	# comes from the room (it opens the question); this is the shorter one.
+	if ask_ready and has("mira.asked") and OwnerMemory.mira_quest == "":
+		return {"lines": MIRA_ASK_AGAIN, "id": "mira.ask_again", "commit": [], "ask": true}
+	# 4. A new topic: what she noticed about Rue.
+	var truth := Story.truth_line("mira")
+	if truth != "":
+		return {"lines": [truth], "id": "", "commit": []}
+	return {}
+
+
+## Tobben's next conversation (village_square.gd asks).
+static func tobben() -> Dictionary:
+	if OwnerMemory.guestbook_restored:
+		var told := _once("tobben.after_guestbook", [_recall("tobben", "guestbook_restored")])
+		if not told.is_empty():
+			return told
+	elif OwnerMemory.found_guestbook:
+		var told := _once("tobben.name_back", [_recall("tobben", "found_guestbook")])
+		if not told.is_empty():
+			return told
+	if OwnerMemory.is_deleted("wren"):
+		var told := _once("tobben.wren_gone:%d" % OwnerMemory.event_count("wren.promise_broken"), [_recall("tobben", "wren_lost")])
+		if not told.is_empty():
+			return told
+	elif OwnerMemory.wren_saved:
+		var told := _once("tobben.wren_safe", [_recall("tobben", "wren_saved")])
+		if not told.is_empty():
+			return told
+	if _last_ending() == "message":
+		var told := _once("tobben.after_ending:%d" % (OwnerMemory.sessions - 1), [_recall("tobben", "ended:message")])
+		if not told.is_empty():
+			return told
+	if OwnerMemory.deaths >= 3:
+		var told := _once("tobben.tab", [_recall("tobben", "deaths:3")])
+		if not told.is_empty():
+			return told
+	var truth := Story.truth_line("tobben")
+	if truth != "":
+		return {"lines": [truth], "id": "", "commit": []}
+	return {}
+
+
+## 5. The familiar greeting, for someone met in an earlier session, said
+## once a session before their usual lines ("" for none).
+static func greeting(npc: Npc) -> String:
+	var id := npc.npc_id
+	if not OwnerMemory.met_before(id) or "greet:" + id in OwnerMemory.session_recalled:
+		return ""
+	var line := ""
+	match id:
+		"wren":
+			line = WREN_GREETING
+		"mira":
+			if OwnerMemory.mira_quest == "reset":
+				return ""  # she doesn't know Rue
+			if npc.state == Npc.State.RESTRICTED:
+				line = MIRA_GREETING_HUSHED
+			else:
+				line = MIRA_GREETING_FADED if OwnerMemory.purge >= 3 else MIRA_GREETING
+		"tobben":
+			line = TOBBEN_GREETING_BOOK if OwnerMemory.guestbook_restored else TOBBEN_GREETING
+	if line != "":
+		OwnerMemory.session_recalled.append("greet:" + id)
+	return line
+
+
+## Short summaries for the journal's People page, in the order they
+## happened, only for events that happened (never a hint of what hasn't).
+## A repeated event is listed once, where it first happened, with its count.
 static func history(who: String) -> Array[String]:
 	var out: Array[String] = []
 	var ids: Array = OwnerMemory.rel_events.keys().filter(func(k: String) -> bool: return k.begins_with(who + ".") and EVENTS.has(k))
-	# By session, then in story order (EVENTS lists them as they can happen):
-	# meeting her comes before anything she did for you that same run.
-	var order: Array = EVENTS.keys()
 	ids.sort_custom(func(a: String, b: String) -> bool:
-		var sa := int(OwnerMemory.rel_events[a])
-		var sb := int(OwnerMemory.rel_events[b])
-		return sa < sb if sa != sb else order.find(a) < order.find(b))
+		return int(OwnerMemory.rel_events[a].get("first_seq", 0)) < int(OwnerMemory.rel_events[b].get("first_seq", 0)))
 	for id in ids:
-		out.append(EVENTS[id])
+		var n := OwnerMemory.event_count(id)
+		out.append(EVENTS[id] + (" (%d times)" % n if n > 1 else ""))
 	return out
 
 
 ## The promise or worry still open with someone, or "".
 static func unresolved(who: String) -> String:
-	if who == "wren":
-		if has("wren.promised") and not has("wren.promise_kept"):
-			return "You promised her the Edge." if not has("wren.promise_broken") else "You promised her the Edge. She was deleted before you got there."
-		if has("wren.ribbon_taken") and not has("wren.ribbon_returned") and "wren" in OwnerMemory.frayed:
-			return "You still have her ribbon."
-	if who == "mira":
-		if OwnerMemory.mira_quest == "reset":
-			return "She doesn't remember you."
-		if OwnerMemory.mira_quest == "lost":
-			return "Her note was taken from you."
+	match who:
+		"wren":
+			if has("wren.promised") and not has("wren.promise_kept"):
+				return "You promised her the Edge." if not has("wren.promise_broken") else "You promised her the Edge. She was deleted before you got there."
+			if after("wren.ribbon_taken", "wren.ribbon_returned"):
+				return "You still have her ribbon."
+		"mira":
+			if OwnerMemory.mira_quest == "reset":
+				return "She doesn't remember you."
+			if OwnerMemory.mira_quest == "lost":
+				return "Her note was taken from her when you were."
+			if after("mira.piece_taken", "mira.piece_returned"):
+				return "You're still wearing her colour."
+			if has("mira.asked") and OwnerMemory.mira_quest == "":
+				return "She wants to see the square."
+		"tobben":
+			if after("tobben.piece_taken", "tobben.piece_returned"):
+				return "You still have his voice."
+			if OwnerMemory.found_guestbook and not OwnerMemory.guestbook_restored:
+				return "His guest book is missing a name. You know which."
 	return ""
