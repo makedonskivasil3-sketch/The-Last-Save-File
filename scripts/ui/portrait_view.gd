@@ -41,8 +41,9 @@ func _rebuild() -> void:
 	queue_redraw()
 
 
-func _process(_delta: float) -> void:
-	if _figure and visible:
+func _process(delta: float) -> void:
+	if _figure and is_visible_in_tree():
+		_figure.update(delta, Vector2.ZERO)
 		queue_redraw()
 
 

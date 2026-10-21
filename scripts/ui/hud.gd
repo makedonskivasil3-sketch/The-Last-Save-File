@@ -872,7 +872,7 @@ func _update_dialogue_face(delta: float) -> void:
 	_face_t += delta
 	var expr: String = _dialogue_exprs[_dialogue_index] if _dialogue_index < _dialogue_exprs.size() else ""
 	var face := _dialogue_face.with(expr) if expr != "" else _dialogue_face
-	var speaking := (_pacer != null and _pacer.phase == LinePacer.Phase.REVEALING) or VoiceOver.is_playing()
+	var speaking := (_pacer != null and _pacer.phase == LinePacer.Phase.REVEALING) or voice_busy()
 	var frame := ""
 	if speaking and not Settings.reduce_flashing:
 		frame = "talk" if int(_face_t / 0.12) % 2 == 0 else ""
