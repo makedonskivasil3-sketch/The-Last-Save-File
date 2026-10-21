@@ -33,6 +33,7 @@ evidence for it. Branch: `claude/last-save-file-prototype-ljwuq4`.
 | `978d98c` | The well's five steps; the well anchor checkpoint; transition fixes; "back" lines |
 | `8c5529c` | The visible iPhone sound badge removed; audio recovery kept |
 | `dc372e9` | The opening animatic |
+| `3fea14f` | People page history in story order; captures |
 
 ## Route audit (every transition)
 
@@ -81,6 +82,15 @@ Proposed subspaces, for when it is built:
 | The well's far side | The rim (built now) | Listen | Well | Well events | Quiet after `answered` |
 | A shortcut gate to the Archive | Saves the loop after the file is ready | Gate opens | Gate | `knows_truth` or Stage FILE | Open for good |
 | Someone's former life | A child's chalk drawing of two figures and a well | Read | Flat (never solid, never looks like cover) | — | Changes after `answered` (a third figure) |
+
+## Verification
+
+See `RELEASE_READINESS.md`, the current section. In short:
+- full suite 517/517 on `dc372e9`;
+- 5/5 ending bots;
+- three exports;
+- both browser checks pass, with no visible badge;
+- captures in `docs/review/continuity/`.
 
 ## Tests added (all in the strict suite)
 

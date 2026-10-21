@@ -2,6 +2,61 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
+## Current: continuity milestone, review branch (2026-10-21)
+
+Branch: `claude/last-save-file-prototype-ljwuq4` (not merged; `main` is
+still at `1e371b1`). It carries two milestones:
+- **Live-art milestone** (`cc76537`…`a38049f`): portrait art route, caption
+  pages, character states, console pacing, timed glitches, speech rate.
+- **Continuity milestone** (`8256c29`…`3fea14f`). Contract:
+  `docs/NARRATIVE_CONTRACT.md` (**proposed**). Evidence:
+  `docs/CONTINUITY_MILESTONE.md`.
+
+**New canon (proposed, needs the author's approval):** Rue is the part of
+the second player that stayed in an interrupted save.
+
+**Behaviour changes, each documented and tested:**
+- Lasting encounters, conversations and relationship events (save v2,
+  migrated from v1). Wren's reunions react to what she saw.
+- A six-section archive.
+- One checkpoint: after a death you wake under the well once the well has
+  your answer. Quit and crash still start in the room; purge rules are
+  unchanged.
+- The well's five-step sequence.
+- A 45 s opening animatic.
+- The visible iPhone sound badge is removed. Audio recovery is kept.
+
+**Verification on this branch:**
+
+| Check | Result |
+|---|---|
+| Strict full suite, live-art head `a38049f` | 496/496 (1165.8 s, exit 0) |
+| Strict full suite, continuity code `dc372e9` | **517/517** (1211.1 s, exit 0) |
+| After `dc372e9` | One code change, the history ordering in `3fea14f`; its suites (continuity, archive) pass 13/13. The full suite was not re-run after it. |
+| Ending bots, `--speed=3` | 5/5 exact endings: escape, message, escape at purge 3, escape at purge 5, Wren. One Edge death with retry; one recovered stall on the Wren route. |
+| Exports at `3fea14f` | Web, Windows Desktop, Linux: exit 0. SHA-256: exe `7539e4e5…`, linux `64807693…`, web pck `fccc6a68…`, wasm `fe5cebc5…` |
+| Linux binary run | 300 frames under xvfb, exit 0. No script errors; only the container's missing audio device is reported. |
+| Headless Chromium `web_check.cjs` | All passed: title, opening, skip, playable, keyboard, save, leave guard, quit counted, no page errors |
+| Headless Chromium `audio_output_check.cjs` | Audible after a gesture; `soundState` "running"; **no visible badge**; no clipping |
+| Captures | `docs/review/continuity/` (opening before and after, the slice, the archive) |
+
+**Not verified:**
+- Windows execution
+- a real iPhone
+- real GPU, phone or gamepad
+- human listening
+- uncoached players
+
+The questions for players are in `CONTINUITY_MILESTONE.md`. No player
+results exist, and none are claimed.
+
+**A playable build is available through:**
+- the private web artifact (owner's link);
+- the PR's CI run, which uploads a Windows zip (`.github/workflows/build.yml`)
+  once it completes.
+
+A running CI job is not a finished build.
+
 ## Current combined presentation/functionality revision (2026-10-21)
 
 The combined branch retains main `2644629` / PR #8 (`2ffc036`): finale cursor
