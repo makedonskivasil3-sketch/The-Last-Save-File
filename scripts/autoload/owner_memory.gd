@@ -171,6 +171,25 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
 		record_quit()
 		quit_game()
+	elif what == NOTIFICATION_EXIT_TREE:
+		# The engine is shutting down without quit_game() (--quit-after, a
+		# signal): let go of every sound now, or Godot reports the streams
+		# and their playbacks as leaked (docs/COHERENCE_MILESTONE.md, A14).
+		_release_audio()
+
+
+## Stops every player still in the tree and drops the generated sounds.
+func _release_audio() -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	for p in tree.root.find_children("*", "AudioStreamPlayer", true, false) \
+			+ tree.root.find_children("*", "AudioStreamPlayer2D", true, false):
+		p.stop()
+		p.stream = null
+	runtime_cache.clear()
+	Sfx.release()
+	VoiceOver.clear_registered()
 
 
 ## Quitting, from anywhere (the window, the title, the pause menu): first the
@@ -186,13 +205,7 @@ func prepare_quit() -> void:
 	var tree := get_tree()
 	if tree.current_scene:
 		tree.current_scene.queue_free()
-	for p in tree.root.find_children("*", "AudioStreamPlayer", true, false) \
-			+ tree.root.find_children("*", "AudioStreamPlayer2D", true, false):
-		p.stop()
-		p.stream = null
-	runtime_cache.clear()
-	Sfx.release()
-	VoiceOver.clear_registered()
+	_release_audio()
 	for i in 3:
 		await tree.process_frame
 
