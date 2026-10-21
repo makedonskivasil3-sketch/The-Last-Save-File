@@ -18,6 +18,8 @@ var failures: Array[String] = []
 
 func before_each() -> void:
 	memory().wipe()
+	JournalPanel.forget_place()
+	ArchivePages.escort_now = ""
 	var s := settings()
 	s.glitch_intensity = 1.0
 	s.reduce_flashing = false

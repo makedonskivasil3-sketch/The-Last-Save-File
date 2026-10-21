@@ -36,6 +36,9 @@ const ENTRY := Vector2(110, 84)
 const PIP_POS := Vector2(512, 100)
 const PILLAR_POS := Vector2(84, 66)
 const FIRST_SHAPE_POS := Vector2(500, 124)
+## Where Rue can keep her place: on the landing, clear of the arrival point
+## and the pillar (more than World.INTERACT_DISTANCE from both).
+const MARK_POS := Vector2(82, 98)
 
 const VOID := Color(0.01, 0.015, 0.04)
 const WIRE := Color(0.55, 0.95, 1.0)
@@ -48,6 +51,7 @@ const LABELS := {
 
 var pip: Companion
 var pillar: Passage
+var mark: AnchorMark
 
 var _t := 0.0
 var _off_floor := 0.0
@@ -81,6 +85,13 @@ func build() -> void:
 	pillar.lit = not OwnerMemory.anchor.is_empty()  # the well keeps your answer here
 	add_child(pillar)
 	interactables.append(pillar)
+	mark = AnchorMark.new()
+	mark.position = MARK_POS
+	mark.offered = WellSequence.anchor_offered()
+	mark.is_kept = World.anchor_valid()
+	mark.kept.connect(_on_keep_place)
+	add_child(mark)
+	interactables.append(mark)
 
 	# Once Pip is yours and every memory is back: the shape slot 2 was made
 	# with, outlined on Pip's ledge (docs/DARK_TRUTH_DESIGN.md).
@@ -273,3 +284,21 @@ func _well_tune() -> void:
 		if is_instance_valid(tune):
 			tune.queue_free())
 	world.hud.say(WellSequence.TUNE_LINE, "self")
+	world.hud.say(WellSequence.ANCHOR_OFFER, "self")
+	mark.offered = true
+
+
+## Rue chooses to keep her place here (World.set_anchor refuses mid-scene,
+## mid-conversation, mid-move or with someone to escort).
+func _on_keep_place(_m: AnchorMark) -> void:
+	if mark.is_kept and World.anchor_valid():
+		world.hud.say(WellSequence.ANCHOR_AGAIN, "self")
+		return
+	if not world.set_anchor("oob:pillar"):
+		world.hud.say(WellSequence.ANCHOR_NOT_ESCORTING if world.escort else WellSequence.ANCHOR_NOT_NOW, "self")
+		return
+	mark.is_kept = true
+	pillar.lit = true
+	Sfx.play("seal", -6.0, 0.9)
+	world.hud.say(WellSequence.ANCHOR_SYSTEM, "system")
+	world.hud.say(WellSequence.ANCHOR_KEPT, "self")

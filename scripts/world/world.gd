@@ -86,6 +86,7 @@ var _win_card_shown := false
 
 func _ready() -> void:
 	Sfx.reset_scene_state()  # nothing muffled or ducked carries in from the last scene
+	ArchivePages.escort_now = ""  # escorts never carry over into a new session
 	# The Archivist's pointer to Slot 2 is kept in the save once given: the
 	# north road isn't an errand to repeat every run.
 	flags["pointer"] = OwnerMemory.met_archivist
@@ -624,6 +625,10 @@ func _load_area(next: Area, arrival: String) -> void:
 	add_child(area)
 	move_child(area, 0)
 	area.build()
+	# Rue sees how the people here are (her journal says what she last saw).
+	for n in area.interactables + ([escort] if escort else []):
+		if n is Npc and is_instance_valid(n):
+			OwnerMemory.observe(n.npc_id, n.observed_state())
 	var atmosphere := AreaAtmosphere.new()
 	atmosphere.area = area
 	area.add_child(atmosphere)
@@ -784,6 +789,9 @@ func current_goal() -> String:
 ## What someone noticed about Rue counts once she has actually read it:
 ## walking away before the line leaves it for next time.
 func _on_line_shown(line: String) -> void:
+	# What someone just told Rue becomes something she knows (her journal).
+	for id in ArchivePages.facts_taught_by(line):
+		OwnerMemory.learn_fact(id)
 	if OwnerMemory.knows_truth:
 		return
 	for who: String in Story.TRUTH_LINES:
@@ -827,6 +835,7 @@ func start_escort(npc: Npc) -> void:
 	OwnerMemory.note_helper(npc.npc_id)
 	if npc.npc_id == "mira":
 		Relationships.add("mira.walked")
+	ArchivePages.escort_now = npc.npc_id
 	hud.say("%s.npc  ·  following" % npc.npc_id, "system")
 	director.say("mira? what is mira doing out of her room." if npc.npc_id == "mira" else "where are you taking her?")
 
@@ -924,6 +933,7 @@ func mira_pins_note() -> void:
 	# She walks home on her own.
 	var gone := escort
 	escort = null
+	ArchivePages.escort_now = ""
 	create_tween().tween_property(gone, "modulate:a", 0.0, 1.2)
 	get_tree().create_timer(1.3).timeout.connect(gone.queue_free)
 	player.frozen = false
@@ -940,9 +950,11 @@ func lose_escort() -> void:
 		return
 	var lost := escort
 	escort = null
+	ArchivePages.escort_now = ""
 	if lost.npc_id == "mira":
 		OwnerMemory.mira_quest = "reset"
 		Relationships.add("mira.reset")  # saves
+		OwnerMemory.observe("mira", "reset")
 		hud.say(Story.MIRA_RESET_LAST, "npc", "MIRA")
 		hud.say("mira.npc  ·  reset to defaults", "system")
 		director.say("there. back where you belong.")
@@ -954,6 +966,7 @@ func lose_escort() -> void:
 	# She trusted you. She gets half a sentence.
 	hud.say(Story.WREN_LAST_WORDS, "npc", "WREN")
 	lost.delete()
+	OwnerMemory.observe("wren", "deleted")
 	OwnerMemory.npc_fates["wren"] = "deleted"
 	Relationships.add("wren.promise_broken")
 	OwnerMemory.save_memory()
@@ -971,6 +984,7 @@ func _wren_sees_edge() -> void:
 		return
 	OwnerMemory.wren_saved = true
 	Relationships.add("wren.promise_kept")
+	OwnerMemory.observe("wren", "safe")
 	OwnerMemory.npc_fates.erase("wren")
 	OwnerMemory.save_memory()
 	for line in Story.WREN_EDGE:
@@ -1254,6 +1268,7 @@ func is_mira_deleted() -> bool:
 ## Someone deleted is back (RESTORE, or the Recycle Bin): for good.
 func note_restored(id: String) -> void:
 	Relationships.mark(id + ".restored")  # each time: someone can be lost and brought back again
+	OwnerMemory.observe(id, "restored")
 	OwnerMemory.npc_fates.erase(id)
 	OwnerMemory.note_restored(id)
 	if id == "mira":

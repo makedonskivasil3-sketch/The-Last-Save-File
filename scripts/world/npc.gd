@@ -160,6 +160,22 @@ func sprite() -> PixelCharacter:
 
 ## Rue took this one's piece (docs/DARK_TRUTH_DESIGN.md): Wren's ribbon,
 ## Mira's colour, Tobben's voice.
+## How Rue sees them right now, for her journal (ArchivePages.condition).
+func observed_state() -> String:
+	match state:
+		State.DELETED, State.DELETING:
+			return "deleted"
+		State.RESTRICTED:
+			return "restricted"
+	if npc_id == "mira" and OwnerMemory.mira_quest == "reset":
+		return "reset"
+	if npc_id == "wren" and OwnerMemory.wren_saved:
+		return "safe"
+	if Relationships.has(npc_id + ".restored") and OwnerMemory.event_session(npc_id + ".restored") == OwnerMemory.sessions:
+		return "restored"
+	return "well"
+
+
 func is_frayed() -> bool:
 	return npc_id in OwnerMemory.frayed
 
@@ -233,6 +249,7 @@ func interact() -> Dictionary:
 		lines = told
 	if state != State.DELETED:
 		OwnerMemory.meet(npc_id, _where(), sprite().palette)
+	OwnerMemory.observe(npc_id, observed_state())
 	# Their usual lines (no conversation id): a greeting first, if they knew
 	# Rue in an earlier session. Never before something that happened: a
 	# reunion or a promise says it in its own words.

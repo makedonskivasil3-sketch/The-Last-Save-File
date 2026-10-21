@@ -618,7 +618,6 @@ func _well_process(delta: float) -> void:
 		_answer_t = -1.0
 		world.hud.set_status("")
 		WellSequence.record("answered")
-		world.set_anchor("oob:pillar")
 		Sfx.play("fragment", -4.0, 0.7, 0.0)
 		for l in WellSequence.ANSWER_LINES:
 			world.hud.say(l, "self")
@@ -627,29 +626,45 @@ func _well_process(delta: float) -> void:
 
 
 func _on_listen(_rim: WellRim) -> void:
-	if world.ending != "" or world.in_cutscene():
+	if world.ending != "" or world.in_cutscene() or world.hud.is_dialogue_open():
 		return
 	if not WellSequence.done("tune"):
 		world.hud.say(WellSequence.LISTEN_NOTHING, "self")
 		return
-	if not WellSequence.done("words"):
-		WellSequence.record("words")
-		world.hud.show_dialogue(WellSequence.WORDS_SPEAKER, Hud.OWNER_COLOR, WellSequence.WORDS, "", null, [], true)
-		OwnerMemory.record_read("square:THE WELL", "note", "THE WELL", display_name, ["Up from the well, typed, not spoken:", WellSequence.WORDS[1]])
-		world.hud.say(WellSequence.WORDS_AFTER, "self")
-		return
-	if not WellSequence.done("compared"):
-		if WellSequence.can_compare():
-			WellSequence.record("compared")
-			for l in WellSequence.COMPARED:
-				world.hud.say(l, "self")
-		else:
-			world.hud.say(WellSequence.COMPARED_NOT_YET, "self")
-		return
-	if not WellSequence.done("answered"):
+	if WellSequence.done("compared") and not WellSequence.done("answered"):
 		if world.escort != null:
 			world.hud.say(WellSequence.ANSWER_NOT_ESCORTING, "self")
 			return
 		_answer_t = 0.0
 		return
-	world.hud.say(WellSequence.LISTEN_WAITING, "self")
+	# The well plays back what it keeps: her words, or (once Rue has
+	# answered) Rue's own. What it means counts once the box is read whole:
+	# walk away and it plays again next time, the same way.
+	var lines: Array = WellSequence.ANSWER_REPLAY if WellSequence.done("answered") else WellSequence.WORDS
+	world.hud.show_dialogue(WellSequence.WORDS_SPEAKER, Hud.OWNER_COLOR, lines, "", null, [], true)
+	world.hud.dialogue_closed.connect(_on_well_heard, CONNECT_ONE_SHOT)
+
+
+func _on_well_heard() -> void:
+	if not world.hud.dialogue_finished or world.ending != "":
+		return
+	if WellSequence.done("answered"):
+		world.hud.say(WellSequence.ANSWER_REPLAY_NOTE, "self")
+		return
+	if not WellSequence.done("words"):
+		WellSequence.record("words")
+		OwnerMemory.record_read("square:THE WELL", "note", "THE WELL", display_name, ["Up from the well, typed, not spoken:", WellSequence.WORDS[1]])
+		world.hud.say(WellSequence.WORDS_AFTER, "self")
+		return
+	# Heard before: exactly the same. Kept, not said.
+	world.hud.say(WellSequence.WORDS_REPLAY_NOTE, "self")
+	if WellSequence.done("compared"):
+		return
+	if WellSequence.can_compare():
+		WellSequence.record("compared")
+		OwnerMemory.record_read("square:THE WELL", "note", "THE WELL", display_name, ["Played back the same way every time: kept, not said.",
+			"The same words as her message, months after she left."])
+		for l in WellSequence.COMPARED:
+			world.hud.say(l, "self")
+	else:
+		world.hud.say(WellSequence.COMPARED_NOT_YET, "self")

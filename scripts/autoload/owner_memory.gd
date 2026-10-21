@@ -261,6 +261,21 @@ func meet(id: String, where := "", look: Dictionary = {}) -> bool:
 	return first
 
 
+## What Rue saw of someone's condition ("well", "restricted", "deleted",
+## "reset", "safe", "restored"), this session. Only for someone she has met:
+## a stranger's state isn't something she knows about them.
+func observe(id: String, state: String) -> void:
+	if not encounters.has(id) or state == "":
+		return
+	var e: Dictionary = encounters[id]
+	var seen: Dictionary = e.get("seen", {})
+	if seen.get("state", "") == state and int(seen.get("session", -1)) == sessions:
+		return
+	e.seen = {"state": state, "session": sessions}
+	encounters[id] = e
+	save_memory()
+
+
 ## The colours someone was last seen in, as a palette (for their portrait).
 func look_of(id: String) -> Dictionary:
 	var out := {}
@@ -962,6 +977,9 @@ func load_memory() -> void:
 				var kept := {"first": int(e.first), "last": int(e.last), "count": maxi(1, _int(e, "count", 1))}
 				if e.get("area") is String:
 					kept.area = e.area
+				var sn: Variant = e.get("seen")
+				if sn is Dictionary and sn.get("state") is String and _whole(sn, "session"):
+					kept.seen = {"state": sn.state, "session": _int(sn, "session", 0)}
 				if e.get("look") is Dictionary:
 					var look := {}
 					for c in e.look:

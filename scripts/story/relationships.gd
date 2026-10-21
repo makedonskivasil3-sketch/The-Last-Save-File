@@ -352,24 +352,32 @@ static func history(who: String) -> Array[String]:
 
 ## The promise or worry still open with someone, or "".
 static func unresolved(who: String) -> String:
+	return open_item(who)[1]
+
+
+## [id, text] of what is still open with someone (["", ""] when nothing is):
+## the id is stable, so the journal can tell when it changes.
+static func open_item(who: String) -> Array:
 	match who:
 		"wren":
 			if has("wren.promised") and not has("wren.promise_kept"):
-				return "You promised her the Edge." if not has("wren.promise_broken") else "You promised her the Edge. She was deleted before you got there."
-			if after("wren.ribbon_taken", "wren.ribbon_returned"):
-				return "You still have her ribbon."
+				if has("wren.promise_broken"):
+					return ["wren.promise_broken", "You promised her the Edge. She was deleted before you got there."]
+				return ["wren.promise", "You promised her the Edge."]
+			if after("wren.ribbon_taken", "wren.ribbon_returned") and "wren" in OwnerMemory.frayed:
+				return ["wren.ribbon", "You still have her ribbon."]
 		"mira":
 			if OwnerMemory.mira_quest == "reset":
-				return "She doesn't remember you."
+				return ["mira.reset", "She doesn't remember you."]
 			if OwnerMemory.mira_quest == "lost":
-				return "Her note was taken from her when you were."
-			if after("mira.piece_taken", "mira.piece_returned"):
-				return "You're still wearing her colour."
+				return ["mira.note_lost", "Her note was taken from her when you were."]
+			if after("mira.piece_taken", "mira.piece_returned") and "mira" in OwnerMemory.frayed:
+				return ["mira.colour", "You're still wearing her colour."]
 			if has("mira.asked") and OwnerMemory.mira_quest == "":
-				return "She wants to see the square."
+				return ["mira.square", "She wants to see the square."]
 		"tobben":
-			if after("tobben.piece_taken", "tobben.piece_returned"):
-				return "You still have his voice."
+			if after("tobben.piece_taken", "tobben.piece_returned") and "tobben" in OwnerMemory.frayed:
+				return ["tobben.voice", "You still have his voice."]
 			if OwnerMemory.found_guestbook and not OwnerMemory.guestbook_restored:
-				return "His guest book is missing a name. You know which."
-	return ""
+				return ["tobben.name", "His guest book is missing a name. You know which."]
+	return ["", ""]

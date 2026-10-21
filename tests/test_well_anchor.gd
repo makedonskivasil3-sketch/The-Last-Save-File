@@ -21,6 +21,11 @@ func _listen(w: Node) -> void:
 	await frames(2)
 
 
+func _hear_out(w: Node) -> void:
+	await finish_dialogue(w)
+	await frames(2)
+
+
 func test_the_well_follows_its_steps_in_order() -> void:
 	var w := await start_session()
 	w.director.stop()
@@ -41,19 +46,35 @@ func test_the_well_follows_its_steps_in_order() -> void:
 	memory().add_fragment("well")
 	await wait_until(func() -> bool: return WellSequence.done("tune"), 2.0, "the tune")
 	check(_said(w, "the same note's missing"), "one note short")
+	check(memory().anchor.is_empty(), "the tune alone keeps no place: that's Rue's choice")
 	await go_to(w, "square", "well")
 	await _to_well(w)
+	# Her words: heard only when read to the end.
 	await _listen(w)
-	check(WellSequence.done("words"), "listening now: words")
 	check(" ".join(w.hud._dialogue_lines).contains("still have my save?"), "typed up from below")
 	check(w.hud.dialogue_silent, "typed, not spoken")
+	w.hud.close_dialogue()
+	await frames(2)
+	check(not WellSequence.done("words"), "cut off: not heard yet")
+	await _listen(w)
+	await _hear_out(w)
+	check(WellSequence.done("words"), "read whole: heard")
 	check(memory().journal.any(func(e: Dictionary) -> bool: return e.id == "square:THE WELL"), "kept in the journal")
 	check(ArchivePages.leads().any(func(e: Dictionary) -> bool: return e.key == "lead:well_words"), "and a lead to follow")
+	# Again: exactly the same. Kept, not said.
 	await _listen(w)
+	await _hear_out(w)
+	check(_said(w, "it's playing it back"), "the same pause: a recording")
 	check(not WellSequence.done("compared"), "not compared before she remembers where she heard it")
+	check(_said(w, WellSequence.COMPARED_NOT_YET), "she half-remembers")
 	memory().add_fragment("delete")
 	await _listen(w)
-	check(WellSequence.done("compared"), "with the memory: it's her, outside")
+	await _hear_out(w)
+	check(WellSequence.done("compared"), "with the memory: her message, kept")
+	check(_said(w, "i don't know if she's still asking"), "and what it doesn't prove")
+	check(not _said(w, "(it's her. outside. she's still asking.)"), "never that she's asking now")
+	var note: Array = memory().journal.filter(func(e: Dictionary) -> bool: return e.id == "square:THE WELL")[0].lines
+	check(note.size() > 2, "the journal's note grows with what she worked out (%d lines)" % note.size())
 	check_eq(w.area.rim.interact_prompt(), WellSequence.ANSWER_PROMPT, "now the rim offers an answer")
 	w.director._running = true  # the owner watches the answer (its cost)
 	w.area.arin.paused = true
@@ -64,7 +85,47 @@ func test_the_well_follows_its_steps_in_order() -> void:
 	await wait(WellSequence.ANSWER_SECONDS + 0.4)
 	check(WellSequence.done("answered"), "stayed long enough: answered")
 	check(w.director.awareness >= before + WellSequence.ANSWER_AWARENESS * 0.8, "it cost something: the owner noticed (%.0f -> %.0f)" % [before, w.director.awareness])
-	check(World.anchor_valid(), "and the well keeps the answer: an anchor")
+	check(memory().anchor.is_empty(), "answering keeps no place by itself")
+	# What it proves: it plays her own answer back.
+	await wait(1.0)
+	await _listen(w)
+	check(" ".join(w.hud._dialogue_lines).contains("> i'm here."), "listening again: her own answer, kept")
+	await _hear_out(w)
+	check(_said(w, "it doesn't carry it anywhere"), "so it keeps; it doesn't send")
+	check(ArchivePages.leads().any(func(e: Dictionary) -> bool: return e.key == "lead:well_known" and e.body.contains("UNKNOWN")),
+		"the lead keeps what isn't known")
+
+
+func test_the_place_under_the_well_is_earned_and_chosen() -> void:
+	memory().well_events.append("click")
+	var w := await start_session()
+	await go_to(w, "oob", "well")
+	var mark: AnchorMark = w.area.mark
+	check(not mark.can_interact(), "nothing to keep before the tune")
+	check(w.player.global_position.distance_to(mark.global_position) > World.INTERACT_DISTANCE,
+		"the arrival point isn't on the mark's prompt")
+	memory().add_fragment("well")
+	w.player.global_position = OutOfBounds.PILLAR_POS + Vector2(20, 18)
+	await wait_until(func() -> bool: return WellSequence.done("tune"), 2.0, "the tune")
+	check(mark.can_interact() and mark.interact_prompt() == "keep my place here", "now it can be kept")
+	check(ArchivePages.leads().any(func(e: Dictionary) -> bool: return e.key == "lead:well_place"), "the journal says so")
+	# Never mid-conversation (World.set_anchor; an escort is refused the same way).
+	w.hud.show_dialogue("TEST", Color.WHITE, ["..."])
+	w.area._on_keep_place(mark)
+	await frames(2)
+	check(memory().anchor.is_empty(), "refused during a conversation")
+	check(_said(w, WellSequence.ANCHOR_NOT_NOW), "and she says not now")
+	w.hud.close_dialogue()
+	await frames(2)
+	w.player.global_position = mark.global_position + Vector2(0, 6)
+	await frames(3)
+	w._interact(mark)
+	await frames(2)
+	check(World.anchor_valid(), "kept")
+	check(w.area.pillar.lit and mark.is_kept, "the pillar and the mark show it")
+	check(_said(w, WellSequence.ANCHOR_KEPT), "and she says what it means")
+	check(not ArchivePages.leads().any(func(e: Dictionary) -> bool: return e.key == "lead:well_place"), "the lead is done")
+	check(ArchivePages.objects().any(func(e: Dictionary) -> bool: return e.key == "object:anchor"), "the journal keeps it")
 
 
 func test_stepping_away_cuts_the_answer_off() -> void:

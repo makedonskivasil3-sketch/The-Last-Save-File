@@ -273,6 +273,7 @@ func on_owner_event(event: float) -> void:
 			if not mira.escorted and mira.delete():
 				world.flags["mira_deleted"] = true
 				Relationships.mark("mira.deleted")  # Rue is in the room: she sees it
+				OwnerMemory.observe("mira", "deleted")
 				world.fx.spike(0.8, 1.2)
 				world.director.say("don't talk to it, mira.")
 				world.voice("mira_deleted")
