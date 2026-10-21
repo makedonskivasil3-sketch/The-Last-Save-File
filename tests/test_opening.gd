@@ -44,7 +44,9 @@ func test_it_runs_its_length_and_then_the_game_begins() -> void:
 	tree.current_scene = film
 	if old:
 		old.queue_free()  # (else the previous scene keeps running behind it)
-	check(Opening.LENGTH >= 20.0 and Opening.LENGTH <= 35.0, "20–35 s (%.0f)" % Opening.LENGTH)
+	# The continuity milestone's animatic (NARRATIVE_CONTRACT.md §8) is about
+	# 45 s, inside its 60–90 s prototype budget (was 20–35 s for the 28 s film).
+	check(Opening.LENGTH >= 40.0 and Opening.LENGTH <= 60.0, "40–60 s (%.0f)" % Opening.LENGTH)
 	film._t = Opening.LENGTH - 0.5
 	await wait_until(func() -> bool: return scene() is World, 4.0, "the run after the last frame")
 
@@ -130,3 +132,33 @@ func test_the_skip_key_is_let_go_before_the_room_takes_input() -> void:
 func test_the_opening_names_no_one() -> void:
 	var src := FileAccess.get_file_as_string("res://scripts/ui/opening.gd")
 	check(not src.contains("\"P2  RUE\""), "Player 2 is not labelled with Rue's name")
+
+
+
+func test_the_impossible_event_happens_on_screen() -> void:
+	settings().opening_seen = false
+	var film := Opening.new()
+	var old := tree.current_scene
+	tree.root.add_child(film)
+	tree.current_scene = film
+	if old:
+		old.queue_free()
+	# Fast-forward through the film the way it plays: frame by frame.
+	var arin_at_pause := 0.0
+	var rue_at_pause := 0.0
+	while film._t < 22.5:
+		film._process(0.05)
+	arin_at_pause = film._arin_x
+	rue_at_pause = film._rue_x
+	while film._t < 30.0:
+		film._process(0.05)
+	check_eq(film._arin_x, arin_at_pause, "paused: Arin doesn't move")
+	check(film._rue_x > rue_at_pause + 10.0, "paused: she keeps walking, with nobody's hands on her (%.0f -> %.0f)" % [rue_at_pause, film._rue_x])
+	check(film._tune_started, "the music box comes from the wrong place")
+	while film._t < 43.0:
+		film._process(0.05)
+	check(film._caption.text == "" or film._caption.text.begins_with("["), "captions describe sounds, they don't explain")
+	check(not FileAccess.get_file_as_string("res://scripts/ui/opening.gd").contains("\"RUE\""), "still names no one")
+	film._finish()
+	Input.action_release("interact")
+	await wait_until(func() -> bool: return scene() is World, 4.0, "the room after")

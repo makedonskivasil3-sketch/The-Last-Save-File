@@ -14,8 +14,9 @@ func test_opening_storyboard() -> void:
 	tree.current_scene = film
 	if old:
 		old.queue_free()  # (else the previous scene keeps running behind it)
-	for beat in [[1.5, "o1_tv"], [6.0, "o2_together"], [10.0, "o3_disconnected"], [14.5, "o4_saving"],
-			[18.2, "o5_going_out"], [22.0, "o6_left_standing"], [24.5, "o7_looks_up"], [27.2, "o8_push_in"]]:
+	# The continuity animatic's eight shots (docs/NARRATIVE_CONTRACT.md §8).
+	for beat in [[3.0, "o1_two_players"], [7.05, "o2_her_tap"], [14.5, "o3_asleep"], [19.5, "o4_stuck_87"],
+			[25.0, "o5_paused_she_walks"], [30.0, "o6_the_well"], [37.0, "o7_looks_out"], [42.0, "o8_unfinished"]]:
 		while film._t < beat[0]:
 			await tree.process_frame
 		await shot(beat[1])
