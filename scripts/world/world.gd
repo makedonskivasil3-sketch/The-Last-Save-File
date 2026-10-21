@@ -262,11 +262,11 @@ func reveal_truth() -> void:
 	fx.memory(true)
 	Sfx.play("fragment", -2.0, 0.6, 0.0)
 	Sfx.muffle(true, 500.0, "memory")
-	await hud.cinematic("WHAT I AM", Story.TRUTH_REVEAL, Hud.SELF_COLOR, 0.6, "truth.reveal", CharacterArt.rue("remembering", player.palette()))
+	await hud.cinematic("WHO I AM", Story.TRUTH_REVEAL, Hud.SELF_COLOR, 0.6, "truth.reveal", CharacterArt.rue("remembering", player.palette()))
 	if not is_inside_tree() or ending != "":
 		return  # the run ended during the scene: nothing here is kept
 	# The page and the truth are one save, like a memory.
-	OwnerMemory.record_read("truth:reveal", "memory", "WHAT I AM", area.display_name, Story.TRUTH_REVEAL, false)
+	OwnerMemory.record_read("truth:reveal", "memory", "WHO I AM", area.display_name, Story.TRUTH_REVEAL, false)
 	OwnerMemory.learn_truth()
 	fx.memory(false)
 	Sfx.muffle(false, 700.0, "memory")
@@ -1514,7 +1514,7 @@ func win(chosen := "escape", message := 0) -> void:
 	PlaytestLog.mark("ENDING", chosen)
 	if ending != "":
 		return
-	# Taking the slot remembering everything, and knowing what you are, is RUE.
+	# Taking the slot remembering everything, and knowing who you are, is RUE.
 	if chosen == "escape" and OwnerMemory.fragments.size() >= Story.FRAGMENTS.size() and OwnerMemory.knows_truth:
 		chosen = "rue"
 	ending = "win"

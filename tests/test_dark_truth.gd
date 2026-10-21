@@ -131,7 +131,7 @@ func test_rue_with_the_truth() -> void:
 	w.flags["seen_by_arin"] = true
 	w.reach_slot2()
 	await until_choosing(w)
-	check(Story.SLOT2_ESCAPE_NAMED in _choices(w), "knowing what you are, the slot takes your name")
+	check(Story.SLOT2_ESCAPE_NAMED in _choices(w), "knowing who you are, the slot takes your name")
 	w.hud._chosen.emit(0)
 	await wait_until(func() -> bool: return memory().last_ending != "", 5.0, "the ending")
 	check_eq(memory().last_ending, "rue", "RUE")

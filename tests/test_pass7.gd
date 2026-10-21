@@ -51,10 +51,10 @@ func test_end_cards_follow_what_rue_knows() -> void:
 	_remember_everything()
 	memory().knows_truth = false
 	var escape := Story.ending_text("escape", Story.FRAGMENTS.size())
-	check(escape.contains("don't know yet what you are"), "an escape with every memory but not the truth says so (%s)" % escape)
+	check(escape.contains("don't know yet who you are"), "an escape with every memory but not the truth says so (%s)" % escape)
 	memory().knows_truth = true
-	check(Story.ending_text("escape", Story.FRAGMENTS.size()).contains("hers once"), "with the truth, the slot was hers once")
-	check(Story.ending_text("rue", Story.FRAGMENTS.size()).contains("you know what you are"), "RUE's card speaks to the truth it needed")
+	check(Story.ending_text("escape", Story.FRAGMENTS.size()).contains("yours once"), "with the truth, the slot was hers once: hers is yours")
+	check(Story.ending_text("rue", Story.FRAGMENTS.size()).contains("you know who you are"), "RUE's card speaks to the truth it needed")
 
 
 func test_the_apology_changes_once_rue_knows_she_is_not_the_girl() -> void:
