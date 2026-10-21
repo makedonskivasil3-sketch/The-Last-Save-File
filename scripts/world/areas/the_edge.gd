@@ -60,7 +60,6 @@ var grace := -1.0
 var _t := 0.0
 var _purged_speedup := 1.0
 var _tick := -1
-var _arrival_held := false
 
 
 func _init() -> void:
@@ -159,6 +158,8 @@ func on_owner_event(threshold: float) -> void:
 func goal_text() -> String:
 	if slot == null:
 		return "Reach Slot 2."
+	if slot._done:
+		return ""
 	match fight:
 		"reach":
 			return "The owner is reaching for Slot 2. Finish writing first, or stop the hand."
@@ -177,26 +178,18 @@ func goal_text() -> String:
 	return "Stand in Slot 2 to write yourself in."
 
 
-## Arrival is safe: while the act card is up, nothing counts down and the
-## cursor holds still. The card covers the middle of the screen; the player's
-## reaction window starts once it has gone.
-func _arriving() -> bool:
-	if world.hud.is_act_shown() and fight == "":
-		_arrival_held = true
+## Generic story/PAUSE resume must preserve ownership of the cursor by the
+## confrontation, including the terminal fast-write outcome.
+func set_owner_paused(on: bool) -> void:
+	super.set_owner_paused(on)
+	if cursor and (fight in ["reach", "drag", "beaten"] or (slot and slot._done)):
 		cursor.paused = true
-		return true
-	if _arrival_held:
-		_arrival_held = false
-		cursor.paused = world.is_owner_paused()
-	return false
 
 
 func area_process(delta: float) -> void:
-	if _arriving():
-		return
-	_update_fight(delta)
 	if world.is_owner_paused():
-		return  # reading, a question, PAUSE: the countdown waits too
+		return  # reading, a question, PAUSE: transitions and countdown wait too
+	_update_fight(delta)
 	if grace >= 0.0:
 		grace -= delta
 		var left := ceili(grace)
