@@ -6,6 +6,9 @@
 
 **Status:** a playable prototype, not a release candidate. What is verified, what is not, and what remains: [`docs/RELEASE_READINESS.md`](docs/RELEASE_READINESS.md) (the one authoritative status page).
 
+Technical review: [current findings](docs/PRESENTATION_FUNCTIONALITY_AUDIT.md) ·
+[detailed next-pass implementation prompt](docs/PRESENTATION_GAMEPLAY_FOLLOWUP_PROMPT.md).
+
 **The Last Save File** is a small, tense, systemic game about being an intruder. You're a stray process
 inside another player's save slot: their character's room, their NPCs, their notes to themselves.
 The owner is still playing. They see you. And every time you die or quit, they learn something and
@@ -39,8 +42,8 @@ Built with **Godot 4.3+** and **GDScript**.
 
 ## The current build
 
-Five areas in five acts, six characters and a fox, one owner who's getting impatient, and one way
-out. The whole story, as a readable script, is in **[docs/STORY_SCRIPT.md](docs/STORY_SCRIPT.md)**.
+Seven explorable areas, five memories, six authored endings, six humanoid characters and a fox,
+and one owner who's getting impatient. The whole story, as a readable script, is in **[docs/STORY_SCRIPT.md](docs/STORY_SCRIPT.md)**.
 
 **Controls**
 

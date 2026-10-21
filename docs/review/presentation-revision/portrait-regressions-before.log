@@ -1,0 +1,9 @@
+Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
+
+  FAIL  test_presentation_revision.test_visible_portrait_advances_its_animation_clock
+        - the real renderer clock advances while the portrait is visible
+  FAIL  test_presentation_revision.test_portrait_tracks_speech_after_text_is_fully_revealed
+        - a speaking line animates even after its text is fully shown (expected talk, got )
+
+==== 0 passed, 2 failed (0.8s) ====
+FAILED: no completed, non-empty successful test summary.

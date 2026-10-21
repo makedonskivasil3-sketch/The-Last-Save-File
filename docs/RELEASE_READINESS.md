@@ -2,7 +2,19 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current integration follow-up (2026-10-21)
+## Current presentation/functionality revision (2026-10-21)
+
+Reviewed baseline: GitHub `main` at `da83f01`. New runtime repairs are in
+`e69ab5c` (live portrait clock and system-speech mouth activity) and `9117b18`
+(detached-area deferred navigation refresh). The prior integration remains
+included. See [PRESENTATION_FUNCTIONALITY_AUDIT.md](PRESENTATION_FUNCTIONALITY_AUDIT.md)
+for findings, current completed verification, known warnings and publication;
+[PRESENTATION_GAMEPLAY_FOLLOWUP_PROMPT.md](PRESENTATION_GAMEPLAY_FOLLOWUP_PROMPT.md)
+is the detailed next implementation brief, not a claim it has all been executed.
+Stage remains a late prototype; human listening/playtesting and Windows/real-GPU
+execution remain unverified.
+
+## Historical integration follow-up (2026-10-21)
 
 The local opening/cast changes and every fetched remote branch have been
 integrated on `codex/integration-follow-up`. Runtime source is `2b3e70d`.

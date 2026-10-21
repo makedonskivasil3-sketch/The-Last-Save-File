@@ -1,0 +1,41 @@
+Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
+
+  PASS  test_character_presentation.test_no_one_wears_rue_s_face
+  PASS  test_character_presentation.test_mira_s_portrait_is_her_sprite
+  PASS  test_character_presentation.test_every_expression_and_frame_reads_differently
+  PASS  test_character_presentation.test_talking_to_mira_shows_her_face_and_mood
+  PASS  test_character_presentation.test_mira_s_moods_cover_her_story
+  PASS  test_character_presentation.test_wren_s_portrait_is_her_sprite_and_her_own
+  PASS  test_character_presentation.test_talking_to_wren_shows_her_face
+  PASS  test_presentation_revision.test_visible_portrait_advances_its_animation_clock
+  PASS  test_presentation_revision.test_portrait_tracks_speech_after_text_is_fully_revealed
+  PASS  test_story_pacing.test_reading_allowance_follows_length_and_punctuation
+  PASS  test_story_pacing.test_one_press_never_reveals_and_advances
+  PASS  test_story_pacing.test_manual_first_press_reveals_second_advances
+  PASS  test_story_pacing.test_mashing_reads_every_line_in_turn
+  PASS  test_story_pacing.test_auto_waits_for_the_voice_then_the_delay
+  PASS  test_story_pacing.test_auto_allowance_starts_when_the_line_is_complete
+  PASS  test_story_pacing.test_pausing_freezes_reading_time_and_voice
+  PASS  test_story_pacing.test_losing_focus_pauses_and_returning_resumes
+  PASS  test_story_pacing.test_leaving_the_scene_stops_its_voice
+  PASS  test_story_pacing.test_missing_recordings_fall_back_to_text
+  PASS  test_story_pacing.test_history_keeps_every_route_with_speakers
+  PASS  test_story_pacing.test_console_lines_stay_long_enough_to_read
+  PASS  test_story_pacing.test_quitting_mid_memory_keeps_the_story_coherent
+  PASS  test_story_pacing.test_holding_skips_a_scene_but_not_its_consequences
+  PASS  test_story_pacing.test_a_tap_never_skips
+  PASS  test_story_pacing.test_rue_portrait_matches_her_sprite
+  PASS  test_story_pacing.test_subtitle_settings_apply_and_persist
+  PASS  test_story_pacing.test_owner_warnings_go_ahead_of_thoughts
+  PASS  test_story_pacing.test_the_goal_shows_when_it_changes
+  PASS  test_story_pacing.test_a_scene_over_a_conversation_holds_it_without_ending_it
+  PASS  test_story_pacing.test_a_big_jump_still_says_a_warning
+  PASS  test_story_pacing.test_replaying_history_keeps_the_paused_story_voice
+  PASS  test_voice_over.test_an_unrecorded_line_is_silent_and_harmless
+  PASS  test_voice_over.test_every_scripted_id_names_a_real_line
+
+==== 33 passed, 0 failed (99.7s) ====
+WARNING: ObjectDB instances leaked at exit (run with --verbose for details).
+     at: cleanup (core/object/object.cpp:2284)
+ERROR: 3 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:604)
