@@ -8,6 +8,7 @@ func test_dialogue_and_large_recorded_caption() -> void:
 	await frames(4)
 	await shot("mira_live_dialogue")
 	w.hud._dialogue_typed = 1000
+	w.hud._dialogue_text.visible_characters = -1
 	w.hud._pacer.reveal(Engine.get_process_frames())
 	await frames(4)
 	check(not w.hud.dialogue_is_speaking(), "mouth rests while the visible line waits")
@@ -26,10 +27,12 @@ func test_dialogue_and_large_recorded_caption() -> void:
 	VoiceOver.register(Hud.voice_id("tour.caption", text), wav)
 	w.hud.show_dialogue("MIRA", Color.WHITE, [text], "tour.caption", CharacterArt.for_npc(w.area.mira))
 	w.hud._dialogue_typed = 1000
+	w.hud._dialogue_text.visible_characters = -1
 	w.hud._pacer.reveal(Engine.get_process_frames())
 	await frames(4)
 	w.hud._fit_dialogue()
 	check(w.hud._dialogue.position.y >= Hud.SAFE.y, "large caption remains in the safe area")
+	check(w.hud._dialogue_text.visible_characters == -1 and w.hud._dialogue_text.text.begins_with("This is a synthetic"), "the captured caption is actually revealed")
 	await shot("large_recorded_caption")
 	w.hud.close_dialogue()
 
@@ -40,9 +43,11 @@ func test_written_and_restricted_poses() -> void:
 	var npc: Npc = w.area.tobben
 	memory().frayed.assign(["tobben"])
 	npc.refresh_fray()
+	w.player.global_position = npc.global_position + Vector2(0, 14)
 	w._talking_to = npc
 	w.hud.show_dialogue(Story.TOBBEN_WRITTEN, Color.WHITE, ["The words are written. He has no voice left."], "", CharacterArt.for_npc(npc))
 	await frames(6)
+	check(w.hud.is_dialogue_open(), "written response remains open beside the speaker")
 	check(not npc.sprite().talking, "the written world response is mute")
 	check(w.hud._dialogue_portrait.frame != "talk", "the written portrait is mute")
 	await shot("tobben_written_response")
