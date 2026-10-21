@@ -12,16 +12,16 @@ extends RefCounted
 ## portrait has the "missing" palette (cyan, a void where the face should
 ## be, two points of light), exactly like her sprite.
 ##
-## A finished external portrait can replace the drawn one: put
-## res://art/characters/<who>/<who>_<expression>.png (32×32, transparent,
-## import with filter off) and it is used for the fully restored look.
+## Finished external portraits are resolved by PortraitArt (the one route the
+## live dialogue and cinematic portraits use; see its header for the folder
+## contract). The 32×32 grids below are the legacy raster portraits, kept for
+## the cast sheet and tests; they no longer look for PNGs of their own.
 
 ## Expressions every major character should have, plus character-specific
 ## ones (docs/CHARACTER_ART.md).
 const EXPRESSIONS := ["neutral", "concerned", "afraid", "relieved", "determined", "remembering"]
 const SIZE := 32
 const OUTLINE := Color("1a1014")
-const ART_DIR := "res://art/characters/"
 
 ## Rue, 32×32 bust. Keys: h hair, H hair shade, s skin, S skin shade,
 ## a scarf, A scarf shade, c coat, C coat shade, d coat seams, o outline.
@@ -244,11 +244,6 @@ static func expressions_for(who: String) -> Array:
 static func texture_for(p: Portrait, frame := "") -> Texture2D:
 	if not CAST.has(p.who):
 		return null  # no pixel grid for them (and never another character's face)
-	# Rue's finished art is only for her restored look; others have one look.
-	var restored: bool = p.who != "rue" or (p.palette.get("s") == Player.RUE["s"] and p.palette.get("c") == Player.RUE["c"])
-	var file := "%s%s/%s_%s.png" % [ART_DIR, p.who, p.who, p.expression]
-	if restored and frame == "" and ResourceLoader.exists(file):
-		return load(file) as Texture2D  # a finished external portrait
 	var key := "%s/%s/%s/%s" % [p.who, p.expression, frame, _palette_key(p.palette)]
 	if not _cache.has(key):
 		_cache[key] = ImageTexture.create_from_image(image(p, frame))
