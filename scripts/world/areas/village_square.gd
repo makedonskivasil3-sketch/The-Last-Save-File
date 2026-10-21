@@ -600,9 +600,7 @@ func _well_process(delta: float) -> void:
 		WellSequence.record("click")
 		# Her habit from the opening film: two light taps, then the press.
 		for beat in WellSequence.CLICK_PATTERN:
-			get_tree().create_timer(beat[0]).timeout.connect(func() -> void:
-				if is_inside_tree():
-					Sfx.play("click", beat[1], beat[2], 0.0))
+			get_tree().create_timer(beat[0]).timeout.connect(_well_click.bind(beat[1], beat[2]))
 		world.hud.say(WellSequence.CLICK_LINE, "self")
 	rim.prompt = WellSequence.ANSWER_PROMPT if WellSequence.done("compared") and not WellSequence.done("answered") else "listen"
 	if _answer_t < 0.0:
@@ -627,6 +625,11 @@ func _well_process(delta: float) -> void:
 			world.hud.say(l, "self")
 		var wren_waiting := Relationships.has("wren.met") and not OwnerMemory.wren_saved and not OwnerMemory.is_deleted("wren")
 		world.hud.say(WellSequence.ANSWER_HOPE if wren_waiting else WellSequence.ANSWER_HOPE_ALONE, "self")
+
+
+## One click of the well's gesture (bound to the area: leaving drops the rest).
+func _well_click(volume_db: float, pitch: float) -> void:
+	Sfx.play("click", volume_db, pitch, 0.0)
 
 
 func _on_listen(_rim: WellRim) -> void:

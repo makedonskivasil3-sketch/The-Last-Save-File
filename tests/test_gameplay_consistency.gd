@@ -239,6 +239,7 @@ func test_the_truth_needs_the_whole_file() -> void:
 func test_a_truth_piece_counts_when_its_line_is_shown() -> void:
 	_all_memories()
 	memory().mira_quest = "pinned"  # she has something to say first
+	memory().event_at("mira.pinned", 1)
 	var w := await start_session()
 	var mira: Npc = w.area.mira
 	var first: Array = await _read(w, mira, 1)
@@ -246,7 +247,11 @@ func test_a_truth_piece_counts_when_its_line_is_shown() -> void:
 	await frames(3)
 	check(first.size() == 1 and first[0] != Story.TRUTH_LINES.mira, "her first line is something else (%s)" % str(first))
 	check("mira" not in memory().truth_pieces, "walked away before her line: not counted")
+	# One topic per conversation (Relationships): the note, heard out, then
+	# what she noticed.
 	var heard: Array = await _read(w, mira)
+	check(not Story.TRUTH_LINES.mira in heard and "mira" not in memory().truth_pieces, "the note first, read whole (%s)" % str(heard))
+	heard = await _read(w, mira)
 	check(Story.TRUTH_LINES.mira in heard, "she still has it to say (%s)" % str(heard))
 	check("mira" in memory().truth_pieces, "counted once shown")
 

@@ -280,9 +280,9 @@ func _well_tune() -> void:
 	tune.volume_db = -14.0
 	add_child(tune)
 	tune.play()
-	get_tree().create_timer(6.0).timeout.connect(func() -> void:
-		if is_instance_valid(tune):
-			tune.queue_free())
+	# A bound method, not a lambda capturing the player: if the area (and the
+	# player with it) is freed first, the connection goes with it.
+	tune.finished.connect(tune.queue_free)
 	world.hud.say(WellSequence.TUNE_LINE, "self")
 	world.hud.say(WellSequence.ANCHOR_OFFER, "self")
 	mark.offered = true
