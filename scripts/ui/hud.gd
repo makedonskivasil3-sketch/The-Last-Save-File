@@ -1094,11 +1094,12 @@ func _update_dialogue(delta: float) -> void:
 func say(text: String, kind: String = "owner", speaker: String = "") -> void:
 	var msg := {"text": text, "kind": kind, "speaker": speaker}
 	if kind == "owner":
-		# The owner's lines carry the warnings: they go ahead of thoughts and
-		# system lines still waiting (in order among themselves).
+		# The owner goes ahead of telemetry still waiting, but not ahead of
+		# story lines: a thought (often the way out) keeps its place. Urgent
+		# warnings never queue (warn). docs/STORY_TEXT_ROUTES.md.
 		var at := _queue.size()
 		for i in _queue.size():
-			if _queue[i].kind != "owner":
+			if StoryPacing.is_telemetry(_queue[i].kind):
 				at = i
 				break
 		_queue.insert(at, msg)

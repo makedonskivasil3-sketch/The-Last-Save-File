@@ -35,13 +35,10 @@ func test_the_owner_waits_for_a_thought_but_not_for_a_counter() -> void:
 	settings().auto_speed = 1
 	w.hud.say(STORY, "self")
 	await wait_until(func() -> bool: return _shown(w, STORY), 2.0, "the thought")
-	w.hud.say("a second thought.", "self")
 	w.hud.say("who taught you to do that.", "owner")
-	check_eq(w.hud._queue[0].kind, "owner", "the owner's line goes ahead of the waiting thought")
 	await wait(StoryPacing.AMBIENT_MAX + 0.5)
-	check(not _shown(w, "who taught you to do that."), "but lets the thought be read: still waiting after %.0f s" % StoryPacing.AMBIENT_MAX)
+	check(not _shown(w, "who taught you to do that."), "the owner lets the thought be read: still waiting after %.0f s" % StoryPacing.AMBIENT_MAX)
 	await wait_until(func() -> bool: return _shown(w, "who taught you to do that."), StoryPacing.reading_time(STORY), "the owner's line, once the thought is read")
-	check(not _shown(w, "a second thought."), "and the queued thought still comes after it")
 	# A counter, though, doesn't hold the owner up.
 	_fresh(w)
 	w.hud.say(SYSTEM, "system")

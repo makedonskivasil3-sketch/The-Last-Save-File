@@ -325,7 +325,7 @@ func test_subtitle_settings_apply_and_persist() -> void:
 	settings().set_value("voice_delay", 1)
 
 
-func test_owner_warnings_go_ahead_of_thoughts() -> void:
+func test_owner_lines_go_ahead_of_telemetry_but_not_thoughts() -> void:
 	var w := await start_session()
 	w.hud.clear_queue()
 	w.hud._typing = null
@@ -334,11 +334,16 @@ func test_owner_warnings_go_ahead_of_thoughts() -> void:
 	w.hud.say("MEMORY RECOVERED  1 / 5", "system")
 	await wait_until(func() -> bool: return w.hud.history.any(func(e: Dictionary) -> bool: return e.text == "MEMORY RECOVERED  1 / 5"), 2.0, "the first line")
 	w.hud.say("a second thought.", "self")
+	w.hud.say("OWNER PURGE PROGRESS 1/6", "system")
 	w.hud.say("do that again and i'm loading the autosave.", "owner")
-	check_eq(w.hud._queue[0].kind, "owner", "the owner's line goes ahead of the waiting thought")
+	check_eq(w.hud._queue.map(func(m: Dictionary) -> String: return m.kind), ["self", "owner", "system"], "the owner goes ahead of the counter, behind the thought")
+	# With only telemetry ahead of it, the owner cuts the counter's pause.
+	w.hud.clear_queue()
+	w.hud.say("OWNER PURGE PROGRESS 2/6", "system")
+	await wait_until(func() -> bool: return w.hud.history.any(func(e: Dictionary) -> bool: return e.text == "OWNER PURGE PROGRESS 2/6"), 8.0, "the counter")
+	w.hud.say("stop that.", "owner")
 	await wait(StoryPacing.OWNER_GAP + 0.4)
-	check(w.hud.history.any(func(e: Dictionary) -> bool: return e.kind == "owner" and e.text.begins_with("do that again")), "after a system line it is on screen within %.1f s" % (StoryPacing.OWNER_GAP + 0.4))
-	check(not w.hud.history.any(func(e: Dictionary) -> bool: return e.text == "a second thought."), "the thought waits its turn")
+	check(w.hud.history.any(func(e: Dictionary) -> bool: return e.kind == "owner" and e.text.ends_with("stop that.")), "after a counter the owner is on within %.1f s" % (StoryPacing.OWNER_GAP + 0.4))
 	# (A thought being read is not cut short: test_ambient_pacing.gd.)
 
 
