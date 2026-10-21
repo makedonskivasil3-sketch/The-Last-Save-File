@@ -2,7 +2,20 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current integration follow-up (2026-10-21)
+## Current code and experience revision (2026-10-21)
+
+Main already contained the integrated work at `da83f01`. The new targeted
+revision fixes finale pause ownership, reading-held confrontation transitions,
+obsolete completed-slot guidance and stationary gaze jitter, and steadies
+charge brackets under Reduce flashing. See [REVISION_OCT21.md](REVISION_OCT21.md)
+for reproduced defects and evidence boundaries, and
+[NEXT_GAMEPLAY_VISUAL_PROMPT.md](NEXT_GAMEPLAY_VISUAL_PROMPT.md) for the detailed
+next implementation assignment. Follow the new PR's current checks for broad
+validation; historical results below do not validate this revision.
+Human playtests, current animation review, listening, real-GPU measurements and
+physical platform/input checks remain pending. This is still a late prototype.
+
+## Previous integration follow-up (2026-10-21)
 
 The local opening/cast changes and every fetched remote branch have been
 integrated on `codex/integration-follow-up`. Runtime source is `2b3e70d`.

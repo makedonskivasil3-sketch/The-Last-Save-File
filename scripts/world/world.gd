@@ -1450,6 +1450,7 @@ func reach_slot2() -> void:
 	area.set_owner_paused(true)
 	hud.close_dialogue()
 	hud.set_glitch_prompt("")
+	hud.show_objective("")
 	owner_moves.save_progress = -1.0
 	owner_moves.wren_delete = -1.0
 	# RUE needs every memory and the truth they add up to.
