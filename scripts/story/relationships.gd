@@ -114,7 +114,13 @@ static func greeting(id: String) -> String:
 static func history(who: String) -> Array[String]:
 	var out: Array[String] = []
 	var ids: Array = OwnerMemory.rel_events.keys().filter(func(k: String) -> bool: return k.begins_with(who + ".") and EVENTS.has(k))
-	ids.sort_custom(func(a: String, b: String) -> bool: return int(OwnerMemory.rel_events[a]) < int(OwnerMemory.rel_events[b]))
+	# By session, then in story order (EVENTS lists them as they can happen):
+	# meeting her comes before anything she did for you that same run.
+	var order: Array = EVENTS.keys()
+	ids.sort_custom(func(a: String, b: String) -> bool:
+		var sa := int(OwnerMemory.rel_events[a])
+		var sb := int(OwnerMemory.rel_events[b])
+		return sa < sb if sa != sb else order.find(a) < order.find(b))
 	for id in ids:
 		out.append(EVENTS[id])
 	return out

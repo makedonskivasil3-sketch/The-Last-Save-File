@@ -117,6 +117,9 @@ func test_a_promise_and_a_restoration_are_remembered() -> void:
 	var hist := Relationships.history("wren")
 	check(hist.has(Relationships.EVENTS["wren.restored"]) and hist.has(Relationships.EVENTS["wren.promised"]), "history lists what happened (%s)" % [hist])
 	check(not hist.has(Relationships.EVENTS["wren.promise_kept"]), "and nothing that didn't")
+	memory().rel_events["wren.sheltered"] = 1
+	hist = Relationships.history("wren")
+	check(hist.find(Relationships.EVENTS["wren.met"]) < hist.find(Relationships.EVENTS["wren.sheltered"]), "same run: meeting her comes first (%s)" % [hist])
 
 
 func test_a_version_1_save_migrates_without_losing_anyone() -> void:
