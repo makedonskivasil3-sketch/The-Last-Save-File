@@ -44,7 +44,7 @@ the second player that stayed in an interrupted save.
 | Headless Chromium `audio_output_check.cjs` | Audible after a gesture; `soundState` "running"; **no visible badge**; no clipping |
 | Captures | `docs/review/continuity/` (opening before and after, the slice, the archive) |
 | **After merging main** (`d527151`, with PR #9) | Strict full suite **523/523** (1215.2 s, exit 0), including PR #9's own tests. Ending bots 5/5: the escape at purge 3 took 4 sessions and 3 deaths this run; the other routes had no deaths. Web, Windows and Linux exports exit 0. Both headless-Chromium checks pass, with no visible badge. |
-| PR CI | Passed on `d527151` (run 109, with downloadable Windows, Linux and Web artifacts). On `1b6f053` (a docs-only change) the export job first failed `web_check`'s "run becomes playable" step: the boot scene was still open at the 90 s limit on the slow software-rendered runner. One re-run passed. Recorded as a timing flake, and noted on the PR. |
+| PR CI | Passed on `d527151` (run 109, with downloadable Windows, Linux and Web artifacts). On `1b6f053` (a docs-only change) the export job first failed `web_check`'s "run becomes playable" step: the boot scene was still open at the 90 s limit on the slow software-rendered runner. One re-run passed. It failed the same way again on `d27d106` (also docs-only), so it was treated as real. Cause: the check's 90 s budget, not the game. At 12× CPU throttling, `main` and this branch both reach a playable run at 54.6 s, and the same code has passed and failed on CI. The budget is now 240 s (`tests/web/web_check.cjs`); the check passes locally both throttled and unthrottled. |
 
 **Not verified:**
 - Windows execution

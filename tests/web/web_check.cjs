@@ -129,7 +129,12 @@ const pick = (d) => d ? { sessions: d.sessions, deaths: d.deaths, quits: d.quits
   // E moves text on; it is pressed only while text is open (pressing it into
   // the world starts interactions, which on a slow machine can keep a poll
   // from ever seeing the run playable).
-  while (!(s && s.playable) && Date.now() - t0 < 90000) {
+  // The boot text and the materialise run at the game's frame rate, which on
+  // a software-rendered CI runner can be a few frames a second: the same
+  // build has needed from about 20 s to over 90 s here. The published state
+  // doesn't change while a line is read, so a stall can't be told from slow
+  // progress; the budget is simply generous.
+  while (!(s && s.playable) && Date.now() - t0 < 240000) {
     if (!s || s.reading) await page.keyboard.press('e');
     await page.waitForTimeout(600);
     s = await state(page);
