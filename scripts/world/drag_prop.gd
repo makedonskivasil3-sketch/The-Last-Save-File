@@ -8,7 +8,12 @@ var size := Vector2(40, 40)
 ## Where it lives when nobody is dragging it.
 var home := Vector2.ZERO
 ## Being carried by the cursor right now.
-var held := false
+var held := false:
+	set(value):
+		var ended := held and not value
+		held = value
+		if ended and is_inside_tree():
+			_flush_geometry()
 
 var _t := 0.0
 
@@ -34,19 +39,31 @@ const NOTIFY_STEP := 4.0
 const NOTIFY_EVERY := 0.25
 var _told_at := Vector2.INF
 var _tell_left := 0.0
+var _last_position := Vector2.INF
+var _stable_for := 0.0
+
+
+func _flush_geometry() -> void:
+	if _told_at == Vector2.INF or _told_at.distance_to(global_position) < 0.001:
+		return
+	var was := Rect2(_told_at - size * 0.5, size)
+	Area.notify_geometry(self, was.merge(rect()))
+	_told_at = global_position
+	_tell_left = NOTIFY_EVERY
 
 
 func _process(delta: float) -> void:
 	_t += delta
 	_tell_left = maxf(0.0, _tell_left - delta)
+	_stable_for = _stable_for + delta if global_position == _last_position else 0.0
+	_last_position = global_position
 	if _told_at == Vector2.INF:
 		_told_at = global_position
 	elif _tell_left <= 0.0 and _told_at.distance_to(global_position) > NOTIFY_STEP:
-		# Where it was is open again; where it is now is blocked.
-		var was := Rect2(_told_at - size * 0.5, size)
-		Area.notify_geometry(self, was.merge(rect()))
-		_told_at = global_position
-		_tell_left = NOTIFY_EVERY
+		_flush_geometry()
+	elif not held and _stable_for >= NOTIFY_EVERY and _tell_left <= 0.0:
+		# A final correction smaller than NOTIFY_STEP must not stay stale.
+		_flush_geometry()
 	queue_redraw()
 
 

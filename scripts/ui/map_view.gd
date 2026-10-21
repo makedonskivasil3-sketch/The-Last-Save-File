@@ -6,13 +6,13 @@ extends Control
 
 ## Area id -> [display name, centre on the map (0..1 of the control)].
 const NODES := {
-	"edge": ["THE EDGE", Vector2(0.5, 0.12)],
-	"room": ["ARIN'S ROOM", Vector2(0.14, 0.46)],
-	"square": ["ASHVALE", Vector2(0.5, 0.46)],
-	"archive": ["THE ARCHIVE", Vector2(0.86, 0.46)],
-	"oob": ["OUT OF BOUNDS", Vector2(0.5, 0.84)],
-	"bin": ["RECYCLE BIN", Vector2(0.86, 0.84)],
-	"house": ["ARIN'S HOUSE", Vector2(0.14, 0.12)],
+	"edge": ["THE EDGE", Vector2(0.37, 0.12)],
+	"room": ["ARIN'S ROOM", Vector2(0.12, 0.46)],
+	"square": ["ASHVALE", Vector2(0.37, 0.46)],
+	"archive": ["THE ARCHIVE", Vector2(0.64, 0.46)],
+	"oob": ["OUT OF BOUNDS", Vector2(0.37, 0.84)],
+	"bin": ["RECYCLE BIN", Vector2(0.89, 0.46)],
+	"house": ["ARIN'S HOUSE", Vector2(0.12, 0.12)],
 }
 const LINKS := [["room", "square"], ["square", "archive"], ["square", "edge"], ["square", "oob"], ["archive", "bin"], ["square", "house"]]
 const BOX := Vector2(84, 22)
@@ -35,7 +35,7 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
-	var font := ThemeDB.fallback_font
+	var font := UiStyle.system_font()
 	var fs := roundi(8 * Settings.text_scale())
 	for link in LINKS:
 		var a := _centre(link[0])
@@ -53,7 +53,8 @@ func _draw() -> void:
 			border = Color(CYAN, 0.6 + 0.4 * sin(_t * 4.0))
 		draw_rect(r, border, false, 1.0)
 		var label: String = NODES[id][0] if seen else "???"
-		draw_string(font, Vector2(r.position.x, c.y + 1), label, HORIZONTAL_ALIGNMENT_CENTER, BOX.x, fs,
+		var baseline := c.y + (font.get_ascent(fs) - font.get_descent(fs)) * 0.5
+		draw_string(font, Vector2(r.position.x, baseline), label, HORIZONTAL_ALIGNMENT_CENTER, BOX.x, fs,
 				CYAN if here else (TEXT if seen else DIM))
 		if seen:
 			_draw_memories(id, Vector2(c.x, r.end.y + 4))

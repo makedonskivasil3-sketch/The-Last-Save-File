@@ -200,9 +200,16 @@ func _torso(p: _Parts, o: Vector2, phase: float, side: bool, _step: int) -> void
 		Vector2(x + sh * 0.86 + flare, bottom), Vector2(x + sh * 0.3 + flare * 0.5, bottom)]), Color(dark, 0.55), false)
 	if body.get("apron", false):
 		var w := _c("w", Color("efe6d6"))
-		p.poly(PackedVector2Array([Vector2(x - sh * 0.62, top + 3.0), Vector2(x + sh * 0.62, top + 3.0),
-			Vector2(x + sh * 0.7, bottom - 0.2), Vector2(x - sh * 0.7, bottom - 0.2)]), w, false)
-		p.rect(Rect2(x - 1.4, top + 5.5, 2.8, 1.8), w.darkened(0.12), false)
+		if facing == Vector2.UP:
+			# Apron ties at the waist, not the front bib/pocket on his back.
+			var waist := hip - 1.5
+			p.line(Vector2(x - sh * 0.85, waist), Vector2(x + sh * 0.85, waist), w, 0.8)
+			p.capsule(Vector2(x, waist), Vector2(x - 1.5, waist + 2.5), 0.4, w)
+			p.capsule(Vector2(x, waist), Vector2(x + 1.5, waist + 2.5), 0.4, w)
+		else:
+			p.poly(PackedVector2Array([Vector2(x - sh * 0.62, top + 3.0), Vector2(x + sh * 0.62, top + 3.0),
+				Vector2(x + sh * 0.7, bottom - 0.2), Vector2(x - sh * 0.7, bottom - 0.2)]), w, false)
+			p.rect(Rect2(x - 1.4, top + 5.5, 2.8, 1.8), w.darkened(0.12), false)
 	if body.get("belt", false):
 		p.rect(Rect2(x - sh * 0.9, hip - 1.0, sh * 1.8, 1.2), _c("a", dark), false)
 	if body.get("sash", false):

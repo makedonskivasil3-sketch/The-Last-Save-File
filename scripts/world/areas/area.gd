@@ -145,7 +145,8 @@ var _nav_pending := false
 ## Something solid changed here (a door opened or shut, crates were dragged,
 ## a wall crumbled): the shared walking grid re-checks that region once
 ## physics has the new shapes (deferred collision changes land on the next
-## physics frame), then its version goes up and every walker plans again.
+## physics frame). Only changed cell occupancy advances the version and
+## makes every walker plan again; redundant notices leave paths valid.
 ## Calls in the same frames are merged into one refresh. An empty rect means
 ## "somewhere": everything is re-checked.
 func geometry_changed(where := Rect2()) -> void:

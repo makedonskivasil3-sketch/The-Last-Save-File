@@ -162,7 +162,10 @@ func test_walkers_in_one_area_share_one_grid_and_see_the_change() -> void:
 	await frames(2)
 	check(a.nav() == b.nav(), "both walkers use the area's one grid")
 	var v := a.nav().version
-	w.area.geometry_changed()
+	var spot := _open_spot(a.nav(), 16.0)
+	check(spot != Vector2.INF, "an open patch for a genuine geometry change")
+	_wall(w, Rect2(spot - Vector2(8, 8), Vector2(16, 16)))
+	w.area.geometry_changed(Rect2(spot - Vector2(8, 8), Vector2(16, 16)))
 	await wait_until(func() -> bool: return b.nav().version > v, 1.0, "the refresh")
 	check(a.nav().version == b.nav().version, "and both see the new version")
 	b.queue_free()

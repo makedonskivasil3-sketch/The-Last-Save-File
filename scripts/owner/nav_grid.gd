@@ -14,13 +14,17 @@ const MARGIN := 1.0
 
 var bounds := Rect2()
 var radius := 4.0
-## Goes up every time the grid changes (a full build or a refresh): anything
+## Goes up on a build or actual occupancy change: anything
 ## holding a path from an older version plans again.
 var version := 0
 var _astar := AStarGrid2D.new()
 var _space: PhysicsDirectSpaceState2D
 var _mask := 1
 var _exclude: Array[RID] = []
+var _clear_shape := CircleShape2D.new()
+var _clear_query := PhysicsShapeQueryParameters2D.new()
+var _sweep_shape := CircleShape2D.new()
+var _sweep_query := PhysicsShapeQueryParameters2D.new()
 
 
 ## Build the grid. `exclude`: bodies that don't block (Rue, people).
@@ -47,21 +51,28 @@ func build(space: PhysicsDirectSpaceState2D, area_bounds: Rect2, mask: int, excl
 func refresh(where := Rect2()) -> void:
 	if _space == null:
 		return
+	var changed := false
 	if where.size == Vector2.ZERO:
-		_mark(Rect2i(Vector2i.ZERO, _astar.region.size))
+		changed = _mark(Rect2i(Vector2i.ZERO, _astar.region.size))
 	else:
 		var r := where.grow(radius + MARGIN + CELL)
 		var a := _cell(r.position)
 		var b := _cell(r.end)
-		_mark(Rect2i(a, b - a + Vector2i.ONE))
-	version += 1
+		changed = _mark(Rect2i(a, b - a + Vector2i.ONE))
+	if changed:
+		version += 1
 
 
-func _mark(cells: Rect2i) -> void:
+func _mark(cells: Rect2i) -> bool:
+	var changed := false
 	for x in range(cells.position.x, cells.end.x):
 		for y in range(cells.position.y, cells.end.y):
 			var c := Vector2i(x, y)
-			_astar.set_point_solid(c, not clear(_astar.get_point_position(c)))
+			var solid := not clear(_astar.get_point_position(c))
+			if _astar.is_point_solid(c) != solid:
+				_astar.set_point_solid(c, solid)
+				changed = true
+	return changed
 
 
 ## Can a body sweep in a straight line from `a` to `b` without touching a
@@ -70,8 +81,8 @@ func _mark(cells: Rect2i) -> void:
 func sweep_clear(a: Vector2, b: Vector2) -> bool:
 	if _space == null or a.distance_to(b) < 0.01:
 		return true
-	var q := PhysicsShapeQueryParameters2D.new()
-	var circle := CircleShape2D.new()
+	var q := _sweep_query
+	var circle := _sweep_shape
 	circle.radius = radius + MARGIN * 0.5
 	q.shape = circle
 	q.transform = Transform2D(0.0, a)
@@ -91,8 +102,8 @@ func clear(p: Vector2, extra := MARGIN) -> bool:
 		return false
 	if _space == null:
 		return true
-	var q := PhysicsShapeQueryParameters2D.new()
-	var circle := CircleShape2D.new()
+	var q := _clear_query
+	var circle := _clear_shape
 	circle.radius = r
 	q.shape = circle
 	q.transform = Transform2D(0.0, p)

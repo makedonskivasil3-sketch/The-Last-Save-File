@@ -222,7 +222,13 @@ func back_from_the_edge() -> bool:
 	if previous_exit != "death" or OwnerMemory.deaths_log.is_empty():
 		return false
 	var last: Dictionary = OwnerMemory.deaths_log.back()
-	return last.get("area", "") == "edge" and int(last.get("session", -1)) == OwnerMemory.sessions - 1
+	var session: Variant = last.get("session")
+	# JSON numbers may be floats. Accept the exact previous session, never
+	# truncate fractions or coerce strings/containers from damaged records.
+	if not (session is int or session is float):
+		return false
+	return last.get("area", "") == "edge" and is_finite(float(session)) \
+		and session >= 0 and session == OwnerMemory.sessions - 1
 
 
 func guide_point() -> Vector2:
