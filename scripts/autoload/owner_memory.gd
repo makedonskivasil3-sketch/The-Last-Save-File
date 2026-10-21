@@ -54,8 +54,10 @@ var found_guestbook := false
 ## memories), oldest first. Each entry is {id, kind, title, area, lines}.
 ## A note the owner rewrote keeps every version Rue saw.
 var journal: Array[Dictionary] = []
-const MAX_JOURNAL := 80
-const MAX_JOURNAL_LINES := 16
+## Generous sanity limits: the game has far fewer readable things than this,
+## and reaching either one warns instead of dropping a line silently.
+const MAX_JOURNAL := 400
+const MAX_JOURNAL_LINES := 64
 ## Found the second controller under the couch in Arin's house.
 var found_controller := false
 ## How the last game ended at Slot 2: "escape", "wren" or "message" ("" if
@@ -125,6 +127,8 @@ var well_events: Array[String] = []
 ## The checkpoint (layer C): {"id", "version", "session"} or empty. The place
 ## is looked up from the id (World.ANCHORS), never stored as coordinates.
 var anchor: Dictionary = {}
+## Archive entries opened at least once (ArchivePages keys): the rest are new.
+var archive_seen: Array[String] = []
 
 ## Not saved. Resources that should survive scene reloads (e.g. synthesized audio).
 var runtime_cache: Dictionary = {}
@@ -222,9 +226,19 @@ func begin_session() -> String:
 
 
 ## Rue meets someone (a conversation opened). Returns true the first time ever.
-func meet(id: String) -> bool:
+func meet(id: String, where := "", look: Dictionary = {}) -> bool:
 	var first := not encounters.has(id)
 	var e: Dictionary = encounters.get(id, {"first": sessions, "last": sessions, "count": 0})
+	# Where and how they were last seen (the journal's portrait and place).
+	if where != "":
+		e.area = where
+	if not look.is_empty():
+		var hex := {}
+		for k in look:
+			if look[k] is Color:
+				hex[str(k)] = "#" + (look[k] as Color).to_html(false)
+		e.look = hex
+	encounters[id] = e
 	if not first and int(e.last) == sessions:
 		return false  # already counted this session
 	e.last = sessions
@@ -234,6 +248,20 @@ func meet(id: String) -> bool:
 		rel_events[id + ".met"] = sessions
 	save_memory()
 	return first
+
+
+## The colours someone was last seen in, as a palette (for their portrait).
+func look_of(id: String) -> Dictionary:
+	var out := {}
+	for k in encounters.get(id, {}).get("look", {}):
+		out[k] = Color(encounters[id].look[k])
+	return out
+
+
+func mark_seen_in_archive(key: String) -> void:
+	if key not in archive_seen:
+		archive_seen.append(key)
+		save_memory()
 
 
 func has_met(id: String) -> bool:
@@ -408,7 +436,10 @@ func record_read(id: String, kind: String, title: String, area: String, lines: A
 				save_memory()
 			return false
 	if journal.size() >= MAX_JOURNAL:
+		push_warning("OwnerMemory: journal full (%d); not keeping %s" % [MAX_JOURNAL, id])
 		return false
+	if text.size() > MAX_JOURNAL_LINES:
+		push_warning("OwnerMemory: %s has %d lines; keeping %d" % [id, text.size(), MAX_JOURNAL_LINES])
 	journal.append({"id": id, "kind": kind, "title": title, "area": area, "lines": text.slice(0, MAX_JOURNAL_LINES)})
 	if save:
 		save_memory()
@@ -541,6 +572,7 @@ func clear_state() -> void:
 	places.clear()
 	well_events.clear()
 	anchor.clear()
+	archive_seen.clear()
 	session_helpers.clear()
 	session_seam = -1
 	_session_closed = true
@@ -620,6 +652,7 @@ func save_memory() -> void:
 		"places": places,
 		"well_events": well_events,
 		"anchor": anchor,
+		"archive_seen": archive_seen,
 	}
 	SafeFile.write_atomic(_path, JSON.stringify(data, "\t"))
 
@@ -792,7 +825,16 @@ func load_memory() -> void:
 		for k in enc:
 			var e: Variant = enc[k]
 			if e is Dictionary and _num(e, "first") and _num(e, "last"):
-				encounters[str(k)] = {"first": int(e.first), "last": int(e.last), "count": maxi(1, _int(e, "count", 1))}
+				var kept := {"first": int(e.first), "last": int(e.last), "count": maxi(1, _int(e, "count", 1))}
+				if e.get("area") is String:
+					kept.area = e.area
+				if e.get("look") is Dictionary:
+					var look := {}
+					for c in e.look:
+						if e.look[c] is String and Color.html_is_valid(e.look[c]):
+							look[str(c)] = e.look[c]
+					kept.look = look
+				encounters[str(k)] = kept
 	conversations.assign(_strings(data, "conversations"))
 	rel_events.clear()
 	var ev: Variant = data.get("rel_events", {})
@@ -802,6 +844,7 @@ func load_memory() -> void:
 				rel_events[str(k)] = int(ev[k])
 	places.assign(_strings(data, "places"))
 	well_events.assign(_strings(data, "well_events"))
+	archive_seen.assign(_strings(data, "archive_seen"))
 	anchor.clear()
 	var an: Variant = data.get("anchor", {})
 	if an is Dictionary and an.get("id") is String and _num(an, "version"):

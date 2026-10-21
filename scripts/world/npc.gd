@@ -199,6 +199,19 @@ func interact_prompt() -> String:
 	return "talk"
 
 
+## The id of the area they're in (an escort walks inside World, beside it).
+func _where() -> String:
+	var n: Node = get_parent()
+	while n != null:
+		if n is Area:
+			return (n as Area).area_id
+		var a: Variant = n.get("area")
+		if a is Area:
+			return (a as Area).area_id
+		n = n.get_parent()
+	return ""
+
+
 func interact() -> Dictionary:
 	# Meeting someone counts when the conversation opens (Relationships);
 	# what was said counts only once it's read to the end (World).
@@ -213,7 +226,7 @@ func interact() -> Dictionary:
 	else:
 		lines = told
 	if state != State.DELETED:
-		OwnerMemory.meet(npc_id)
+		OwnerMemory.meet(npc_id, _where(), sprite().palette)
 	# A piece Rue took (or gave back): said once a session, before anything.
 	if state != State.DELETED:
 		if npc_id in OwnerMemory.returned_pending and Story.FRAY_RETURNED.has(npc_id):

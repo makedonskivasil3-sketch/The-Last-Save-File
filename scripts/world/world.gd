@@ -605,6 +605,7 @@ func _load_area(next: Area, arrival: String) -> void:
 		area.queue_free()
 	area = next
 	area.world = self
+	OwnerMemory.discover_place(area.area_id)
 	if owner_moves:
 		owner_moves.on_area_changed()
 	add_child(area)
