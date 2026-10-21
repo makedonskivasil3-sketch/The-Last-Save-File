@@ -43,6 +43,7 @@ the second player that stayed in an interrupted save.
 | Headless Chromium `web_check.cjs` | All passed: title, opening, skip, playable, keyboard, save, leave guard, quit counted, no page errors |
 | Headless Chromium `audio_output_check.cjs` | Audible after a gesture; `soundState` "running"; **no visible badge**; no clipping |
 | Captures | `docs/review/continuity/` (opening before and after, the slice, the archive) |
+| **After merging main** (`d527151`, with PR #9) | Strict full suite **523/523** (1215.2 s, exit 0), including PR #9's own tests. Bots, exports and browser checks are not yet re-run on the merge. |
 
 **Not verified:**
 - Windows execution
