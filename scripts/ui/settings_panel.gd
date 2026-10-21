@@ -87,12 +87,10 @@ func _ready() -> void:
 	_section(right, "HELP")
 	_check(right, "Tutorial tips", Settings.tutorial_tips, func(on: bool) -> void: Settings.set_value("tutorial_tips", on))
 	_narration = _check(right, "Spoken narration", Settings.narration, func(on: bool) -> void: Settings.set_value("narration", on))
-	_cycler(right, "speech_rate", Narration.SPEECH_RATE_NAMES.map(func(n: String) -> String: return "Speech rate: " + n),
-		"How fast the system voice speaks. Text speed and auto reading are separate.")
+	_cycler(right, "speech_rate", ["Speech: 0.75x", "Speech: 0.85x", "Speech: 1.0x", "Speech: 1.1x"], "System speech only. A change stops the current utterance; captions remain and the next line uses the new rate. Recordings are unchanged.")
 	# The device is asked for voices when these settings are on screen, not
-	# when the menu is built (A24).
-	# (Deferred: a menu built inside a box that is hidden right after, like
-	# the title's, is never on screen and asks nothing.)
+	# when the menu is built (A24). (Deferred: a menu built inside a box that
+	# is hidden right after, like the title's, is never on screen and asks nothing.)
 	visibility_changed.connect(_refresh_narration)
 	_refresh_narration.call_deferred()
 	if show_reset:

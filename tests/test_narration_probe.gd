@@ -63,22 +63,18 @@ func test_an_empty_answer_is_asked_again_but_not_every_frame() -> void:
 
 
 func test_speech_rate_is_its_own_setting() -> void:
+	# (The setting is main's: Settings.speech_rate over Settings.SPEECH_RATES.)
 	var before_text: int = settings().text_speed
 	var rates := []
-	for r in Narration.SPEECH_RATES.size():
+	for r in Settings.SPEECH_RATES.size():
 		Settings.set_value("speech_rate", r)
 		rates.append(Narration.speech_for("MIRA", 12).rate)
 		check_eq(settings().text_speed, before_text, "speech rate %d leaves text speed alone" % r)
-		check(rates[r] >= 0.5 and rates[r] <= 2.0, "a pace the device accepts (%.2f)" % rates[r])
-	check(rates[0] < rates[1] and rates[1] < rates[2] and rates[2] <= rates[3], "slower to fastest: %s" % [rates])
-	Settings.set_value("speech_rate", 1)
-	check_eq(Narration.speech_for("MIRA", 12).rate, float(Narration.CHARACTER_SPEECH["MIRA"].rate), "normal: each character's own pace")
+	check(rates[0] < rates[1] and rates[1] < rates[2] and rates[2] < rates[3], "slower to faster: %s" % [rates])
+	var normal: int = Settings.SPEECH_RATES.find(1.0)
+	Settings.set_value("speech_rate", normal)
+	check_eq(Narration.speech_for("MIRA", 12).rate, float(Narration.CHARACTER_SPEECH["MIRA"].rate), "1.0x: each character's own pace")
 	var pip: float = Narration.speech_for("PIP", 12).rate
 	Settings.set_value("text_speed", 3)
 	check_eq(Narration.speech_for("PIP", 12).rate, pip, "instant text doesn't hurry the voice")
 	Settings.set_value("text_speed", before_text)
-	Settings.set_value("speech_rate", 2)
-	var cfg := ConfigFile.new()
-	cfg.load(Settings._path)
-	check_eq(int(cfg.get_value("story", "speech_rate", -1)), 2, "saved with the other story settings")
-	Settings.set_value("speech_rate", 1)

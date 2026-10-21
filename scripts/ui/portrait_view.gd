@@ -23,9 +23,7 @@ var frame := "":
 var tint := Color("8a7a9a")
 
 var _figure: IllustratedCharacter
-## Finished art for the current portrait and state (PortraitArt), or null:
-## then the procedural bust is drawn.
-var _art: PortraitArt.Art
+var _asset: PortraitAsset
 
 
 func _ready() -> void:
@@ -33,14 +31,9 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
-## Is finished external art on screen now (rather than the drawn bust)?
-func uses_external_art() -> bool:
-	return _art != null
-
-
 func _rebuild() -> void:
 	_figure = null
-	_art = PortraitArt.resolve(portrait) if portrait and CharacterArt.has_portrait(portrait.who) else null
+	_asset = PortraitResolver.resolve(portrait)
 	if portrait and CharacterArt.has_portrait(portrait.who):
 		_figure = IllustratedCharacter.new(CharacterArt.kind_for(portrait.who), portrait.palette)
 		_figure.leg_color = portrait.palette.get("l", _figure.leg_color)
@@ -67,8 +60,13 @@ func _draw() -> void:
 	draw_style_box(bg, r)
 	# A soft light behind the head.
 	draw_circle(Vector2(size.x * 0.5, size.y * 0.4), size.x * 0.34, Color(tint, 0.16))
-	if _art:
-		_draw_art()
+	if _asset:
+		var shown_frame := frame
+		if shown_frame == "talk" and not mouth_open():
+			shown_frame = ""
+		var tex := _asset.texture(shown_frame)
+		var source := Rect2(_asset.crop.position * tex.get_size(), _asset.crop.size * tex.get_size())
+		draw_texture_rect_region(tex, r.grow(-3), source)
 		return
 	if _figure == null:
 		return
@@ -79,38 +77,8 @@ func _draw() -> void:
 	_figure.draw(self, {"offset": offset, "scale": k})
 
 
-## Finished art: the set's own frames, placed by its face anchor so every
-## expression and frame sits exactly where the last one did (no jumping bust,
-## no moving text). Without a talk frame the face lifts a pixel on the beat.
-func _draw_art() -> void:
-	var r := art_rect()
-	if mouth_open() and not _art.frames.has("talk"):
-		r.position.y -= 1.0
-	draw_texture_rect(shown_texture(), r, false)
-
-
 ## Is the mouth open in this frame? While the line is spoken (frame "talk")
 ## it opens and closes on one clock, the figure's own, for the drawn bust and
-## the finished art alike; nothing else toggles it.
+## finished art alike; nothing else toggles it.
 func mouth_open() -> bool:
 	return frame == "talk" and (_figure == null or fmod(_figure._t, 0.24) < 0.12)
-
-
-## Where the finished art is drawn: from the set's face anchor and zoom only,
-## so it is the same for every expression and frame of the set.
-func art_rect() -> Rect2:
-	if _art == null:
-		return Rect2()
-	var k := size.x * _art.zoom / float(_art.size.x)
-	var dest := Vector2(_art.size) * k
-	var face := Vector2(size.x * 0.5, size.y * 0.44)
-	return Rect2(face - Vector2(_art.anchor.x * dest.x, _art.anchor.y * dest.y), dest)
-
-
-## The texture on screen now (finished art only; null for the drawn bust).
-func shown_texture() -> Texture2D:
-	if _art == null:
-		return null
-	if frame == "talk":
-		return _art.texture("talk" if mouth_open() else "")
-	return _art.texture(frame)

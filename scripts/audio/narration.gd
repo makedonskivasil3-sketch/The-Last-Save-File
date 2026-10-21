@@ -34,10 +34,6 @@ var _owns_speech := false
 var last_text := ""
 var supported := false
 
-## Settings.speech_rate: how fast the system voice speaks (a multiplier on
-## each character's own pace). Separate from text speed and auto reading.
-const SPEECH_RATES := [0.8, 1.0, 1.25, 1.5]
-const SPEECH_RATE_NAMES := ["Slower", "Normal", "Faster", "Fastest"]
 ## The device's speech service is asked for voices only when speech may be
 ## used (narration on, or the settings / sound check on screen), and while
 ## the answer is still "none", at most once per PROBE_INTERVAL_MS (A24).
@@ -66,11 +62,6 @@ static func available() -> bool:
 	if DisplayServer.has_feature(DisplayServer.FEATURE_TEXT_TO_SPEECH):
 		_english_voices = DisplayServer.tts_get_voices_for_language("en")
 	return not _english_voices.is_empty()
-
-
-## The player's speech-rate multiplier (Settings.speech_rate).
-static func speech_rate() -> float:
-	return SPEECH_RATES[clampi(Settings.speech_rate, 0, SPEECH_RATES.size() - 1)]
 
 func speak(text: String, speaker := "") -> void:
 	if not Settings.narration or Settings.voice_volume <= 0.001 or Settings.volume <= 0.001:
@@ -145,7 +136,8 @@ func utterance_event(ev: int) -> void:
 static func speech_for(speaker: String, voices: int) -> Dictionary:
 	var c: Dictionary = CHARACTER_SPEECH.get(speaker, CHARACTER_SPEECH[""])
 	var n := maxi(voices, 1)
-	return {"voice": int(c.voice) % n, "pitch": float(c.pitch), "rate": clampf(float(c.rate) * speech_rate(), 0.5, 2.0), "say_name": n < 3}
+	var multiplier: float = Settings.SPEECH_RATES[clampi(Settings.speech_rate, 0, Settings.SPEECH_RATES.size() - 1)]
+	return {"voice": int(c.voice) % n, "pitch": float(c.pitch), "rate": float(c.rate) * multiplier, "say_name": n < 3}
 
 
 func is_speaking() -> bool:

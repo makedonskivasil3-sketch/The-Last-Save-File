@@ -14,10 +14,10 @@ func test_mira_s_mouth_moves_only_while_her_line_is_spoken() -> void:
 	await interact_with(w, mira)
 	await frames(2)
 	check(w.hud.is_dialogue_open() and mira.talking, "talking to Mira")
-	check(w.hud.is_line_speaking(), "her line is being typed")
+	check(w.hud.dialogue_is_speaking(), "her line is being typed")
 	check(mira.sprite().talking, "so her mouth moves")
 	await press("interact")  # show the rest of the line
-	await wait_until(func() -> bool: return not w.hud.is_line_speaking(), 6.0, "the line to be done")
+	await wait_until(func() -> bool: return not w.hud.dialogue_is_speaking(), 6.0, "the line to be done")
 	await frames(2)
 	check(w.hud.is_dialogue_open() and mira.talking, "the box waits for the next press")
 	check(not mira.sprite().talking, "and her mouth rests while it waits")
@@ -122,7 +122,7 @@ func test_the_portrait_mouth_has_one_clock() -> void:
 	var frames_seen := {}
 	var opens := {}
 	for i in 24:
-		if w.hud.is_line_speaking():
+		if w.hud.dialogue_is_speaking():
 			frames_seen[view.frame] = true
 			opens[view.mouth_open()] = true
 			check_eq(view.mouth_open(), fmod(view._figure._t, 0.24) < 0.12, "open exactly on the figure's beat")

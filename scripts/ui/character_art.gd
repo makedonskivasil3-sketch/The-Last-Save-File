@@ -12,10 +12,9 @@ extends RefCounted
 ## portrait has the "missing" palette (cyan, a void where the face should
 ## be, two points of light), exactly like her sprite.
 ##
-## Finished external portraits are resolved by PortraitArt (the one route the
-## live dialogue and cinematic portraits use; see its header for the folder
-## contract). The 32×32 grids below are the legacy raster portraits, kept for
-## the cast sheet and tests; they no longer look for PNGs of their own.
+## Live external artwork is resolved by PortraitResolver/PortraitAsset.
+## texture_for/image below retain the legacy 32×32 raster API for tools;
+## they are not the live dialogue renderer. See docs/PORTRAIT_ASSETS.md.
 
 ## Expressions every major character should have, plus character-specific
 ## ones (docs/CHARACTER_ART.md).

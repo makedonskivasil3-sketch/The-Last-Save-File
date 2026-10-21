@@ -265,11 +265,15 @@ func _process(delta: float) -> void:
 		frozen -= delta
 		queue_redraw()
 		return
-	s.update(delta, _walk_velocity)
+	# Conversation gaze owns facing while talking; locomotion still owns
+	# gait, but cannot flip away and restart the same turn every frame.
+	s.update(delta, _walk_velocity, not talking)
+	# The mouth moves only while their own line is spoken (World sets
+	# speaking), never just because the box is open, and never when mute.
 	s.talking = speaking and not mute
 	# Restricted (the owner's lock on them): no greeting hop or wave, no
-	# reading; they stand and look. Their own idle comes back when freed.
-	s.idle_style = "" if state == State.RESTRICTED else idle_style
+	# reading; they stand and look. Talking, they stop their idle too.
+	s.idle_style = "" if state == State.RESTRICTED or talking else idle_style
 	_emote_t = maxf(0.0, _emote_t - delta)
 	if is_present() and is_instance_valid(player):
 		var d := player.global_position.distance_to(global_position)

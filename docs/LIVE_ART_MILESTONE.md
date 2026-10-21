@@ -1,5 +1,28 @@
 # Milestone: readable storytelling and expressive characters
 
+> **Superseded in part by `main`'s PR #9.** That PR built the same portrait,
+> caption and speech-rate features in parallel and was merged first. When
+> `main` was merged into this branch, PR #9's versions were kept, and the
+> duplicates from this milestone were removed:
+>
+> | This milestone | Replaced by (PR #9) |
+> |---|---|
+> | `PortraitArt` loader and its tests | `PortraitResolver`/`PortraitAsset` (`docs/PORTRAIT_ASSETS.md`) |
+> | carry/cue caption timing | `_page_fraction`/`_caption_voice_busy` |
+> | `Narration.SPEECH_RATES` | `Settings.SPEECH_RATES` |
+>
+> Kept from this milestone:
+> - one mouth clock (`PortraitView.mouth_open`);
+> - mute and written speakers never mouth (`dialogue_silent`);
+> - the dialogue height cap and page size by text size;
+> - console pacing;
+> - timed glitches;
+> - the lazy speech probe;
+> - the objective fit.
+>
+> The portrait-art specification below describes the removed loader; the
+> live contract is `docs/PORTRAIT_ASSETS.md`.
+
 This milestone covers the opening room and the first Square encounter. It
 was built on `main` at `1e371b1` in branch
 `claude/last-save-file-prototype-ljwuq4`. Every claim below names the

@@ -4,8 +4,12 @@
 
 ## Current: continuity milestone, review branch (2026-10-21)
 
-Branch: `claude/last-save-file-prototype-ljwuq4` (not merged; `main` is
-still at `1e371b1`). It carries two milestones:
+Branch: `claude/last-save-file-prototype-ljwuq4`, not merged. `main` (now
+`09aeb3b`, with PR #9) was merged into it. Where PR #9 and this branch
+built the same thing, PR #9's version was kept: the portrait resources,
+caption paging and the speech-rate setting. The numbers below were
+measured before that merge; see "After merging main" for the re-run.
+It carries two milestones:
 - **Live-art milestone** (`cc76537`…`a38049f`): portrait art route, caption
   pages, character states, console pacing, timed glitches, speech rate.
 - **Continuity milestone** (`8256c29`…`3fea14f`). Contract:
@@ -57,7 +61,30 @@ results exist, and none are claimed.
 
 A running CI job is not a finished build.
 
-## Current combined presentation/functionality revision (2026-10-21)
+## Prompt implementation on main, PR #9 (2026-10-21)
+
+Runtime `eec7e576` preserves combined main `1e371b1` and implements the supplied
+prompts' first presentation milestone: live approved portrait resources with
+palette-safe fallback, continuous recording playback across readable caption
+pages, coherent world/portrait speaking and gaze, and an independent system-
+speech rate preference. No new production artwork or recorded cast is claimed.
+
+See [PROMPT_IMPLEMENTATION.md](PROMPT_IMPLEMENTATION.md) for implementation,
+evidence and remaining scope, [CAPTION_VOICE_CONTRACT.md](CAPTION_VOICE_CONTRACT.md)
+for route semantics, and [PORTRAIT_ASSETS.md](PORTRAIT_ASSETS.md) for the asset
+contract. All **482 unique cases across 71 files** passed in isolated coverage,
+including a correctly uncapped **6/6 CPU-budget rerun** after a verifier-cap
+failure. This is not a completed monolithic local run. Focused actual-HUD
+compatibility: **18/18**; exact-ending bots **5/5**; staged rendered checks **2/2**.
+The message bot required one death/retry and 17 recovered navigation stalls;
+other acceptance routes reported zero deaths/stalls. CI/export/browser status
+is tracked separately in PR #9, not inferred from older builds.
+
+The first-room/Square and wider map milestones remain open, as do authored
+assets, human listening/playtests, Windows execution, real GPU/device/input
+checks and shutdown diagnostics. The game remains a late prototype.
+
+## Previous combined presentation/functionality revision (2026-10-21)
 
 The combined branch retains main `2644629` / PR #8 (`2ffc036`): finale cursor
 ownership, reading-held confrontation transitions, completed-objective clearing,

@@ -448,7 +448,7 @@ func _process(delta: float) -> void:
 	for node in area.interactables:
 		if node is Npc:
 			node.talking = node == _talking_to and hud.is_dialogue_open()
-			node.speaking = node.talking and hud.is_line_speaking()
+			node.speaking = node.talking and hud.dialogue_is_speaking()
 	player.instability = director.awareness / 100.0
 	if player.velocity.length() > 1.0:
 		PlaytestLog.mark("first movement", "", true)

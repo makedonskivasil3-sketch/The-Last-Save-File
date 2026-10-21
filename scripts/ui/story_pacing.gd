@@ -114,7 +114,11 @@ static func pages(text: String, page_chars := PAGE_CHARS) -> Array[String]:
 		if cut < page_chars / 3:
 			cut = rest.rfind(" ", page_chars)
 		if cut <= 0:
-			break  # one unbroken word: show it whole rather than cut it
+			# A long resource id/URL still needs bounded captions. The full
+			# original remains the history/journal source, without inserted spaces.
+			out.append(rest.substr(0, PAGE_CHARS))
+			rest = rest.substr(PAGE_CHARS)
+			continue
 		out.append(rest.substr(0, cut))
 		rest = rest.substr(cut + 1)
 	out.append(rest)

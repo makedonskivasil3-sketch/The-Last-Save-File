@@ -79,11 +79,16 @@ func test_talking_to_mira_shows_her_face_and_mood() -> void:
 	check(w.hud._dialogue_text.position.x > w.hud._dialogue_portrait.size.x, "the text makes room for it")
 	var line: String = w.hud._dialogue_text.text
 	check_eq(w.hud.dialogue_expression(), ArinsRoom.mira_expression(line), "her expression follows the line")
-	var frames_seen := {}
+	var clock_start: float = w.hud._dialogue_portrait._figure._t
+	var spoke := false
+	var mouth := {}
 	for i in 20:
-		frames_seen[w.hud._dialogue_portrait.mouth_open()] = true
+		spoke = spoke or w.hud._dialogue_portrait._figure.talking
+		mouth[w.hud._dialogue_portrait.mouth_open()] = true
 		await frames(2)
-	check(frames_seen.size() > 1 or Settings.reduce_flashing, "the mouth opens and closes while she speaks")
+	check((spoke and w.hud._dialogue_portrait._figure._t > clock_start) or Settings.reduce_flashing,
+		"the live renderer owns mouth motion and its clock advances; HUD need not toggle a second mouth rhythm")
+	check(mouth.size() > 1 or Settings.reduce_flashing, "the mouth opens and closes while she speaks")
 	await shot("mira_dialogue_portrait")
 	await finish_dialogue(w)
 	check(not w.hud._dialogue_portrait.visible, "and goes with the box")

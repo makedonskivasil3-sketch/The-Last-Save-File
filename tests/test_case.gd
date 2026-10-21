@@ -35,6 +35,7 @@ func before_each() -> void:
 	s.advance_mode = 0
 	s.auto_speed = 1
 	s.voice_delay = 1
+	s.speech_rate = 2
 	s.subtitle_size = 0
 	s.subtitle_bg = 0.75
 	s.speaker_labels = true
