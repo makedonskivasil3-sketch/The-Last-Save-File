@@ -57,6 +57,18 @@ var instability := 0.0
 var _jitter := Vector2.ZERO
 var _tear_rows := PackedFloat32Array([0, 0, 0])
 var _blink := false
+## Tears, dropped frames and colour dropouts: rates and holds in seconds
+## (TimedGlitch), the same on screen at any frame rate. At full instability
+## and glitch intensity each tear row shows 25% of the time, the body drops
+## out 2% of the time and restored colours drop out 4%, about as they did at 60 FPS
+## when they were rolled each frame.
+const TEAR_RATE := 10.0  # per second per row, x instability
+const DROPOUT_RATE := 0.6  # per second, x instability
+const COLOUR_DROP_RATE := 1.2  # per second, x instability
+const GLITCH_HOLD := 1.0 / 30.0
+var _tears: Array[TimedGlitch] = [TimedGlitch.new(GLITCH_HOLD), TimedGlitch.new(GLITCH_HOLD), TimedGlitch.new(GLITCH_HOLD)]
+var _dropout := TimedGlitch.new(GLITCH_HOLD)
+var _colour_drop := TimedGlitch.new(GLITCH_HOLD)
 var _trail: Array[Vector2] = []
 var _trail_timer := 0.0
 var _t := 0.0
@@ -209,9 +221,14 @@ func _process(delta: float) -> void:
 	_jitter = Vector2(randf_range(-2.0, 2.0), 0.0) if randf() < (2.0 + instability * 10.0) * delta * glitch else Vector2.ZERO
 	# Body slices: each row of the sprite occasionally renders a few pixels off.
 	for i in _tear_rows.size():
-		_tear_rows[i] = randf_range(-3.0, 3.0) * unstable if randf() < unstable * 0.25 else 0.0
+		var was := _tears[i].active()
+		if _tears[i].update(delta, unstable * TEAR_RATE):
+			if not was:
+				_tear_rows[i] = randf_range(-3.0, 3.0) * unstable  # one offset per tear
+		else:
+			_tear_rows[i] = 0.0
 	# Rare dropped frames: you briefly aren't drawn at all.
-	_blink = randf() < instability * 0.02 * glitch * Settings.flash_scale()
+	_blink = _dropout.update(delta, instability * DROPOUT_RATE * glitch * Settings.flash_scale())
 
 	_trail_timer -= delta
 	if _trail_timer <= 0.0:
@@ -254,7 +271,7 @@ func _update_mood(delta: float) -> void:
 	else:
 		_sprite.glance = 0
 	# Restored colours aren't stable yet: under pressure they drop out.
-	var flicker := _restored > 0 and randf() < instability * 0.04 * Settings.glitch_intensity
+	var flicker := _colour_drop.update(delta, instability * COLOUR_DROP_RATE * Settings.glitch_intensity if _restored > 0 else 0.0)
 	_sprite.palette = MISSING if flicker else _palette
 
 
