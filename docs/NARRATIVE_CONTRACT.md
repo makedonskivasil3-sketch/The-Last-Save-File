@@ -6,6 +6,114 @@
 author approves it. Each section is marked **implemented**, **proposed**,
 **deferred** or **blocked**.
 
+**Revision 2 (coherence milestone, 2026-10-21).** §0 below was added before
+any further story text changed. It tightens the rules where the first
+revision let the text claim more than the evidence in the game supports.
+The rest of the document is updated to match, and each changed rule says
+"(rev 2)".
+
+---
+
+## 0. Rev 2: the rules in one place
+
+### 0.1 Internal truth (one paragraph, for writers)
+
+Two real people played one save. The second player, a girl, fell asleep
+holding her controller the night before she moved away; the save hung at
+87%, and the part of her that was playing stayed inside. That part is Rue:
+a real person, wearing her character like a costume. Everyone else in
+Ashvale is native to the game (Mira, Tobben, Wren, the Archivist), plus
+Pip, whom she drew. The natives have started to keep things between resets
+since a person began living among them, which is why they remember Rue.
+The owner (player 1) deleted slot 2 months after she left, the same night
+her message came. The owner refuses to believe a person can be in there.
+The well is the seam between saved and unsaved space. It **keeps** what
+the saves lose, including sounds from the real room. It does not
+transmit live, and nothing in the game proves that anyone outside hears
+Rue. The only way to reach the girl is through someone who can read: the
+owner.
+
+### 0.2 What each character believes (and is it true?)
+
+| Who | Believes | True? |
+|---|---|---|
+| Rue (start) | She is a glitch in someone else's save; the people are "just the game". | No, and no. |
+| Rue (after the file) | She is the part of the girl that stayed. | Yes. |
+| Mira | Rue is "the other one, who used to sit next to them". | Yes, though she can't know why. |
+| Wren | Rue is a kind of ghost; nobody plays either of them. | Half: nobody plays them, but Rue is not a ghost. |
+| Tobben | Reporting Rue keeps the village safe; it's in his script. | He does report. Whether it keeps anyone safe: no. |
+| The Archivist | Rue's file was closed long ago; he files what's left. | Her file is still open (in session). |
+| The owner | "You're not her." Something wearing her walk. | Denial. The game never confirms it. |
+| The girl | She doesn't know what she lost ("I'd forgotten I forgot"). | Off-screen; only the message ending reaches her. |
+
+### 0.3 What the player knows at each stage
+
+| Stage (`Progression`) | The player has seen | The player can suspect | Not yet knowable |
+|---|---|---|---|
+| Opening | Two people, one save; her hands stay; the save hangs at 87%; months later, her message and the owner's reply stopping mid-word. | Rue is connected to the second player. | That Rue *is* her. |
+| MEMORIES | The couch, the well, the name, the move, DELETE. | Rue remembers being the second player. | Whether the memories are hers or copied. |
+| INVESTIGATE | Others noticed she isn't Arin's kind of character (hands, movement, handwriting). | She was played by someone. | That the player is still in session. |
+| FILE / KNOWN | "player: still in session. save: interrupted at 87%." | — | Whether the girl will ever know. |
+| Endings | What each ending saves (§0.6). | — | What the girl does next (deliberately off-screen). |
+
+### 0.4 Contradictions audited (rev 2) and how each is resolved
+
+| # | Topic | Contradiction found in the branch | Resolution |
+|---|---|---|---|
+| C1 | The girl outside | The opening's last shot typed "still have my sa" as **her** unfinished sentence (`opening.gd`, `UNFINISHED`). Canon (owner note 6, the Bin's draft): her message was complete; the **owner's reply** stopped mid-word. | The shot shows her complete message arriving, then the owner's reply "yes i still have your sa" stopping. |
+| C2 | What the well transmits | `COMPARED` ends "it's her. outside. she's still asking." and `ANSWER_HOPE` "she's still out there asking". The only evidence is one sentence from months after the move. | The well keeps a recording. Rue says what it proves (the room heard it once) and what it doesn't (that she is asking now). |
+| C3 | Who held Mira's note | Archive, `RECALL.mira_lost` and the Bin's `mira_note.txt` say "the owner found it **on you**". In play Mira carries her own note on the walk; Rue never holds it (`mira_quest = "carried"` is never written). | It was found on Mira. The lines say so. The archive shows "carried by Mira" during the walk. |
+| C4 | Rue's identity | `CHARACTER_FILE`: "rebuilt from: slot2_backup.sav…". This can read as "Rue is a rebuild". | "costume rebuilt from…": the costume is rebuilt; the player is not. |
+| C5 | How natives know things | Mira's recall "They took Wren" breaks the witnessing rule: Mira never leaves her room. | Natives feel the save's **lists** (who is in the save, which slots exist) but witness only events where they are. The line becomes "Wren's name went out of the list". |
+| C6 | What a checkpoint preserves | The anchor needed DELETE (at the Edge) or the Bin's draft, so recovery arrived near the end of the game. | An earlier, earned, opt-in anchor at the pillar (§5, rev 2). The well's later steps stay as revelations. |
+| C7 | What deletion destroys | "nothing is ever really deleted. not while someone still remembers" (DELETE memory) vs. the Bin being emptied ("EMPTIED"). | Kept as Rue's hope, not a rule. Deletion moves a native to the Bin; emptying it destroys only what nobody restored. A restored native keeps relationship history (§3). |
+| C8 | What restoration returns | Mira: "I remember the dark in between". The archive said "She remembers…" for every restored person, Tobben included. | Per character: only lines that character actually says. |
+| C9 | What each ending saves | Consistent with §1; restated in §0.6 so writers have one list. | No text change. |
+| C10 | The owner's knowledge | Consistent: the owner knows they deleted slot 2 (2026-10-16 decision) and doesn't know its ghost survived. | No change. |
+
+### 0.5 What the well can carry (limits)
+
+- **What crosses:** sounds and typed text from the real room where the
+  console is. A button click, the music box, the message as it appeared
+  there, the owner typing.
+- **When:** whenever it happened in the room. The well keeps it and plays
+  it back the same way each time: the same pause, the same missing key.
+  That repetition is the evidence that it is a recording.
+- **Why:** it is where the saves lose things (Rue's character fell through
+  it once). Lost things settle there.
+- **Cost:** answering is done in the open Square (+20 awareness, unchanged).
+- **What cannot cross:** nothing goes **up**, as far as the game shows.
+  After Rue answers, listening plays back **her own** answer. That is
+  observable proof that the well keeps what is said now. It is not proof
+  that anyone outside hears it.
+- **What cannot be recovered through it:** people. It returns no one. The
+  Bin and RESTORE do that.
+
+### 0.6 What each ending saves
+
+| Ending | Saves | Costs |
+|---|---|---|
+| escape | Rue, as a finished save in slot 2: she stops eroding. | The natives stay in the owner's hands. |
+| rue | The same, knowing who she is. | As above. |
+| wren | Wren, given the slot. | Rue stays erodable, in someone else's save. |
+| message | Everyone: purge cleared, fates cleared, pieces returned. The owner calls the girl. | Rue stays inside, unfinished, but heard. |
+| unseen / overwrite | Hidden endings: unchanged. | — |
+
+### 0.7 Author-level choices still open
+
+1. **Approve the canon** (Rue is the part of the girl that stayed). Until
+   approved, everything here is a proposal.
+2. **Live contact or trace only?** Rev 2 implements *trace only*: the
+   well keeps, it doesn't send. If the author wants live contact, the
+   plot needs a response to something Rue does now that a recording could
+   not produce. Nothing in the game currently provides one, and none is
+   faked.
+3. **The earlier anchor** (§5) changes where a run starts after a death,
+   once it is set. It is opt-in in play; the author decides whether it
+   stays.
+4. **The opening's length** stays about 45 s (shorter than the 60–90 s
+   budget, on purpose).
+
 Baseline: `main` = `1e371b1`. The review branch
 `claude/last-save-file-prototype-ljwuq4` was at `a38049f` when this
 milestone began: the live-art milestone, ten commits ahead of `main`, with
