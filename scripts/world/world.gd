@@ -122,9 +122,14 @@ func _ready() -> void:
 	if OwnerMemory.found_pip:
 		_spawn_pip()
 	var previous := OwnerMemory.begin_session()
-	var room := ArinsRoom.new()
-	room.previous_exit = previous
-	_load_area(room, "start")
+	var start := anchor_start(previous)
+	if start.is_empty():
+		var room := ArinsRoom.new()
+		room.previous_exit = previous
+		_load_area(room, "start")
+	else:
+		_load_area(_make_area(start[0]), start[1])
+		woke_at_anchor = true
 	hud.unknown_processes = 1 if OwnerMemory.purge >= 2 else 0
 	_begin_session(previous)
 
@@ -153,7 +158,10 @@ func _begin_session(previous: String) -> void:
 	_tutorial = Tutorial.new()
 	add_child(_tutorial)
 	_tutorial.start(self)
-	voice("wake_first" if OwnerMemory.sessions == 1 else "wake_again")
+	if woke_at_anchor:
+		hud.say(WellSequence.ANCHOR_NOTE, "self")
+	else:
+		voice("wake_first" if OwnerMemory.sessions == 1 else "wake_again")
 	var door: Variant = area.get("door")
 	if area.area_id == "room" and door is Door and door.state == Door.State.DELETED:
 		get_tree().create_timer(3.0).timeout.connect(func() -> void:
@@ -571,11 +579,16 @@ func change_area(id: String, arrival: String) -> void:
 	PlaytestLog.mark("entered %s" % id, "first time" if first else "")
 	if id != "room":
 		PlaytestLog.mark("FIRST TIME OUT OF ARIN'S ROOM", "into %s" % id, true)
+	# A place seen in an earlier run isn't new: no first-arrival line again,
+	# just a short "back" (once a session).
+	var new_place := id not in OwnerMemory.places
 	_load_area(_make_area(id), arrival)
 	director.on_area_entered(area, first)
 	_visited[id] = true
-	if first:
+	if new_place:
 		voice({"square": "square_first", "archive": "archive_first", "edge": "edge_first", "oob": "oob_first", "bin": "bin_first", "house": "house_first"}.get(id, ""))
+	elif first and Story.VOICE_BACK.has(id):
+		hud.say(Story.VOICE_BACK[id], "self")
 	await hud.fade(false, 0.3).finished
 	player.frozen = false
 	_transitioning = false
@@ -1371,8 +1384,51 @@ func _keep_in_journal(node: Node2D, result: Dictionary) -> void:
 static func death_kept_line() -> String:
 	if OwnerMemory.is_purged():
 		return ""
-	return "kept for next run: %d/%d memories, your glitches, the journal  ·  purge %d/%d" % [
-		OwnerMemory.fragments.size(), Story.FRAGMENTS.size(), OwnerMemory.purge, OwnerMemory.MAX_PURGE]
+	var wake := "  ·  you'll wake under the well" if anchor_valid() else ""
+	return "kept for next run: %d/%d memories, your glitches, the journal, everyone you've met  ·  purge %d/%d%s" % [
+		OwnerMemory.fragments.size(), Story.FRAGMENTS.size(), OwnerMemory.purge, OwnerMemory.MAX_PURGE, wake]
+
+
+# --- the well anchor (docs/NARRATIVE_CONTRACT.md §5) ----------------------------
+
+## The one checkpoint: anchor id -> [area id, arrival]. Places are looked up
+## by id, never stored as coordinates, so a changed map can't strand you.
+const ANCHORS := {"oob:pillar": ["oob", "anchor"]}
+## Bumped when an anchor's place changes meaning: older anchors are dropped.
+const ANCHOR_VERSION := 1
+## This session began at the anchor (after a death), not in Arin's room.
+var woke_at_anchor := false
+
+
+static func anchor_valid() -> bool:
+	var a := OwnerMemory.anchor
+	return not a.is_empty() and ANCHORS.has(a.get("id", "")) and int(a.get("version", 0)) == ANCHOR_VERSION
+
+
+## Where a session starts: the anchor after a death (if one is set and
+## still valid), otherwise Arin's room. A quit or a crash always starts in
+## the room: the anchor is for failure, not for leaving. An unknown or
+## outdated anchor is dropped, and the room is used.
+static func anchor_start(previous: String) -> Array:
+	if OwnerMemory.anchor.is_empty():
+		return []
+	if not anchor_valid():
+		OwnerMemory.anchor.clear()
+		OwnerMemory.save_memory()
+		return []
+	if previous != "death":
+		return []
+	return ANCHORS[OwnerMemory.anchor.id]
+
+
+## Answering the well sets (or re-confirms) the anchor. Never during a
+## conversation, a scene, a move between areas or an escort.
+func set_anchor(id: String) -> bool:
+	if not ANCHORS.has(id) or escort != null or _transitioning or ending != "" or hud.is_dialogue_open() or hud.is_cinematic():
+		return false
+	OwnerMemory.anchor = {"id": id, "version": ANCHOR_VERSION, "session": OwnerMemory.sessions}
+	OwnerMemory.save_memory()
+	return true
 
 
 ## cause picks the death effect ("erased", "overwritten", "selected");

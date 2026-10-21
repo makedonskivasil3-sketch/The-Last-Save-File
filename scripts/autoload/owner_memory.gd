@@ -391,6 +391,7 @@ func record_quit() -> void:
 func record_win(ending := "escape") -> void:
 	if _session_closed:
 		return
+	anchor.clear()  # an ending is a new start: no checkpoint carries past it
 	wins += 1
 	last_ending = ending
 	if ending not in endings_seen:

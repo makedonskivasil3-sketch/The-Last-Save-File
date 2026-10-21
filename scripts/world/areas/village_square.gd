@@ -87,6 +87,9 @@ var north_exit: Exit
 var crates: DragProp
 ## Climb into the well: the way out of bounds.
 var well: Passage
+var rim: WellRim
+## Holding LISTEN at the rim to answer (seconds held so far, -1 if not).
+var _answer_t := -1.0
 ## Arin's front door: locked, but UNLOCK opens it for a few seconds.
 var door: Door
 
@@ -113,7 +116,7 @@ func _init() -> void:
 		"house": Vector2(111, 118),
 		"east": Vector2(578, 180),
 		"north": Vector2(320, 54),
-		"well": Vector2(320, 194),
+		"well": Vector2(320, 214),
 	}
 
 
@@ -189,6 +192,12 @@ func build() -> void:
 	well.taken.connect(func(p: Passage) -> void: world.change_area(p.target_area, p.arrival))
 	add_child(well)
 	interactables.append(well)
+	# Its rim, on the far side: listen (WellSequence).
+	rim = WellRim.new()
+	rim.position = Vector2(WELL.get_center().x, WELL.position.y - 8)
+	rim.listened.connect(_on_listen)
+	add_child(rim)
+	interactables.append(rim)
 
 	if world.escort_id() != "wren":  # not when she's already walking with you
 		wren = make_wren(self, Vector2(126, 246))
@@ -325,6 +334,7 @@ func on_dialogue_closed(who: Node) -> void:
 
 
 func area_process(delta: float) -> void:
+	_well_process(delta)
 	# UNLOCK on the front door: walk in while it's glitched open.
 	if door.is_forced_open() and world.player.global_position.distance_to(door.global_position) < 18.0:
 		world.change_area("house", "front")
@@ -575,3 +585,66 @@ func _paint(ci: CanvasItem) -> void:
 func _process(_delta: float) -> void:
 	if not world.flags.get("pointer", false):
 		queue_redraw()  # animates the unloaded road
+
+
+# --- the well (WellSequence) ----------------------------------------------------
+
+func _well_process(delta: float) -> void:
+	var near := world.player.global_position.distance_to(WELL.get_center()) < 40.0
+	if near and not WellSequence.done("click") and not world.in_cutscene() and not world.is_talking():
+		WellSequence.record("click")
+		Sfx.play("click", -10.0, 0.9, 0.0)
+		world.hud.say(WellSequence.CLICK_LINE, "self")
+	rim.prompt = WellSequence.ANSWER_PROMPT if WellSequence.done("compared") and not WellSequence.done("answered") else "listen"
+	if _answer_t < 0.0:
+		return
+	# Answering: stay at the rim, in the open, while Rue speaks into it
+	# (holding [E] is for glitches; a tap starts this). Step away and it's cut
+	# off; what it cost so far stays spent.
+	var at_rim := world.player.global_position.distance_to(rim.global_position) < 26.0
+	if not at_rim or world.ending != "" or world.in_cutscene():
+		_answer_t = -1.0
+		world.hud.set_status("")
+		return
+	_answer_t += delta
+	world.director.add_awareness(WellSequence.ANSWER_AWARENESS / WellSequence.ANSWER_SECONDS * delta)
+	world.hud.set_status("answering " + "▮".repeat(int(_answer_t / WellSequence.ANSWER_SECONDS * 6.0)))
+	if _answer_t >= WellSequence.ANSWER_SECONDS:
+		_answer_t = -1.0
+		world.hud.set_status("")
+		WellSequence.record("answered")
+		world.set_anchor("oob:pillar")
+		Sfx.play("fragment", -4.0, 0.7, 0.0)
+		for l in WellSequence.ANSWER_LINES:
+			world.hud.say(l, "self")
+		var wren_waiting := Relationships.has("wren.met") and not OwnerMemory.wren_saved and not OwnerMemory.is_deleted("wren")
+		world.hud.say(WellSequence.ANSWER_HOPE if wren_waiting else WellSequence.ANSWER_HOPE_ALONE, "self")
+
+
+func _on_listen(_rim: WellRim) -> void:
+	if world.ending != "" or world.in_cutscene():
+		return
+	if not WellSequence.done("tune"):
+		world.hud.say(WellSequence.LISTEN_NOTHING, "self")
+		return
+	if not WellSequence.done("words"):
+		WellSequence.record("words")
+		world.hud.show_dialogue(WellSequence.WORDS_SPEAKER, Hud.OWNER_COLOR, WellSequence.WORDS, "", null, [], true)
+		OwnerMemory.record_read("square:THE WELL", "note", "THE WELL", display_name, ["Up from the well, typed, not spoken:", WellSequence.WORDS[1]])
+		world.hud.say(WellSequence.WORDS_AFTER, "self")
+		return
+	if not WellSequence.done("compared"):
+		if WellSequence.can_compare():
+			WellSequence.record("compared")
+			for l in WellSequence.COMPARED:
+				world.hud.say(l, "self")
+		else:
+			world.hud.say(WellSequence.COMPARED_NOT_YET, "self")
+		return
+	if not WellSequence.done("answered"):
+		if world.escort != null:
+			world.hud.say(WellSequence.ANSWER_NOT_ESCORTING, "self")
+			return
+		_answer_t = 0.0
+		return
+	world.hud.say(WellSequence.LISTEN_WAITING, "self")

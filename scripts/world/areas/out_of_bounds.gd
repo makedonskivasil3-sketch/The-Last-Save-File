@@ -61,7 +61,9 @@ func _init() -> void:
 	# The owner can't see down here at all.
 	awareness_rate = -0.8
 	tint = Color(0.85, 0.9, 1.05)
-	entries = {"well": ENTRY}
+	# "anchor": where the well keeps you (World.ANCHORS): the landing beside
+	# the pillar, an anchor that never streams away.
+	entries = {"well": ENTRY, "anchor": ENTRY}
 
 
 func build() -> void:
@@ -76,6 +78,7 @@ func build() -> void:
 	pillar.position = PILLAR_POS
 	add_sign(Vector2(102, 118), "UP TO ASHVALE", Vector2.UP)
 	pillar.taken.connect(func(p: Passage) -> void: world.change_area(p.target_area, p.arrival))
+	pillar.lit = not OwnerMemory.anchor.is_empty()  # the well keeps your answer here
 	add_child(pillar)
 	interactables.append(pillar)
 
@@ -110,6 +113,7 @@ func area_process(delta: float) -> void:
 	_t += delta
 	if _falling or world.is_talking():
 		return
+	_well_tune()
 	if floor_at(world.player.global_position):
 		_off_floor = 0.0
 		return
@@ -249,3 +253,23 @@ func _dotted_line(a: Vector2, b: Vector2, col: Color) -> void:
 		var p := a.lerp(b, d / length)
 		draw_rect(Rect2(p, Vector2(1, 1)), col)
 		d += 4.0
+
+
+## The second step of the well (WellSequence): at the pillar, with the
+## memory of the well back, the tune comes down from the room, one note short.
+func _well_tune() -> void:
+	if WellSequence.done("tune") or not WellSequence.done("click") or not OwnerMemory.has_fragment("well") or world.in_cutscene():
+		return
+	if world.player.global_position.distance_to(PILLAR_POS) > 48.0:
+		return
+	WellSequence.record("tune")
+	var tune := AudioStreamPlayer.new()
+	tune.stream = MusicBox.stream(MusicBox.MAX_LEVEL - 1)
+	tune.bus = "Music"
+	tune.volume_db = -14.0
+	add_child(tune)
+	tune.play()
+	get_tree().create_timer(6.0).timeout.connect(func() -> void:
+		if is_instance_valid(tune):
+			tune.queue_free())
+	world.hud.say(WellSequence.TUNE_LINE, "self")

@@ -49,6 +49,16 @@ const TITLE_WHISPERS := ["Load Slot 1  (it isn't yours)", "Load Slot 1  (they'll
 const TITLE_FIRST_OWNER := "> is someone there?"
 
 ## The intruder's thoughts. Keys are story beats; arrays pick at random.
+## Coming back to a place from an earlier run: a short acknowledgement
+## instead of its first-arrival line (World.change_area).
+const VOICE_BACK := {
+	"square": "(ashvale again. wren's corner. tobben's stall. the well.)",
+	"archive": "(the archive. still nobody reading but him.)",
+	"oob": "(under the well again. still nobody looking.)",
+	"bin": "(the bin. everything they threw away, still here.)",
+	"house": "(arin's house. the couch is still warm.)",
+	"edge": "(the edge again. it hasn't been drawn any further.)",
+}
 const VOICE := {
 	"wake_first": ["...where is this?", "this body isn't mine. it's barely a body.", "i'm not supposed to be here. i can feel the save pushing back."],
 	"wake_again": [

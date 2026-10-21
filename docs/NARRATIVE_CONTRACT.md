@@ -231,8 +231,8 @@ Every step needs the previous one and is stored in `well_events`.
 | 1 | `click`, the oddity | First time near the well | A single real-sounding controller click. "(that was a button. a real one.)" | Sound + line |
 | 2 | `tune`, a personal detail | `click`, plus the memory THE WELL recovered | At the pillar below: the music-box tune with one note missing. "(the same note's missing. it was always missing.)" | Sound + line |
 | 3 | `words`, not an echo | `tune`; listen at the well (new LISTEN prompt) | Up from below, as typed text: "still have my save?". No one in Ashvale has said it. | Line + journal "lead" |
-| 4 | `compared`, a testable clue | `words`, plus the Recycle Bin's last message read (either order) | Rue connects them: the girl's own words, from outside. Journal links the document, the place and the person. | Journal link |
-| 5 | `answered`, a costly contact | `words`; hold LISTEN 2 s at the rim in the open Square | Costs +20 awareness (Arin can see you). Rue answers ("i'm here.") and the anchor is set. | The pillar lights; the next death wakes you under the well |
+| 4 | `compared`, a testable clue | `words`, plus the memory DELETE (which holds the same words) or the owner's half-written reply in the Recycle Bin | Rue connects them: the girl's own words, from outside. Journal links the document, the place and the person. | Journal link |
+| 5 | `answered`, a costly contact | `compared`; answer at the rim and stay there 2 s, in the open Square (holding [E] is for glitches) | Costs +20 awareness (Arin can see you). Rue answers ("i'm here.") and the anchor is set. | The pillar lights; the next death wakes you under the well |
 
 **How characters change the interpretation.**
 - **Wren** (met, after `words`): "You heard it too? It hums sometimes. I

@@ -1,0 +1,178 @@
+extends "res://tests/test_case.gd"
+## The well's sequence and the one checkpoint it makes
+## (docs/NARRATIVE_CONTRACT.md §5–6), and map continuity: arrivals on the
+## side you came from, no repeated first-arrival lines.
+
+
+## Said, or waiting its turn in the console.
+func _said(w: Node, text: String) -> bool:
+	return w.hud.history.any(func(e: Dictionary) -> bool: return str(e.text).contains(text)) \
+		or w.hud._queue.any(func(m: Dictionary) -> bool: return str(m.text).contains(text))
+
+
+func _to_well(w: Node) -> void:
+	w.player.global_position = w.area.rim.global_position + Vector2(0, -10)
+	await frames(3)
+
+
+func _listen(w: Node) -> void:
+	w.hud.close_dialogue()
+	w._interact(w.area.rim)
+	await frames(2)
+
+
+func test_the_well_follows_its_steps_in_order() -> void:
+	var w := await start_session()
+	w.director.stop()
+	await go_to(w, "square", "house")
+	check(not WellSequence.done("click"), "nothing before you're near it")
+	await _to_well(w)
+	await wait_until(func() -> bool: return WellSequence.done("click"), 2.0, "the click")
+	check(_said(w, "a real one"), "Rue hears a real button")
+	await _listen(w)
+	check(not WellSequence.done("words"), "listening before the tune: nothing yet")
+	WellSequence.record("words")
+	check(not WellSequence.done("words"), "a step can't be skipped")
+	# Down at the pillar, without the memory of the well: no tune.
+	await go_to(w, "oob", "well")
+	w.player.global_position = OutOfBounds.PILLAR_POS + Vector2(20, 18)
+	await wait(0.3)
+	check(not WellSequence.done("tune"), "no tune without the memory of the well")
+	memory().add_fragment("well")
+	await wait_until(func() -> bool: return WellSequence.done("tune"), 2.0, "the tune")
+	check(_said(w, "the same note's missing"), "one note short")
+	await go_to(w, "square", "well")
+	await _to_well(w)
+	await _listen(w)
+	check(WellSequence.done("words"), "listening now: words")
+	check(" ".join(w.hud._dialogue_lines).contains("still have my save?"), "typed up from below")
+	check(w.hud.dialogue_silent, "typed, not spoken")
+	check(memory().journal.any(func(e: Dictionary) -> bool: return e.id == "square:THE WELL"), "kept in the journal")
+	check(ArchivePages.leads().any(func(e: Dictionary) -> bool: return e.key == "lead:well_words"), "and a lead to follow")
+	await _listen(w)
+	check(not WellSequence.done("compared"), "not compared before she remembers where she heard it")
+	memory().add_fragment("delete")
+	await _listen(w)
+	check(WellSequence.done("compared"), "with the memory: it's her, outside")
+	check_eq(w.area.rim.interact_prompt(), WellSequence.ANSWER_PROMPT, "now the rim offers an answer")
+	w.director._running = true  # the owner watches the answer (its cost)
+	w.area.arin.paused = true
+	var before: float = w.director.awareness
+	await press("interact")  # a tap starts the answer
+	await frames(3)
+	check(w.area._answer_t >= 0.0, "answering")
+	await wait(WellSequence.ANSWER_SECONDS + 0.4)
+	check(WellSequence.done("answered"), "stayed long enough: answered")
+	check(w.director.awareness >= before + WellSequence.ANSWER_AWARENESS * 0.8, "it cost something: the owner noticed (%.0f -> %.0f)" % [before, w.director.awareness])
+	check(World.anchor_valid(), "and the well keeps the answer: an anchor")
+
+
+func test_stepping_away_cuts_the_answer_off() -> void:
+	for st in ["click", "tune", "words", "compared"]:
+		memory().well_events.append(st)
+	var w := await start_session()
+	await go_to(w, "square", "house")
+	await _to_well(w)
+	await press("interact")
+	await frames(3)
+	check(w.area._answer_t >= 0.0, "answering")
+	await wait(0.6)
+	w.player.global_position += Vector2(0, -60)
+	await wait(WellSequence.ANSWER_SECONDS)
+	check(not WellSequence.done("answered"), "stepped away early: no answer")
+	check(memory().anchor.is_empty(), "and no anchor")
+
+
+func test_after_a_death_you_wake_under_the_well() -> void:
+	memory().fragments.assign(["controller"])
+	memory().rel_events["wren.promised"] = 1
+	var w := await start_session()
+	check(w.set_anchor("oob:pillar"), "anchor set")
+	check_eq(memory().anchor.keys(), ["id", "version", "session"], "a place by id: no items, no choices, no coordinates")
+	await go_to(w, "square", "house")
+	var purge_before: int = memory().purge
+	w.kill("arin", "test")
+	check(World.death_kept_line().contains("under the well"), "the death card says where you'll wake")
+	var w2 := await wait_for_new_session(w)
+	check_eq(w2.area.area_id, "oob", "woke out of bounds, not in Arin's room")
+	check(w2.woke_at_anchor, "at the anchor")
+	check(w2.player.global_position.distance_to(OutOfBounds.ENTRY) < 2.0, "on the landing that never streams away")
+	check(w2.area.floor_at(w2.player.global_position), "on solid floor")
+	check(w2.area.pillar.lit, "the pillar keeps its light")
+	check_eq(memory().purge, purge_before + 1, "the death still counts: purge rules unchanged")
+	check_eq(memory().fragments, ["controller"] as Array[String], "memories kept, not duplicated")
+	check(memory().has_event("wren.promised"), "a promise isn't undone")
+	await wait(2.0)
+	check_eq(w2.ending, "", "no death waiting at the anchor")
+
+
+func test_quitting_or_crashing_starts_in_the_room() -> void:
+	var w := await start_session()
+	w.set_anchor("oob:pillar")
+	memory().record_quit()
+	var w2 := await start_session()
+	check_eq(w2.area.area_id, "room", "after a quit: Arin's room")
+	check(World.anchor_valid(), "the anchor is still kept for a death")
+	memory().last_exit = "crash"
+	var w3 := await start_session()
+	check_eq(w3.area.area_id, "room", "after a crash: Arin's room")
+
+
+func test_an_invalid_anchor_falls_back_to_the_room() -> void:
+	memory().anchor = {"id": "nowhere:gone", "version": World.ANCHOR_VERSION, "session": 1}
+	memory().last_exit = "death"
+	var w := await start_session()
+	check_eq(w.area.area_id, "room", "an unknown anchor: the room")
+	check(memory().anchor.is_empty(), "and it's dropped")
+	memory().anchor = {"id": "oob:pillar", "version": World.ANCHOR_VERSION + 7, "session": 1}
+	memory().last_exit = "death"
+	var w2 := await start_session()
+	check_eq(w2.area.area_id, "room", "an anchor from another version: the room")
+	check(memory().anchor.is_empty(), "dropped too")
+
+
+func test_the_anchor_is_never_set_mid_story() -> void:
+	var w := await start_session()
+	w.hud.show_dialogue("MIRA", Hud.NPC_COLOR, ["one."])
+	check(not w.set_anchor("oob:pillar"), "not during a conversation")
+	w.hud.close_dialogue()
+	await go_to(w, "square", "house")
+	w.start_escort(w.area.wren)
+	check(not w.set_anchor("oob:pillar"), "not during an escort")
+	check(memory().anchor.is_empty(), "nothing saved")
+
+
+func test_an_ending_clears_the_anchor() -> void:
+	var w := await start_session()
+	w.set_anchor("oob:pillar")
+	memory().record_win("escape")
+	check(memory().anchor.is_empty(), "an ending is a new start")
+
+
+func test_arrivals_face_the_way_you_came() -> void:
+	var w := await start_session()
+	# Leaving east arrives on the west side, and back.
+	await go_to(w, "archive", "west")
+	check(w.player.global_position.x < w.area.bounds.get_center().x, "into the archive from the west: on its west side")
+	await go_to(w, "square", "east")
+	check(w.player.global_position.x > w.area.bounds.get_center().x, "back into the square from the east: on its east side")
+	await go_to(w, "edge", "south")
+	check(w.player.global_position.y > w.area.bounds.get_center().y, "up the north road: arriving at the Edge's south")
+	await go_to(w, "square", "north")
+	check(w.player.global_position.y < w.area.bounds.get_center().y, "back down: at the square's north")
+	# Up out of the well: beside it, not on its own prompt.
+	await go_to(w, "square", "well")
+	await frames(3)
+	check(w.player.global_position.distance_to(w.area.well.global_position) > World.INTERACT_DISTANCE, "not standing on 'climb into the well' as you arrive")
+
+
+func test_a_place_from_an_earlier_run_isnt_new_again() -> void:
+	var w := await start_session()
+	await go_to(w, "square", "house")
+	check(_said(w, Story.VOICE["square_first"][0]), "first time ever: the first-arrival line")
+	w.kill("arin", "test")
+	var w2 := await wait_for_new_session(w)
+	await go_to(w2, "square", "house")
+	await frames(3)
+	check(not _said(w2, Story.VOICE["square_first"][0]), "next run: not again")
+	check(_said(w2, Story.VOICE_BACK["square"]), "a short 'back' instead")

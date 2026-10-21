@@ -291,7 +291,9 @@ func _ask_quit(to_title: bool) -> void:
 		consequence += " One more and you're gone."
 	# Pausing is free; this ends the run. Say what is kept and what it costs.
 	_confirm_label.text = "This ends the run. Quitting counts, like dying: the owner will remember.\n" + consequence \
-		+ "\nKept: your memories, glitches and journal. Lost: anything you're carrying.\nResume instead, and nothing is counted."
+		+ "\nKept: your memories, glitches, journal and everyone you've met. Lost: anything you're carrying." \
+		+ ("\nYou'll start in Arin's room: the well only keeps you after a death." if World.anchor_valid() else "") \
+		+ "\nResume instead, and nothing is counted."
 	_show_only(_confirm)
 	(_confirm.get_child(2) as Button).grab_focus()  # "Stay"
 
