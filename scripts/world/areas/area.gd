@@ -159,10 +159,16 @@ func geometry_changed(where := Rect2()) -> void:
 	if _nav_pending or not is_inside_tree():
 		return
 	_nav_pending = true
-	await get_tree().physics_frame
-	await get_tree().physics_frame
+	var active_tree := get_tree()
+	await active_tree.physics_frame
+	# Transitions detach an area before freeing it. It can still resume here,
+	# but get_tree() is already null: do not start a second wait on that node.
+	if not is_inside_tree() or get_tree() != active_tree:
+		_nav_pending = false
+		return
+	await active_tree.physics_frame
 	_nav_pending = false
-	if not is_inside_tree() or not has_meta("nav_grid"):
+	if not is_inside_tree() or get_tree() != active_tree or not has_meta("nav_grid"):
 		return
 	var grid: NavGrid = get_meta("nav_grid")
 	grid.refresh(Rect2() if _nav_full else _nav_dirty)

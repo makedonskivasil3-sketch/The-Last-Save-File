@@ -64,6 +64,20 @@ func test_pending_refresh_can_release_its_area() -> void:
 	await frames(5)
 	check(ref.get_ref() == null, "pending refresh retains no freed area")
 
+func test_pending_refresh_can_detach_on_the_first_physics_frame() -> void:
+	var area := Area.new()
+	tree.root.add_child(area)
+	area.set_meta("nav_grid", NavGrid.new())
+	# World transitions remove the old area before queue_free. Detach before
+	# the coroutine resumes from its first wait, while the object still lives.
+	tree.physics_frame.connect(func() -> void: tree.root.remove_child(area), CONNECT_ONE_SHOT)
+	area.geometry_changed()
+	await tree.physics_frame
+	await frames(3)
+	check(not area.is_inside_tree(), "the transition detached the still-live area")
+	check(not area._nav_pending, "a detached refresh releases its pending state")
+	area.free()
+
 func test_map_bin_is_east_and_labels_fit_large_text() -> void:
 	var map := MapView.new()
 	map.size = Vector2(400, 170)
