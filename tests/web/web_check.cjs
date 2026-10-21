@@ -87,6 +87,17 @@ async function waitForSave(page, pred, timeoutMs) {
 
 const pick = (d) => d ? { sessions: d.sessions, deaths: d.deaths, quits: d.quits, purge: d.purge, last_exit: d.last_exit } : d;
 
+// Startup milestones (seconds since navigation) and the game's own frame
+// rate at each: the 240 s allowance below is a bound, and these say where
+// the time went, so a slow runner and a slow build can be told apart.
+const timing = { marks: {}, fps: {}, holds: {} };
+let navStart = 0;
+async function mark(page, name) {
+  const s = await state(page);
+  timing.marks[name] = +((Date.now() - navStart) / 1000).toFixed(1);
+  if (s && typeof s.fps === 'number') timing.fps[name] = s.fps;
+}
+
 (async () => {
   const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=user-gesture-required'] });
   const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
@@ -100,8 +111,10 @@ const pick = (d) => d ? { sessions: d.sessions, deaths: d.deaths, quits: d.quits
   watch(page);
 
   // 1. The title.
+  navStart = Date.now();
   await page.goto(url);
   await waitForState(page, (s) => s.scene === 'title', 'the title screen', 120000);
+  await mark(page, 'title');
   await page.screenshot({ path: path.join(shotDir, 'web_1_title.png') });
   expect(true, 'the title screen loads');
 
@@ -115,6 +128,7 @@ const pick = (d) => d ? { sessions: d.sessions, deaths: d.deaths, quits: d.quits
   // A fresh browser is a first launch: the opening film plays first, and
   // holding E skips it (scripts/ui/opening.gd).
   const first = await waitForState(page, (s) => s.scene === 'opening' || s.scene === 'game', 'the opening or the game', 60000);
+  await mark(page, 'opening');
   expect(first.scene === 'opening', 'a first launch plays the opening film', first);
   if (first.scene === 'opening') {
     await page.screenshot({ path: path.join(shotDir, 'web_1b_opening.png') });
@@ -123,6 +137,7 @@ const pick = (d) => d ? { sessions: d.sessions, deaths: d.deaths, quits: d.quits
     await page.keyboard.up('e');
   }
   await waitForState(page, (s) => s.scene === 'game', 'the game scene', 60000);
+  await mark(page, 'game_scene');
   expect(true, 'holding E skips into the run');
   const t0 = Date.now();
   let s = await state(page);
@@ -134,12 +149,33 @@ const pick = (d) => d ? { sessions: d.sessions, deaths: d.deaths, quits: d.quits
   // build has needed from about 20 s to over 90 s here. The published state
   // doesn't change while a line is read, so a stall can't be told from slow
   // progress; the budget is simply generous.
+  let presses = 0;
   while (!(s && s.playable) && Date.now() - t0 < 240000) {
-    if (!s || s.reading) await page.keyboard.press('e');
+    if (!s || s.reading) { await page.keyboard.press('e'); presses++; }
     await page.waitForTimeout(600);
     s = await state(page);
+    if (s && s.reading && !('boot_text' in timing.marks)) await mark(page, 'boot_text');
+    if (s && !s.reading && 'boot_text' in timing.marks && !('boot_text_done' in timing.marks)) await mark(page, 'boot_text_done');
+    if (s && !s.playable && s.hold) timing.holds[s.hold] = (timing.holds[s.hold] || 0) + 1;
+    if (s && typeof s.slowest_ms === 'number') timing.slowest_ms = Math.max(timing.slowest_ms || 0, s.slowest_ms);
+    if (s && s.sfx_busy) timing.sfx_busy_polls = (timing.sfx_busy_polls || 0) + 1;
   }
+  await mark(page, 'playable');
+  timing.presses = presses;
+  // The runner's speed doesn't change how much GAME time startup takes: on
+  // software rendering the engine clamps each frame's step, so game time
+  // runs several times slower than the wall clock (measured ~10x locally).
+  // Game time to a playable run is the bound that catches a regression.
+  if (s && typeof s.game_ms === 'number') {
+    timing.game_ms = s.game_ms;
+    timing.wall_ms = s.wall_ms;
+    timing.clock_ratio = s.game_ms > 0 ? +(s.wall_ms / s.game_ms).toFixed(1) : null;
+  }
+  console.log('TIMING ' + JSON.stringify(timing));
+  fs.writeFileSync(path.join(shotDir, 'timing.json'), JSON.stringify(timing, null, 2));
   expect(Boolean(s && s.playable), 'the run becomes playable (Rue under the player\'s control)', s);
+  expect(typeof timing.game_ms === 'number' && timing.game_ms < 30000,
+    'startup takes under 30 s of game time, whatever the runner\'s speed', { game_ms: timing.game_ms, wall_ms: timing.wall_ms });
   const before = await state(page);
   // Held until she has moved (software rendering here can run few physics
   // steps per second), bounded at 6 s: a stuck character still fails.

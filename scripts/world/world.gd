@@ -421,7 +421,21 @@ func _took_false_memory(f: Dictionary) -> void:
 var _web_tick := 0.0
 
 
+## The slowest frame since the last publish (ms), for the startup timing.
+var _web_slowest := 0.0
+
+
+## Game time (summed frame deltas) since the session began, against the
+## wall clock: if the engine clamps long frames, game time falls behind.
+var _web_game_ms := 0.0
+var _web_wall0 := -1
+
+
 func _publish_web_state(delta: float) -> void:
+	_web_slowest = maxf(_web_slowest, delta * 1000.0)
+	_web_game_ms += delta * 1000.0
+	if _web_wall0 < 0:
+		_web_wall0 = Time.get_ticks_msec()
 	_web_tick -= delta
 	if _web_tick > 0.0 or not OS.has_feature("web"):
 		return
@@ -430,7 +444,14 @@ func _publish_web_state(delta: float) -> void:
 	# "reading": text is open that a press of E moves on (the browser check
 	# presses E only then, instead of pressing into the world's interactions).
 	var reading := hud.is_cinematic() or hud.is_dialogue_open() or hud.is_choosing()
-	WebState.publish({"scene": "game", "playable": playable, "reading": reading, "area": area.area_id if area else "",
+	# What is holding play, if anything (the check logs it: a slow machine
+	# and a stuck state look the same from outside otherwise).
+	var hold := "" if playable else ("ending" if ending != "" else ("cinematic" if hud.is_cinematic() else ("cutscene" if _cutscene else "frozen")))
+	var slowest := roundi(_web_slowest)
+	_web_slowest = 0.0
+	WebState.publish({"scene": "game", "playable": playable, "reading": reading, "hold": hold, "awake": _awake, "slowest_ms": slowest,
+		"sfx_busy": Sfx.is_busy(), "game_ms": roundi(_web_game_ms), "wall_ms": Time.get_ticks_msec() - _web_wall0,
+		"area": area.area_id if area else "",
 		"x": snappedf(player.global_position.x, 0.1), "y": snappedf(player.global_position.y, 0.1)})
 
 
