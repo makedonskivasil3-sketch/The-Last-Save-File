@@ -440,7 +440,8 @@ func _draw() -> void:
 		var tp: Vector2 = target.pos if target.id in ["phase", "scrub"] or target.node == null else target.node.global_position
 		# Bigger and bolder on touch screens, where a thumb hides half the view.
 		var big := 1.4 if Settings.using_touch else 1.0
-		var s := (12.0 - 4.0 * k) * big + (sin(_t * (20.0 if charging else 5.0)) * 1.0)
+		var pulse := 0.0 if Settings.reduce_flashing else sin(_t * (20.0 if charging else 5.0))
+		var s := (12.0 - 4.0 * k) * big + pulse
 		var r := Rect2(tp - global_position - Vector2(s, s + 6), Vector2(s, s) * 2.0)
 		var c := MAGENTA.lerp(CYAN, k)
 		c.a = 0.5 + 0.5 * k if charging else 0.45

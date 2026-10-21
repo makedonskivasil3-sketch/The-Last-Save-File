@@ -161,10 +161,16 @@ func look_at(from: Vector2, to: Vector2) -> void:
 	var d := to - from
 	if d.length() < 1.0:
 		return
-	if absf(d.x) > absf(d.y) * 1.2:
+	var previous := facing
+	# Keep a small dead band around the diagonal: a nearby player's fidget
+	# must not make a stationary NPC flip directions on successive frames.
+	var threshold := 0.85 if facing.x != 0.0 else 1.2
+	if absf(d.x) > absf(d.y) * threshold:
 		facing = Vector2.RIGHT if d.x > 0.0 else Vector2.LEFT
 	else:
 		facing = Vector2.DOWN if d.y > 0.0 else Vector2.UP
+	if facing != previous:
+		turn = TURN_TIME
 
 
 ## Draw the character.

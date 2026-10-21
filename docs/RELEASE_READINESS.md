@@ -2,17 +2,31 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current presentation/functionality revision (2026-10-21)
+## Current combined presentation/functionality revision (2026-10-21)
 
-Reviewed baseline: GitHub `main` at `da83f01`. New runtime repairs are in
-`e69ab5c` (live portrait clock and system-speech mouth activity) and `9117b18`
-(detached-area deferred navigation refresh). The prior integration remains
-included. See [PRESENTATION_FUNCTIONALITY_AUDIT.md](PRESENTATION_FUNCTIONALITY_AUDIT.md)
-for findings, current completed verification, known warnings and publication;
+The combined branch retains main `2644629` / PR #8 (`2ffc036`): finale cursor
+ownership, reading-held confrontation transitions, completed-objective clearing,
+gaze hysteresis/turns and reduced-flashing brackets. It adds `e69ab5c` live
+portrait clocks/system-speech mouth activity and `9117b18` cancellation of a
+navigation refresh when its area leaves the tree. Test-only `3ee11fc` makes
+failed screenshot saves fail visual checks. Save and balance rules are intact.
+
+See [PRESENTATION_FUNCTIONALITY_AUDIT.md](PRESENTATION_FUNCTIONALITY_AUDIT.md)
+for the combined results, evidence and remaining issues;
 [PRESENTATION_GAMEPLAY_FOLLOWUP_PROMPT.md](PRESENTATION_GAMEPLAY_FOLLOWUP_PROMPT.md)
-is the detailed next implementation brief, not a claim it has all been executed.
-Stage remains a late prototype; human listening/playtesting and Windows/real-GPU
-execution remain unverified.
+is the updated detailed assignment, incorporating the incoming revision.
+Its future work is not presented as completed. Earlier verification below
+belongs to its own source hash, not automatically to the combined runtime.
+The game remains a late prototype: human listening/playtesting, Windows
+execution and real-GPU/device checks remain outstanding.
+
+## Historical PR #8 code and experience revision (2026-10-21)
+
+Runtime `2ffc036` completed 468 headless tests, 40 focused tests and five
+exact-ending bots in its recorded environment. Purge-3 bots recorded two
+recovered stalls. Its evidence remains in [REVISION_OCT21.md](REVISION_OCT21.md),
+with its original next brief in [NEXT_GAMEPLAY_VISUAL_PROMPT.md](NEXT_GAMEPLAY_VISUAL_PROMPT.md).
+Those earlier results do not substitute for the final combined check.
 
 ## Historical integration follow-up (2026-10-21)
 
