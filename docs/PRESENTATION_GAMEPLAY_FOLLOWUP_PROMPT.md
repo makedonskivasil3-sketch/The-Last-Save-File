@@ -157,6 +157,16 @@ Required behavior:
    without any installed system voice or external media.
 9. Keep speaker labels, readable backing and History accessible. History is
    a recovery tool, not an excuse for unreadable first delivery.
+10. Distinguish text-reveal speed, auto-reading pace and actual TTS speech
+    rate. Current Narration.character profiles have fixed per-speaker rates;
+    auto-reading settings do not slow the spoken words. If TTS remains a
+    supported reading aid, provide a bounded global speech-rate preference
+    multiplied by the character's base rate. Start with a conservative
+    0.75–1.1× audition range, verify intelligibility on real devices, and keep
+    manual captions usable independently. Do not time-stretch recorded acting
+    without a separately listened-to quality decision. Define what happens
+    when this setting changes mid-line; never lose the text or duplicate a
+    journal/truth event while restarting speech.
 
 Test a 180+ character line, a 300+ character voiced fixture, slow/normal/fast/
 instant reveal, manual/auto, all subtitle sizes, large UI text, maximal combined
@@ -189,6 +199,10 @@ Specific repairs/prototypes:
 
 - Drive world NPC mouth motion from the active line's reveal/voice, not the
   fact that the entire conversation remains open. Maintain mute/written rules.
+  In the portrait path, revealing text currently counts as speaking even
+  without speech. Test frayed Tobben's written response and the real Arin's
+  ellipsis explicitly: neither should mouth words because text is typing.
+  Do not use a global audio-playing flag to animate the wrong speaker.
 - Keep the new live-portrait clock and voice_busy fixes. Test the actual live
   renderer; checking only frame names or legacy CharacterArt.image is insufficient.
 - Make one system own mouth phase. HUD frame toggles and renderer time gates
@@ -388,6 +402,12 @@ pilot takes are not assumed available, listened to or commercially licensed.
   arrangement, density and silence. Do not simply play a louder drone forever.
 - Spatially distinguish Arin's feet/cursor from Rue. Check mono downmix,
   headphones, speakers and muted music. Essential warnings stay audible on SFX.
+- Narration currently probes device voices in _ready even when narration is
+  off. Linux render logs without a speech service report `synth is null`.
+  Test capability discovery lazily/boundedly so an optional feature does not
+  repeatedly query an unavailable backend. Retain late-arriving browser voices;
+  permanently caching an empty voice list would reintroduce an older failure.
+  Do not hide diagnostics with log filters or confuse this with script errors.
 - Use one spoken line at a time; cancel on scene exit and pause/resume correctly.
   Test recorded voice, TTS and no voice. Never describe blips as full narration.
 - Evaluate a small actual voice pilot before producing hundreds of lines:

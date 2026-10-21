@@ -60,7 +60,7 @@ means a proposed experiential improvement awaiting observation.
 | A03 | P1 before art replacement / confirmed integration gap | `CharacterArt.texture_for` supports external PNGs, but live `PortraitView._rebuild/_draw` always builds/draws IllustratedCharacter | Supplying the documented portrait PNG does not update live dialogue. Introduce one tested asset resolver/fallback path and preserve restoration/fraying. Existing `CharacterArt.image` assertions do not validate the live portrait. |
 | A04 | P1 before recording rollout / confirmed branch, overflow risk | `Hud.paginate` leaves a recorded source line whole whenever VoiceOver has it; `_fit_dialogue` grows height without a viewport cap | Adding a long recording can bypass subtitle pagination. Reproduce at maximum combined text settings; implement timed caption pages while playing one uninterrupted take. No current shipped take demonstrates this overflow. |
 | A05 | P1 / confirmed timing difference; human impact unmeasured | `StoryPacing.ambient_time` caps every kind at 6 s; owner priority can reduce the current pause to 0.8 s; console retains 4 lines, or 3 with large text | Manual dialogue does not protect all ambient story reading. Classify essential narrative versus incidental telemetry; keep urgent warnings immediate. History is recovery, not proof of comfortable first reading. |
-| A06 | P2 / confirmed | `World._process` drives `Npc.talking` for the conversation's duration; `World.expressions_for` supplies authored per-line moods only for Mira and Wren | World mouths can continue while waiting for manual advance, while other speakers mostly use default moods. Drive speaking from the active line/voice with mute/written exceptions; author a small grounded expression set. |
+| A06 | P2 / confirmed | `World._process` drives `Npc.talking` for the conversation's duration; `World.expressions_for` supplies authored per-line moods only for Mira and Wren | World mouths can continue while waiting for manual advance, while other speakers mostly use default moods. Drive speaking from the active line/voice with mute/written exceptions; HUD reveal-time mouth animation also needs a muted/written-speaker case. Author a small grounded expression set. |
 | A07 | P2 / confirmed | `Npc._process` keeps its normal idle style/wave when RESTRICTED; both renderers draw the reading book without checking rear-facing/talking | Restriction can read as a normal friendly wave/hop; book can appear on the back. Define pose priority and prop occlusion, test restored/frozen/restricted/deleting variants. Do not suppress a mute character's ability to communicate in writing. |
 | A08 | P2 / confirmed on original baseline; fixed upstream | `PixelCharacter.look_at` bypassed `turn` and lacked directional hysteresis at `da83f01` | Incoming PR #8 / `2ffc036` adds both. Preserve its regression and validate it with the live-portrait clock repair; do not ask the next implementer to redo this fix. |
 | A09 | P2 / confirmed frame-based probabilities | `Player._process/_update_mood` evaluates tear/dropout/palette-flicker probabilities per frame, while other jitter uses delta | Event frequency/duration varies with rendering FPS. Specify rates/holds in seconds and sample timers; validate at simulated 30/60/120 FPS. Do not claim these visual probabilities change threat difficulty. |
@@ -77,6 +77,7 @@ means a proposed experiential improvement awaiting observation.
 | A21 | P2 / confirmed duplication | RecycleBin constructs the `SYSTEM_FILES`/`SHADOW` protected rectangle separately in drawing and `sheltered_at` | Centralize the geometry before improving shelter edges. No mismatch or unsafe shelter was reproduced here. |
 | A22 | P2 / source-supported risk | OwnerAvatar._recover refuses recovery when NavGrid.nearest_open finds no cell centre within RECOVER_RANGE | An exact clear position may differ from a grid-centre result. Reproduce a thin-obstacle/cell-alignment case before changing collision-safe recovery. |
 | A23 | P2 / confirmed guidance gap | OOB.guide_point always returns PILLAR_POS; Progression.local_target handles memories/NPC witnesses/Character File but not FIRST HITBOX | Once memories are gone, guidance does not select an eligible unread First Shape terminal. Add a progression-aware target without revealing or auto-counting the witness. No human confusion was measured. |
+| A24 | P2 / observed backend diagnostic + confirmed eager probe | Narration._ready calls available() even with narration off; rendered Linux runs without a speech service log `Parameter synth is null` during voice enumeration | Probe optional speech lazily or with bounded capability refresh. Preserve delayed browser-voice discovery and fallback. This is distinct from a script error, audible Web failure or the ObjectDB shutdown warning. |
 | A18 | P2 / confirmed documentation drift | CHARACTER_DIRECTION includes obsolete pixel-only assumptions and a proposed no-scarf Arin; CharacterArt header says only Rue/Mira despite six portraits; many pass docs present local statuses | Use live code and author-confirmed canon; keep historical notes but mark superseded portions. Do not remove Arin's implemented scarf because an old proposal says so. |
 
 A strict bot run initially failed despite its five ending assertions passing:
@@ -109,6 +110,14 @@ The new graphical tour renders the real PortraitView at controlled 0 and
 150 ms phases. It is a staged, enlarged sample using CharacterArt.mira's
 default palette, not a new Mira art direction or a human speech evaluation.
 The future work is specified in [the detailed implementation prompt](PRESENTATION_GAMEPLAY_FOLLOWUP_PROMPT.md).
+
+The clock/speech-status repairs are not phoneme lip-sync or a complete acting
+system. HUD still alternates `frame` every 0.12 s while the illustrated face
+also gates the mouth on its own 0.24 s phase. That duplicate phase ownership
+is a source-supported animation risk; the next prompt explicitly requires
+one mouth-phase owner and actual live-output checks. No real OS-TTS listening
+or timing-quality claim is made by the controlled speech-predicate regression.
+
 
 ## Verification of this revision
 
@@ -219,8 +228,12 @@ cases in total. Only RELEASE_READINESS.md conflicted; its resolution retains
 both histories and adds one authoritative combined status. No code conflict
 was resolved by choosing an older implementation.
 
-Post-merge checks are recorded here after completion. Earlier green runs
-above do not substitute for this combined-runtime verification.
+The strict post-merge full suite completed **471 passed, 0 failed, 1063.9 s**,
+process exit 0. All 471 case names are unique, the completed summary is present,
+and the log contains no script/parse errors or failed cases.
+[Full combined log](review/presentation-revision/combined/full-suite.log).
+Shutdown ObjectDB/resource diagnostics remain visible and unresolved.
+Earlier green runs above do not substitute for this combined-runtime result.
 
 
 | Post-merge check | Completed result | Limits |
@@ -288,3 +301,33 @@ one explicit resolver/fallback contract before producing and importing a
 large new cast. That integration must preserve restoration and fraying as
 well as expressions. This diagram describes source structure, not a delivered
 new asset system.
+
+
+Narration's per-speaker speech rates are currently fixed in
+`Narration.CHARACTER_SPEECH`; Settings.auto_speed changes reading allowance,
+not the device's spoken rate. The next prompt separates those controls so a
+slower auto-caption setting is not mistakenly presented as slower narration.
+This is an accessibility improvement proposal; no human speech-rate discomfort
+was measured in this environment.
+
+
+## Publication and next step
+
+The user explicitly requested commit, push and merge. All fetched remote heads
+are ancestors of the combined tree; see the
+[ancestry ledger](review/presentation-revision/combined-ancestry.txt).
+The branch is `codex/presentation-functionality-audit`; after the completed
+checks it is fast-forwarded to main without force. The subsequent documentation
+commit changes no runtime/test code from the verified combined source.
+
+- [Main code](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/tree/main)
+- [Review branch](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/tree/codex/presentation-functionality-audit)
+- [Updated detailed prompt](PRESENTATION_GAMEPLAY_FOLLOWUP_PROMPT.md)
+- [Build workflow and Windows artifact](https://github.com/makedonskivasil3-sketch/The-Last-Save-File/actions/workflows/build.yml)
+
+Remote CI/deployment is a separate result: check the run on the published main
+commit. Do not treat local export integrity as a ready public download or link
+an older build as this revision. A local Windows ZIP was prepared and CRC-checked;
+GitHub's workflow supplies the supported downloadable artifact after success.
+The game remains a late prototype, with the explicitly deferred art/voice,
+human testing, Windows execution and hardware work above.

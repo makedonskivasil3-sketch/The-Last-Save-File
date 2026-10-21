@@ -17,6 +17,13 @@ for the combined results, evidence and remaining issues;
 is the updated detailed assignment, incorporating the incoming revision.
 Its future work is not presented as completed. Earlier verification below
 belongs to its own source hash, not automatically to the combined runtime.
+Combined runtime `1c21266` completed **471/471 headless tests** (1063.9 s,
+exit 0), five exact-ending bots and Web/Windows/Linux exports. Current browser
+lifecycle/audio and three rendered checks passed. Bots recorded four recovered
+escape-route stalls and one message-route death/retry; ObjectDB/resource
+shutdown warnings remain. Full logs and build checksums are in the audit.
+The final evidence commit changes no gameplay code; remote CI is tracked
+separately after publication.
 The game remains a late prototype: human listening/playtesting, Windows
 execution and real-GPU/device checks remain outstanding.
 
