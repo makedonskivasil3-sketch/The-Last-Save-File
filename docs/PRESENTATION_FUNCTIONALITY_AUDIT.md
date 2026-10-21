@@ -48,6 +48,15 @@ playthrough or an exhaustive proof that all code is defect-free.
 
 ## Findings, ranked by player impact
 
+> **Status update (live-art milestone, `docs/LIVE_ART_MILESTONE.md`):**
+> A03 fixed `cc76537`; A04 fixed `2dc26b9`; A06 (speaking, written and
+> mute mouths) and A07 (restricted pose, book on backs) fixed `65c0cd9`;
+> A05 fixed `fae5fa2` (route matrix: `docs/STORY_TEXT_ROUTES.md`); A09
+> fixed `80cc756` (simulated FPS); A24 fixed `131eb3c` (rendered Linux
+> log). A06's authored expressions for other speakers, A10, A12–A17 and
+> A21–A23 are unchanged. The table below is the original audit, kept as
+> written.
+
 Severity means next-pass priority, not a claim that every item crashes the game.
 **Confirmed** means a direct source finding or reproduced behavior; **risk**
 means a plausible failure requiring its specified reproduction; **design**
