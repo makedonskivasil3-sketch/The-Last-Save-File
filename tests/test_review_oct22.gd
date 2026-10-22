@@ -127,3 +127,92 @@ func test_the_chime_shows_at_once_even_behind_a_busy_console() -> void:
 	w.area.next_visit = ArinsHouse.CHIME_LEAD + 0.05
 	await wait(0.3)
 	check(w.hud.warning_text().contains("the door"), "on screen at once, not queued (%s)" % w.hud.warning_text())
+
+
+# --- Captions: a scene over a long recorded take ----------------------------------
+
+func _clip(seconds: float) -> AudioStreamWAV:
+	var w := AudioStreamWAV.new()
+	w.format = AudioStreamWAV.FORMAT_16_BITS
+	w.mix_rate = 11025
+	var data := PackedByteArray()
+	data.resize(int(11025 * seconds) * 2)
+	w.data = data
+	return w
+
+
+const LONG_TAKE := "This is one long recorded line, long enough that its caption has to be split across several pages of the dialogue box, so that each page owns only its own share of the single take, and nobody should have to wait for the whole recording to finish on the very first page of it before moving on."
+
+
+func _long_take_conversation(w: Node) -> void:
+	VoiceOver.register(Hud.voice_id("npc.test", LONG_TAKE), _clip(12.0))
+	w.hud.show_dialogue("TEST", Color.WHITE, [LONG_TAKE], "npc.test")
+	await frames(3)
+
+
+func test_a_scene_over_an_early_page_resumes_that_page_not_the_whole_take() -> void:
+	settings().advance_mode = 1  # Auto: the page moves on when its share is said
+	var w := await start_session()
+	await _long_take_conversation(w)
+	check(w.hud._dialogue_lines.size() >= 2, "the take spans pages (%d)" % w.hud._dialogue_lines.size())
+	check_eq(w.hud._dialogue_index, 0, "on its first page")
+	await wait(0.6)
+	var typed_before: int = w.hud._dialogue_text.visible_characters
+	var done := [false]
+	(func() -> void:
+		await w.hud.cinematic("TEST", ["a scene over the conversation."], Hud.SELF_COLOR, 0.5)
+		done[0] = true).call_deferred()
+	await wait_until(func() -> bool: return w.hud.is_cinematic(), 3.0, "the scene")
+	await read_through_cinematic(w)
+	await wait_until(func() -> bool: return done[0], 4.0, "the scene to end")
+	check_eq(w.hud._dialogue_index, 0, "back on the same page")
+	check_eq(VoiceOver.current_id(), Hud.voice_id("npc.test", LONG_TAKE), "the same take, resumed")
+	var shown: int = w.hud._dialogue_text.visible_characters
+	check(shown < 0 or shown >= typed_before, "the caption keeps its place with the voice (%d, was %d)" % [shown, typed_before])
+	# Past the first page's share of the take, the first page is done even
+	# though the take plays on: the page's own rule, as before the scene.
+	var p := VoiceOver.current()
+	var fraction: float = w.hud._page_fraction(w.hud._dialogue_lines, w.hud._dialogue_sources, 0)
+	p.seek(p.stream.get_length() * fraction + 0.3)
+	await frames(2)
+	check(VoiceOver.is_playing(), "the take is still playing")
+	check(not w.hud._pacer.voice_busy.call(), "but the first page isn't waiting for all of it")
+	w.hud.close_dialogue()
+	settings().advance_mode = 0
+
+
+func _scene_over(w: Node) -> void:
+	var done := [false]
+	(func() -> void:
+		await w.hud.cinematic("TEST", ["a scene over the conversation."], Hud.SELF_COLOR, 0.5)
+		done[0] = true).call_deferred()
+	await wait_until(func() -> bool: return w.hud.is_cinematic(), 3.0, "the scene")
+	await read_through_cinematic(w)
+	await wait_until(func() -> bool: return done[0], 4.0, "the scene to end")
+
+
+func test_a_scene_over_a_later_page_comes_back_to_that_page_once() -> void:
+	var w := await start_session()
+	await _long_take_conversation(w)
+	await press("interact")  # reveal
+	await press("interact")  # next page
+	await frames(2)
+	check_eq(w.hud._dialogue_index, 1, "on the second page")
+	var history: int = w.hud.console_history.size()
+	await _scene_over(w)
+	check_eq(w.hud._dialogue_index, 1, "back on the second page, not the first")
+	check_eq(VoiceOver.current_id(), Hud.voice_id("npc.test", LONG_TAKE), "the take is still the one playing")
+	check_eq(w.hud.console_history.filter(func(l: String) -> bool: return l.contains("one long recorded line")).size(), 0, "the conversation line isn't logged again by the scene")
+	check(w.hud.console_history.size() <= history + 2, "only the scene's own line was added to the history")
+	w.hud.close_dialogue()
+
+
+func test_without_a_recording_the_page_is_typed_again_from_its_start() -> void:
+	var w := await start_session()
+	w.hud.show_dialogue("TEST", Color.WHITE, [LONG_TAKE], "npc.unrecorded")
+	await wait(0.5)
+	check(VoiceOver.current() == null, "nothing recorded")
+	await _scene_over(w)
+	check_eq(w.hud._dialogue_index, 0, "the same page")
+	check(w.hud._pacer.phase == LinePacer.Phase.REVEALING and w.hud._dialogue_text.visible_characters < 5, "typed again from its start, so it can be read")
+	w.hud.close_dialogue()

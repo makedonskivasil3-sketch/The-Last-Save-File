@@ -22,7 +22,7 @@ player's flow.
 | Design weakness | The Bin built its shelter rectangle separately for the sweep and for the drawing. They matched, but could drift apart | Source | **Fixed**: one helper, with a steady edge |
 | Design weakness | The crossing is one large, uniform cobble rectangle; the Archive's door sits above a route that exits east | Captures | Addressed in the route pass (below) |
 | Design weakness | The HUD competes with itself: header, wrapped goal, meter, prompt and console | Captures | Addressed in the HUD pass (below) |
-| Hypothesis | `Hud.cinematic()` resume resets the caption reveal and waits on global `voice_busy` | Source | Checked in the caption pass (below) |
+| Hypothesis, then **confirmed defect** | `Hud.cinematic()` resume reset the caption's reveal while the take resumed mid-way, and waited on the global `voice_busy` | `test_a_scene_over_an_early_page…` failed: the caption went back to 4 of 37 characters, and the first page waited for the whole take | **Fixed** (below) |
 | Hypothesis | Lamp beam raycasts in `_draw()`, and cosmetic randomness shared with gameplay | Source | Profiling candidate only; not measured as a defect |
 | Completed | Bounded camera, relationship persistence, caption paging, speech rate, browser audio unlock, interactive opening | Earlier milestones and their tests | Kept; not reimplemented |
 
@@ -81,3 +81,36 @@ player's flow.
 - Until Arin is in, light spills from the front door, and each closet's
   open side is marked with a bright threshold line.
 - The four-second lead is unchanged.
+
+## Captions: a scene over a conversation
+
+**Reproduction:** a 12 s recorded take, paginated across several pages,
+with a scene opening over its first page, in Auto advance. After the
+scene:
+- the caption restarted from 4 characters (it had been at 37) while the
+  audio resumed mid-take;
+- the page waited for the whole take, because the pacer was rebuilt with
+  the global `voice_busy`.
+
+**Fixed:** a held page now comes back on the same page.
+- **With a recording:** the take resumes from where it was held, the
+  caption from where it was, and the page waits only for its own share of
+  the take (`_caption_voice_busy`, the predicate the page had before the
+  scene).
+- **Without a recording:** the page is typed again from its start, and
+  with spoken narration it is said again.
+- **In both cases:**
+  - the page is still typing when it returns, so a press carried over
+    from the scene can't skip it unread;
+  - the history is logged once.
+
+**Tests:**
+- `test_a_scene_over_an_early_page_resumes_that_page_not_the_whole_take`
+  (Auto advance, recorded);
+- `test_a_scene_over_a_later_page_comes_back_to_that_page_once` (Manual
+  advance, recorded, second page);
+- `test_without_a_recording_the_page_is_typed_again_from_its_start`.
+
+**Known limit:** the page cues are character-count fractions of the take,
+a fallback rather than word alignment. No recordings exist to author real
+cues from. The tests use silent fixtures, which are not voice acting.

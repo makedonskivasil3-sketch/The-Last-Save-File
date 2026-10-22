@@ -502,6 +502,8 @@ func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: floa
 	var dialogue_held := _dialogue.visible
 	var held_voice := VoiceOver.current()
 	var held_position := held_voice.get_playback_position() if dialogue_held and held_voice else 0.0
+	# Where the caption was, so it comes back with the voice, not behind it.
+	var held_typed := _dialogue_typed if dialogue_held else 0.0
 	_dialogue.visible = false
 	if dialogue_held:
 		# Its line stops with it; it is said again when the conversation returns.
@@ -564,15 +566,29 @@ func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: floa
 	if dialogue_held and _pacer != null:
 		_dialogue.visible = true  # back to the conversation, where it was
 		_dialogue_opened_frame = Engine.get_process_frames()  # the scene's last press doesn't advance it
-		# Pick the line up again from its start (typed, and said if recorded),
-		# so a press still coming from the scene can't skip it unread.
+		# Pick the page up again where it was: a recorded take resumes from
+		# the same moment and its caption from the same place; an unrecorded
+		# line is typed (and, with spoken narration, said) again from its
+		# start. Either way it is typing, so a press still coming from the
+		# scene can't skip it unread, and the page waits only for its own
+		# share of the take (_caption_voice_busy), as before the scene.
+		var resumed: AudioStreamPlayer = null
 		if _dialogue_voice != "":
-			var resumed := VoiceOver.play(self, _dialogue_voice)
+			resumed = VoiceOver.play(self, _dialogue_voice)
 			if resumed:
 				resumed.seek(held_position)
-		_pacer = LinePacer.new(_dialogue_text.text, StoryPacing.is_auto(), voice_busy)
-		_dialogue_typed = 0.0
-		_dialogue_text.visible_characters = 0
+		var text := _dialogue_text.text
+		var src: int = _dialogue_sources[_dialogue_index] if _dialogue_index < _dialogue_sources.size() else 0
+		var last_page := _dialogue_index + 1 >= _dialogue_sources.size() or _dialogue_sources[_dialogue_index + 1] != src
+		_pacer = LinePacer.new(text, StoryPacing.is_auto(), _caption_voice_busy.bind(_page_fraction(_dialogue_lines, _dialogue_sources, _dialogue_index), last_page))
+		if resumed:
+			_dialogue_typed = minf(held_typed, maxf(0.0, text.length() - 1.0))
+		else:
+			_dialogue_typed = 0.0
+			var written := dialogue_silent or _dialogue_speaker.text == Story.TOBBEN_WRITTEN or text.to_upper() == text.to_lower()
+			if not written:
+				narrator.speak(text, _dialogue_speaker.text)
+		_dialogue_text.visible_characters = int(_dialogue_typed)
 	else:
 		_console_box.visible = _console.get_child_count() > 0
 		_prompt.visible = true
