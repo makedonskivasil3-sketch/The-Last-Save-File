@@ -18,7 +18,7 @@ func test_opening_storyboard() -> void:
 	# The continuity animatic's eight shots (docs/NARRATIVE_CONTRACT.md §8).
 	# Interactive (docs/VERTICAL_SLICE.md §3): autoplay walks each state.
 	for beat in [[3.0, "o1_two_players"], [5.0, "o2_ritual_walk", 2.0], [8.4, "o2b_saving"], [10.8, "o4_stuck_87", 0.7],
-			[14.5, "o3_asleep"], [23.0, "o5_paused_she_walks", 2.5], [30.0, "o6_the_well"], [37.0, "o7_looks_out"], [42.0, "o8_unfinished"]]:
+			[14.5, "o3_asleep"], [23.0, "o5_paused_she_walks", 2.5], [30.0, "o6_the_well"], [37.0, "o7_looks_out"], [38.0, "o7b_months_later"], [42.0, "o8_unfinished"]]:
 		while film._t < beat[0]:
 			await tree.process_frame
 		if beat.size() > 2:

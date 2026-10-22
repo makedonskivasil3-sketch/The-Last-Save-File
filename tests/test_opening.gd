@@ -235,7 +235,7 @@ func test_the_player_walks_her_to_the_save_point_and_presses() -> void:
 	Input.action_press("move_left")
 	_step(film, 1.0)
 	check(film.acted.has("walked_paused"), "under PAUSE she walks when the player moves her")
-	check_eq(film._caption.text, "[she keeps walking.]", "said once, as a caption")
+	check_eq(film._caption.text, "[her hands are still. she moves anyway.]", "said once, as a caption")
 	while film._gate == Opening.Gate.IMPOSSIBLE and film.elapsed < 80.0:
 		film._process(0.05)
 	Input.action_release("move_left")
@@ -304,5 +304,66 @@ func test_a_controller_dropping_out_holds_the_film() -> void:
 	check(not film._held, "back when it's back")
 	check_eq(film._t, at, "from the same frame")
 	settings().using_gamepad = false
+	film._finish()
+	await wait_until(func() -> bool: return scene() is World, 5.0, "the room")
+
+
+## Who holds what (docs/OPENING_REVIEW.md): Arin is at the save point first
+## and waits for her; "you" is on her controller from the moment the
+## ritual asks (before any hint), then on the figure once her hands are
+## still; her controller's light is out while she walks under PAUSE.
+func test_who_holds_what_reads_before_any_hint() -> void:
+	var film := await _film()
+	_step(film, 0.5)
+	_step(film, 5.0)
+	check(film._gate == Opening.Gate.RITUAL and film._idle_t < Opening.HINT_AFTER + 0.6, "at the ritual")
+	check(not film._you_moved.get(Opening.Gate.RITUAL, false), "'you' is shown on her controller, before the hint")
+	Input.action_press("move_right")
+	_step(film, 0.3)
+	check(film._you_moved.get(Opening.Gate.RITUAL, false), "moving her: the cue has done its job")
+	while film._rue_x < Opening.SAVE_X - 2.0 and film.elapsed < 30.0:
+		film._process(0.05)
+	Input.action_release("move_right")
+	check(absf(film._arin_x - (Opening.SAVE_X + 22.0)) < 1.0, "walking her straight there, Arin is there first (%.0f), waiting" % film._arin_x)
+	_tap_key(film, "interact")
+	check(film._together_t >= 0.0, "they save together: the shared beat")
+	while film._t < Opening.GATE_AT[Opening.Gate.IMPOSSIBLE] and film.elapsed < 60.0:
+		film._process(0.05)
+	check(not film._you_moved.get(Opening.Gate.IMPOSSIBLE, false), "under PAUSE, 'you' moves onto the figure")
+	Input.action_press("move_left")
+	_step(film, 0.5)
+	Input.action_release("move_left")
+	check(film._you_moved.get(Opening.Gate.IMPOSSIBLE, false), "and goes once she walks")
+	check(absf(film._stick) < 0.01, "her thumb doesn't move: the controller isn't driving her")
+	film._finish()
+	await wait_until(func() -> bool: return scene() is World, 5.0, "the room")
+
+
+func test_the_first_room_says_which_one_is_you_until_she_moves() -> void:
+	var w := await start_session(true, true)
+	await wait_until(func() -> bool: return w._awake, 10.0, "awake")
+	check(w.player.you_cue, "first run: 'you' over her")
+	Input.action_press("move_right")
+	await wait(0.4)
+	Input.action_release("move_right")
+	check(not w.player.you_cue, "gone at the first step")
+	w.kill("overwritten", "arin")
+	var w2 := await wait_for_new_session(w)
+	await wait_until(func() -> bool: return w2._awake, 10.0, "awake again")
+	check(not w2.player.you_cue, "not on later runs")
+
+
+func test_the_save_point_catches_her_on_the_way_past() -> void:
+	var film := await _film()
+	_step(film, 5.5)
+	Input.action_press("move_right")
+	_step(film, 9.0)  # held far longer than the walk takes
+	check(absf(film._rue_x - Opening.SAVE_X) < 1.0, "she stops on the save point (%.0f)" % film._rue_x)
+	Input.action_release("move_right")
+	_step(film, 0.2)
+	Input.action_press("move_right")
+	_step(film, 1.0)
+	Input.action_release("move_right")
+	check(film._rue_x > Opening.SAVE_X + 10.0, "a fresh press walks on past it")
 	film._finish()
 	await wait_until(func() -> bool: return scene() is World, 5.0, "the room")

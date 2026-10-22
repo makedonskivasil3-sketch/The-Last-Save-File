@@ -275,6 +275,13 @@ func _update_mood(delta: float) -> void:
 	_sprite.palette = MISSING if flicker else _palette
 
 
+## "you" over her head (World: the first run, until the first step).
+var you_cue := false:
+	set(v):
+		you_cue = v
+		queue_redraw()
+
+
 func _draw() -> void:
 	if _dissolve != "":
 		_draw_dissolve()
@@ -296,6 +303,14 @@ func _draw() -> void:
 	if _restore_flash > 0.0:
 		# Your colours flood back in: a white silhouette fading out.
 		_sprite.draw(self, {"solid": Color(1, 1, 1, _restore_flash / 1.2 * 0.8)})
+	if you_cue:
+		# The first run only: "you", in the opening's colour for the figure
+		# the player drove there, until the first step. No name.
+		var f := UiStyle.system_font()
+		var w := f.get_string_size("you", HORIZONTAL_ALIGNMENT_LEFT, -1, 7).x
+		var c := Color(Opening.P2_COLOR, 0.75 + 0.25 * sin(_t * 4.0))
+		draw_string(f, Vector2(-w * 0.5, top - 10), "you", HORIZONTAL_ALIGNMENT_LEFT, -1, 7, c)
+		draw_colored_polygon(PackedVector2Array([Vector2(-2.5, top - 7), Vector2(2.5, top - 7), Vector2(0, top - 4)]), c)
 	if _startle_mark > 0.0:
 		# "!" over your head.
 		var c := Color(1.0, 0.85, 0.45, minf(1.0, _startle_mark * 3.0))

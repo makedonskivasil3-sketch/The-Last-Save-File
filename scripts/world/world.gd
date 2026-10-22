@@ -158,6 +158,9 @@ func _begin_session(previous: String) -> void:
 	player.frozen = false
 	_cutscene = false
 	_awake = true
+	# The first run: "you" over her (the opening's figure, the same one),
+	# whether the film was watched or skipped. Gone at the first step.
+	player.you_cue = OwnerMemory.sessions == 1
 	OwnerMemory.arm_session()  # play starts now: quits and crashes count from here
 	_area_intro()
 	director.start(self, previous)
@@ -480,6 +483,7 @@ func _process(delta: float) -> void:
 	player.instability = director.awareness / 100.0
 	if player.velocity.length() > 1.0:
 		PlaytestLog.mark("first movement", "", true)
+		player.you_cue = false
 	var cursor: Variant = area.get("cursor")
 	var watcher: Variant = area.get("arin")
 	_mark_offscreen([watcher, cursor])
