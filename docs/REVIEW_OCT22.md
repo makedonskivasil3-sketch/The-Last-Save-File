@@ -205,9 +205,10 @@ it as their own name is a question for the playtest.
 - **Clips** (in `docs/review/oct22/`, 10 frames a second of game time,
   in-engine): `motion_walk.mp4` (walk and stop),
   `motion_tobben.mp4` (tending, then waving as Rue comes near),
-  `motion_dialogue.mp4` (a line typing out, then waiting) and
-  `motion_escort.mp4` (Wren following).
-- **Not captured:** a return after a death.
+  `motion_dialogue.mp4` (a line typing out, then waiting),
+  `motion_escort.mp4` (Wren following) and `motion_death_return.mp4`
+  (Arin's touch, the OVERWRITTEN card, retry after 3.5 s, and Rue waking
+  in the room while the owner's lines type in).
 
 **No new portraits or recorded performances exist.** The procedural
 fallback is kept.
@@ -225,16 +226,18 @@ The game's audio is of five kinds, kept apart:
 not shipped audio. `VOICE_AUDITION.md` holds the pilot script. Human
 listening has not happened, and the mix against music is not judged here.
 
-## Performance and determinism (candidates, not measured defects)
+## Performance and determinism (measured, then decided)
 
-- **The lamp raycasts twice:** for its look, and again in `_draw()` for
-  the beam (11 rays per frame).
-- **Cosmetic effects share the global RNG with gameplay:** the HUD
-  header's glitch, blinks and flicker.
+`tests/tour_measure_candidates.gd`, run under llvmpipe at 1280×720:
 
-Both are profiling candidates. No measurement on this branch showed a
-frame-time or determinism problem, so neither was refactored. The bot
-runs and the route measurement are repeatable at the precision reported.
+| Candidate | Measured | Decision |
+|---|---|---|
+| The lamp casts rays twice: once for its look, and 11 more in `_draw()` for the beam | Look 0.2–0.3 µs, beam 28–35 µs per frame, against a 64 ms median frame: **0.05%** | **Not refactored.** It costs nothing worth the code |
+| The static's spread and the cursor's wandering shared the global RNG with the cosmetic static drawn every frame | Same seed, 60 growth steps, drawn between steps versus not: **only 36 of 60 cells in common**. So frame rate steered the static, and a failing bot run could not be replayed | **Fixed** (`3312f9c`). `Erasure.rng` and `OwnerCursor.rng` are their own generators: random as before, but seedable. The regression failed on the old code |
+
+The cosmetic effects (the HUD glitch, blinks, flicker, the static's
+pixels) still use the global generator. That is harmless now that
+nothing in gameplay does.
 
 ## Evidence
 
@@ -256,6 +259,33 @@ runs and the route measurement are repeatable at the precision reported.
   - suite 581/581;
   - bots 5/5 with 0 deaths, and 15 stalls in one run, reported;
   - three exports, the smoke test and both browser checks pass.
+
+## After the milestone (follow-up work)
+
+- **Bot stalls at the Edge** (15 in one purge-3 run): every one was
+  against the missing tile at (380–440, 60–84), on the straight line to
+  Slot 2.
+  - The replan never ran, because the Edge builds its walking grid only
+    when Arin needs one.
+  - The bot now builds a grid for its replan, and refuses a route that
+    crosses the static, which the grid can't see.
+  - Three purge-3 runs after the fix: stalls 0, 8, 0; deaths 1, 0, 0 (the
+    death had no stall); all reached the escape ending.
+  - A player sees the tile, so this is not a player-facing snag.
+- **Playtest log:** now covers the session plan's watch list
+  (`PLAYTEST_PLAN.md`).
+- **Demo endpoint:** built behind a flag, off by default
+  (`CANON_DECISIONS.md` §5).
+- **Shutdown leak:** every leaked object was a sound still playing as
+  the process quit.
+  - `OwnerMemory.prepare_quit` already stopped them, but the audio
+    thread needs wall-clock time to let go.
+  - It now waits 0.25 s of real time before quitting, and the sounds no
+    longer leak.
+  - **One `SceneTreeTimer` can still leak:** a death or card sequence
+    waiting on its timer when the process quits. That is Godot 4.3's
+    handling of a freed node's pending coroutine. It is documented, not
+    suppressed.
 
 ## Unfamiliar-player round (prepared, not run)
 

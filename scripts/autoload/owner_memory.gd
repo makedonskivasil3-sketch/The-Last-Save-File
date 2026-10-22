@@ -215,6 +215,7 @@ func prepare_quit() -> void:
 	_release_audio()
 	for i in 3:
 		await tree.process_frame
+	await tree.create_timer(0.25, true, false, true).timeout
 
 
 static func is_test_mode() -> bool:

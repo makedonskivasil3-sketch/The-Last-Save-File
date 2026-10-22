@@ -40,3 +40,18 @@ func test_motion_clips() -> void:
 	await _clip("escort", 2.4, func(i: int) -> void:
 		if i == 0: Input.action_press("move_right")
 		if i == 20: Input.action_release("move_right"))
+
+
+## 5. A return after a death: Arin's touch, the dissolve, the reload, and
+## Rue waking in the room (the clip the review listed as not captured).
+func test_return_after_death_clip() -> void:
+	var w := await start_session()
+	await go_to(w, "square", "house")
+	w.director.paused = true
+	w.player.global_position = Vector2(300, 200)
+	await frames(3)
+	w.kill("overwritten", "arin")
+	# The card waits for retry: pressed after 3.5 s, as a player reading it would.
+	await _clip("death_return_a", 3.5)
+	await press("interact")
+	await _clip("death_return_b", 6.5)
