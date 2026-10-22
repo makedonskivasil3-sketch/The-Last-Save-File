@@ -278,7 +278,8 @@ func _at_entry(w: Node) -> bool:
 
 func _archive(w: Node, with_bin: bool) -> bool:
 	var from: Vector2 = w.player.global_position
-	var path: Array = [Vector2(320, 272), Vector2(590, 272), Vector2(590, 182), Vector2(640, 182)]
+	# (Out past the square's east edge: it's wider than the screen now.)
+	var path: Array = [Vector2(320, 272), Vector2(590, 272), Vector2(590, 182), Vector2(w.area.bounds.end.x + 20.0, 182)]
 	if from.y < 160.0:
 		path = [Vector2(150, 150), Vector2(150, 272)] + path.slice(1)
 	if not await _go(w, path, 30.0):
@@ -342,11 +343,16 @@ func _shelter_through_sweep(w: Node, bin: RecycleBin) -> void:
 
 
 func _north(w: Node) -> bool:
-	var p: Vector2 = w.player.global_position
-	var path: Array = [Vector2(560, 180), Vector2(560, 110), Vector2(320, 110), Vector2(320, 20)]
-	if p.x < 300.0:
-		path = [Vector2(150, 150), Vector2(180, 100), Vector2(320, 100), Vector2(320, 20)]
-	await _go(w, path, 30.0)
+	# Planned again from wherever Rue is if the first try didn't get there
+	# (the owner's reload can move her back, e.g. to just south of the well).
+	for attempt in 2:
+		var p: Vector2 = w.player.global_position
+		var path: Array = [Vector2(560, 180), Vector2(560, 110), Vector2(320, 110), Vector2(320, 20)]
+		if p.x < 300.0:
+			path = [Vector2(150, 150), Vector2(180, 100), Vector2(320, 100), Vector2(320, 20)]
+		await _go(w, path, 30.0)
+		if w.area.area_id != "square" or w.ending != "":
+			break
 	return await _arrived(w, "edge")
 
 
