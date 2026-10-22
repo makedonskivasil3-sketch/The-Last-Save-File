@@ -103,6 +103,10 @@ var arin: OwnerAvatar
 var cursor: OwnerCursor
 var lamp: OwnerLamp
 var gate: LaneGate
+## The checkpoint scene (Relationships.WREN_MARKED): Wren waits at the rim.
+const WREN_AT_WELL := Vector2(342, 194)
+var _marking := false
+var _mark_started := false
 var _lamp_seen_for := 0.0
 var _lamp_seen_frame := -10
 var _lamp_spotted := false
@@ -230,8 +234,12 @@ func build() -> void:
 	add_child(rim)
 	interactables.append(rim)
 
+	# Back up the well after waking under it: Wren is waiting at the rim.
+	_marking = arrival == "well" and world.woke_at_anchor and Relationships.has("wren.met") \
+		and not Relationships.has("wren.marked_well") and not OwnerMemory.is_deleted("wren") and world.escort_id() != "wren"
+	Relationships.wren_at_well = _marking
 	if world.escort_id() != "wren":  # not when she's already walking with you
-		wren = make_wren(self, Vector2(126, 246))
+		wren = make_wren(self, WREN_AT_WELL if _marking else Vector2(126, 246))
 		interactables.append(wren)
 		wren.lines_provider = _wren_lines
 		if OwnerMemory.met_before("wren"):
@@ -382,6 +390,7 @@ func on_dialogue_closed(who: Node) -> void:
 
 func area_process(delta: float) -> void:
 	_well_process(delta)
+	_mark_process()
 	# UNLOCK on the front door: walk in while it's glitched open.
 	if door.is_forced_open() and world.player.global_position.distance_to(door.global_position) < 18.0:
 		world.change_area("house", "front")
@@ -468,6 +477,34 @@ func _landmark(p: Vector2) -> String:
 	if p.x < 200.0:
 		return "house"
 	return "road"
+
+
+## The scene starts by itself once Rue is up and near her (she speaks
+## first). Committed only when read whole (Relationships._once); its words
+## go in the journal at once, so a scene cut short can be re-read there.
+func _mark_process() -> void:
+	if not _marking or _mark_started or wren == null or not world._awake or world.in_cutscene() or world.is_talking():
+		return
+	if world.player.global_position.distance_to(wren.global_position) > World.TALK_BREAK_DISTANCE - 6.0:
+		return  # (only where a conversation holds: closer than it breaks)
+	_mark_started = true
+	await get_tree().create_timer(0.5).timeout
+	if not is_inside_tree() or wren == null or world.ending != "" or world.is_talking():
+		_mark_started = false
+		return
+	world._interact(wren)
+	OwnerMemory.record_read("square:WREN, AT THE WELL", "note", "WREN, AT THE WELL", display_name,
+		Relationships.WREN_MARKED_SAW if world._talk_result.get("lines", []) == Relationships.WREN_MARKED_SAW else Relationships.WREN_MARKED)
+	if not world.conversation_completed.is_connected(_on_marked):
+		world.conversation_completed.connect(_on_marked)
+
+
+func _on_marked(_who: Node) -> void:
+	queue_redraw()  # the chalk, from now on
+
+
+func _exit_tree() -> void:
+	Relationships.wren_at_well = false  # only on this visit
 
 
 ## In the lamp's beam: like Arin's look (a short grace, then attention).
@@ -601,6 +638,18 @@ func _tobben_report_lands() -> void:
 
 
 func _draw() -> void:
+	# Wren's chalk on the rim (kept for good once she's shown you).
+	if Relationships.has("wren.marked_well"):
+		var c := Color(0.95, 0.95, 0.9, 0.85)
+		var at := Vector2(WELL.end.x - 9, WELL.position.y + 2)
+		draw_circle(at, 3.2, Color(c, 0.0))
+		draw_arc(at, 3.2, 0.0, TAU, 10, c, 0.7)  # her head for you
+		draw_rect(Rect2(at + Vector2(-1.6, -0.6), Vector2(0.9, 0.9)), c)  # two dots for eyes
+		draw_rect(Rect2(at + Vector2(0.8, -0.6), Vector2(0.9, 0.9)), c)
+		draw_line(at + Vector2(0, 3.2), at + Vector2(0, 7), c, 0.7)
+		draw_line(at + Vector2(-6, 6), at + Vector2(-6, -1), c, 0.7)  # an arrow, up
+		draw_line(at + Vector2(-6, -1), at + Vector2(-8, 1.5), c, 0.7)
+		draw_line(at + Vector2(-6, -1), at + Vector2(-4, 1.5), c, 0.7)
 	# Only what moves is drawn every frame: the unloaded road north, static
 	# where the path should continue. The rest is the backdrop (_paint).
 	if not world.flags.get("pointer", false):

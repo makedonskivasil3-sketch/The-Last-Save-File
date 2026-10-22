@@ -36,3 +36,18 @@ func test_square_expansion() -> void:
 	w.area.arin.global_position = Vector2(200, 130)
 	await wait(0.8)
 	await shot("sq8_offscreen_marker")
+
+
+func test_checkpoint_scene() -> void:
+	memory().add_event("wren.met")
+	var w := await start_session()
+	w.woke_at_anchor = true
+	await go_to(w, "square", "well")
+	await wait_until(func() -> bool: return w.hud.is_dialogue_open(), 4.0, "the scene")
+	await wait(1.2)
+	await shot("cp1_wren_at_the_well")
+	await finish_dialogue(w)
+	await wait(0.5)
+	w.player.global_position = Vector2(320, 140)
+	await wait(1.0)
+	await shot("cp2_the_chalk_stays")

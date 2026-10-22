@@ -20,6 +20,7 @@ func before_each() -> void:
 	memory().wipe()
 	JournalPanel.forget_place()
 	ArchivePages.escort_now = ""
+	Relationships.wren_at_well = false
 	var s := settings()
 	s.glitch_intensity = 1.0
 	s.reduce_flashing = false

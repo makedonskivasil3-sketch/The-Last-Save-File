@@ -18,6 +18,8 @@ var bounds := Rect2(96, 36, 448, 256)
 ## The whole painted area (the camera's limits). One screen unless an area
 ## is wider (the Square): then World.update_camera follows Rue across it.
 var view_size := Vector2(640, 360)
+## How Rue came in this time (World._load_area sets it before build).
+var arrival := ""
 ## Multiplies how fast the owner's awareness rises while you're here.
 ## Negative: awareness cools here instead (see OwnerDirector.floor_level()).
 var awareness_rate := 1.0

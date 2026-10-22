@@ -192,3 +192,61 @@ func test_arin_and_the_cursor_can_cross_the_whole_square() -> void:
 	w.area._unleash()
 	await frames(2)
 	check(w.area.cursor.global_position.x < 500.0, "the cursor comes in far from Rue (%s)" % w.area.cursor.global_position)
+
+
+# --- the checkpoint scene (§5a) ------------------------------------------------
+
+func _back_up_the_well() -> Node:
+	memory().add_event("wren.met")
+	var w := await start_session()
+	w.woke_at_anchor = true  # (as if this run began under the well)
+	await go_to(w, "square", "well")
+	return w
+
+
+func test_wren_waits_at_the_well_with_a_mark() -> void:
+	var w := await _back_up_the_well()
+	check(w.area.wren.global_position.distance_to(VillageSquare.WREN_AT_WELL) < 2.0, "she's at the rim, not her corner")
+	await wait_until(func() -> bool: return w.hud.is_dialogue_open(), 4.0, "she speaks first")
+	check_eq(w._talk_result.get("lines", []), Relationships.WREN_MARKED, "the scene")
+	await frames(3)
+	check(w.area.arin.paused, "the owner holds while it plays")
+	check(memory().journal.any(func(e: Dictionary) -> bool: return str(e.get("title", "")) == "WREN, AT THE WELL"), "kept in the journal as it starts")
+	check(not Relationships.has("wren.marked_well"), "not committed until read whole")
+	await finish_dialogue(w)
+	check(Relationships.has("wren.marked_well"), "committed once read")
+	memory().load_memory()
+	check(Relationships.has("wren.marked_well"), "kept in the save (the chalk stays)")
+
+
+func test_cut_short_it_plays_again_and_never_twice_once_read() -> void:
+	var w := await _back_up_the_well()
+	await wait_until(func() -> bool: return w.hud.is_dialogue_open(), 4.0, "the scene")
+	w.hud.close_dialogue()  # walked off, or something cut in
+	await frames(3)
+	check(not Relationships.has("wren.marked_well"), "cut short: not committed")
+	await interact_with(w, w.area.wren)
+	check_eq(w._talk_result.get("lines", []), Relationships.WREN_MARKED, "talk to her again: the same scene")
+	await finish_dialogue(w)
+	check(Relationships.has("wren.marked_well"), "read whole this time")
+	await go_to(w, "archive", "west")
+	await go_to(w, "square", "well")
+	await wait(1.5)
+	check(w.area.wren.global_position.distance_to(VillageSquare.WREN_AT_WELL) > 50.0, "next time she's back in her corner")
+	check(not w.hud.is_dialogue_open(), "no replay")
+
+
+func test_when_she_saw_rue_taken_the_scene_is_the_reunion() -> void:
+	memory().add_event("wren.met")
+	memory().sessions = 1
+	memory().add_event("wren.saw_death")
+	var w := await start_session()
+	w.woke_at_anchor = true
+	await go_to(w, "square", "well")
+	await wait_until(func() -> bool: return w.hud.is_dialogue_open(), 4.0, "the scene")
+	check_eq(w._talk_result.get("lines", []), Relationships.WREN_MARKED_SAW, "it starts from what she saw")
+	await finish_dialogue(w)
+	check(Relationships.has("wren.reunited"), "and counts as the reunion")
+	await interact_with(w, w.area.wren)
+	check(w._talk_result.get("lines", []) != Relationships.WREN_AFTER_DEATH, "so the crates speech isn't said on top of it")
+	await finish_dialogue(w)

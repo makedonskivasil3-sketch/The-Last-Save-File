@@ -279,18 +279,52 @@ The rules are unchanged:
 
 ### 5a. The checkpoint scene implemented in this slice
 
-- **When it plays:** after Rue wakes at her kept place and climbs back
-  into the Square, if Wren has been met, wasn't deleted, and isn't
-  escorting.
-- **What happens:** Wren has moved to the well rim and has tied her spare
-  ribbon to it as a marker, "so you'd find your way up". It is a short
-  exchange, read at the player's pace.
-- **How it commits:** `wren.marked_well` is written only when the
-  exchange is read whole. Interrupted, it plays again the next time.
-- **After that:** the ribbon stays on the rim in later runs, as a quiet
-  sign that someone waited. The archive lists it.
-- **Owner pressure:** the owner is held while the conversation is open
-  (existing reading hold).
+**When it plays**
+- Rue wakes at her kept place, under the well, and climbs back into the
+  Square.
+- Wren has been met, wasn't deleted, and isn't escorting.
+- The code condition: `arrival == "well"`, `World.woke_at_anchor`,
+  `wren.met`, and not yet `wren.marked_well`.
+
+**What happens**
+- Wren is waiting at the well's rim instead of her corner, close enough
+  that she speaks first as Rue arrives.
+- She has chalked a mark on the rim: a round head with two dots for eyes
+  ("I'm not good at hands, so you haven't got any") and an arrow up,
+  "so you'd find your way up". Then a joke at Arin's expense.
+- If she saw Rue taken, the scene opens with that ("I saw them take you…
+  the well's where you went before"). It then counts as their reunion, so
+  the crates speech isn't repeated.
+- (It is a chalk mark, not a ribbon, so it isn't confused with her ribbon,
+  which is a piece Rue can take.)
+
+**Protection**
+- The owner holds while the conversation is open. This is the existing
+  reading hold, which also holds Arin and the lamp (tested).
+
+**How it commits**
+- `wren.marked_well` (and `wren.reunited`, if she saw the death) is
+  written only when the exchange is read whole: `Relationships._once`,
+  committed in `World._on_dialogue_closed`.
+- Cut short (walked off, or something cut in), it plays again when Rue
+  talks to her.
+- Once read, it never replays: the next return finds her back in her
+  corner.
+
+**Reachable later**
+- The words go into the journal ("WREN, AT THE WELL") as the scene starts,
+  so a scene cut short can still be re-read from the pause menu.
+- The People page lists "Wren chalked a mark on the well's rim…".
+
+**What persists**
+- The chalk stays on the rim in every later run.
+
+**Evidence**
+- Tests: `test_wren_waits_at_the_well_with_a_mark`,
+  `test_cut_short_it_plays_again_and_never_twice_once_read`,
+  `test_when_she_saw_rue_taken_the_scene_is_the_reunion`.
+- Stills: `docs/review/slice/cp1_wren_at_the_well.png`,
+  `cp2_the_chalk_stays.png`.
 
 ## 6. Save behaviour: what survives, and a proposal
 
@@ -305,6 +339,12 @@ The rules are unchanged:
 | Crash | same as closed | same | Arin's room |
 | Before play starts (opening, boot text) | everything (**fixed in this slice**, D1) | nothing | as before |
 | Ending | A; some B (a message ending clears purge and fates) | the kept place (an ending is a new start) | Arin's room |
+
+New lasting state in this slice is all category A: it survives death, quit,
+crash and endings, and only Reset clears it.
+- `square_gate_open`: the lane shortcut.
+- `wren.marked_well`: the chalk on the rim.
+- The journal entry "WREN, AT THE WELL".
 
 The kept place is a **place**, not a snapshot. Position, items, an escort
 and the owner's awareness are not saved.

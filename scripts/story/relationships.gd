@@ -36,6 +36,7 @@ const EVENTS := {
 	"wren.ribbon_taken": "You took Wren's ribbon.",
 	"wren.ribbon_returned": "You gave Wren's ribbon back.",
 	"wren.heard_well": "Wren hears the well too.",
+	"wren.marked_well": "Wren chalked a mark on the well's rim, so you'd find your way up.",
 	"mira.met": "Met Mira in Arin's room.",
 	"mira.asked": "Mira told you she has never left the room, and asked you to take her out.",
 	"mira.walked": "You walked Mira out of her room.",
@@ -72,6 +73,24 @@ const WREN_WELL := [
 	"It doesn't hum like us. It hums like the people who used to play.",
 ]
 const WREN_GREETING := "Oh. It's you. Hi. You still look like someone."
+## The checkpoint scene (docs/VERTICAL_SLICE.md §5a): back up the well after
+## waking under it, Wren is waiting at the rim with a chalk mark.
+const WREN_MARKED := [
+	"There you are! I did a mark. On the rim, look.",
+	"That's you. The two dots are your eyes. I'm not good at hands, so you haven't got any.",
+	"It's so you'd find your way up. If you came up. ...You came up.",
+	"Don't tell Arin it's chalk. He thinks chalk is how you start a fire.",
+]
+## When she saw Rue taken first: the same, starting from that.
+const WREN_MARKED_SAW := [
+	"There you are! I saw them take you. So I came here, because the well's where you went before.",
+	"I did a mark. On the rim, look. The two dots are your eyes. I'm not good at hands.",
+	"It's so you'd find your way up. ...You came up.",
+	"Don't tell Arin it's chalk. He thinks chalk is how you start a fire.",
+]
+## Set by the square when this visit is that return (arrived by the well,
+## woke under it this run): her next conversation is the scene.
+static var wren_at_well := false
 
 ## Mira. She can't leave her room, so she knows what happens there, what
 ## the save's lists say (who's in it, which slots), and what you tell her.
@@ -111,7 +130,7 @@ const TOBBEN_GREETING_BOOK := "Two names, still. I check every morning. Welcome 
 ## Every line said from here (the voice manifest lists them).
 static func wren_lines() -> Array:
 	return WREN_ESCORT + WREN_AFTER_DEATH + [WREN_SAW_STATIC] + WREN_AFTER_RESTORE + WREN_AFTER_RESTORE_BROKEN \
-		+ [WREN_PROMISE_OPEN, WREN_PROMISE_BROKEN] + WREN_WELL + [WREN_GREETING]
+		+ [WREN_PROMISE_OPEN, WREN_PROMISE_BROKEN] + WREN_WELL + [WREN_GREETING] + WREN_MARKED + WREN_MARKED_SAW
 
 
 static func mira_lines() -> Array:
@@ -214,6 +233,15 @@ static func wren(_talk: int, ask_ready: bool, escorting: bool) -> Dictionary:
 		if not told.is_empty():
 			return told
 	var died_at := unacknowledged("wren", "wren.saw_death")
+	# The checkpoint scene: waiting at the well with a chalk mark. It is her
+	# reunion too, when she saw Rue taken (so that isn't said twice).
+	if wren_at_well:
+		var marked := _once("wren.marked_well", WREN_MARKED_SAW if died_at >= 0 else WREN_MARKED,
+			["wren.marked_well", "wren.reunited"] if died_at >= 0 else ["wren.marked_well"])
+		if not marked.is_empty():
+			return marked
+	if died_at >= 0 and has("wren.marked_well") and OwnerMemory.event_session("wren.marked_well") > died_at:
+		died_at = -1  # met at the well since: already said
 	if died_at >= 0:
 		var seen: Array = WREN_AFTER_DEATH.duplicate()
 		if OwnerMemory.last_death == "eraser" and died_at == OwnerMemory.sessions - 1:
