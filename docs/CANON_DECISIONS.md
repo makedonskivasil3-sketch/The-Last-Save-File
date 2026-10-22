@@ -74,11 +74,19 @@ text, and nothing else.
 - **Recommendation:** decide before the demo. It changes what closing the
   window means.
 
-## 5. The demo endpoint (not built)
+## 5. The demo endpoint (built behind a flag, off by default)
 
 - **The proposal:** the demo ends under the Archive's arch, before the
   CHARACTER FILE, the Edge or any ending
   (`COMMERCIAL_DIRECTION.md` §4).
+- **Built, not shipped:** it is on only in a build with the `demo`
+  export feature, or with `-- --demo` / `?demo=1`.
+  - The arch shows "still have my save?" and closes the session cleanly:
+    no purge, no quit, no ending seen.
+  - The Archive, the Bin and the Edge are never loaded.
+  - `tests/test_demo.gd` checks that every exit from the kept areas leads
+    to a kept area or to the end card.
+  - **No demo export preset exists, and nothing has been published.**
 - **Recommendation:** approve. It is spoiler-safe for either premise.
 
 ## 6. The opening's implication

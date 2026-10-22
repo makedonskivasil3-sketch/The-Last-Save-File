@@ -65,8 +65,14 @@ The demo withholds:
 - Slot 2 and every ending;
 - the Rue reveal.
 
-The endpoint is not built. It needs one demo flag that turns the east
-exit into the end card, and a test that no later content is reachable.
+**The endpoint is built behind a flag that is off by default.**
+- It is switched on by the `demo` export feature, `-- --demo` or
+  `?demo=1`. `World.DEMO_END_AREAS` turns the way into the Archive, the
+  Bin or the Edge into the end card.
+- `tests/test_demo.gd` checks the end card, that it costs nothing, and
+  that nothing past the arch is reachable.
+- Shipping a demo is still the author's decision (`CANON_DECISIONS.md`
+  §5). No demo build has been exported or published.
 
 ## 5. Remaining scope to a commercial 1.0 (not estimated in hours)
 

@@ -538,6 +538,14 @@ func record_quit() -> void:
 
 ## Reached Slot 2 and chose an ending ("escape", "rue", "wren", "message",
 ## or one of the hidden ones: "unseen", "overwrite").
+## The demo build reached its end card: the session closes cleanly. Not a
+## quit (no purge) and not an ending (nothing is won or seen).
+func record_demo_end() -> void:
+	if _session_closed:
+		return
+	_close_session("demo")
+
+
 func record_win(ending := "escape") -> void:
 	if _session_closed:
 		return

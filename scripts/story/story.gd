@@ -922,6 +922,10 @@ const RELOAD_WARNING := "do that again and i'm loading the autosave."
 
 ## The purge ending (OwnerMemory.MAX_PURGE): the owner has learned enough,
 ## and the intruder can't load into Slot 1 any more.
+## The demo build's last card (COMMERCIAL_DIRECTION.md §4: proposed, not
+## approved). Spoiler-safe for either premise in CANON_DECISIONS.md.
+const DEMO_END := "still have my save?"
+
 const PURGED_TITLE := "PURGED"
 const PURGED_QUESTION := "Slot 1 is clean. There's nothing of you left to load."
 const PURGED_CHOICES := ["Restore the intruder  (a new game: the owner forgets everything)", "Back to the title"]

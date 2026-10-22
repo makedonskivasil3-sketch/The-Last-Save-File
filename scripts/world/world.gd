@@ -24,7 +24,7 @@ const ESCORT_LEASH := 70.0
 var area: Area
 ## Session-only facts: "pointer" (have Slot 2's pointer), "mira_deleted", ...
 var flags: Dictionary = {}
-## "", "death", "quit", "win"
+## "", "death", "quit", "win", "demo" (the demo build's end card)
 var ending := ""
 ## Development benchmark only (tests/tour_benchmark.gd): Rue can't be killed,
 ## so a pursuit sample is never a death card. Never set in play.
@@ -680,9 +680,28 @@ func _unhandled_input(event: InputEvent) -> void:
 				return  # the epilogue is still playing
 			if event.is_action_pressed("confirm") or event.is_action_pressed("pause"):
 				get_tree().change_scene_to_file(TITLE_SCENE)
+		"demo":
+			if event.is_action_pressed("confirm") or event.is_action_pressed("pause"):
+				get_tree().change_scene_to_file(TITLE_SCENE)
 
 
 # --- areas --------------------------------------------------------------------
+
+## The demo build (COMMERCIAL_DIRECTION.md §4, a proposal awaiting the
+## author): it ends under the Archive's arch, the first time Rue gets there,
+## before the Archivist, the CHARACTER FILE, the Edge or any ending. Off
+## unless asked for: a "demo" export feature, `-- --demo`, or ?demo=1.
+const DEMO_END_AREAS: Array[String] = ["archive", "bin", "edge"]
+static var demo_override := -1  # tests: 1 on, 0 off, -1 ask the build
+
+
+static func demo_build() -> bool:
+	if demo_override != -1:
+		return demo_override == 1
+	if OS.has_feature("demo") or "--demo" in OS.get_cmdline_user_args():
+		return true
+	return OS.has_feature("web") and str(JavaScriptBridge.eval("window.location.search", true)).contains("demo")
+
 
 func change_area(id: String, arrival: String) -> void:
 	# Mid-reload you're being dragged back, not walking: no exits (the exit
@@ -704,6 +723,9 @@ func change_area(id: String, arrival: String) -> void:
 	await hud.fade(true, 0.25).finished
 	if not is_inside_tree() or ending != "":
 		return
+	if id in DEMO_END_AREAS and demo_build():
+		_end_demo()
+		return
 	# Decided before _load_area, which marks the area visited.
 	var first := not _visited.has(id)
 	PlaytestLog.mark("entered %s" % id, "first time" if first else "")
@@ -721,6 +743,23 @@ func change_area(id: String, arrival: String) -> void:
 		hud.say(Story.VOICE_BACK[id], "self")
 	await hud.fade(false, 0.3).finished
 	player.frozen = false
+	_transitioning = false
+
+
+## The demo's last card: nothing past the arch, nothing explained. The
+## session closes cleanly (not a quit: no purge).
+func _end_demo() -> void:
+	PlaytestLog.mark("DEMO END", "under the Archive's arch")
+	ending = "demo"
+	director.stop()
+	hud.cancel_choice()
+	hud.close_dialogue()
+	hud.clear_queue()
+	hud.set_prompt("")
+	hud.set_status("")
+	area.erasure.active = false
+	OwnerMemory.record_demo_end()
+	hud.show_overlay("", Story.DEMO_END + "\n\n[%s] title screen" % Settings.glyph("confirm"), Hud.OWNER_COLOR)
 	_transitioning = false
 
 
