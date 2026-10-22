@@ -114,6 +114,50 @@ noted.
 | A death, then the return (≤1 min) | She came back | To know what's left | Losing people | Climb up | **Wren noticed** (§5); her place by the crates | Someone is waiting for her |
 | Hook | The Archive is east; "still have my save?" | To find out who asked | The owner learning her | Go east, or to the Edge with Wren | — | Who is she? |
 
+### 3a. The interactive opening as built (`scripts/ui/opening.gd`)
+
+Film time (`_t`, 45 s of picture) runs between states and **holds** at each
+one until it is done. Nothing is lost by waiting, and nothing is punished:
+no run exists yet (D1).
+
+| State | Holds at | Done when | Hint (after 5 s idle) | If nobody acts | What the player sees |
+|---|---|---|---|---|---|
+| RITUAL | 5.0 s | A press within 14 px of the save point | "walk to the save point with Arin, then press" | After 16 s idle, she walks there and presses | Her thumb taps twice, then presses (any press, anywhere: her habit) |
+| INTERRUPT | 10.8 s (bar at 87%) | One press after the stall | "press E" (or "tap") | After 8 s, she presses | Two taps and a press, then a refusal sound; the bar doesn't move. P1's hands leave; hers go slack |
+| IMPOSSIBLE | 23.0 s (PAUSE) | Rue reaches the well | "walk" | After 16 s idle, she walks there herself | Arin is frozen. Her hands are slack and still, and she still walks. Caption "[she keeps walking.]" on the first step |
+| LATER | — | (film) | — | — | Her message, then the owner's unfinished reply |
+| HANDOFF | 45 s, or a skip | Skip inputs released | — | — | The room; the player's first move |
+
+**Input.** Keys and stick walk her and interact presses. A tap or click on
+the picture walks her there, or presses at the save point or during the
+stall. Interact released within 0.3 s **acts**; held 0.7 s it **skips**; a
+hold never also presses (tested). Esc, pause or a mouse hold also skip.
+A press already down when the film starts must be released first.
+
+**Holds.**
+- Losing focus holds the film, its music and any skip in progress.
+- If the pad in use disconnects, the film holds with "controller
+  disconnected: reconnect it, or press any key", and resumes when the pad
+  reconnects or another input is used.
+- During any hold, the autopilot clocks stop.
+
+**Reduced motion or flashing.** No camera push, no flicker on the stuck
+bar, and the save point doesn't pulse.
+
+**Essential versus optional.**
+- Essential: the hints, which say only what to do and never name anyone or
+  explain.
+- Optional: the captions, which describe sounds.
+
+**Timing.** With prompt input, the full film now takes about 45 s plus the
+player's walks (about 6 s each way). If the player never touches anything,
+it takes about 45 + 16 + 8 + 16 s. Both figures are measured in tests with
+simulated input, not with players.
+
+**Not yet verified.** Whether players understand that the hands under PAUSE
+are not theirs while the figure still answers them. This needs a playtest
+(§2.5).
+
 ## 4. Revelation table (the primary reveal: the proposed canon)
 
 | | |

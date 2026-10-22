@@ -143,7 +143,8 @@ func test_the_impossible_event_happens_on_screen() -> void:
 	tree.current_scene = film
 	if old:
 		old.queue_free()
-	# Fast-forward through the film the way it plays: frame by frame.
+	# Fast-forward through the film the way it plays: frame by frame, with
+	# nobody at the controls (each state's hands act by themselves).
 	var arin_at_pause := 0.0
 	var rue_at_pause := 0.0
 	while film._t < 22.5:
@@ -153,7 +154,9 @@ func test_the_impossible_event_happens_on_screen() -> void:
 	while film._t < 30.0:
 		film._process(0.05)
 	check_eq(film._arin_x, arin_at_pause, "paused: Arin doesn't move")
-	check(film._rue_x > rue_at_pause + 10.0, "paused: she keeps walking, with nobody's hands on her (%.0f -> %.0f)" % [rue_at_pause, film._rue_x])
+	check(absf(film._rue_x - rue_at_pause) > 10.0, "paused: she keeps walking (%.0f -> %.0f)" % [rue_at_pause, film._rue_x])
+	check(film.acted.has("ritual_auto") and film.acted.has("interrupt_auto") and film.acted.has("impossible_auto"),
+		"left alone, every state still plays out (%s)" % film.acted)
 	check(film._tune_started, "the music box comes from the wrong place")
 	while film._t < 43.0:
 		film._process(0.05)
@@ -183,3 +186,123 @@ func test_the_well_clicks_with_her_gesture() -> void:
 	check_eq(p.size(), 3, "three clicks")
 	check(is_equal_approx(p[1][0] - p[0][0], 0.25) and is_equal_approx(p[2][0] - p[0][0], 0.6), "the same spacing as hers")
 	check(p[0][1] < p[2][1] and p[1][1] < p[2][1], "two light taps, then a firmer press")
+
+
+## The interactive states (docs/VERTICAL_SLICE.md §3), played the way a
+## player would: keys, then taps on the picture.
+func _step(film: Opening, seconds: float) -> void:
+	for i in int(seconds / 0.05):
+		if film._done:
+			return
+		film._process(0.05)
+
+
+func _tap_key(film: Opening, action: String) -> void:
+	Input.action_press(action)
+	film._process(0.05)
+	film._process(0.05)
+	Input.action_release(action)
+	film._process(0.05)
+
+
+func test_the_player_walks_her_to_the_save_point_and_presses() -> void:
+	var film := await _film()
+	_step(film, 0.5)  # (arms: nothing was held)
+	_step(film, 5.0)
+	check_eq(film._gate, Opening.Gate.RITUAL, "the ritual waits for the player")
+	check(is_equal_approx(film._t, Opening.GATE_AT[Opening.Gate.RITUAL]), "film time holds (%.2f)" % film._t)
+	_tap_key(film, "interact")
+	_step(film, 1.2)
+	check_eq(film._gate, Opening.Gate.RITUAL, "a press away from the save point is only her habit")
+	Input.action_press("move_right")
+	while film._rue_x < Opening.SAVE_X - 2.0 and film.elapsed < 30.0:
+		film._process(0.05)
+	Input.action_release("move_right")
+	check(absf(film._rue_x - Opening.SAVE_X) < 14.0, "walked there (%.0f)" % film._rue_x)
+	_tap_key(film, "interact")
+	_step(film, 1.2)
+	check(film.acted.has("ritual") and not film.acted.has("ritual_auto"), "the player did it")
+	check_eq(film._gate, Opening.Gate.INTERRUPT, "on to the save")
+	_step(film, 8.0)
+	check(is_equal_approx(film._t, Opening.GATE_AT[Opening.Gate.INTERRUPT]), "the save stops at 87%% and waits (%.2f)" % film._t)
+	_tap_key(film, "interact")
+	_step(film, 1.5)
+	check(film.acted.has("interrupt") and not film.acted.has("interrupt_auto"), "the same press, refused")
+	check_eq(film._gate, Opening.Gate.IMPOSSIBLE, "then the pause")
+	while film._t < Opening.GATE_AT[Opening.Gate.IMPOSSIBLE] and film.elapsed < 60.0:
+		film._process(0.05)
+	var arin := film._arin_x
+	Input.action_press("move_left")
+	_step(film, 1.0)
+	check(film.acted.has("walked_paused"), "under PAUSE she walks when the player moves her")
+	check_eq(film._caption.text, "[she keeps walking.]", "said once, as a caption")
+	while film._gate == Opening.Gate.IMPOSSIBLE and film.elapsed < 80.0:
+		film._process(0.05)
+	Input.action_release("move_left")
+	check_eq(film._arin_x, arin, "Arin doesn't")
+	check(film.acted.has("impossible") and not film.acted.has("impossible_auto"), "the player took her to the well")
+	check(film._t >= 28.9, "and the music box plays from it")
+	film._finish()
+	await wait_until(func() -> bool: return scene() is World, 5.0, "the room")
+
+
+func test_taps_on_the_picture_play_it_too() -> void:
+	var film := await _film()
+	_step(film, 6.0)
+	film._tap_at(Vector2(Opening.SAVE_X + 10.0, 200))  # tap the save point
+	while film._gate == Opening.Gate.RITUAL and film.elapsed < 30.0:
+		film._process(0.05)
+	check(film.acted.has("ritual") and not film.acted.has("ritual_auto"), "a tap at the save point walks there and presses")
+	while film._t < Opening.GATE_AT[Opening.Gate.INTERRUPT] and film.elapsed < 40.0:
+		film._process(0.05)
+	film._tap_at(Vector2(320, 200))
+	_step(film, 1.5)
+	check(film.acted.has("interrupt"), "a tap is the press")
+	while film._t < Opening.GATE_AT[Opening.Gate.IMPOSSIBLE] and film.elapsed < 60.0:
+		film._process(0.05)
+	film._tap_at(Vector2(Opening.WELL_X, 210))
+	while film._gate == Opening.Gate.IMPOSSIBLE and film.elapsed < 80.0:
+		film._process(0.05)
+	check(film.acted.has("impossible") and not film.acted.has("impossible_auto"), "a tap where the well is takes her there")
+	film._finish()
+	await wait_until(func() -> bool: return scene() is World, 5.0, "the room")
+
+
+func test_a_tap_acts_and_a_hold_skips_never_both() -> void:
+	var film := await _film()
+	_step(film, 6.0)
+	Input.action_press("interact")
+	_step(film, 1.0)
+	Input.action_release("interact")
+	check(film._done, "held: skipped")
+	check(film._habit_t < 0.0 and film.acted.is_empty(), "and the hold didn't also press (%s)" % film.acted)
+	await wait_until(func() -> bool: return scene() is World, 5.0, "the room")
+
+
+func test_waiting_shows_what_to_do_then_the_hands_do_it() -> void:
+	var film := await _film()
+	_step(film, 5.0 + Opening.HINT_AFTER + 0.5)
+	check(film._hint.text.contains("save point"), "a hint after a while (%s)" % film._hint.text)
+	check(not film._hint.text.to_lower().contains("rue") and not film._hint.text.contains("she"), "essential only: no names, no meaning")
+	_step(film, Opening.AUTO_AFTER[Opening.Gate.RITUAL] + 8.0)
+	check(film.acted.has("ritual_auto") and film._gate != Opening.Gate.RITUAL, "nobody pressed: she did it herself")
+	film._finish()
+	await wait_until(func() -> bool: return scene() is World, 5.0, "the room")
+
+
+func test_a_controller_dropping_out_holds_the_film() -> void:
+	var film := await _film()
+	_step(film, 6.0)
+	settings().using_gamepad = true
+	film._on_joy_connection_changed(0, false)
+	var at := film._t
+	var idle := film._idle_t
+	_step(film, 3.0)
+	check(film._held and film._idle_t == idle, "held: no autopilot creeping on (%.1f)" % film._idle_t)
+	check(film._hint.text.contains("disconnected"), "and says why")
+	film._on_joy_connection_changed(0, true)
+	check(not film._held, "back when it's back")
+	check_eq(film._t, at, "from the same frame")
+	settings().using_gamepad = false
+	film._finish()
+	await wait_until(func() -> bool: return scene() is World, 5.0, "the room")
