@@ -525,9 +525,24 @@ func _go(w: Node, points: Array, timeout := STEP_TIMEOUT) -> bool:
 			_stalls += 1
 			_say("stall in %s going to %s, at %s" % [area_id, p, w.player.global_position.round()])
 			_release_all()
+			# Before giving up: plan a way round with the area's own walking
+			# grid (the one Arin uses), as a player would look for one, once.
+			if not _replanning and w.area.has_meta("nav_grid") and w.ending == "":
+				var grid: NavGrid = w.area.get_meta("nav_grid")
+				var route := grid.path(w.player.global_position, p)
+				if route.size() >= 2:
+					_say("replanned round it (%d steps)" % route.size())
+					_replanning = true
+					var ok := await _go(w, Array(route).slice(1), 6.0)
+					_replanning = false
+					if ok and w.player.global_position.distance_to(p) < 12.0:
+						continue
 			return false
 	_release_all()
 	return true
+
+
+var _replanning := false
 
 
 ## Dodging the cursor or Arin must not carry the bot out through a doorway
