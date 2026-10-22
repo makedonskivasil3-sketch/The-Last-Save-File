@@ -21,6 +21,10 @@ var awareness_target := 0.0
 var edge_target := 0.0
 ## Whether this screen also shakes the world layer (the title has no world).
 var shake_world := true
+## Where the world's camera looks (World.update_camera): the top-left of
+## the view, in area coordinates. The world layer's transform is the camera
+## and the shake together, set here only (one owner for canvas_transform).
+var view_offset := Vector2.ZERO
 
 var _awareness := 0.0
 var _edge := 0.0
@@ -272,7 +276,7 @@ func _update_haunt(delta: float) -> void:
 ## constant jitter grows with awareness, plus decaying shake from events.
 func _update_world_transform(delta: float, intensity: float) -> void:
 	if not Settings.screen_shake:
-		get_viewport().canvas_transform = Transform2D.IDENTITY
+		get_viewport().canvas_transform = Transform2D(0.0, -view_offset.round())
 		return
 	_jitter_timer -= delta
 	if _jitter_timer <= 0.0:
@@ -285,5 +289,5 @@ func _update_world_transform(delta: float, intensity: float) -> void:
 	var skew := 0.0
 	if _awareness > 0.6 and randf() < 0.03 * intensity:
 		skew = randf_range(-0.01, 0.01) * _awareness
-	var xf := Transform2D(0.0, Vector2.ONE, skew, offset.round())
+	var xf := Transform2D(0.0, Vector2.ONE, skew, offset.round() - view_offset.round())
 	get_viewport().canvas_transform = xf

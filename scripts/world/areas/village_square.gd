@@ -2,6 +2,13 @@ class_name VillageSquare
 extends Area
 ## Ashvale's square, the owner's hub. Arin (driven by the owner) walks a loop
 ## around the well. Wren can hide you. Tobben reports you.
+##
+## Wider than the screen (docs/VERTICAL_SLICE.md §3c): the camera follows Rue
+## east from the old square (arrival, the well, Wren, Tobben's) across an
+## exposed crossing the owner watches through a sweeping lamp, past a
+## covered bench to hide under, to the Archive's front and the road under
+## its arch. Behind Tobben's a fenced lane runs east, sheltered, to a gate
+## latched on the lane side: lifted once, it stays open (the shortcut).
 
 ## Rue walks at 90: the cursor never closes on someone who keeps moving
 ## (the Edge caps its own at 62).
@@ -14,11 +21,24 @@ const STALL := Rect2(440, 44, 96, 34)
 const CRATES := Rect2(64, 222, 40, 40)
 ## Where a dragged crate stack blocks the north road and the east road.
 const BLOCK_NORTH := Vector2(320, 58)
-const BLOCK_EAST := Vector2(580, 180)
+const BLOCK_EAST := Vector2(898, 180)
 const BOARD_POS := Vector2(240, 40)
 const EAST_GAP := Vector2(160, 200)
 const NORTH_GAP := Vector2(300, 340)
-const TREES: Array[Vector2] = [Vector2(190, 268), Vector2(560, 250), Vector2(420, 274), Vector2(560, 120), Vector2(60, 160)]
+const TREES: Array[Vector2] = [Vector2(190, 268), Vector2(560, 250), Vector2(420, 274), Vector2(566, 132), Vector2(60, 160),
+	Vector2(840, 262), Vector2(616, 270)]
+## The east half (docs/VERTICAL_SLICE.md §3c).
+## The crossing: open cobbles, no cover, the lamp's beam.
+const CROSSING := Rect2(600, 118, 190, 124)
+const LAMP_POS := Vector2(668, 114)
+## The covered bench on the crossing's south side: the awning hides you.
+const RECESS := Rect2(708, 248, 52, 32)
+## The Archive's front, over the road out east (the landmark).
+const LIBRARY := Rect2(790, 36, 130, 66)
+## The lane behind Tobben's, its fence, and the gate at its east end.
+const LANE := Rect2(540, 40, 250, 58)
+const FENCE_Y := 98.0
+const GATE := Rect2(740, 98, 34, 6)
 const ROUTE: Array[Vector2] = [Vector2(200, 130), Vector2(440, 130), Vector2(440, 230), Vector2(200, 230)]
 ## Arin has to keep you in view this long before the owner reacts.
 const SIGHT_GRACE := 0.35
@@ -26,7 +46,7 @@ const SIGHT_GRACE := 0.35
 const SIGHT_RATE := 22.0
 ## Where the eraser starts when the owner hunts: the far corners, away from
 ## both roads out, so it chases you instead of walling off the exits.
-const ERASE_SEEDS: Array[Vector2] = [Vector2(56, 280), Vector2(588, 52)]
+const ERASE_SEEDS: Array[Vector2] = [Vector2(56, 280), Vector2(900, 276)]
 
 const GRASS := Color("1f2a1e")
 const PATH := Color("3a3128")
@@ -81,6 +101,11 @@ static func voice_lines() -> Dictionary:
 
 var arin: OwnerAvatar
 var cursor: OwnerCursor
+var lamp: OwnerLamp
+var gate: LaneGate
+var _lamp_seen_for := 0.0
+var _lamp_seen_frame := -10
+var _lamp_spotted := false
 var wren: Npc
 var tobben: Npc
 var board: Note
@@ -110,12 +135,13 @@ var _seen_frame := -10
 func _init() -> void:
 	area_id = "square"
 	display_name = "ASHVALE · VILLAGE SQUARE"
-	bounds = Rect2(40, 36, 560, 256)
+	bounds = Rect2(40, 36, 880, 256)
+	view_size = Vector2(960, 360)
 	awareness_rate = 1.0
 	tint = Color(0.95, 0.95, 1.0)
 	entries = {
 		"house": Vector2(111, 118),
-		"east": Vector2(578, 180),
+		"east": Vector2(898, 180),
 		"north": Vector2(320, 54),
 		"well": Vector2(320, 214),
 	}
@@ -132,8 +158,11 @@ func build() -> void:
 		{"side": "right", "from": EAST_GAP.x, "to": EAST_GAP.y},
 		{"side": "top", "from": NORTH_GAP.x, "to": NORTH_GAP.y},
 	])
-	for r in [HOUSE, WELL, STALL]:
+	for r in [HOUSE, WELL, STALL, LIBRARY]:
 		add_solid(r)
+	# The lane's fence, either side of its gate.
+	add_solid(Rect2(LANE.position.x, FENCE_Y, GATE.position.x - LANE.position.x, GATE.size.y))
+	add_solid(Rect2(GATE.end.x, FENCE_Y, LANE.end.x - GATE.end.x, GATE.size.y))
 	set_backdrop(_paint)
 	add_canopies(TREES, 13.0, Color("3e5a3a"))
 	# The remembered afternoon, outdoors: a low warm sun that the houses
@@ -142,6 +171,7 @@ func build() -> void:
 	add_light(Vector2(220, 70), Color(1.0, 0.86, 0.62), 0.75, 560.0, true)
 	add_light(WELL.get_center() + Vector2(0, 14), Color(1.0, 0.75, 0.45), 0.9, 70.0)
 	add_light(STALL.get_center() + Vector2(0, 30), Color(1.0, 0.8, 0.55), 0.8, 90.0)
+	add_light(Vector2(LIBRARY.get_center().x, LIBRARY.end.y + 10), Color(0.95, 0.85, 0.7), 0.7, 110.0)
 	add_dust(bounds.grow(-10), Color(1.0, 0.95, 0.75, 0.4), 30, Vector2(6, -1))  # pollen on the breeze
 	crates = DragProp.new()
 	crates.setup(CRATES)
@@ -207,6 +237,22 @@ func build() -> void:
 		if OwnerMemory.met_before("wren"):
 			_wren_line = 1  # no "You're the one Mira talks about." again
 			_wren_ask_at = 3
+
+	gate = LaneGate.new()
+	gate.setup(GATE)
+	gate.player = world.player
+	add_child(gate)
+	interactables.append(gate)
+
+	lamp = OwnerLamp.new()
+	lamp.position = LAMP_POS
+	lamp.player = world.player
+	lamp.is_hidden = world.is_player_hidden
+	# Once the gate is open, the owner turns the lamp to cover it too.
+	if OwnerMemory.square_gate_open:
+		lamp.arc_from = -0.25
+	lamp.sees_player.connect(_on_lamp_sees)
+	add_child(lamp)
 
 	tobben = add_npc("tobben", Vector2(488, 92))
 	tobben.display_name = "TOBBEN"
@@ -345,6 +391,7 @@ func area_process(delta: float) -> void:
 		world.director.add_awareness(8.0 * delta)
 	north_exit.open = world.flags.get("pointer", false)
 	arin.paused = world.is_talking() or world.is_owner_paused()
+	lamp.paused = arin.paused
 	if world.player.global_position.distance_to(well.global_position) < 40.0:
 		world.voice("well_look")
 
@@ -410,11 +457,43 @@ func _on_arin_sees(delta: float) -> void:
 func _landmark(p: Vector2) -> String:
 	if p.distance_to(WELL.get_center()) < 70.0:
 		return "well"
+	if p.x > 780.0:
+		return "archive"
+	if LANE.has_point(p):
+		return "lane"
+	if p.x > 600.0:
+		return "crossing"
 	if p.x > 420.0 and p.y < 140.0:
 		return "shop"
 	if p.x < 200.0:
 		return "house"
 	return "road"
+
+
+## In the lamp's beam: like Arin's look (a short grace, then attention).
+func _on_lamp_sees(delta: float) -> void:
+	var frame := Engine.get_physics_frames()
+	if frame - _lamp_seen_frame > 2:
+		_lamp_seen_for = 0.0
+	_lamp_seen_frame = frame
+	_lamp_seen_for += delta
+	if _lamp_seen_for < SIGHT_GRACE:
+		return
+	world.director.add_awareness(SIGHT_RATE * 0.8 * delta)
+	world.flags["seen_by_lamp"] = true
+	if not _lamp_spotted:
+		_lamp_spotted = true
+		Sfx.play("spotted")
+		world.director.say("the lamp. i can see the crossing from here.")
+
+
+## The bench under the awning (World.is_player_hidden asks).
+func hides_player(pos: Vector2) -> bool:
+	return RECESS.has_point(pos)
+
+
+func hide_label() -> String:
+	return "the awning hides you"
 
 
 ## Wren, built the same way wherever she appears.
@@ -538,11 +617,12 @@ func _paint(ci: CanvasItem) -> void:
 	var r := bounds
 	Decor.grass(ci, r, GRASS.lightened(0.06), 3.0, 0.0035)
 	Decor.path(ci, Rect2(100, 100, 24, 90), PATH.lightened(0.05), 1.0)
-	Decor.cobbles(ci, Rect2(100, 170, 500, 20), STONE.darkened(0.12), 8.0, 2.0)
+	Decor.cobbles(ci, Rect2(100, 170, r.end.x - 100, 20), STONE.darkened(0.12), 8.0, 2.0)
+	_paint_east(ci)
 	Decor.cobbles(ci, Rect2(NORTH_GAP.x, r.position.y, 40, 130), STONE.darkened(0.12), 8.0, 3.0)
 	# Flower beds and a low fence along the south edge: flat, never in the way.
 	var bed_y := r.end.y - 16.0
-	for x in [150.0, 270.0, 470.0]:
+	for x in [150.0, 270.0, 470.0, 640.0, 800.0, 868.0]:
 		ci.draw_rect(Rect2(x, bed_y, 34, 8), PATH.darkened(0.1))
 		for k in 7:
 			ci.draw_circle(Vector2(x + 3.0 + k * 4.6, bed_y + 4.0 + sin(k) * 1.5), 1.4, Color("d88aa0") if k % 2 == 0 else Color("e8d890"))
@@ -585,6 +665,65 @@ func _paint(ci: CanvasItem) -> void:
 		{"side": "right", "from": EAST_GAP.x, "to": EAST_GAP.y},
 		{"side": "top", "from": NORTH_GAP.x, "to": NORTH_GAP.y},
 	])
+
+
+## The east half, under the same afternoon: the crossing's cobbles, the
+## lane and its fence, the covered bench, and the Archive's stone front
+## over the road out.
+func _paint_east(ci: CanvasItem) -> void:
+	# The crossing: wide, open cobbles with nothing to stand behind.
+	Decor.cobbles(ci, CROSSING, STONE.darkened(0.04), 9.0, 5.0)
+	ci.draw_rect(CROSSING, Decor.INK.lerp(Color.TRANSPARENT, 0.7), false, 1.0)
+	# The lane behind Tobben's: a worn track along the fence.
+	Decor.path(ci, Rect2(LANE.position.x, LANE.position.y + 30, LANE.size.x, 22), PATH.lightened(0.02), 4.0)
+	for k in 9:
+		ci.draw_circle(Vector2(LANE.position.x + 18 + k * 27, LANE.position.y + 14 + (k % 3) * 3), 3.0, Color("2e3d2a"))  # weeds by the wall
+	# The fence (the gate draws itself): posts and two rails, a shadow south.
+	ci.draw_rect(Rect2(LANE.position.x, FENCE_Y + 6, LANE.size.x, 4), Color(0, 0, 0, 0.18))
+	for seg in [[LANE.position.x, GATE.position.x], [GATE.end.x, LANE.end.x]]:
+		ci.draw_rect(Rect2(seg[0], FENCE_Y, seg[1] - seg[0], GATE.size.y), Color("5a4632"))
+		ci.draw_line(Vector2(seg[0], FENCE_Y + 1), Vector2(seg[1], FENCE_Y + 1), Color("8a6a48"), 1.0)
+		ci.draw_line(Vector2(seg[0], FENCE_Y + 4), Vector2(seg[1], FENCE_Y + 4), Color("4a3828"), 1.0)
+		var x: float = seg[0]
+		while x <= seg[1]:
+			ci.draw_rect(Rect2(x - 1, FENCE_Y - 4, 2.4, 10), Color("4a3828"))
+			x += 12.0
+	# The covered bench: an awning on two posts, a bench in its shade.
+	ci.draw_rect(Rect2(RECESS.position + Vector2(-2, 6), RECESS.size + Vector2(4, 0)), Color(0, 0, 0, 0.22))
+	Decor.furniture(ci, Rect2(RECESS.position.x + 8, RECESS.end.y - 12, RECESS.size.x - 16, 8), Color("6b5040"), 3.0)
+	for k in 4:
+		ci.draw_rect(Rect2(RECESS.position.x + k * 13, RECESS.position.y, 13, 9), Color("5a7a8a") if k % 2 == 0 else Color("e8dcc4"))
+	ci.draw_rect(Rect2(RECESS.position, Vector2(RECESS.size.x, 9)), Decor.INK, false, 0.8)
+	for x in [RECESS.position.x + 2, RECESS.end.x - 4]:
+		ci.draw_rect(Rect2(x, RECESS.position.y + 9, 2, RECESS.size.y - 10), Color("3a2a20"))
+	# The Archive's front: pale stone, tall windows, a round one over the
+	# door, the same blue as the books inside.
+	var f := LIBRARY
+	ci.draw_rect(Rect2(f.position + Vector2(4, 6), f.size), Color(0, 0, 0, 0.28))
+	ci.draw_rect(f, Color("8a8478"))
+	ci.draw_rect(Rect2(f.position.x, f.end.y - 14, f.size.x, 14), Color("6a645a"))  # its front face
+	ci.draw_rect(Rect2(f.position.x - 2, f.position.y, f.size.x + 4, 6), Color("5a5650"))
+	for k in 5:
+		var wx := f.position.x + 12 + k * 24
+		if k == 2:
+			continue
+		ci.draw_rect(Rect2(wx, f.position.y + 14, 9, 22), Color("1e2a3a"))
+		ci.draw_rect(Rect2(wx, f.position.y + 14, 9, 22), Decor.INK, false, 0.8)
+		ci.draw_line(Vector2(wx + 4.5, f.position.y + 14), Vector2(wx + 4.5, f.position.y + 36), Color("6a645a"), 0.8)
+	var rose := Vector2(f.get_center().x, f.position.y + 22)
+	ci.draw_circle(rose, 9.0, Color("5a5650"))
+	ci.draw_circle(rose, 7.0, Color("2a4a6a"))
+	for k in 6:
+		ci.draw_line(rose, rose + Vector2.from_angle(k * TAU / 6.0) * 7.0, Color("8a8478"), 0.8)
+	ci.draw_rect(Rect2(rose.x - 8, f.end.y - 22, 16, 20), Color("3a2a20"))  # its door, shut: the way in is the road
+	ci.draw_rect(Rect2(rose.x - 8, f.end.y - 22, 16, 20), Decor.INK, false, 0.8)
+	ci.draw_rect(f, Decor.INK, false, 1.0)
+	# The arch over the road out, under the Archive's corner.
+	var gap_x := bounds.end.x
+	for y in [EAST_GAP.x - 8.0, EAST_GAP.y]:
+		ci.draw_rect(Rect2(gap_x - 14, y, 14, 8), Color("7a7468"))
+		ci.draw_rect(Rect2(gap_x - 14, y, 14, 8), Decor.INK, false, 0.8)
+	ci.draw_rect(Rect2(gap_x - 16, EAST_GAP.x - 12, 16, 4), Color("5a5650"))
 
 
 func _process(_delta: float) -> void:

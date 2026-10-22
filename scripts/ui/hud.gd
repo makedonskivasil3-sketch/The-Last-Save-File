@@ -167,6 +167,10 @@ func _ready() -> void:
 	add_child(root)
 
 	_slot = _make_label(root, SAFE, Vector2(380, 14), 10, SLOT_COLOR)
+	_edge_marks = _EdgeMarks.new()
+	_edge_marks.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_edge_marks.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_edge_marks)
 
 	_meter = AwarenessMeter.new()
 	_meter.position = Vector2(640 - SAFE.x - 180, SAFE.y - 2)
@@ -1252,6 +1256,42 @@ func banner_text() -> String:
 
 
 ## One short status line under the meter (e.g. "HIDDEN"), "" to clear.
+## Threats outside the view (World.update_camera): each {"side": -1 or 1,
+## "y": screen y, "label": who}. Shown as a marked arrow at that edge, with
+## the name in text, so a threat off-screen is never hidden by the camera.
+func set_offscreen(marks: Array) -> void:
+	if marks != _edge_marks.marks:
+		_edge_marks.marks = marks
+		_edge_marks.queue_redraw()
+
+
+func offscreen_marks() -> Array:
+	return _edge_marks.marks
+
+
+var _edge_marks: _EdgeMarks
+
+
+class _EdgeMarks:
+	extends Control
+	var marks: Array = []
+
+	func _draw() -> void:
+		var font := UiStyle.system_font()
+		for m: Dictionary in marks:
+			var side: int = m.side
+			var y := clampf(float(m.y), 40.0, 300.0)
+			var tip := Vector2(6.0 if side < 0 else 634.0, y)
+			var back := tip + Vector2(10.0 * -side, 0)
+			draw_colored_polygon(PackedVector2Array([tip, back + Vector2(0, -7), back + Vector2(0, 7)]), OWNER_COLOR)
+			draw_polyline(PackedVector2Array([tip, back + Vector2(0, -7), back + Vector2(0, 7), tip]), Color.BLACK, 1.0)
+			var text: String = m.label
+			var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x
+			var at := Vector2(back.x + 4.0 if side < 0 else back.x - 4.0 - w, y + 3.0)
+			draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, 3, Color.BLACK)
+			draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, OWNER_COLOR)
+
+
 func set_status(text: String) -> void:
 	if _status.text != text:
 		_status.text = text

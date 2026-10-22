@@ -458,6 +458,7 @@ func _publish_web_state(delta: float) -> void:
 
 
 func _process(delta: float) -> void:
+	update_camera(delta)
 	_publish_web_state(delta)
 	_handle_wipe(delta)
 	# Before anything returns early: a scene holds the owner like a question
@@ -478,6 +479,7 @@ func _process(delta: float) -> void:
 		PlaytestLog.mark("first movement", "", true)
 	var cursor: Variant = area.get("cursor")
 	var watcher: Variant = area.get("arin")
+	_mark_offscreen([watcher, cursor])
 	player.set_targeted((cursor is OwnerCursor and cursor.is_selecting()) or (watcher is OwnerAvatar and watcher.is_seeing()))
 	# Reading or answering isn't "standing still" for the owner's save-over.
 	player.reading = hud.is_dialogue_open() or hud.is_choosing()
@@ -536,6 +538,75 @@ func map_state() -> Dictionary:
 	if not (glitch and glitch.unlocked("unlock")) and not (area and area.area_id == "house"):
 		closed["house"] = "locked"
 	return {"current": area.area_id if area else "", "visited": _visited.duplicate(), "discovered": discovered, "closed": closed}
+
+
+# --- the camera (docs/VERTICAL_SLICE.md §3c) --------------------------------
+
+## The view's top-left in area coordinates (0,0 for a one-screen area).
+var view_offset := Vector2.ZERO
+## Rue may move this far either side of the view's centre before it follows.
+const CAMERA_DEADZONE := 60.0
+## How quickly the view catches up (per second; no overshoot).
+const CAMERA_RATE := 5.0
+## Reduce motion: the view never pans; it cuts between fixed framings when
+## Rue gets this close to its edge.
+const CAMERA_CUT_MARGIN := 96.0
+
+
+## Follows Rue across an area wider than the screen, inside its painted
+## limits (Area.view_size). Never pans while the owner holds the scene, and
+## threats outside the view are marked at the screen edge (Hud).
+func update_camera(delta: float, snap := false) -> void:
+	if area == null or not is_instance_valid(player):
+		return
+	var screen := Area.BACKDROP_SIZE
+	var limit := maxf(0.0, area.view_size.x - screen.x)
+	var x := view_offset.x
+	if limit <= 0.0:
+		x = 0.0
+	elif Settings.reduce_motion:
+		# Fixed framings, a screen apart, overlapping at the middle.
+		var framings := [0.0, limit]
+		var rel := player.global_position.x - x
+		if snap or rel < CAMERA_CUT_MARGIN or rel > screen.x - CAMERA_CUT_MARGIN or not (x in framings):
+			x = framings[0] if absf(player.global_position.x - (framings[0] + screen.x * 0.5)) <= absf(player.global_position.x - (framings[1] + screen.x * 0.5)) else framings[1]
+	else:
+		var centre := x + screen.x * 0.5
+		var want := x
+		var off := player.global_position.x - centre
+		if absf(off) > CAMERA_DEADZONE:
+			want = x + off - signf(off) * CAMERA_DEADZONE
+		want = clampf(want, 0.0, limit)
+		if snap:
+			x = clampf(player.global_position.x - screen.x * 0.5, 0.0, limit)
+		else:
+			x = lerpf(x, want, 1.0 - exp(-CAMERA_RATE * delta))
+			if absf(x - want) < 0.25:
+				x = want
+	view_offset = Vector2(x, 0.0)
+	if fx:
+		fx.view_offset = view_offset
+	if snap and fx:
+		get_viewport().canvas_transform = Transform2D(0.0, -view_offset.round())
+
+
+## The owner's hands outside the view get an arrow at that edge (Hud).
+func _mark_offscreen(threats: Array) -> void:
+	var marks := []
+	var view := view_rect()
+	for t: Variant in threats:
+		if not (t is Node2D) or not is_instance_valid(t) or not (t as Node2D).visible:
+			continue
+		var p: Vector2 = (t as Node2D).global_position
+		if p.x < view.position.x - 4.0 or p.x > view.end.x + 4.0:
+			marks.append({"side": -1 if p.x < view.position.x else 1, "y": p.y - view.position.y,
+				"label": "ARIN" if t is OwnerAvatar else "CURSOR"})
+	hud.set_offscreen(marks)
+
+
+## What the screen shows now, in area coordinates.
+func view_rect() -> Rect2:
+	return Rect2(view_offset, Area.BACKDROP_SIZE)
 
 
 ## Paused only because the window lost focus (no menu to close): resumes
@@ -693,6 +764,7 @@ func _load_area(next: Area, arrival: String) -> void:
 	_visited[area.area_id] = true
 	player.position = area.entry_point(arrival)
 	player.velocity = Vector2.ZERO
+	update_camera(0.0, true)  # arrive already framed: no pan on the way in
 	if pip:
 		pip.arrive(player.position)
 	_crumbs.clear()

@@ -50,6 +50,9 @@ var mira_quest: String = ""
 var guestbook_restored: bool = false
 ## Read the torn guest book page in the Recycle Bin.
 var found_guestbook := false
+## The Square's lane gate (behind Tobben's), lifted from the lane side: the
+## shortcut to the Archive road stays open for good (docs/VERTICAL_SLICE.md §3c).
+var square_gate_open := false
 ## The artefact journal: everything Rue has read (notes, books, files,
 ## memories), oldest first. Each entry is {id, kind, title, area, lines}.
 ## A note the owner rewrote keeps every version Rue saw.
@@ -682,6 +685,7 @@ func clear_state() -> void:
 	found_pip = false
 	wren_saved = false
 	found_guestbook = false
+	square_gate_open = false
 	found_controller = false
 	truth_pieces.clear()
 	knows_truth = false
@@ -767,6 +771,7 @@ func save_memory() -> void:
 		"found_pip": found_pip,
 		"wren_saved": wren_saved,
 		"found_guestbook": found_guestbook,
+		"square_gate_open": square_gate_open,
 		"found_controller": found_controller,
 		"journal": journal,
 		"owner_notes_seen": owner_notes_seen,
@@ -962,6 +967,7 @@ func load_memory() -> void:
 	found_pip = _bool(data, "found_pip")
 	wren_saved = _bool(data, "wren_saved")
 	found_guestbook = _bool(data, "found_guestbook")
+	square_gate_open = _bool(data, "square_gate_open")
 	found_controller = _bool(data, "found_controller")
 	journal.clear()
 	for e in _list(data, "journal"):

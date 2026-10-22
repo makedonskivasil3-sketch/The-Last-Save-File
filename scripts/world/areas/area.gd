@@ -15,6 +15,9 @@ var world: World
 var area_id := ""
 var display_name := ""
 var bounds := Rect2(96, 36, 448, 256)
+## The whole painted area (the camera's limits). One screen unless an area
+## is wider (the Square): then World.update_camera follows Rue across it.
+var view_size := Vector2(640, 360)
 ## Multiplies how fast the owner's awareness rises while you're here.
 ## Negative: awareness cools here instead (see OwnerDirector.floor_level()).
 var awareness_rate := 1.0
@@ -188,7 +191,7 @@ static func notify_geometry(node: Node, where := Rect2()) -> void:
 func set_owner_paused(on: bool) -> void:
 	if erasure:
 		erasure.set_process(not on)
-	for n in [get("arin"), get("cursor")]:
+	for n in [get("arin"), get("cursor"), get("lamp")]:
 		if n is Node:
 			n.set("paused", on)
 
@@ -207,7 +210,7 @@ const BACKDROP_SIZE := Vector2(640, 360)
 
 func set_backdrop(painter: Callable) -> Node2D:
 	var vp := SubViewport.new()
-	vp.size = Vector2i(BACKDROP_SIZE * BACKDROP_SCALE)
+	vp.size = Vector2i(view_size.max(BACKDROP_SIZE) * BACKDROP_SCALE)
 	vp.transparent_bg = true
 	vp.disable_3d = true
 	vp.render_target_update_mode = SubViewport.UPDATE_ONCE

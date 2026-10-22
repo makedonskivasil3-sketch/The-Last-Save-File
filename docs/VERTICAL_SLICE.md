@@ -197,6 +197,57 @@ of this pass has not been measured on a low-end device: §2.5.)
   at 10 fps through `tests/tour_title.gd`. It is a frame sequence, not a
   real-time screen recording.
 
+### 3c. The wider Square as built (`village_square.gd`, `owner_lamp.gd`, `lane_gate.gd`)
+
+The Square is now 880 × 256 (it was 560 × 256), painted on a 960 × 360
+backdrop. The camera follows Rue across it.
+
+**Prerequisites, done first**
+
+| Prerequisite | How | Test |
+|---|---|---|
+| Bounded camera | `World.update_camera`: a 60 px dead zone; an ease inside `[0, view_size.x − 640]`; snapped on arrival | `test_the_square_camera_follows_within_its_limits` |
+| Camera-relative prompts | `Hud` already projects the prompt through `canvas_transform`, which is now the camera | `test_a_prompt_follows_the_camera` |
+| Collision, navigation and the Owner across the new bounds | The nav grid, erasure grid and cursor bounds come from `bounds` | `test_arin_and_the_cursor_can_cross_the_whole_square` |
+| Background art reworked, not stretched | `_paint_east` paints new ground; the backdrop bakes at `view_size` | `tour_square` stills |
+| Threats never hidden by the camera | An off-screen arrow at the screen edge for Arin or the cursor, with the name in text (`ART_DIRECTION.md`) | `tour_square` sq8 |
+| Spatial audio | 2D players are placed relative to the canvas transform, so they follow the camera. Existing reach (300–360 px) is kept | Not heard by a person |
+| HUD and touch | Both are screen-space and unchanged | Existing suites |
+| Reduced-motion camera | Cuts between two framings; no panning | `test_reduced_motion_cuts_instead_of_panning` |
+
+**Subspaces**
+
+| Place | Identity | What it's for |
+|---|---|---|
+| Arrival (west, unchanged) | Arin's door, the well, Wren, Tobben's stall | The first relationship and the well |
+| Exposed crossing (x 600–790) | Wide, open cobbles with nothing to stand behind | **The lamp**: the owner's eye on a post. It sweeps a fixed arc, holds and ticks before each turn, and adds attention after a short grace. It is a variation on Arin's cone: it never moves, so it can be timed |
+| Sheltered recess | A covered bench on the crossing's south side | A hiding place (`hides_player`, "the awning hides you") mid-crossing, out of the beam's reach |
+| The Archive's front (landmark) | Pale stone, tall windows, a rose window, and an arch over the road out east | Visible from the crossing: where the road goes |
+| Earned shortcut | A fenced lane behind Tobben's, with a gate latched on the lane side | Walk the lane once and lift the latch. It stays open (`OwnerMemory.square_gate_open`), giving a sheltered way between the old square and the Archive road |
+
+**Return trips reveal change**
+- The gate stays open.
+- The owner turns the lamp's arc to cover the gate mouth: the shortcut is
+  remembered by both sides.
+- (Wren's ribbon, §5a, is the other change visible on the way back.)
+
+**Each exit has a coherent arrival**
+- From the Archive, Rue arrives under the arch, already framed east.
+- From the house and the well, the old square is framed.
+
+**Not changed**
+- Arin's route, his speed, and every glitch price.
+- The north road and its condition.
+- The well and its sequence.
+- The relative position of every west-side placement.
+
+**Not verified**
+- How the lamp's timing feels.
+- Whether the shortcut is found without a hint.
+- Spatial audio across the pan.
+
+All three need a playtest and a listening pass (§2.5).
+
 ## 4. Revelation table (the primary reveal: the proposed canon)
 
 | | |
