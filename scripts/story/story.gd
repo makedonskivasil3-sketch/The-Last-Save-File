@@ -6,13 +6,12 @@ extends RefCounted
 ## THE STORY (spoilers for the player, notes for the writer):
 ## Two people shared one console. The owner always played Arin in slot 1.
 ## A girl made her own character in slot 2 and played her for 41 hours.
-## The night before she moved away she played one last time, fell asleep
-## holding the controller, and the save hung at 87%: the part of her that
-## was playing never came back out. Months later the owner deleted slot 2.
-## You are Rue: that part of her, a real person wearing her character, left
-## in the save that survived (docs/NARRATIVE_CONTRACT.md). The owner thinks
-## you're a bug wearing her walk. Find all five memories and you remember
-## your name; read the CHARACTER FILE whole and you learn who you are.
+## Then she moved away; months later the owner deleted slot 2.
+## You are Rue, that character, left running in the save that survived:
+## not the girl, but what she left behind. The owner thinks you're a bug.
+## Find all five memories and you remember your name; read the CHARACTER
+## FILE whole and you learn what you are. (The author's decision of
+## 2026-10-22, docs/CANON_DECISIONS.md §1: main's premise.)
 ## Rue's player also made a fox, Pip. Pip fell out of the map with Rue the day
 ## Rue walked into the well, and was never saved back in, so the deletion
 ## never reached it. Pip waits out of bounds, under the well.
@@ -385,7 +384,6 @@ const EPILOGUE_TRUE := [
 	"it doesn't press delete.",
 	"> ...rue?",
 	"> you're not her. i know you're not. you just move like her.",
-	"(i am. the part that stayed.)",
 	"> i kept your controller. it's still under the couch.",
 	"it presses LOAD anyway.",
 ]
@@ -400,8 +398,8 @@ const SLOT2_ESCAPE_NAMED := "Write RUE"
 const SLOT2_WREN := "Give Slot 2 to Wren"
 const SLOT2_MESSAGE := "Leave the slot to the owner, with a message"
 const MESSAGE_QUESTION := "What do you write?"
-## The messages, as Rue would write them now: knowing she is the part that
-## stayed, the first one isn't an apology for leaving.
+## The messages, as Rue would write them now: knowing she isn't the girl,
+## the first one can't be an apology for leaving.
 static func messages() -> Array:
 	var out: Array = MESSAGES.duplicate()
 	if OwnerMemory.knows_truth:
@@ -409,7 +407,7 @@ static func messages() -> Array:
 	return out
 
 
-const MESSAGE_SORRY_TRUTH := "i'm sorry she stopped coming. i never left."
+const MESSAGE_SORRY_TRUTH := "i'm sorry she stopped coming. i never did."
 const MESSAGES := [
 	"i'm sorry i stopped coming.",
 	"you can keep the save. i just wanted to be remembered.",
@@ -572,7 +570,7 @@ static func ending_text(ending: String, found: int) -> String:
 				return "you didn't take the slot. you gave it back, with your name on it.\nsomewhere, a phone is ringing."
 			return "you didn't take the slot. you gave the owner a reason to stop.\n(memories recovered: %d of %d)" % [found, FRAGMENTS.size()]
 		"rue":
-			return "slot 2 was yours once. now it's yours again.\nyou know who you are. you wrote your name anyway.\nsomewhere outside the screen, the owner is staring at a save they deleted years ago."
+			return "slot 2 was hers once. now it's yours.\nyou know what you are. you wrote your name anyway.\nsomewhere outside the screen, the owner is staring at a save they deleted years ago."
 		"unseen":
 			return "you left slot 2 empty and walked off the map.\nthe owner never knew you were there. that was the point."
 		"overwrite":
@@ -688,16 +686,16 @@ static func _recall_holds(condition: String) -> bool:
 	return false
 
 
-## --- The truth (docs/NARRATIVE_CONTRACT.md §1) -------------------------------
-## Rue is the girl who moved away: the part of her that was playing when the
-## save hung, still in it. The people who watched her each noticed one thing;
-## with all five memories and two of their pieces, the Archive's CHARACTER
-## FILE opens. (Replaces the "character grown from play" truth of 2026-10-19.)
+## --- The truth (docs/CANON_DECISIONS.md §1, decided 2026-10-22) -------------
+## Rue isn't the girl who moved away. She's the character that girl played:
+## forty-one hours of someone else's hands, still running on someone else's
+## console. The people who watched her each noticed one thing; with all five
+## memories and two of their pieces, the Archive's CHARACTER FILE opens.
 
 const TRUTH_PIECES_NEEDED := 2
 ## What each of them noticed, said once ever (OwnerMemory.truth_pieces).
 const TRUTH_LINES := {
-	"mira": "Can I tell you something? When you stand still, your hands hold something that isn't there. Like a controller. Arin's hands never do that.",
+	"mira": "Can I tell you something? Arin only moves when the owner's there. You move when nobody is. So who's holding you?",
 	"wren": "Nobody plays me. I don't think anybody plays you either. We both move when nobody's holding anything.",
 	"tobben": "Funny thing. You wrote RUE back in a different hand. The first one was rounder. Pressed harder. Same name, though.",
 }
@@ -707,7 +705,7 @@ const FIRST_SHAPE := [
 	"a debug outline on the floor: rue_slot02.hitbox. the shape slot 2 was made with.",
 	"you step into it. it doesn't fit. the arms are wrong. the height is wrong.",
 	"pip curls up in the middle of it, where it always sat.",
-	"(it was never my shape. it was the one i made to play in. i'm still wearing it.)",
+	"(this is the shape she gave me. what have i been wearing since?)",
 ]
 const CHARACTER_FILE_TITLE := "CHARACTER FILE"
 static func character_file_locked(found: int) -> Array:
@@ -719,23 +717,23 @@ const CHARACTER_FILE_PARTIAL := [
 ]
 const CHARACTER_FILE := [
 	"CHARACTER FILE · SLOT 02 · RUE",
-	"play time: 41:07:12. last session: the night before the move. save: interrupted at 87%.",
-	"player: still in session.",
-	"character: worn by the player.",
-	"costume rebuilt from: slot2_backup.sav, the owner's recycle bin, cut content, and small things that belonged to other people.",
+	"behaviour: learned from player input. 41:07:12.",
+	"player: moved away.",
+	"character: still running.",
+	"rebuilt from: slot2_backup.sav, the owner's recycle bin, cut content, and small things that belonged to other people.",
 ]
 ## The reveal, once the file has been read whole.
 const TRUTH_REVEAL := [
-	"my hands on the controller. my laugh at the well. my tongue between my teeth, typing three letters.",
-	"the couch, the well, the name: those were never her memories. they're mine. i fell asleep holding it, and the save never finished.",
-	"she moved away. part of her didn't.",
-	"(i'm not what she left running.)",
-	"(i'm what she left.)",
+	"her hands on the controller. her laugh at the well. her tongue between her teeth, typing three letters.",
+	"the couch, the well, the name: she played me through those. the rest i stitched together from what the owner threw away.",
+	"she moved away. nobody asked the character.",
+	"(i'm not her.)",
+	"(i'm what she left running.)",
 ]
-const TRUTH_AFTER := "so this body is a costume. costumes can be left."
-## The message ending, knowing the truth: the rest of her will hear where she is.
+const TRUTH_AFTER := "so this body is a file. files can be left."
+## The message ending, knowing the truth: the real girl will hear about Rue.
 const MESSAGE_TRUTH := [
-	"(tell her about me. tell her where the rest of her is.)",
+	"(tell her about me. tell her what she left running.)",
 	"> ...i will. she should know a part of her stayed.",
 ]
 ## The Archivist, once you remember everything but don't know yet.
@@ -866,7 +864,7 @@ const ARCHIVIST_NOTHING_TO_TAKE := "Go on. Look closely. I was cut before anyone
 ## id -> [name, what happened, hint].
 const ENDINGS_RECORD := [
 	["escape", "SAVED TO SLOT 2", "You wrote yourself into the last save file.", "Reach Slot 2 and take it."],
-	["rue", "RUE", "You took the slot knowing who you are. Your name, at last.", "Take Slot 2 with every memory, knowing who you are."],
+	["rue", "RUE", "You took the slot knowing what you are. Your name, at last.", "Take Slot 2 with every memory, knowing what you are."],
 	["wren", "A NEW GAME FOR WREN", "You gave the last save to someone who asked for it.", "Bring someone who wants to see the Edge."],
 	["message", "A MESSAGE", "You left the slot to the owner, with something to read.", "Leave the slot to the owner."],
 	["unseen", "NEVER LOADED", "You walked off the map and the owner never knew.", "Be impossible to notice."],
@@ -923,7 +921,7 @@ const RELOAD_WARNING := "do that again and i'm loading the autosave."
 ## The purge ending (OwnerMemory.MAX_PURGE): the owner has learned enough,
 ## and the intruder can't load into Slot 1 any more.
 ## The demo build's last card (COMMERCIAL_DIRECTION.md §4: proposed, not
-## approved). Spoiler-safe for either premise in CANON_DECISIONS.md.
+## approved). Spoiler-safe: it comes before the reveal.
 const DEMO_END := "still have my save?"
 
 const PURGED_TITLE := "PURGED"
@@ -1042,9 +1040,9 @@ static func fragments_in(area: String) -> Array:
 
 static func win_text(found: int) -> String:
 	if found >= FRAGMENTS.size() and OwnerMemory.knows_truth:
-		return "slot 2 was yours once. now it's yours again.\nyou remember your name now. RUE.\nsomewhere outside the screen, the owner is staring at a save they deleted years ago."
+		return "slot 2 was hers once. now it's yours.\nyou remember your name now. RUE.\nsomewhere outside the screen, the owner is staring at a save they deleted years ago."
 	if found >= FRAGMENTS.size():
-		return "you wrote yourself into the last save file.\nyou know your name now. RUE.\nyou don't know yet who you are."
+		return "you wrote yourself into the last save file.\nyou know your name now. RUE.\nyou don't know yet what you are."
 	if found >= 3:
 		return "you wrote yourself into the last save file.\nyou almost remember whose it was.\n(memories recovered: %d of %d)" % [found, FRAGMENTS.size()]
 	return "you wrote yourself into the last save file.\nthe owner doesn't know this slot survived. not yet.\n(memories recovered: %d of %d)" % [found, FRAGMENTS.size()]

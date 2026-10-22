@@ -1817,7 +1817,7 @@ func win(chosen := "escape", message := 0) -> void:
 	PlaytestLog.mark("ENDING", chosen)
 	if ending != "":
 		return
-	# Taking the slot remembering everything, and knowing who you are, is RUE.
+	# Taking the slot remembering everything, and knowing what you are, is RUE.
 	if chosen == "escape" and OwnerMemory.fragments.size() >= Story.FRAGMENTS.size() and OwnerMemory.knows_truth:
 		chosen = "rue"
 	ending = "win"

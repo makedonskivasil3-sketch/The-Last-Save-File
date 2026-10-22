@@ -1,11 +1,41 @@
 # Decisions only the author can make
 
-**Status (2026-10-22): none of these has been approved.** The review
-branch implements proposals. Approval to improve gameplay does not decide
-any of them. Nothing here is merged as canon, and the game has no
-player-facing canon toggle.
+**Status (2026-10-22, later the same day):**
+- **§1 is decided.** The author chose `main`'s premise, and the branch now
+  carries it (below).
+- **§2–§6 are still open.** The review branch implements proposals for
+  them, and approval to improve gameplay does not decide them.
+- Nothing here is merged to `main`, and the game has no player-facing
+  canon toggle.
 
-## 1. Who Rue is (the central reveal)
+## 1. Who Rue is (the central reveal): DECIDED, `main`'s premise
+
+**The author's decision (2026-10-22), in their words:**
+
+> I prefer Rue being the game character left running after her player
+> moved away. It gives the game a more distinctive emotional question: can
+> something created through someone else's attention become a person with
+> a life of her own? [...] Her memories become bittersweet: she remembers
+> their time together, but those memories don't make her the girl. Mira,
+> Wren and Tobben become her equals [...]. The endings become harder
+> choices [...]. The owner's denial becomes more interesting: "you're not
+> her" can be factually true while completely missing Rue's worth. [...]
+> I would keep the two-controller opening, but frame its impossible moment
+> as a character beginning to act after her player stops. Introduce her
+> through a familiar gesture she inherited; later, let her make a gesture
+> or choice entirely her own.
+
+**What was done:**
+- The constants listed below were reverted to `main`'s text, as this
+  section said would happen.
+- Also reverted: Mira's journal entry (which followed her line), the Bin's
+  truth branch, and the RUE hints ("what you are").
+- `NARRATIVE_CONTRACT.md` §0 and §1 were rewritten to the decided premise,
+  with a revelation matrix (§0.8).
+- The opening and Rue's own gesture follow the author's direction
+  (`docs/OPENING_REVIEW.md`).
+
+The comparison is kept for the record.
 
 | | `main` (`09aeb3b`) | Draft branch (proposal) |
 |---|---|---|
@@ -39,11 +69,7 @@ The rest of the branch's work does not depend on which premise is chosen:
   an outside-world payoff the game does not provide: the well only keeps
   recordings (§3).
 
-**Recommendation:** decide this before any public demo. The demo endpoint
-(§5) stops before the reveal, so the demo can ship with either.
-
-**If main's premise is chosen:** revert the listed constants to main's
-text, and nothing else.
+**Decision:** `main`'s premise (above).
 
 ## 2. The kept place under the well (the earlier anchor)
 
@@ -87,14 +113,14 @@ text, and nothing else.
   - `tests/test_demo.gd` checks that every exit from the kept areas leads
     to a kept area or to the end card.
   - **No demo export preset exists, and nothing has been published.**
-- **Recommendation:** approve. It is spoiler-safe for either premise.
+- **Recommendation:** approve. It stops before the reveal.
 
 ## 6. The opening's implication
 
 - **The draft's interactive opening:** the player's press becomes her
   two-tap habit, and under PAUSE her hands lie still while the figure
   still answers the player.
-- With main's premise, this reads as "the player is her hands now".
-- With the draft's premise, it reads as "she is still in there".
-- **Recommendation:** keep the opening as built, and confirm it once §1 is
-  decided.
+- With the decided premise, the impossible moment is a character
+  beginning to act after her player stops (the author's direction).
+- **Done:** the opening is reframed that way (`docs/OPENING_REVIEW.md`).
+  The author should confirm it in play.

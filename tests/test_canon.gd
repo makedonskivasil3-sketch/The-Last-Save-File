@@ -24,16 +24,17 @@ func test_slot_two_is_the_deleted_slots_ghost() -> void:
 	check(not archive.contains("never used"), "no 'never used' left")
 
 
-## The continuity milestone's contract (docs/NARRATIVE_CONTRACT.md §1,
-## proposed, replacing the 2026-10-19 "dark truth"): Rue is the part of the
-## girl that stayed in the interrupted save; she stays "she"; RUE needs the
-## truth; the rest of her outside learns where she is. The owner's "you're
-## not her" stays, as denial, and Rue answers it.
-func test_rue_is_the_part_of_her_that_stayed() -> void:
-	check(Story.TRUTH_REVEAL.has("(i'm what she left.)"), "the reveal's last line")
-	check(Story.TRUTH_REVEAL.has("(i'm not what she left running.)"), "Rue is not a program she left running")
-	check(not Story.TRUTH_REVEAL.has("(i'm not her.)"), "the old reveal is gone")
-	check(Story.CHARACTER_FILE.any(func(l: String) -> bool: return l.contains("player: still in session")), "the file says the player is still in it")
-	check(Story.MESSAGE_TRUTH[0].contains("tell her about me") and Story.MESSAGE_TRUTH[0].contains("where the rest of her is"), "the girl outside will hear where she is")
-	check(Story.EPILOGUE_TRUE.has("(i am. the part that stayed.)"), "Rue answers the owner's denial")
-	check(Story.ENDINGS_RECORD.any(func(e: Array) -> bool: return e[0] == "rue" and e[3].contains("knowing who you are")), "the RUE hint names the truth")
+## The author's decision of 2026-10-22 (docs/CANON_DECISIONS.md §1): main's
+## premise. Rue is the character, not the girl: what she left running. She
+## stays "she"; RUE needs the truth; the real girl learns that Rue exists.
+## The draft's "part of her that stayed" text is gone.
+func test_rue_is_what_she_left_running() -> void:
+	check(Story.TRUTH_REVEAL.has("(i'm what she left running.)"), "the reveal's last line")
+	check(Story.TRUTH_REVEAL.has("(i'm not her.)"), "Rue is not the girl")
+	check(Story.CHARACTER_FILE.any(func(l: String) -> bool: return l.contains("player: moved away")), "the file: her player moved away")
+	check(Story.MESSAGE_TRUTH[0].contains("tell her about me") and Story.MESSAGE_TRUTH[0].contains("what she left running"), "the real girl will hear about Rue")
+	check(not Story.EPILOGUE_TRUE.has("(i am. the part that stayed.)"), "no draft answer to the owner's denial: 'you're not her' is true")
+	check(Story.ENDINGS_RECORD.any(func(e: Array) -> bool: return e[0] == "rue" and e[3].contains("knowing what you are")), "the RUE hint names the truth")
+	var all := "\n".join(Story.TRUTH_REVEAL + Story.CHARACTER_FILE + [Story.TRUTH_AFTER])
+	for draft in ["costume", "still in session", "part of her didn't"]:
+		check(not all.contains(draft), "no draft text left: %s" % draft)

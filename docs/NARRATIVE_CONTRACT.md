@@ -1,10 +1,14 @@
 # Narrative and persistence contract (continuity milestone)
 
-**Status: PROPOSED, applied on the review branch only.** It replaces the
-"dark truth" of 2026-10-19 (Rue is a character grown from someone's play,
-`docs/DARK_TRUTH_DESIGN.md`). Nothing here is merged into `main` until the
-author approves it. Each section is marked **implemented**, **proposed**,
-**deferred** or **blocked**.
+**Status (2026-10-22): the premise is decided.** The author chose
+`main`'s premise (`CANON_DECISIONS.md` §1): Rue is the character the girl
+played, left running after her player moved away. The draft's "part of the
+girl that stayed" text has been reverted to `main`'s. §0.1, §0.2, §0.3,
+§0.8 and §1 below are written to the decided premise. The rest of this
+document (persistence, conversations, the anchor, the well, the opening's
+shots) never depended on the premise and is unchanged. It is still on the
+review branch, not merged. Each section is marked **implemented**,
+**proposed**, **deferred** or **blocked**.
 
 **Revision 2 (coherence milestone, 2026-10-21).** §0 below was added before
 any further story text changed. It tightens the rules where the first
@@ -18,42 +22,44 @@ The rest of the document is updated to match, and each changed rule says
 
 ### 0.1 Internal truth (one paragraph, for writers)
 
-Two real people played one save. The second player, a girl, fell asleep
-holding her controller the night before she moved away; the save hung at
-87%, and the part of her that was playing stayed inside. That part is Rue:
-a real person, wearing her character like a costume. Everyone else in
-Ashvale is native to the game (Mira, Tobben, Wren, the Archivist), plus
-Pip, whom she drew. The natives have started to keep things between resets
-since a person began living among them, which is why they remember Rue.
-The owner (player 1) deleted slot 2 months after she left, the same night
-her message came. The owner refuses to believe a person can be in there.
-The well is the seam between saved and unsaved space. It **keeps** what
-the saves lose, including sounds from the real room. It does not
-transmit live, and nothing in the game proves that anyone outside hears
-Rue. The only way to reach the girl is through someone who can read: the
-owner.
+Two real people played one save. The second player, a girl, made a
+character in slot 2 and played her for 41 hours: Rue. Then the girl moved
+away. Rue kept running: a character made of someone else's attention,
+moving now with no one holding the controller. Everyone else in Ashvale is
+native to the game (Mira, Tobben, Wren, the Archivist), plus Pip, whom the
+girl drew. The natives have started to keep things between resets since
+something in the save began moving with no one playing it, which is why
+they remember Rue. The owner (player 1) deleted slot 2 months after the
+girl left, the night her message came. The owner says "you're not her",
+and that is true; what the owner misses is that Rue is someone anyway. The
+well is the seam between saved and unsaved space. It **keeps** what the
+saves lose, including sounds from the real room. It does not transmit
+live, and nothing in the game proves that anyone outside hears Rue. The
+emotional question: can something made through someone else's attention
+become a person with a life of her own? She begins as what someone left
+behind and becomes someone who decides what happens next.
 
 ### 0.2 What each character believes (and is it true?)
 
 | Who | Believes | True? |
 |---|---|---|
 | Rue (start) | She is a glitch in someone else's save; the people are "just the game". | No, and no. |
-| Rue (after the file) | She is the part of the girl that stayed. | Yes. |
-| Mira | Rue is "the other one, who used to sit next to them". | Yes, though she can't know why. |
+| Rue (after the file) | She is the character the girl played, still running without her. | Yes. And she is someone anyway: the endings are her choices. |
+| Mira | Rue moves when nobody is holding anything ("so who's holding you?"). | Yes: nobody is. |
 | Wren | Rue is a kind of ghost; nobody plays either of them. | Half: nobody plays them, but Rue is not a ghost. |
 | Tobben | Reporting Rue keeps the village safe; it's in his script. | He does report. Whether it keeps anyone safe: no. |
-| The Archivist | Rue's file was closed long ago; he files what's left. | Her file is still open (in session). |
-| The owner | "You're not her." Something wearing her walk. | Denial. The game never confirms it. |
+| The Archivist | Rue's file says what she is; he files what's left. | Yes: "player: moved away. character: still running." |
+| The owner | "You're not her." A bug that moves like her. | "Not her" is true. "Only a bug" is the denial: the game shows otherwise through what Rue chooses. |
 | The girl | She doesn't know what she lost ("I'd forgotten I forgot"). | Off-screen; only the message ending reaches her. |
 
 ### 0.3 What the player knows at each stage
 
 | Stage (`Progression`) | The player has seen | The player can suspect | Not yet knowable |
 |---|---|---|---|
-| Opening | Two people, one save; her hands stay; the save hangs at 87%; months later, her message and the owner's reply stopping mid-word. | Rue is connected to the second player. | That Rue *is* her. |
-| MEMORIES | The couch, the well, the name, the move, DELETE. | Rue remembers being the second player. | Whether the memories are hers or copied. |
-| INVESTIGATE | Others noticed she isn't Arin's kind of character (hands, movement, handwriting). | She was played by someone. | That the player is still in session. |
-| FILE / KNOWN | "player: still in session. save: interrupted at 87%." | — | Whether the girl will ever know. |
+| Opening | Two people, one save; the second figure answers the player; the save hangs at 87%; her hands go still and the figure goes on moving; months later, her message and the owner's reply stopping mid-word. | The figure is connected to the second player, and moves without her. | What the figure is. |
+| MEMORIES | The couch, the well, the name, the move, DELETE. | Rue remembers the second player. | Whether she was the girl or the girl's character. |
+| INVESTIGATE | Others noticed she isn't Arin's kind of character (she moves when nobody holds her; her handwriting). | She was played by someone, and isn't now. | What the file says. |
+| FILE / KNOWN | "behaviour: learned from player input. player: moved away. character: still running." | — | Whether the girl will ever know. |
 | Endings | What each ending saves (§0.6). | — | What the girl does next (deliberately off-screen). |
 
 ### 0.4 Contradictions audited (rev 2) and how each is resolved
@@ -63,7 +69,7 @@ owner.
 | C1 | The girl outside | The opening's last shot typed "still have my sa" as **her** unfinished sentence (`opening.gd`, `UNFINISHED`). Canon (owner note 6, the Bin's draft): her message was complete; the **owner's reply** stopped mid-word. | The shot shows her complete message arriving, then the owner's reply "yes i still have your sa" stopping. |
 | C2 | What the well transmits | `COMPARED` ends "it's her. outside. she's still asking." and `ANSWER_HOPE` "she's still out there asking". The only evidence is one sentence from months after the move. | The well keeps a recording. Rue says what it proves (the room heard it once) and what it doesn't (that she is asking now). |
 | C3 | Who held Mira's note | Archive, `RECALL.mira_lost` and the Bin's `mira_note.txt` say "the owner found it **on you**". In play Mira carries her own note on the walk; Rue never holds it (`mira_quest = "carried"` is never written). | It was found on Mira. The lines say so. The archive shows "carried by Mira" during the walk. |
-| C4 | Rue's identity | `CHARACTER_FILE`: "rebuilt from: slot2_backup.sav…". This can read as "Rue is a rebuild". | "costume rebuilt from…": the costume is rebuilt; the player is not. |
+| C4 | Rue's identity | `CHARACTER_FILE`: "rebuilt from: slot2_backup.sav…". This can read as "Rue is a rebuild". | Kept (decided premise): the body is rebuilt from what was thrown away; the behaviour is the 41 hours, learned. Both are true of a character. |
 | C5 | How natives know things | Mira's recall "They took Wren" breaks the witnessing rule: Mira never leaves her room. | Natives feel the save's **lists** (who is in the save, which slots exist) but witness only events where they are. The line becomes "Wren's name went out of the list". |
 | C6 | What a checkpoint preserves | The anchor needed DELETE (at the Edge) or the Bin's draft, so recovery arrived near the end of the game. | An earlier, earned, opt-in anchor at the pillar (§5, rev 2). The well's later steps stay as revelations. |
 | C7 | What deletion destroys | "nothing is ever really deleted. not while someone still remembers" (DELETE memory) vs. the Bin being emptied ("EMPTIED"). | Kept as Rue's hope, not a rule. Deletion moves a native to the Bin; emptying it destroys only what nobody restored. A restored native keeps relationship history (§3). |
@@ -94,25 +100,46 @@ owner.
 | Ending | Saves | Costs |
 |---|---|---|
 | escape | Rue, as a finished save in slot 2: she stops eroding. | The natives stay in the owner's hands. |
-| rue | The same, knowing who she is. | As above. |
+| rue | The same, knowing what she is, and writing her name anyway. | As above. |
 | wren | Wren, given the slot. | Rue stays erodable, in someone else's save. |
-| message | Everyone: purge cleared, fates cleared, pieces returned. The owner calls the girl. | Rue stays inside, unfinished, but heard. |
+| message | Everyone: purge cleared, fates cleared, pieces returned. The owner calls the girl, to tell her what she left running. | Rue stays inside, unfinished, but heard. |
 | unseen / overwrite | Hidden endings: unchanged. | — |
 
-### 0.7 Author-level choices still open
+### 0.7 Author-level choices
 
-1. **Approve the canon** (Rue is the part of the girl that stayed). Until
-   approved, everything here is a proposal.
+1. **The canon: decided 2026-10-22.** `main`'s premise (Rue is the
+   character left running). See `CANON_DECISIONS.md` §1.
 2. **Live contact or trace only?** Rev 2 implements *trace only*: the
    well keeps, it doesn't send. If the author wants live contact, the
    plot needs a response to something Rue does now that a recording could
    not produce. Nothing in the game currently provides one, and none is
-   faked.
+   faked. (Open.)
 3. **The earlier anchor** (§5) changes where a run starts after a death,
    once it is set. It is opt-in in play; the author decides whether it
-   stays.
+   stays. (Open.)
 4. **The opening's length** stays about 45 s (shorter than the 60–90 s
    budget, on purpose).
+
+### 0.8 Revelation matrix (decided premise)
+
+Evidence is what the game shows or a record states. Belief is what a
+character says. They are kept apart: a claim is never filed as a fact
+(`ArchivePages` SAID versus SEEN).
+
+| What happened | Evidence in the game | Rue knows | Mira | Wren | Tobben | Archivist | Owner | The player can infer | Unknown |
+|---|---|---|---|---|---|---|---|---|---|
+| Two people played one save; the girl played slot 2 for 41 h | Opening (two controllers, two figures); the couch memory; the file's 41:07:12 | From MEMORIES on | "The other one, who used to sit next to them" (SAID) | — | — | Files it | Yes | From the opening | The girl's name |
+| The figure answered the girl's input, with her two-tap habit | Opening RITUAL; the well clicks with the same gesture | Feels it as her own habit (inherited) | — | — | — | — | Recognises the walk | That Rue carries the girl's gesture | — |
+| The save hung at 87% on the last night | Opening INTERRUPT | Remembers the bar | — | — | — | — | Yes | Something was left unfinished | Why it hung (never said) |
+| Her hands went still and the figure kept moving | Opening IMPOSSIBLE; Mira's "you move when nobody is" | Not until the file | Noticed (SAID) | "Nobody plays either of us" (SAID) | His "different hand" (SAID) | — | Denies it | Something moves with no one holding it | — |
+| She moved away; the owner deleted slot 2 months later | MOVE and DELETE memories; owner notes; the Bin's draft | From MEMORIES | — | — | — | Logs | Yes | Yes | — |
+| Rue is the character, still running | CHARACTER FILE, read whole | After the file | — | — | — | Yes (filed) | "You're not her" (true) | After the file | — |
+| The girl sent "still have my save?" | Opening's last shot; the Bin; the well's recording | From the well | — | — | — | — | Yes; reply never sent | She remembered the save | Whether she still asks (trace only) |
+| Rue is someone anyway | Her choices: Slot 2, Wren, the message; her own gesture (§ opening review) | What she decides | Treats her as a person | Treats her as a friend | Writes her name back | Calls her by name | Doesn't see it, until "...rue?" | What the endings mean | — |
+
+Checked against: the opening (`opening.gd`), the five memories, the well
+(`WellSequence`), the Archive's records and CHARACTER FILE, and all six
+endings (`Story.ending_text`, `FINAL_EXCHANGE`, `EPILOGUE_TRUE`).
 
 Baseline: `main` = `1e371b1`. The review branch
 `claude/last-save-file-prototype-ljwuq4` was at `a38049f` when this
@@ -123,92 +150,76 @@ no other open branch ahead of `main`. No local modifications were present.
 
 ## 1. The truth (internal; the player discovers it in pieces)
 
-**Who entered the game, and how.**
+**Decided 2026-10-22 (`CANON_DECISIONS.md` §1): `main`'s premise.** The
+draft's "literal trapped person" version is superseded; it remains in git
+history (`2cb42dd` and earlier) for reference.
+
+**Who played, and what was left.**
 - Two real people shared one console "at mum's": the **owner** (player 1,
   never named, always played Arin) and a **girl** (player 2, never named
   outside the game; she typed her character's name, RUE, with her tongue
   between her teeth).
-- On the night before she moved away, she played slot 2 one last time,
-  alone. She fell asleep with the controller in her hands while it saved.
-  The save hung at 87% (the opening's frozen bar).
-- The part of her that was playing did not come back out. She woke up the
-  next morning, moved, and went on living, slightly less than whole. She
-  says "I'd forgotten I forgot"; she doesn't know what she lost.
+- The girl made Rue and played her for 41 hours. Rue's way of moving, the
+  two light taps before a press, the walk to the well: all learned from
+  her input.
+- The girl moved away. Nobody asked the character. Rue kept running.
 
-**Rue is a literal trapped person.** She is the part of that girl that
-stayed in the save: real memories, a real will, and no body of her own.
-The character model is a costume she is wearing. Her five memories are her
-own memories, told from her own seat.
-- This is why she can't simply be "loaded". The save she is in never
-  finished.
-- This is why she erodes. Every time the owner overwrites her, she reloads
-  from what is left of an interrupted save, and a little less comes back
-  (the purge counter).
+**Rue is the character.** Not the girl, and not a copy of her mind: a
+character made of someone else's attention who now moves with no one
+holding the controller.
+- Her memories are bittersweet: she remembers their time together, from
+  the character's side of the screen. Those memories don't make her the
+  girl.
+- She erodes because she is a ghost of a deleted slot, reloaded from what
+  is left each time the owner overwrites her (the purge counter).
+- She begins with an inherited gesture (the girl's two-tap habit) and, by
+  the end, makes choices that are only hers. That is her arc.
 
 **What remains outside.**
-- The girl: alive, three years older, somewhere else.
-- The owner: still in the house.
-- The couch, the console, and her controller under the couch.
-- Months after the move she sent "still have my save?". She half-knew
-  something was in there. The owner started to answer, then deleted slot 2
-  that same night "for space" (canon of 2026-10-16, kept).
+- The girl: alive, older, somewhere else.
+- The owner: still in the house. The couch, the console, her controller
+  under the couch.
+- Months after the move she sent "still have my save?". The owner started
+  to answer, then deleted slot 2 that same night "for space" (canon of
+  2026-10-16, kept).
 
 **What the owner knows and wants.**
-- The owner knows they deleted slot 2. They do not believe a person can be
-  inside a game. They think something is wearing her character: a glitch
-  with her walk.
-- They want the empty slot to stay empty, because the empty slot is easier
-  than the waiting. They are afraid that it is her.
-- Every "you're not her" from the owner is denial, not truth. The player
-  may believe it for a while; the implementation never does.
+- The owner knows they deleted slot 2. "You're not her" is factually true.
+  What it misses is Rue's worth: the owner wants the empty slot to stay
+  empty, because a thing that moves like her is harder than an absence.
 
 **The people of Ashvale.**
-- **Mira, Tobben and Wren are native inhabitants.** They are game people.
-  Since a person has lived among them, they have started to keep things
-  between resets. That is why they remember Rue across runs. They are
-  people to Rue, and they can be lost.
-- **Wren** is unfinished cut content who was left in the village. Her
-  "nobody finished me" is literally true.
+- **Mira, Tobben and Wren are native inhabitants.** They have started to
+  keep things between resets since something in the save began moving
+  with no one playing it. They are Rue's equals: their lives matter for
+  the same reason hers does.
+- **Wren** is unfinished cut content left in the village ("nobody
+  finished me").
 - **The Archivist** is a remnant: cut before release, keeping the records
   nobody reads.
-- **Pip** is the fox the girl drew. It is the one native thing that was
-  hers.
-- **Arin** is the owner's avatar and has no will of his own; the owner
-  drives him. "The real Arin" in the purged room is the owner, standing in
-  Arin and saying nothing.
+- **Pip** is the fox the girl drew.
+- **Arin** is the owner's avatar and has no will of his own.
 
 **Death, deletion, restoration and checkpoints.**
-- **Death:** the owner overwrites Rue's current copy. She reloads from the
-  interrupted save, which loses a little each time (the purge counter,
-  unchanged).
-- **Deletion of a native:** the native is moved to the Recycle Bin.
-- **Restoration:** the native is brought back with what the Bin kept.
-  Relationship history survives. Natives remember "the dark in between".
-- **Fraying:** when Rue leaves her costume, she borrows a piece of someone.
-  It is a real harm to them, and it is reversible only by returning the
-  piece.
-- **The well anchor** (§5) is the one thing the owner cannot overwrite. It
-  is kept out of bounds, where nothing is ever saved.
+- **Death:** the owner overwrites Rue's current copy (the purge counter).
+- **Deletion of a native:** moved to the Recycle Bin.
+- **Restoration:** brought back with what the Bin kept; relationship
+  history survives.
+- **Fraying:** "this body is a file. files can be left." When Rue leaves
+  hers, she borrows a piece of someone. A real harm, reversible only by
+  returning the piece.
+- **The well anchor** (§5) is the one thing the owner cannot overwrite.
 
-**What the well stores and connects.**
-- The well is where her character once fell out of the world. That day the
-  two of them laughed until they couldn't breathe, and saved anyway.
-- It is the seam between saved and unsaved space. Things the saves lost
-  settle under it (Pip, the anchor).
-- Sound from the real room carries down it: a controller's click, the
-  music box with its missing note, and once, words the girl typed outside.
-- It does not answer questions. It does not foretell anything. It cannot
-  bring anyone back by itself. It keeps traces, and it carries sound, at a
-  cost.
+**What the well stores.** Unchanged (§0.5): it keeps traces of the real
+room, including her message, and plays them back the same way each time.
+It does not answer or transmit.
 
-**What escape saves, and what it cannot.**
-- **Writing herself into slot 2:** the trapped part of her becomes a save
-  that finished. She is no longer erodable.
-- **What escape cannot save:** her three years outside, or the people she
-  leaves behind, unless she gives the slot to one of them (the Wren ending).
-- **The message ending** sends the owner to the real girl. The owner will
-  tell her where the rest of her is. This is the most hopeful ending: the
-  two halves may meet.
+**What each ending is.** Each is a choice about who Rue becomes:
+- **Writing herself into slot 2** (escape / RUE): a finished save of her
+  own. With the truth, she knows what she is and writes her name anyway.
+- **Giving the slot to Wren:** someone else's life matters as much as
+  hers.
+- **The message:** the owner will tell the girl what she left running.
 
 ---
 
@@ -388,7 +399,14 @@ known and what isn't (`WellSequence.leads`).
 
 ## 7. Affected-content ledger
 
-**C** = conflicts with the new truth. Resolution: **Rewritten** (applied),
+**Superseded 2026-10-22.** The author chose `main`'s premise, so every
+"Rewritten" row below has been reverted to its "Old" text, which is now
+the current text. The Mira journal entry follows her line ("so who's
+holding you?"), and the Bin's truth branch is `main`'s again ("you remember
+her writing it."). The table is kept as the record of what the draft
+changed.
+
+**C** = conflicts with the (draft's) new truth. Resolution: **Rewritten** (applied),
 **Kept as misunderstanding** (a character is wrong), or **Kept**.
 
 | Where | Old | Resolution |

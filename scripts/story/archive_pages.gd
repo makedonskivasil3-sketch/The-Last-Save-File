@@ -49,7 +49,7 @@ const FACTS := {
 	"mira.other_one": {"who": "mira", "kind": "said", "line": "Arin never talks about the other one. The one who used to sit next to them.",
 		"text": "She says Arin never talks about \"the other one\", who used to sit next to them."},
 	"mira.hands": {"who": "mira", "kind": "said", "line": Story.TRUTH_LINES.mira,
-		"text": "She says your hands hold something that isn't there when you stand still. Like a controller."},
+		"text": "She says Arin only moves when the owner's there, and you move when nobody is. She asked who's holding you."},
 	"mira.who_other": {"who": "mira", "kind": "unknown", "after": "mira.other_one", "until": "rue.file",
 		"text": "Who \"the other one\" was."},
 	"wren.cant_see": {"who": "wren", "kind": "said", "line": "Stand right next to me. The owner can't see what I'm standing beside. I don't know why.",
