@@ -358,3 +358,66 @@ and the owner's awareness are not saved.
   diegetic quit, and it is clearly labelled as one.
 - **Closing the window** counts as Save and Exit, not as running away.
 - Purge from deaths is unchanged.
+
+## 7. Verification (2026-10-22)
+
+These results were run locally in a Linux container (Godot 4.3, llvmpipe
+or SwiftShader).
+
+| Check | Command | Revision | Result |
+|---|---|---|---|
+| Strict full suite | `GODOT=… tests/run.sh` | `a43a072` (game code identical to `bd73368`) | **567/567**, exit 0 (1276 s) |
+| Ending bots, fresh profile each | `tests/run.sh --bots --speed=3` | `bd73368` | **5/5 exact endings**: escape; message; escape at purge 3; escape at purge 5 (one Edge death, then a retry); Wren |
+| Exports | `--export-release` Web / Windows Desktop / Linux | `bd73368` | All exit 0. The Linux binary runs 300 frames under xvfb |
+| Headless Chromium page check | `tests/web/web_check.cjs` | `bd73368` | All pass. Rue moves on real keys; a tab closed mid-run counts as a quit; no page errors |
+| Headless Chromium audio check | `tests/web/audio_output_check.cjs` | `bd73368` | Audible after a gesture; no visible badge |
+| Captures | `tests/tour_opening.gd`, `tour_title.gd`, `tour_square.gd` | `bd73368` | `docs/review/slice/` |
+
+**CI history on this branch, kept visible**
+- Runs 121, 123 and 124 failed in the bot step only; their unit suites
+  passed.
+- Run 121, at `958ade8`: the message bot stalled south of the well after
+  an owner reload. Its suite passed 556/556.
+- Runs 123 and 124: every bot still aimed for the old east edge (x = 640),
+  which is now inside the Square.
+- Both are fixed in `bd73368`, which points the bots past the new edge and
+  replans the north road after a reload.
+
+**Kept visible: warnings**
+- "ObjectDB instances leaked at exit" and "resources still in use at
+  exit". They were already present at `537df8c` and are unchanged.
+
+**Not verified**
+- Windows gameplay. An export is not a playtest, and no Windows machine
+  was available.
+- Real controllers, including connecting or disconnecting one (simulated
+  only).
+- Touch on a phone, and a real GPU.
+- Human listening, and unfamiliar players. No playtest results are
+  claimed.
+
+**Motion evidence**
+- `title_motion.gif` is an in-engine frame sequence, not a screen
+  recording.
+- The opening and the Square are evidenced by stills and tests only.
+- Animation quality has not been judged by a person.
+
+## 8. Creative decisions for the author
+
+1. Does the playable Rue reveal (§4) become canon?
+2. Are the opening's hands the player's own under PAUSE? The slice implies
+   it.
+3. Save and Exit / Continue (§6).
+4. The demo endpoint (`COMMERCIAL_DIRECTION.md` §4).
+5. Human or generated voice for the auditions (`VOICE_AUDITION.md` §4).
+6. Whether the lamp's widening after the gate opens is too punishing.
+
+## 9. Next milestone
+
+1. **The playable recognition.** Rue's two-tap gesture in front of the
+   CHARACTER FILE.
+2. **The Archive's treatment, as the Square got.** Subspaces, returns that
+   reveal change, and the camera.
+3. **One unfamiliar-player round** on Windows (`COMMERCIAL_DIRECTION.md`
+   §8), then fixes from it.
+4. **Voice auditions**, with human listening before any production.
