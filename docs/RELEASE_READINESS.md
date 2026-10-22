@@ -2,7 +2,79 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current: review milestone after the vertical slice (2026-10-22)
+## Current: opening, character and world revision (2026-10-22, evening)
+
+**Branch:** `claude/last-save-file-prototype-ljwuq4`.
+- PR #10 is a **draft, not merged**. `main` is at `09aeb3b`.
+- The review started from `59d4d21`.
+
+**Canon: decided.** The author chose `main`'s premise on 2026-10-22 (Rue
+is the game character left running after her player moved away;
+`CANON_DECISIONS.md` §1). The disputed text was reverted to `main`'s. The
+other author decisions (§2–§6) are still open.
+
+**What changed:** the evidence ledger, storyboard, control map and
+character matrix are in `docs/OPENING_REVIEW.md`. In short:
+- input: separate focus and controller holds, only the player's pad
+  counts, no lost press;
+- Archivist semantics;
+- canon;
+- opening staging;
+- Rue's own gesture;
+- tips moved off the scene;
+- a first-session route test;
+- bot replanning and an independent RNG for the static and the cursor
+  (follow-up work).
+
+**Local results:**
+
+| Check | Head | Result |
+|---|---|---|
+| Strict suite | `fffaec8` | **614 passed, 0 failed** (1,448 s) |
+| Suite after the last commit (`afb3bc0`: a warning gate and test messages only) | `afb3bc0` | Affected files 22/22; no new warnings |
+| Ending bots (`--bots --speed=3`) | `fffaec8` | **5/5 exact endings, 0 deaths**; one stall (purge 5) |
+| Web, Windows, Linux exports | `afb3bc0` | Exit 0; no errors or warnings in the export logs |
+| Linux smoke (CI command) | `afb3bc0` | Exit 0 |
+| `web_check.cjs` / `audio_output_check.cjs` | `afb3bc0` | All passed; audible after a gesture; no page errors |
+
+**The purge-5 Edge has a real failure rate (bot, not players).** Across
+repeated purge-5 runs on these heads, a run with one static death in the
+Edge is common: 3 of 6 on the current code, 2 of 4 with the old shared RNG
+on the same code, and 2 of 10 on `f18d219`. Two of 17 current runs were
+purged. Code reading and the A/B both show the static's distribution is
+unchanged, and the difference from the older baseline is within sampling
+noise. Recorded, not tuned: tuning the Edge at purge 5 would be a balance
+change for the author.
+
+**Warnings in the suite log (`fffaec8`):**
+- Expected: broken-JSON save tests (`Parse JSON failed` ×3, `SafeFile`
+  ×3).
+- Fixed in `afb3bc0`: `event archivist.intro_pending isn't in
+  Relationships.EVENTS` (now an internal event) and `not all arguments
+  converted during string formatting` (test messages).
+- Still present: `ObjectDB instances leaked at exit`. The audio part was
+  fixed earlier (quit now waits for the audio thread). A death
+  sequence's pending `SceneTreeTimer` can still remain, which is Godot
+  4.3's handling of a freed node's coroutine.
+
+**CI:**
+- Runs on `2779940`, `9c33a86`, `ebe22e3`, `1db5573`, `22ff90d` and
+  `e135a27` failed one test, `test_cohesion_story.test_the_pointer_is_kept_between_runs`:
+  an older save was told the Archivist's introduction again.
+- Fixed in `fffaec8`. CI on the final head is linked from PR #10.
+
+**Playable build:** https://claude.ai/artifact/3G95pCn7jTAYr2DPmmWu5w,
+version 18, built from `afb3bc0`. It is private to its owner until shared.
+
+**Not verified:**
+- Windows execution
+- real controllers (pad loss was injected, not unplugged)
+- a real GPU
+- human listening
+- unfamiliar players. None were observed; the protocol and the playtest
+  log are ready (`PLAYTEST_PLAN.md`).
+
+## Previous: review milestone after the vertical slice (2026-10-22, morning)
 
 **Branch:** `claude/last-save-file-prototype-ljwuq4`.
 - PR #10 is a **draft, not merged**. `main` is at `09aeb3b`.
