@@ -64,6 +64,7 @@ func _ready() -> void:
 	_section(right, "COMFORT")
 	_slider(right, "Glitch", Settings.glitch_intensity, func(v: float) -> void: Settings.set_value("glitch_intensity", v))
 	_check(right, "Reduce flashing", Settings.reduce_flashing, func(on: bool) -> void: Settings.set_value("reduce_flashing", on))
+	_check(right, "Reduce motion", Settings.reduce_motion, func(on: bool) -> void: Settings.set_value("reduce_motion", on))
 	_check(right, "Screen shake", Settings.screen_shake, func(on: bool) -> void: Settings.set_value("screen_shake", on))
 	_check(right, "Large text", Settings.large_text, func(on: bool) -> void: Settings.set_value("large_text", on))
 	_check(right, "Vibration", Settings.vibration, func(on: bool) -> void: Settings.set_value("vibration", on))

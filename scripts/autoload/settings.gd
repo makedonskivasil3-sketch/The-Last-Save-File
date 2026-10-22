@@ -52,6 +52,9 @@ var crt_screen := false
 var screen_effects := 2
 ## Softens flashes: no strobing lights, gentler spikes, slower blinking.
 var reduce_flashing := false
+## No parallax, camera drift, pushes or follow: the picture holds still
+## (the title room, the opening's push, area cameras).
+var reduce_motion := false
 ## Short vibrations on phones (glitches, deaths, the save ring).
 var vibration := true
 ## Bigger HUD and menu text (x1.25), for small screens and tired eyes.
@@ -219,6 +222,7 @@ func save() -> void:
 	cfg.set_value("accessibility", "glitch_intensity", glitch_intensity)
 	cfg.set_value("accessibility", "reduce_flashing", reduce_flashing)
 	cfg.set_value("accessibility", "vibration", vibration)
+	cfg.set_value("accessibility", "reduce_motion", reduce_motion)
 	cfg.set_value("video", "crt_screen", crt_screen)
 	cfg.set_value("video", "screen_effects", screen_effects)
 	cfg.set_value("accessibility", "large_text", large_text)
@@ -257,6 +261,7 @@ func _load() -> void:
 	glitch_intensity = clampf(float(cfg.get_value("accessibility", "glitch_intensity", glitch_intensity)), 0.0, 1.0)
 	reduce_flashing = bool(cfg.get_value("accessibility", "reduce_flashing", reduce_flashing))
 	vibration = bool(cfg.get_value("accessibility", "vibration", vibration))
+	reduce_motion = bool(cfg.get_value("accessibility", "reduce_motion", reduce_motion))
 	# The old "crt_curvature" key was on by default for everyone, so it isn't
 	# read as a choice: the clean screen is the new default (docs/VISUAL_DIRECTION.md).
 	crt_screen = bool(cfg.get_value("video", "crt_screen", crt_screen))

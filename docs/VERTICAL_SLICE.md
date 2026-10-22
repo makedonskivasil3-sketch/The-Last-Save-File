@@ -158,6 +158,45 @@ simulated input, not with players.
 are not theirs while the figure still answers them. This needs a playtest
 (§2.5).
 
+### 3b. The dimensional title as built (`scripts/fx/title_art.gd`)
+
+The room is now staged in four depth layers:
+
+1. **The wall:** a window, a shelf, and the screen's glow.
+2. **The set:**
+   - the television on its cabinet against the wall;
+   - the cabinet's floor shadow and the screen's reflection in the boards;
+   - a light cone that widens across a floor whose boards run to a
+     vanishing point.
+3. **Her:**
+   - Rue, rim-lit on the side facing the screen;
+   - a contact shadow at her feet;
+   - a cast shadow thrown along the floor, away from the light on it.
+4. **Near:** out-of-focus silhouettes whose edges facing the screen are
+   lit:
+   - the roll of an armchair arm;
+   - the second controller dropped on the floor, its taped cable running
+     out of frame. This is the object the opening's hands held.
+
+**Depth and parallax.**
+- A slow, uneven drift moves each layer in proportion to its depth: the
+  nearest layer by at most `PARALLAX` = 4 px, the wall by 0.5 px.
+- No input is needed and the mouse plays no part.
+- The menu is a separate layer and never moves (tested).
+- Reduce motion (a new setting under COMFORT) removes the drift and dust
+  travel, and also the opening's camera push.
+
+**Why no 3D SubViewport.** One CanvasItem pass already gives floor contact,
+a coherent light and layered depth, so 3D was not needed. (The frame time
+of this pass has not been measured on a low-end device: §2.5.)
+
+**Evidence** (in `docs/review/slice/`):
+- `title_before.png` and `title_after.png`;
+- `title_reduced_motion.png`;
+- `title_motion.gif`: 6 s of the drift, rendered in-engine frame by frame
+  at 10 fps through `tests/tour_title.gd`. It is a frame sequence, not a
+  real-time screen recording.
+
 ## 4. Revelation table (the primary reveal: the proposed canon)
 
 | | |

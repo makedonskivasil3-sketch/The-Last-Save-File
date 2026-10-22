@@ -23,6 +23,7 @@ func before_each() -> void:
 	var s := settings()
 	s.glitch_intensity = 1.0
 	s.reduce_flashing = false
+	s.reduce_motion = false
 	s.screen_effects = 2
 	s.large_text = false
 	# Tips off by default so they never get in a test's way; test_tutorial

@@ -143,7 +143,7 @@ static func _url_choice() -> String:
 
 
 static func calm() -> bool:
-	return Settings.reduce_flashing or Settings.glitch_intensity <= 0.01
+	return Settings.reduce_motion or Settings.reduce_flashing or Settings.glitch_intensity <= 0.01
 
 
 func _ready() -> void:

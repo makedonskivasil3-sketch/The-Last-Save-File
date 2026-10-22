@@ -53,3 +53,25 @@ func test_a_controller_dropping_out_holds_the_game() -> void:
 	w._on_joy_connection_changed(0, false)
 	await frames(2)
 	check(not tree.paused, "a pad nobody was using doesn't stop keyboard play")
+
+
+func test_the_title_room_drifts_within_bounds_and_holds_with_reduced_motion() -> void:
+	settings().opening_seen = true
+	tree.change_scene_to_file("res://scenes/title.tscn")
+	await wait(0.5)
+	var art: TitleArt = scene().find_children("*", "TitleArt", true, false)[0]
+	var buttons := scene().find_children("*", "Button", true, false)
+	var before := buttons.map(func(b: Button) -> Vector2: return b.global_position)
+	var widest := 0.0
+	for i in 200:
+		art.elapsed = i * 0.7
+		widest = maxf(widest, art.layer_offset("near").length())
+		check(art.layer_offset("wall").length() <= art.layer_offset("near").length() + 0.001, "further layers move less")
+	check(widest > 1.0 and widest <= TitleArt.PARALLAX * 1.42, "the nearest layer drifts, at most %.0f px (%.2f)" % [TitleArt.PARALLAX, widest])
+	await wait(0.5)
+	check_eq(buttons.map(func(b: Button) -> Vector2: return b.global_position), before, "the menu never moves")
+	settings().reduce_motion = true
+	for i in 20:
+		art.elapsed = i * 3.1
+		check_eq(art.layer_offset("near"), Vector2.ZERO, "reduced motion: no drift")
+	check(Opening.calm(), "and the opening's push is off too")
