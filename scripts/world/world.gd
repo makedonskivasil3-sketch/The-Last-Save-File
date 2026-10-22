@@ -1031,6 +1031,8 @@ func _on_dialogue_closed() -> void:
 		OwnerMemory.complete_conversation(told.get("conversation", ""))
 		for e in told.get("commit", []):
 			Relationships.add(e)
+		for f: Callable in told.get("after", []):
+			f.call()  # a one-time remark, heard
 		conversation_completed.emit(who)
 	if area and is_instance_valid(who) and area.has_method("on_dialogue_closed"):
 		area.on_dialogue_closed(who)

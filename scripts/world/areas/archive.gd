@@ -103,6 +103,10 @@ const ARCHIVIST_FIRST := [
 	"Here. A pointer to it. It'll open the north road. The world isn't loaded up there, so the owner reaches in by hand.",
 	"Reach Slot 2 and you can write yourself into it. A save of your own. Nothing here could delete you then.",
 ]
+## The introduction again, for someone given the pointer who walked off
+## before he'd finished (or whose save predates "archivist.introduced").
+const ARCHIVIST_RESUMED_OPEN := "You came back. I hadn't finished."
+const ARCHIVIST_RESUMED_POINTER := "The pointer I gave you opens the north road. The world isn't loaded up there, so the owner reaches in by hand."
 const ARCHIVIST_BACK := "Back again. I remember you. Properly, I mean. The others only half do."
 const ARCHIVIST_AGAIN := "You kept the pointer. Good. North road, when you're ready."
 const ARCHIVIST_NO_PIECES := "Things like you leave pieces behind when they're deleted. Look for anything your colour."
@@ -115,24 +119,36 @@ static func _archivist_remembers() -> String:
 ## Every line the Archivist can say that is the same in every run, by voice
 ## id stem (VoiceManifest). Lines with run counts in them stay text only.
 static func voice_lines() -> Dictionary:
-	return {"npc.archivist": ARCHIVIST_POINTER + ARCHIVIST_FIRST + [ARCHIVIST_BACK, ARCHIVIST_AGAIN, ARCHIVIST_NO_PIECES, _archivist_remembers(),
+	return {"npc.archivist": ARCHIVIST_POINTER + ARCHIVIST_FIRST + [ARCHIVIST_RESUMED_OPEN, ARCHIVIST_RESUMED_POINTER, ARCHIVIST_BACK, ARCHIVIST_AGAIN, ARCHIVIST_NO_PIECES, _archivist_remembers(),
 		Story.ARCHIVIST_FILE_HINT, Story.ARCHIVIST_KNOWS, Story.ARCHIVIST_PIECE_BACK, Story.ARCHIVIST_NOTHING_TO_TAKE] + Story.ARCHIVIST_SHED_FIRST}
 
 
-func _archivist_lines() -> Array:
-	var lines: Array = _archivist_core() + [_fragment_comment()]
+## What he says, and what counts once it has been read to the end. Choosing
+## the lines changes nothing that is told: his introduction and his
+## one-time remarks are kept for the next talk until they're heard whole
+## (World._on_dialogue_closed runs "after"). The pointer is the exception,
+## on purpose: a gameplay grant, given (and shown) the moment he hands it
+## over, so walking away can never strand Rue without the north road.
+func _archivist_lines() -> Dictionary:
+	var after: Array = []
+	var commit: Array = []
+	var lines: Array = _archivist_core(commit) + [_fragment_comment()]
 	if OwnerMemory.fragments.size() >= Story.FRAGMENTS.size():
 		lines.append(Story.ARCHIVIST_KNOWS if OwnerMemory.knows_truth else Story.ARCHIVIST_FILE_HINT)
-	# What he thinks of her leaving bodies behind (each said once).
+	# What he thinks of her leaving bodies behind (each said once, heard).
 	if OwnerMemory.sheds > 0 and "archivist" not in OwnerMemory.shed_said:
-		OwnerMemory.shed_said.append("archivist")
-		OwnerMemory.save_memory()
+		after.append(_said.bind("archivist"))
 		lines.append_array(Story.ARCHIVIST_SHED_FIRST)
 	elif "archivist_back" not in OwnerMemory.shed_said and OwnerMemory.sheds > 0 and OwnerMemory.frayed.size() < OwnerMemory.sheds:
-		OwnerMemory.shed_said.append("archivist_back")
-		OwnerMemory.save_memory()
+		after.append(_said.bind("archivist_back"))
 		lines.append(Story.ARCHIVIST_PIECE_BACK)
-	return lines
+	return {"lines": lines, "id": "", "commit": commit, "after": after}
+
+
+static func _said(key: String) -> void:
+	if key not in OwnerMemory.shed_said:
+		OwnerMemory.shed_said.append(key)
+		OwnerMemory.save_memory()
 
 
 ## Rue's CHARACTER FILE: locked until every memory is back, unreadable until
@@ -175,8 +191,16 @@ func _fragment_comment() -> String:
 var _greeted := false
 
 
-func _archivist_core() -> Array:
+func _archivist_core(commit: Array) -> Array:
 	if world.flags.get("pointer", false):
+		if not Relationships.has("archivist.introduced"):
+			# Given the pointer, but he never got to say who he is: he does.
+			commit.append("archivist.introduced")
+			var again: Array = [ARCHIVIST_RESUMED_OPEN]
+			again.append_array(ARCHIVIST_FIRST.slice(1, 5))
+			again.append(ARCHIVIST_RESUMED_POINTER)
+			again.append(ARCHIVIST_FIRST[6])
+			return again
 		if _greeted or not OwnerMemory.met_archivist:
 			return ARCHIVIST_POINTER.duplicate()
 		_greeted = true
@@ -192,6 +216,7 @@ func _archivist_core() -> Array:
 	world.hud.say("RECEIVED: slot_2.ptr", "system")
 	OwnerMemory.met_archivist = true
 	Relationships.add("archivist.pointer")  # saves
+	commit.append("archivist.introduced")  # once it's heard
 	return ARCHIVIST_FIRST.duplicate()
 
 

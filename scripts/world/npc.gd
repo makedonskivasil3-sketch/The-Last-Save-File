@@ -240,11 +240,13 @@ func interact() -> Dictionary:
 	var told: Variant = urgent if not urgent.is_empty() else lines_provider.call()
 	var conversation := ""
 	var commit: Array = []
+	var after: Array = []
 	var lines: Array = []
 	if told is Dictionary:
 		lines = told.get("lines", [])
 		conversation = told.get("id", "")
 		commit = told.get("commit", [])
+		after = told.get("after", [])
 	else:
 		lines = told
 	if state != State.DELETED:
@@ -260,7 +262,7 @@ func interact() -> Dictionary:
 	if on_talk.is_valid():
 		on_talk.call()
 	return {"speaker": Story.TOBBEN_WRITTEN if npc_id == "tobben" and is_frayed() else display_name, "color": name_color, "lines": lines,
-		"conversation": conversation, "commit": commit}
+		"conversation": conversation, "commit": commit, "after": after}
 
 
 func _process(delta: float) -> void:

@@ -5,7 +5,8 @@ extends RefCounted
 ## chooses what someone says next (docs/NARRATIVE_CONTRACT.md §4).
 ##
 ## A conversation is a Dictionary: {"lines": Array, "id": String,
-## "commit": Array of event ids, "ask": bool}. The conversation id and the
+## "commit": Array of event ids, "ask": bool, "after": Array of Callables
+## run once it's read whole (one-time remarks that aren't events)}. The conversation id and the
 ## ids in "commit" are written only when the box is read to its last line
 ## (World._on_dialogue_closed), so walking away halfway never marks a
 ## confession heard; it is said again next time.
@@ -56,6 +57,7 @@ const EVENTS := {
 	"tobben.piece_returned": "You gave Tobben his voice back.",
 	"archivist.met": "Met the Archivist.",
 	"archivist.pointer": "The Archivist gave you a pointer to Slot 2.",
+	"archivist.introduced": "The Archivist told you what he is: cut before the game shipped, never seen by the owner.",
 }
 
 ## Wren's lines for each step (the order is the precedence above).
