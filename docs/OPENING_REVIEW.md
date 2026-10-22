@@ -107,3 +107,29 @@ where marked). **Proposed** means it is not built.
   its completion is now tracked).
 - A second gesture of Rue's own, earlier than Slot 2, for players who never
   read the file.
+
+## Maps and presentation (this pass)
+
+- **Tips no longer cover the scene.** The tutorial card moved from
+  top-centre (over the Archive's shelves and the Square's crossing) to the
+  bottom-right corner, above the control hint. That is the part the areas
+  leave empty, and away from the console. It is left-aligned and grows
+  upwards with larger text, and it still steps back when it overlaps the
+  interaction prompt. Compare `docs/review/opening/compare_tips_and_you.jpg`
+  (left: the 22 October head; right: now).
+- **The first room** shows **you** over Rue until her first step.
+- **Mira** tends her cups; **Tobben** tends his wares (previous pass); the
+  **Archivist** reads at his desk.
+- Captures of every review state at this head are
+  `docs/review/opening/world_after_*.jpg`. The matching earlier set is
+  `docs/review/oct22/after_*.jpg`.
+
+**Not changed (proposals):**
+- The act card ("ACT I · SOMEONE ELSE'S SAVE") still sits centred over the
+  rug on a first arrival. It holds the owner until it is read (the
+  protection policy), so moving it is a design decision, not a fix. The
+  proposal is a lower placement with the same hold.
+- No new portraits or recorded performances exist; the procedural cast
+  and the portrait loader's fallback are unchanged.
+- The cast's hand and arm poses, gaze and start/stop transitions were not
+  redrawn in this pass.

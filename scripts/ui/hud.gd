@@ -61,6 +61,7 @@ var _console_box: PanelContainer
 var _status: Label
 ## Tutorial tip card.
 var _tip: PanelContainer
+const TIP_WIDTH := 220.0
 var _tip_title: Label
 var _tip_body: Label
 var _tip_tween: Tween
@@ -283,15 +284,23 @@ func _ready() -> void:
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_hint.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 
-	# Tutorial tips: a small card, centred under the top bar.
+	# Tutorial tips: a small card in the bottom-right corner, above the
+	# control hint. It used to sit centred under the top bar, over the very
+	# scene it explained (2026-10-22 review); the corner is the part of the
+	# screen the areas leave empty, and away from the console (bottom left).
+	# It grows upwards with larger text.
 	var tip_row := VBoxContainer.new()
-	tip_row.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	tip_row.position.y = SAFE.y + 50  # under the status line, not over it
+	tip_row.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	tip_row.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	tip_row.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	tip_row.offset_right = -SAFE.x
+	tip_row.offset_bottom = -SAFE.y - 18  # above the control hint
+	tip_row.alignment = BoxContainer.ALIGNMENT_END
 	tip_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(tip_row)
 	_tip = PanelContainer.new()
-	_tip.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	_tip.custom_minimum_size.x = 300
+	_tip.size_flags_horizontal = Control.SIZE_SHRINK_END
+	_tip.custom_minimum_size.x = TIP_WIDTH
 	var tip_box := _backing(0.85)
 	tip_box.border_color = Color(STATUS_COLOR, 0.5)
 	tip_box.set_border_width_all(1)
@@ -307,14 +316,14 @@ func _ready() -> void:
 	_tip_title = Label.new()
 	UiStyle.sized(_tip_title, 10)
 	_tip_title.add_theme_color_override("font_color", STATUS_COLOR)
-	_tip_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_tip_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	tip_lines.add_child(_tip_title)
 	_tip_body = Label.new()
 	UiStyle.sized(_tip_body, 10)
 	_tip_body.add_theme_color_override("font_color", SLOT_COLOR)
-	_tip_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_tip_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_tip_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_tip_body.custom_minimum_size.x = 288
+	_tip_body.custom_minimum_size.x = TIP_WIDTH - 12
 	tip_lines.add_child(_tip_body)
 
 	_overlay = ColorRect.new()
