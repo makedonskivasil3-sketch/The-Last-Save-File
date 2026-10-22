@@ -47,6 +47,10 @@ const LIBRARY := Rect2(790, 36, 130, 66)
 const LANE := Rect2(540, 40, 250, 58)
 const FENCE_Y := 98.0
 const GATE := Rect2(740, 98, 34, 6)
+## The Archive's gatehouse over the road out east: its two piers are solid,
+## the passage between them (EAST_GAP) is the way in.
+const GATEHOUSE_N := Rect2(884, 102, 36, 54)
+const GATEHOUSE_S := Rect2(884, 206, 36, 86)
 const ROUTE: Array[Vector2] = [Vector2(200, 130), Vector2(440, 130), Vector2(440, 230), Vector2(200, 230)]
 ## Arin has to keep you in view this long before the owner reacts.
 const SIGHT_GRACE := 0.35
@@ -54,7 +58,7 @@ const SIGHT_GRACE := 0.35
 const SIGHT_RATE := 22.0
 ## Where the eraser starts when the owner hunts: the far corners, away from
 ## both roads out, so it chases you instead of walling off the exits.
-const ERASE_SEEDS: Array[Vector2] = [Vector2(56, 280), Vector2(900, 276)]
+const ERASE_SEEDS: Array[Vector2] = [Vector2(56, 280), Vector2(820, 280)]
 
 const GRASS := Color("1f2a1e")
 const PATH := Color("3a3128")
@@ -170,7 +174,7 @@ func build() -> void:
 		{"side": "right", "from": EAST_GAP.x, "to": EAST_GAP.y},
 		{"side": "top", "from": NORTH_GAP.x, "to": NORTH_GAP.y},
 	])
-	for r in [HOUSE, WELL, STALL, LIBRARY]:
+	for r in [HOUSE, WELL, STALL, LIBRARY, GATEHOUSE_N, GATEHOUSE_S]:
 		add_solid(r)
 	# The lane's fence, either side of its gate.
 	add_solid(Rect2(LANE.position.x, FENCE_Y, GATE.position.x - LANE.position.x, GATE.size.y))
@@ -183,7 +187,7 @@ func build() -> void:
 	add_light(Vector2(220, 70), Color(1.0, 0.86, 0.62), 0.75, 560.0, true)
 	add_light(WELL.get_center() + Vector2(0, 14), Color(1.0, 0.75, 0.45), 0.9, 70.0)
 	add_light(STALL.get_center() + Vector2(0, 30), Color(1.0, 0.8, 0.55), 0.8, 90.0)
-	add_light(Vector2(LIBRARY.get_center().x, LIBRARY.end.y + 10), Color(0.95, 0.85, 0.7), 0.7, 110.0)
+	add_light(Vector2(GATEHOUSE_N.get_center().x - 10, (EAST_GAP.x + EAST_GAP.y) * 0.5), Color(1.0, 0.82, 0.5), 0.9, 90.0)  # the gatehouse's lamp
 	add_dust(bounds.grow(-10), Color(1.0, 0.95, 0.75, 0.4), 30, Vector2(6, -1))  # pollen on the breeze
 	crates = DragProp.new()
 	crates.setup(CRATES)
@@ -212,7 +216,7 @@ func build() -> void:
 	var house_door := add_readable("ARIN'S HOUSE", Vector2(111, 108), Readable.Look.SIGN, _house_door_lines)
 	house_door.prompt = "door"
 
-	add_sign(Vector2(bounds.end.x - 34, EAST_GAP.x - 10), "ARCHIVE", Vector2.RIGHT)
+	add_sign(Vector2(GATEHOUSE_N.position.x - 26, EAST_GAP.x - 10), "ARCHIVE", Vector2.RIGHT)
 	add_sign(Vector2((NORTH_GAP.x + NORTH_GAP.y) * 0.5, bounds.position.y + 12), "NORTH ROAD", Vector2.UP,
 		func() -> bool: return world.flags.get("pointer", false))
 	add_sign(Vector2(WELL.get_center().x, WELL.position.y - 8), "WELL", Vector2.DOWN)
@@ -533,6 +537,11 @@ func _on_lamp_sees(delta: float) -> void:
 		return
 	world.director.add_awareness(LAMP_RATE * delta)
 	world.flags["seen_by_lamp"] = true
+	# Held in the beam: the owner learns the spot (once per time in it), so
+	# later runs Arin walks the crossing too. Crossing openly costs little
+	# now and more later; the bench and the lane are how to avoid that.
+	if _lamp_seen_for - delta < LAMP_GRACE:
+		OwnerMemory.note_spot(area_id, world.player.global_position)
 	if not _lamp_spotted:
 		_lamp_spotted = true
 		Sfx.play("spotted")
@@ -735,9 +744,24 @@ func _paint(ci: CanvasItem) -> void:
 ## lane and its fence, the covered bench, and the Archive's stone front
 ## over the road out.
 func _paint_east(ci: CanvasItem) -> void:
-	# The crossing: wide, open cobbles with nothing to stand behind.
-	Decor.cobbles(ci, CROSSING, STONE.darkened(0.04), 9.0, 5.0)
-	ci.draw_rect(CROSSING, Decor.INK.lerp(Color.TRANSPARENT, 0.7), false, 1.0)
+	# The crossing: a plaza of large pale flags inside a kerb, with the road
+	# running straight through it in darker setts (so the way on reads at a
+	# glance), a gutter along the road, a drain, and a path worn diagonally
+	# from the lane's gate towards the bench (where people actually walk).
+	var c := CROSSING
+	ci.draw_rect(c.grow(3.0), STONE.darkened(0.42))  # the kerb's shadow
+	Decor.flagstones(ci, c, STONE.darkened(0.06), 22.0, 7.0)
+	ci.draw_rect(c, Color(STONE.lightened(0.1), 0.7), false, 2.0)  # the kerb
+	var road := Rect2(c.position.x, 168, c.size.x, 24)
+	Decor.cobbles(ci, road, STONE.darkened(0.2), 7.0, 4.0)
+	for y in [road.position.y, road.end.y]:
+		ci.draw_line(Vector2(road.position.x, y), Vector2(road.end.x, y), Color(0, 0, 0, 0.35), 1.0)  # gutters
+	ci.draw_rect(Rect2(c.get_center().x - 6, road.end.y + 3, 12, 4), Color(0.08, 0.08, 0.09))  # a drain
+	for k in 4:
+		ci.draw_line(Vector2(c.get_center().x - 5 + k * 3, road.end.y + 3), Vector2(c.get_center().x - 5 + k * 3, road.end.y + 7), STONE.darkened(0.1), 0.6)
+	var worn := PackedVector2Array([GATE.get_center() + Vector2(-6, 8), GATE.get_center() + Vector2(8, 8),
+		RECESS.get_center() + Vector2(10, -16), RECESS.get_center() + Vector2(-8, -16)])
+	ci.draw_colored_polygon(worn, Color(1.0, 0.95, 0.85, 0.06))
 	# The lane behind Tobben's: a worn track along the fence.
 	Decor.path(ci, Rect2(LANE.position.x, LANE.position.y + 30, LANE.size.x, 22), PATH.lightened(0.02), 4.0)
 	for k in 9:
@@ -760,34 +784,46 @@ func _paint_east(ci: CanvasItem) -> void:
 	ci.draw_rect(Rect2(RECESS.position, Vector2(RECESS.size.x, 9)), Decor.INK, false, 0.8)
 	for x in [RECESS.position.x + 2, RECESS.end.x - 4]:
 		ci.draw_rect(Rect2(x, RECESS.position.y + 9, 2, RECESS.size.y - 10), Color("3a2a20"))
-	# The Archive's front: pale stone, tall windows, a round one over the
-	# door, the same blue as the books inside.
+	# The Archive: a pale stone front with tall windows and a rose window,
+	# and its gatehouse over the road out: the only doorway, lit from inside,
+	# its name cut over the arch. (No door on the front: the way in is the
+	# road, and nothing on the facade pretends otherwise.)
 	var f := LIBRARY
+	var stone := Color("8a8478")
 	ci.draw_rect(Rect2(f.position + Vector2(4, 6), f.size), Color(0, 0, 0, 0.28))
-	ci.draw_rect(f, Color("8a8478"))
+	ci.draw_rect(f, stone)
 	ci.draw_rect(Rect2(f.position.x, f.end.y - 14, f.size.x, 14), Color("6a645a"))  # its front face
 	ci.draw_rect(Rect2(f.position.x - 2, f.position.y, f.size.x + 4, 6), Color("5a5650"))
 	for k in 5:
-		var wx := f.position.x + 12 + k * 24
+		var wx := f.position.x + 10 + k * 22
 		if k == 2:
 			continue
-		ci.draw_rect(Rect2(wx, f.position.y + 14, 9, 22), Color("1e2a3a"))
-		ci.draw_rect(Rect2(wx, f.position.y + 14, 9, 22), Decor.INK, false, 0.8)
-		ci.draw_line(Vector2(wx + 4.5, f.position.y + 14), Vector2(wx + 4.5, f.position.y + 36), Color("6a645a"), 0.8)
-	var rose := Vector2(f.get_center().x, f.position.y + 22)
-	ci.draw_circle(rose, 9.0, Color("5a5650"))
-	ci.draw_circle(rose, 7.0, Color("2a4a6a"))
-	for k in 6:
-		ci.draw_line(rose, rose + Vector2.from_angle(k * TAU / 6.0) * 7.0, Color("8a8478"), 0.8)
-	ci.draw_rect(Rect2(rose.x - 8, f.end.y - 22, 16, 20), Color("3a2a20"))  # its door, shut: the way in is the road
-	ci.draw_rect(Rect2(rose.x - 8, f.end.y - 22, 16, 20), Decor.INK, false, 0.8)
+		ci.draw_rect(Rect2(wx, f.position.y + 14, 9, 34), Color("1e2a3a"))
+		ci.draw_rect(Rect2(wx, f.position.y + 14, 9, 34), Decor.INK, false, 0.8)
+		ci.draw_rect(Rect2(wx + 1, f.position.y + 15, 7, 10), Color(1.0, 0.85, 0.55, 0.18))  # a lamp inside
+	var rose := Vector2(f.position.x + 54, f.position.y + 30)
+	ci.draw_circle(rose, 11.0, Color("5a5650"))
+	ci.draw_circle(rose, 9.0, Color("2a4a6a"))
+	for k in 8:
+		ci.draw_line(rose, rose + Vector2.from_angle(k * TAU / 8.0) * 9.0, stone, 0.8)
 	ci.draw_rect(f, Decor.INK, false, 1.0)
-	# The arch over the road out, under the Archive's corner.
-	var gap_x := bounds.end.x
-	for y in [EAST_GAP.x - 8.0, EAST_GAP.y]:
-		ci.draw_rect(Rect2(gap_x - 14, y, 14, 8), Color("7a7468"))
-		ci.draw_rect(Rect2(gap_x - 14, y, 14, 8), Decor.INK, false, 0.8)
-	ci.draw_rect(Rect2(gap_x - 16, EAST_GAP.x - 12, 16, 4), Color("5a5650"))
+	# The gatehouse: two piers and a lintel over the passage.
+	for g in [GATEHOUSE_N, GATEHOUSE_S]:
+		ci.draw_rect(Rect2(g.position + Vector2(3, 4), g.size), Color(0, 0, 0, 0.3))
+		ci.draw_rect(g, stone.darkened(0.08))
+		ci.draw_rect(Rect2(g.position.x, g.end.y - 10, g.size.x, 10), Color("6a645a"))
+		for yy in range(int(g.position.y) + 8, int(g.end.y) - 10, 8):
+			ci.draw_line(Vector2(g.position.x, yy), Vector2(g.end.x, yy), Color(0, 0, 0, 0.12), 0.6)
+		ci.draw_rect(g, Decor.INK, false, 1.0)
+	var passage := Rect2(GATEHOUSE_N.position.x, GATEHOUSE_N.end.y, GATEHOUSE_N.size.x, GATEHOUSE_S.position.y - GATEHOUSE_N.end.y)
+	ci.draw_rect(passage, Color(0.12, 0.1, 0.09))
+	ci.draw_rect(passage.grow_individual(-4, -2, 0, -2), Color(1.0, 0.82, 0.5, 0.22))  # lamplight from inside
+	for k in 6:  # the light spilling out onto the road
+		ci.draw_rect(Rect2(passage.position.x - 6 - k * 8, passage.position.y + 4 + k, 8, passage.size.y - 8 - k * 2), Color(1.0, 0.82, 0.5, 0.05 * (6 - k)))
+	var lintel := Rect2(GATEHOUSE_N.position.x - 4, GATEHOUSE_N.end.y - 14, GATEHOUSE_N.size.x + 4, 12)
+	ci.draw_rect(lintel, Color("5a5650"))
+	ci.draw_line(lintel.position + Vector2(2, 3), Vector2(lintel.end.x - 2, lintel.position.y + 3), Color("8a8478"), 1.0)  # carved
+	# (Its name is the exit sign beside it, the same as every way out.)
 
 
 func _process(_delta: float) -> void:

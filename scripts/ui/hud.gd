@@ -167,6 +167,9 @@ func _ready() -> void:
 	add_child(root)
 
 	_slot = _make_label(root, SAFE, Vector2(380, 14), 10, SLOT_COLOR)
+	# The save's own label (whose save it is, not who you are): quieter than
+	# anything Rue needs to act on.
+	_slot.modulate.a = 0.6
 	_edge_marks = _EdgeMarks.new()
 	_edge_marks.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_edge_marks.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1326,7 +1329,20 @@ func set_status(text: String) -> void:
 
 ## Show the current goal for its reading time plus 3 s, then fade it to a
 ## faint reminder (Pause shows it in full).
+## The goal as shown on screen: its first sentence, one actionable thought.
+## The rest stays in the pause menu and the journal (World.current_goal).
+static func first_thought(goal: String) -> String:
+	var truce := goal.begins_with("TRUCE:")
+	var body := goal.split(": ", true, 1)[1] if truce and goal.contains(": ") else goal
+	if truce:
+		body = body.substr(body.find(". ") + 2) if body.find(". ") >= 0 else body
+	var cut := body.find(". ")
+	var first := body.substr(0, cut + 1) if cut >= 0 else body
+	return ("TRUCE  ·  " + first) if truce else first
+
+
 func show_objective(text: String, hint := "") -> void:
+	text = first_thought(text)
 	if _objective_tween:
 		_objective_tween.kill()
 	_objective_tween = null
@@ -1563,8 +1579,10 @@ func _update_typing(delta: float) -> void:
 			# (Some owner lines are written with their own prompt: one "> " only.)
 			line.text = msg.text if msg.text.begins_with("> ") else "> " + msg.text
 			line.add_theme_color_override("font_color", OWNER_COLOR)
-			# A colour-split shadow so the owner's words never sit quite still.
-			line.add_theme_color_override("font_shadow_color", Color(0.3, 0.9, 1.0, 0.35 * Settings.glitch_intensity))
+			# A faint colour-split shadow so the owner's words never sit quite
+			# still: faint, because the words themselves must stay readable
+			# (the screen's own colour split already sits on top).
+			line.add_theme_color_override("font_shadow_color", Color(0.3, 0.9, 1.0, 0.18 * Settings.glitch_intensity))
 			line.add_theme_constant_override("shadow_offset_x", -1)
 			line.add_theme_constant_override("shadow_offset_y", 0)
 			line.set_meta("owner", true)

@@ -69,7 +69,8 @@ func test_a_short_goal_doesnt_cover_the_wall_notes() -> void:
 		var o: Label = w.hud._objective
 		check(o.size.x < Hud.OBJECTIVE_W * 0.6, "large %s: a short goal's backing fits its words (%.0f px)" % [big, o.size.x])
 		check(o.get_line_count() == 1, "and it is still one line")
-		var long := "Explore the village. The road east leads somewhere old. The well looks deeper than it should."
+		# (One long sentence: the HUD shows only a goal's first sentence.)
+		var long := "Explore the village, where the road east leads somewhere old and the well looks deeper than it should, before the owner notices you."
 		w.hud.show_objective(long)
 		await frames(2)
 		check(o.size.x <= Hud.OBJECTIVE_W + 0.5, "a long goal wraps at the usual width (%.0f px)" % o.size.x)

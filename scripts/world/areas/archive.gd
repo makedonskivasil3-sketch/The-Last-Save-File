@@ -37,8 +37,11 @@ func build() -> void:
 	set_backdrop(_paint)
 	# Quiet and safe: one lamp on the Archivist's desk, the shelves fading
 	# into the dark around it.
-	light_surfaces(0.48, 1.6)
+	light_surfaces(0.54, 1.6)
 	add_light(DESK.get_center() + Vector2(0, -10), Color(1.0, 0.78, 0.5), 1.6, 170.0, true)
+	# Moonlight from the high window onto the aisle (the room's shape, and
+	# the way through it, from the doorway).
+	add_light(Vector2(320, 150), Color(0.6, 0.75, 1.0), 0.5, 150.0)
 	add_dust(Rect2(DESK.position.x - 70, DESK.position.y - 120, DESK.size.x + 140, 130), Color(1.0, 0.85, 0.6, 0.45), 20, Vector2(2, -2))
 	add_boundary([{"side": "left", "from": WEST_GAP.x, "to": WEST_GAP.y}, {"side": "right", "from": EAST_GAP.x, "to": EAST_GAP.y}])
 	for s in SHELVES:
@@ -65,6 +68,7 @@ func build() -> void:
 	for rec in [["SESSION LOG", Vector2(180, 138), _session_log], ["DELETED ASSETS", Vector2(440, 138), _deleted_assets],
 			["CUT CONTENT", Vector2(200, 84), _cut_content], ["THE OWNER", Vector2(440, 84), _owner_notes]]:
 		var book := add_readable(rec[0], rec[1], Readable.Look.RECORD, rec[2])
+		add_light(rec[1] + Vector2(0, -6), Color(1.0, 0.85, 0.6), 0.75, 44.0)  # each record has its reading lamp
 		var title: String = rec[0]
 		book.was_read = func() -> bool: return OwnerMemory.journal.any(func(e: Dictionary) -> bool: return e.get("title", "") == title)
 	# Filed long ago, at the Archivist's desk: what Rue is (docs/DARK_TRUTH_DESIGN.md).
@@ -253,13 +257,44 @@ func _owner_notes() -> Array:
 
 
 func _paint(ci: CanvasItem) -> void:
-	# The Archive, illustrated: old flagstones, tall shelves of unfinished
-	# things, the Archivist's desk on a worn runner. Warm, a little dusty:
-	# the one place that remembers kindly.
+	# The Archive, illustrated: old flagstones, tall cases of unfinished
+	# things along the north wall, the records open on lit stands in front
+	# of them, an aisle runner from the square's door to the Bin's, and the
+	# Archivist's desk under its lamp. Warm, a little dusty: the one place
+	# that remembers kindly.
 	var r := bounds
 	Decor.flagstones(ci, r, FLOOR.lightened(0.12), 26.0, 5.0)
+	# The aisle: west door to east door, the way through.
+	var aisle := Rect2(r.position.x, WEST_GAP.x + 4, r.size.x, WEST_GAP.y - WEST_GAP.x - 8)
+	ci.draw_rect(aisle, Color("2e2628"))
+	ci.draw_rect(aisle.grow_individual(0, -3, 0, -3), Color("3a2c2e"))
+	for y in [aisle.position.y + 2, aisle.end.y - 2]:
+		ci.draw_line(Vector2(aisle.position.x, y), Vector2(aisle.end.x, y), Color("a07a50"), 1.0)
+	# The high window on the north wall, and its light down to the aisle.
+	var win := Rect2(300, r.position.y + 2, 40, 22)
+	ci.draw_rect(win, Color("1e2a3a"))
+	ci.draw_arc(Vector2(win.get_center().x, win.position.y + 6), 20.0, PI, TAU, 16, Color("5a4a40"), 3.0)
+	ci.draw_line(Vector2(win.get_center().x, win.position.y), Vector2(win.get_center().x, win.end.y), Color("5a4a40"), 1.5)
+	ci.draw_colored_polygon(PackedVector2Array([win.position + Vector2(4, win.size.y), Vector2(win.end.x - 4, win.end.y),
+		Vector2(win.end.x + 30, aisle.position.y + 10), Vector2(win.position.x - 30, aisle.position.y + 10)]), Color(0.6, 0.75, 1.0, 0.05))
 	Decor.rug(ci, Rect2(DESK.position.x - 22, DESK.position.y - 30, DESK.size.x + 44, 56), Color("4a2e30"), Color("a07a50"))
 	for sh in SHELVES:
+		# Tall cases behind the shelf (their height is drawn, their foot is
+		# the solid shelf), so the room has its silhouette from the door.
+		var case := Rect2(sh.position.x, sh.position.y - 22, sh.size.x, 22)
+		ci.draw_rect(Rect2(case.position + Vector2(2, -2), case.size), Color(0, 0, 0, 0.25))
+		ci.draw_rect(case, SHELF.darkened(0.25))
+		for row in 2:
+			var ry := case.position.y + 3 + row * 9
+			var bx := case.position.x + 2.0
+			var j := 0
+			while bx < case.end.x - 3.0:
+				var bw := 2.5 + Decor.hash01(bx, ry, 3.0) * 2.0
+				var bc: Color = [Color("6b3a2c"), Color("3a4a6a"), Color("5a6a3a"), Color("8a7a68"), Color("7a5a2a")][(j + row) % 5]
+				ci.draw_rect(Rect2(bx, ry, bw, 7), bc.darkened(0.2))
+				bx += bw + 0.5
+				j += 1
+		ci.draw_rect(case, Decor.INK, false, 0.8)
 		var top := Decor.furniture(ci, sh, SHELF, 3.0)
 		# Spines on the shelf's front edge, all slightly different.
 		var x := top.position.x + 1.0
@@ -277,6 +312,21 @@ func _paint(ci: CanvasItem) -> void:
 	ci.draw_line(desk.position + Vector2(8, 4), desk.position + Vector2(16, 4), Color("8a7a68"), 0.5)
 	ci.draw_line(desk.position + Vector2(8, 6), desk.position + Vector2(14, 6), Color("8a7a68"), 0.5)
 	Decor.lamp(ci, desk.position + Vector2(desk.size.x - 8, desk.size.y * 0.5), Color("f0d090"))
+	# Once he has given Rue the pointer, a map of the north road stays
+	# pinned to the desk's front: what happened here shows next time.
+	if Relationships.has("archivist.pointer"):
+		var m := Rect2(DESK.position.x + 18, DESK.end.y - 2, 16, 11)
+		ci.draw_rect(m, Color("e8dcc4"))
+		ci.draw_rect(m, Decor.INK, false, 0.6)
+		ci.draw_line(m.position + Vector2(8, 9), m.position + Vector2(8, 2), Color("6b3a2c"), 0.8)
+		ci.draw_line(m.position + Vector2(8, 2), m.position + Vector2(6, 4), Color("6b3a2c"), 0.8)
+		ci.draw_line(m.position + Vector2(8, 2), m.position + Vector2(10, 4), Color("6b3a2c"), 0.8)
+	# The Bin's door: a bin over the east doorway, so it isn't just a gap.
+	var bin_at := Vector2(r.end.x - 6, EAST_GAP.x - 18)
+	ci.draw_rect(Rect2(bin_at + Vector2(-5, 0), Vector2(10, 11)), Color("3a3f4a"))
+	ci.draw_rect(Rect2(bin_at + Vector2(-6, -2), Vector2(12, 2)), Color("5a606a"))
+	for k in 3:
+		ci.draw_line(bin_at + Vector2(-3 + k * 3, 2), bin_at + Vector2(-3 + k * 3, 9), Color("8cf2ff", 0.5), 0.6)
 	# Soft light: nothing in here was ever finished.
 	ci.draw_circle(Vector2(320, 190), 60.0, Color(0.55, 0.95, 1.0, 0.03))
 	Decor.wall_shadow(ci, bounds, 12.0, 0.3)

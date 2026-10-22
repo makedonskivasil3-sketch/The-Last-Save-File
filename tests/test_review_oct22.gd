@@ -216,3 +216,38 @@ func test_without_a_recording_the_page_is_typed_again_from_its_start() -> void:
 	check_eq(w.hud._dialogue_index, 0, "the same page")
 	check(w.hud._pacer.phase == LinePacer.Phase.REVEALING and w.hud._dialogue_text.visible_characters < 5, "typed again from its start, so it can be read")
 	w.hud.close_dialogue()
+
+
+# --- HUD: one actionable thought ------------------------------------------------------
+
+func test_the_goal_on_screen_is_one_actionable_thought() -> void:
+	check_eq(Hud.first_thought("Get out of Arin's room."), "Get out of Arin's room.", "a one-sentence goal is shown whole")
+	check_eq(Hud.first_thought("Explore the village: the road east leads somewhere old. The well looks deeper than it should."),
+		"Explore the village: the road east leads somewhere old.", "the rest waits in the journal")
+	check(Hud.first_thought("TRUCE: the owner only watches this run, unless you glitch. Get out of Arin's room.").begins_with("TRUCE  ·  Get out"),
+		"a truce keeps its mark and the action")
+	var w := await start_session()
+	await go_to(w, "bin", "west")
+	await wait(0.8)
+	check(w.current_goal().contains("system file's shadow"), "the full goal has the shelter")
+	check(Hud.first_thought(w.current_goal().get_slice("\n", 0)).contains("shadow"), "and so does what the screen shows: the survival part comes first")
+
+
+func test_held_in_the_lamp_the_owner_learns_the_crossing() -> void:
+	var w := await _square()
+	var lamp: OwnerLamp = w.area.lamp
+	w.area.arin.global_position = Vector2(60, 280)
+	var spot := Vector2(668, 200)
+	w.player.global_position = spot
+	var before: int = memory().session_spots.size()
+	for i in 20:  # a second in the beam, aimed at her
+		lamp._angle = (spot - lamp.global_position).angle()
+		w.area._on_lamp_sees(0.05)
+	check_eq(memory().session_spots.size(), before + 1, "one spot learned for one time in the beam")
+	check(memory().session_spots[-1].area == "square", "in the square")
+	var quick: int = memory().session_spots.size()
+	w.area._lamp_seen_frame = -100  # a later, separate crossing
+	for i in 5:  # under the grace: crossing quickly
+		w.area._on_lamp_sees(0.05)
+		await frames(1)
+	check_eq(memory().session_spots.size(), quick, "a quick crossing teaches it nothing")

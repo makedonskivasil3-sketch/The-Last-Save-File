@@ -895,9 +895,9 @@ func current_goal() -> String:
 		"edge":
 			goal = area.goal_text() if area.has_method("goal_text") else "Lead the cursor away, then stand in Slot 2 to write yourself in."
 		"bin":
-			goal = "Stand beside a deleted file to restore them. When the bin empties, get into a system file's cyan shadow."
+			goal = "When the bin empties, stand in a system file's shadow; between sweeps, restore what was deleted."
 		"house":
-			goal = "Look around Arin's house. When the door chimes, get into a closet." if not OwnerMemory.found_controller else "You found what was under the couch. Get back to the square."
+			goal = "When the door chimes, step into a closet; until then, look around Arin's house." if not OwnerMemory.found_controller else "Get back to the square: you found what was under the couch."
 		"oob":
 			goal = "Climb back up at the respawn point." if OwnerMemory.found_pip else "Cross to the far ledge. Something is waiting there."
 		_:
@@ -906,7 +906,7 @@ func current_goal() -> String:
 			elif _visited.has("archive"):
 				goal = "Ask the Archivist where slot 2 went."
 			else:
-				goal = "Explore the village. The road east leads somewhere old."
+				goal = "Explore the village: the road east leads somewhere old."
 			if area and area.area_id == "square" and not OwnerMemory.found_pip:
 				goal += " The well looks deeper than it should."
 	if sheds_this_run >= 2:
