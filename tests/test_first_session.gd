@@ -99,4 +99,4 @@ func test_interrupted_first_meeting_is_not_a_reunion() -> void:
 	check(not Relationships.has("mira.asked"), "her request was never heard, so it isn't asked")
 	var told: Variant = w.area._mira_lines()
 	var lines: Array = told if told is Array else told.get("lines", [])
-	check(not str(lines).contains("again"), "still a first acquaintance, not 'again' (%s)" % lines)
+	check(not str(lines).contains("again"), "still a first acquaintance, not 'again' (%s)" % [str(lines)])

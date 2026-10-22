@@ -395,7 +395,7 @@ func mark_event(id: String) -> void:
 ## One occurrence, in memory (callers save). Unknown ids still record, but
 ## warn: the registry (Relationships.EVENTS) is what the journal can show.
 func _occur(id: String, at := -1) -> void:
-	if not Relationships.EVENTS.has(id):
+	if not Relationships.EVENTS.has(id) and id not in Relationships.INTERNAL_EVENTS:
 		push_warning("OwnerMemory: event %s isn't in Relationships.EVENTS" % id)
 	var s := sessions if at < 0 else at
 	event_seq += 1

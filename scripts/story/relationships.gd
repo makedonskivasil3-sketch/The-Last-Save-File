@@ -25,6 +25,9 @@ extends RefCounted
 ## Events, and how the journal says each one (every id the game writes is
 ## here: an event without a label would vanish from the People page).
 ## Listed in the order they can happen, which breaks ties within a session.
+## Events that are bookkeeping, not something that happened between people:
+## recorded like the rest, never listed in the journal.
+const INTERNAL_EVENTS := ["archivist.intro_pending"]
 const EVENTS := {
 	"wren.met": "Met Wren in the square.",
 	"wren.sheltered": "You hid beside Wren.",
