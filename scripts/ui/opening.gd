@@ -35,7 +35,9 @@ const GAME_SCENE := "res://scenes/main.tscn"
 const TITLE_SCENE := "res://scenes/title.tscn"
 const LENGTH := 45.0
 const SKIP_HOLD := 0.7
-## A press let go sooner than this is a tap (it acts); held longer, it skips.
+## One rule for every press: let go before SKIP_HOLD and it acts (however
+## slowly it was pressed); held to SKIP_HOLD, it skips and does nothing
+## else. TAP is only when the skip bar starts to show, for a held press.
 const TAP := 0.3
 ## Her habit (WellSequence.CLICK_PATTERN is the same gesture): two light
 ## taps, then the press. [seconds after the press began, dB].
@@ -74,7 +76,10 @@ var replay := false
 var autoplay := false
 
 var _t := 0.0
+## Held: nothing moves, nothing skips. Two separate reasons, each cleared
+## only by its own return (the window's focus; the player's controller).
 var _held := false
+var _focus_lost := false
 var _skip_t := 0.0
 var _hint_t := 0.0
 var _done := false
@@ -183,38 +188,53 @@ func _notification(what: int) -> void:
 	# they are; coming back resumes from the same frame (no time jump), and a
 	# key still held from before has to be let go before it can skip.
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
-		_held = true
+		_focus_lost = true
+		_update_hold()
+	elif what == NOTIFICATION_APPLICATION_FOCUS_IN:
+		_focus_lost = false
+		_update_hold()
+
+
+## Held while either reason stands; let go only when both are back.
+func _update_hold() -> void:
+	var held := _focus_lost or _pad_lost
+	if held and not _held:
 		_skip_t = 0.0
 		_armed = false
-		if _music:
-			_music.stream_paused = true
-	elif what == NOTIFICATION_APPLICATION_FOCUS_IN and not _pad_lost:
-		_held = false
-		if _music:
-			_music.stream_paused = false
+		_act_down = -1.0
+	_held = held
+	if _music:
+		_music.stream_paused = held
 
 
-## The pad in use dropped out: hold until it's back or another input is
-## used (any key, a touch); then a fresh press is needed.
-func _on_joy_connection_changed(_device: int, connected: bool) -> void:
-	if not connected and Settings.using_gamepad and not _done:
+## The player's pad dropped out: hold until that pad is back, or the player
+## takes over with something else (a key, a touch, another pad's press);
+## then a fresh press is needed. Another pad coming or going changes nothing.
+func _on_joy_connection_changed(device: int, connected: bool) -> void:
+	if not connected and not _done and Settings.is_players_pad(device):
+		_lost_pad = device
 		_pad_lost = true
-		_notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
+		_update_hold()
 		_hint.text = "controller disconnected: reconnect it, or press any key"
 		_hint.modulate.a = 1.0
-	elif connected and _pad_lost:
+	elif connected and _pad_lost and device == _lost_pad:
 		_pad_resumed()
+
+
+var _lost_pad := -1
 
 
 func _pad_resumed() -> void:
 	_pad_lost = false
 	_hint.text = ""
-	_notification(NOTIFICATION_APPLICATION_FOCUS_IN)
+	_update_hold()
 
 
 func _input(event: InputEvent) -> void:
-	if _pad_lost and (event is InputEventKey or event is InputEventScreenTouch or event is InputEventMouseButton) and event.is_pressed():
-		_pad_resumed()
+	if _pad_lost and event.is_pressed() and (event is InputEventKey or event is InputEventScreenTouch \
+			or event is InputEventMouseButton or event is InputEventJoypadButton):
+		_pad_resumed()  # the player took over: this press does nothing else
+		get_viewport().set_input_as_handled()
 		return
 	if _held or _done:
 		return
@@ -226,7 +246,7 @@ func _input(event: InputEvent) -> void:
 		return
 	if event.is_pressed():
 		_pointer_down = Time.get_ticks_msec()
-	elif _pointer_down >= 0 and _armed and (Time.get_ticks_msec() - _pointer_down) / 1000.0 < TAP:
+	elif _pointer_down >= 0 and _armed and (Time.get_ticks_msec() - _pointer_down) / 1000.0 < SKIP_HOLD:
 		_pointer_down = -1
 		_tap_at(make_input_local(event).position)
 
@@ -528,7 +548,7 @@ func _update_skip(delta: float) -> void:
 	if act_held:
 		_act_down = maxf(_act_down, 0.0) + delta
 	elif _act_down >= 0.0:
-		if _act_down < TAP:
+		if _act_down < SKIP_HOLD:
 			_idle_t = 0.0
 			_act()
 		_act_down = -1.0

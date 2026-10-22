@@ -72,6 +72,9 @@ var using_gamepad := false
 ## Whether the last input was a touch (phones, tablets): prompts then name
 ## the on-screen buttons, and TouchControls shows them.
 var using_touch := false
+## The one controller the player is using (its device id; -1: none yet).
+## One player: only this pad's loss holds the game, and only it rumbles.
+var active_pad := -1
 
 var _path := PATH
 
@@ -92,6 +95,7 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventJoypadButton or (event is InputEventJoypadMotion and absf(event.axis_value) > 0.5):
 		using_gamepad = true
 		using_touch = false
+		active_pad = event.device
 	elif event is InputEventKey:
 		using_gamepad = false
 		using_touch = false
@@ -156,8 +160,18 @@ func buzz(ms: int) -> void:
 		return
 	# Longer buzzes are the heavier ones (a death is 160): rumble harder.
 	var strong := clampf(ms / 200.0, 0.0, 1.0)
-	for pad in Input.get_connected_joypads():
+	for pad in rumble_pads(Input.get_connected_joypads()):
 		Input.start_joy_vibration(pad, clampf(0.3 + strong, 0.0, 1.0), strong, ms / 1000.0)
+
+
+## Which of the connected pads a rumble goes to: the player's, only.
+func rumble_pads(connected: Array) -> Array:
+	return [active_pad] if using_gamepad and active_pad in connected else []
+
+
+## Does this pad dropping out take the player's controller away?
+func is_players_pad(device: int) -> bool:
+	return using_gamepad and (device == active_pad or active_pad == -1)
 
 
 func set_value(key: String, value: Variant) -> void:

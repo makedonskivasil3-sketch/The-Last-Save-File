@@ -97,6 +97,9 @@ func _ready() -> void:
 	_pause_menu.debug_requested.connect(debug)
 	add_child(_pause_menu)
 	Input.joy_connection_changed.connect(_on_joy_connection_changed)
+	var takeover := _Takeover.new()
+	takeover.world = self
+	add_child(takeover)
 	_light = CanvasModulate.new()
 	add_child(_light)
 	hud.dialogue_closed.connect(_on_dialogue_closed)
@@ -633,27 +636,64 @@ func focus_lost() -> void:
 		_focus_paused = true
 
 
-## A controller dropped out mid-play (battery, cable): hold the game like a
-## lost focus, so nothing happens to Rue until the player is back.
-func _on_joy_connection_changed(_device: int, connected: bool) -> void:
-	if not connected and Settings.using_gamepad:
+## The player's controller dropped out mid-play (battery, cable): hold the
+## game like a lost focus, so nothing happens to Rue until the player is
+## back. Another pad coming or going changes nothing (one player).
+func _on_joy_connection_changed(device: int, connected: bool) -> void:
+	if not connected and Settings.is_players_pad(device):
+		_lost_pad = device
 		controller_lost()
+	elif connected and _pad_paused and device == _lost_pad:
+		_pad_paused = false
+		_release_hold()
+
+
+var _lost_pad := -1
+## An end card held for the controller (the pause menu covers play itself).
+## Kept apart from _focus_paused: each is cleared only by its own return.
+var _pad_paused := false
 
 
 func controller_lost() -> void:
-	if not is_inside_tree() or get_tree().paused:
+	if not is_inside_tree():
 		return
 	if ending == "" and not purged:
-		open_pause()
+		if not get_tree().paused:
+			open_pause()
 	else:
 		get_tree().paused = true
-		_focus_paused = true
+		_pad_paused = true
+		if _lost_pad == -1:
+			_lost_pad = Settings.active_pad
 
 
 func focus_returned() -> void:
-	if _focus_paused and is_inside_tree():
+	if _focus_paused:
 		_focus_paused = false
+		_release_hold()
+
+
+func _release_hold() -> void:
+	if is_inside_tree() and not _focus_paused and not _pad_paused:
 		get_tree().paused = false
+
+
+## While an end card is held for a lost controller, the player can take
+## over with anything else (a key, a touch, another pad's press). That press
+## only takes over: it does nothing else. (Runs while the tree is paused.)
+class _Takeover extends Node:
+	var world: Node
+
+	func _ready() -> void:
+		process_mode = Node.PROCESS_MODE_ALWAYS
+
+	func _input(event: InputEvent) -> void:
+		if not world._pad_paused or not event.is_pressed() or event.is_echo():
+			return
+		if event is InputEventKey or event is InputEventScreenTouch or event is InputEventMouseButton or event is InputEventJoypadButton:
+			world._pad_paused = false
+			world._release_hold()
+			get_viewport().set_input_as_handled()
 
 
 # Menu keys go through _unhandled_input so the pause menu can consume the same
