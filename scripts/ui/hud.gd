@@ -641,6 +641,7 @@ func _cinematic_line(line: String, vid: String, title: String, base_color: Color
 		var frame := Engine.get_process_frames()
 		if _update_skip(delta):
 			_skip_requested = true
+			PlaytestLog.mark("scene skipped", title if title != "" else line.left(40))
 			break
 		if pacer.phase == LinePacer.Phase.REVEALING:
 			var shown := int(typed)

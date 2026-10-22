@@ -51,6 +51,7 @@ func interact() -> Variant:
 	Area.notify_geometry(self, Rect2(position - size, size * 2.0))
 	Sfx.play("door_lock", -8.0, 1.4)  # the latch (the lock sound, lighter)
 	opened.emit()
+	PlaytestLog.mark("lifted the lane gate", "", true)
 	return "The latch lifts. The gate stays open: a way back that isn't the crossing."
 
 

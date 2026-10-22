@@ -833,9 +833,13 @@ func _base_light() -> Color:
 ## something Rue saw happen, and the journal may say so.
 func is_player_hidden(pos: Vector2, witness := "") -> bool:
 	if area and area.has_method("hides_player") and area.hides_player(pos):
+		if witness != "":
+			PlaytestLog.mark("hidden from %s by cover in %s" % [witness, area.area_id], "", true)
 		return true
 	var helper := _hider_at(pos)
 	if helper:
+		if witness != "":
+			PlaytestLog.mark("hidden from %s behind %s" % [witness, helper.npc_id], "", true)
 		OwnerMemory.note_helper(helper.npc_id)
 		if witness == "arin" and helper.npc_id == "wren" and not Relationships.has("wren.concealed"):
 			Relationships.add("wren.concealed")
@@ -1591,7 +1595,9 @@ func kill(cause: String, reason := "") -> void:
 		return  # development benchmark only (tests/tour_benchmark.gd): nothing else changes
 	if ending != "" or _transitioning:
 		return
-	PlaytestLog.mark("DIED", "%s (%s) in %s, awareness %d" % [reason, cause, area.area_id, int(director.awareness)])
+	var warned := hud.warning_text()
+	PlaytestLog.mark("DIED", "%s (%s) in %s at %s, awareness %d, warning on screen: %s" % [
+		reason, cause, area.area_id, player.global_position.round(), int(director.awareness), ("\"%s\"" % warned) if warned != "" else "none"])
 	ending = "death"
 	player.frozen = true
 	director.stop()

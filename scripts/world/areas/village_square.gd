@@ -267,7 +267,7 @@ func build() -> void:
 	lamp = OwnerLamp.new()
 	lamp.position = LAMP_POS
 	lamp.player = world.player
-	lamp.is_hidden = world.is_player_hidden
+	lamp.is_hidden = world.is_player_hidden.bind("lamp")
 	# Once the gate is open, the owner turns the lamp to cover it too: the
 	# moment it opens (watched), and from then on (restored).
 	if OwnerMemory.square_gate_open:
@@ -452,7 +452,7 @@ func _unleash() -> void:
 		cursor.position = _cursor_start()
 		cursor.speed = minf(48.0 + OwnerMemory.purge * 5.0, CURSOR_MAX_SPEED)
 		cursor.player = world.player
-		cursor.is_hidden = world.is_player_hidden
+		cursor.is_hidden = world.is_player_hidden.bind("cursor")
 		cursor.selected_player.connect(func() -> void: world.kill("selected", "cursor"))
 		cursor.lure = world.lure_point
 		cursor.paused = world.is_owner_paused()

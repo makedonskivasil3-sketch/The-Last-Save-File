@@ -240,6 +240,7 @@ func _scroll_history(amount: float) -> void:
 
 
 func _show_journal() -> void:
+	PlaytestLog.mark("journal opened")
 	_journal.refresh()
 	_show_only(_journal_box)
 	_journal.focus_first.call_deferred()

@@ -67,6 +67,14 @@ Don't ask "did you like X?", and don't explain anything until all the answers ar
 
 - **In place:** `OwnerMemory` records deaths and causes, glitches, reloads and endings (the Records screen). The bots log their stalls (`tests/bot_playthrough.gd`).
 - **Done (development only):** `PlaytestLog` (`scripts/autoload/playtest_log.gd`), switched on by `?playtest=1` or `-- --playtest`. It is shown under Pause → Playtest log, with a copy button.
+- **What it records, timestamped from launch** (the observation column of `COMMERCIAL_DIRECTION.md` §8; never intent):
+  - the opening's three states, each "by the player", "played itself" or "passed over", with the seconds waited and whether the hint was on screen; "opening skipped" with how far in;
+  - session start (purge, last exit), first movement, first time out of the room, each area entered;
+  - **each death**: cause, area, Rue's position, attention, and the warning text on screen at that moment (or "none");
+  - hiding that actually turned a look aside, once per witness and cover: "hidden from arin behind wren", "hidden from lamp by cover in square";
+  - lifting the lane gate; the pointer; memories; glitches; owner thresholds; the CHARACTER FILE read whole;
+  - "scene skipped" (which scene), "journal opened", console history opened; quits and endings.
+- **Not recorded:** reading speed, gaze, what the player meant. Those stay in the observer's notes.
 
 ## Report template
 

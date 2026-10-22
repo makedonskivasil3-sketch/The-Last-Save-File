@@ -119,6 +119,7 @@ var _stick := 0.0
 var _pad_lost := false
 ## What the player actually did (tests, docs/VERTICAL_SLICE.md §3 timings).
 var acted := {}
+var _hinted := false  # this state's hint has been on screen (playtest log)
 var elapsed := 0.0
 
 
@@ -358,6 +359,7 @@ func _update_gate(delta: float) -> void:
 
 
 func _next_gate() -> void:
+	_log_gate()
 	_gate = (_gate + 1) as Gate
 	_gate_t = 0.0
 	_idle_t = 0.0
@@ -365,6 +367,19 @@ func _next_gate() -> void:
 	_act_on_arrival = false
 	if _gate == Gate.IMPOSSIBLE:
 		Sfx.play("click", -14.0, 0.45, 0.0)  # something where nothing should be
+
+
+## For the playtest log: how the state just finished was done (by the
+## player, or by itself after the hint), and how long it waited.
+func _log_gate() -> void:
+	var names := {Gate.RITUAL: "ritual (save with Arin)", Gate.INTERRUPT: "interruption (press at 87%)", Gate.IMPOSSIBLE: "impossible action (walk under PAUSE)"}
+	var keys := {Gate.RITUAL: "ritual", Gate.INTERRUPT: "interrupt", Gate.IMPOSSIBLE: "impossible"}
+	if not names.has(_gate):
+		return
+	var k: String = keys[_gate]
+	var how := "played itself" if acted.has(k + "_auto") else ("by the player" if acted.has(k) else "passed over")
+	PlaytestLog.mark("opening: " + names[_gate], "%s after %.1f s%s" % [how, _gate_t, ", hint shown" if _hinted else ""])
+	_hinted = false
 
 
 ## What the current state asks, once the player has waited a while ("" for
@@ -522,6 +537,7 @@ func _update_skip(delta: float) -> void:
 		if _skip_t > TAP * 0.6:
 			_hint_t = 3.0
 		if _skip_t >= SKIP_HOLD:
+			PlaytestLog.mark("opening skipped", "at %d%%" % int(progress() * 100.0))
 			_finish()
 			return
 		_idle_t = 0.0
@@ -536,6 +552,7 @@ func _show_skip(delta: float) -> void:
 		return
 	var what := _gate_hint()
 	if what != "" and _hint_t <= 0.0:
+		_hinted = true
 		_hint.text = what
 		_hint.modulate.a = move_toward(_hint.modulate.a, 1.0, delta * 3.0)
 		return
