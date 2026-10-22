@@ -96,6 +96,7 @@ func _ready() -> void:
 	_pause_menu.quit_requested.connect(_quit)
 	_pause_menu.debug_requested.connect(debug)
 	add_child(_pause_menu)
+	Input.joy_connection_changed.connect(_on_joy_connection_changed)
 	_light = CanvasModulate.new()
 	add_child(_light)
 	hud.dialogue_closed.connect(_on_dialogue_closed)
@@ -122,7 +123,7 @@ func _ready() -> void:
 	add_child(owner_moves)
 	if OwnerMemory.found_pip:
 		_spawn_pip()
-	var previous := OwnerMemory.begin_session()
+	var previous := OwnerMemory.begin_session(true)
 	var start := anchor_start(previous)
 	if start.is_empty():
 		var room := ArinsRoom.new()
@@ -154,6 +155,7 @@ func _begin_session(previous: String) -> void:
 	player.frozen = false
 	_cutscene = false
 	_awake = true
+	OwnerMemory.arm_session()  # play starts now: quits and crashes count from here
 	_area_intro()
 	director.start(self, previous)
 	_tutorial = Tutorial.new()
@@ -557,6 +559,23 @@ func focus_lost() -> void:
 		open_pause()  # the player resumes when ready
 	else:
 		get_tree().paused = true  # an epilogue or end card: hold it
+		_focus_paused = true
+
+
+## A controller dropped out mid-play (battery, cable): hold the game like a
+## lost focus, so nothing happens to Rue until the player is back.
+func _on_joy_connection_changed(_device: int, connected: bool) -> void:
+	if not connected and Settings.using_gamepad:
+		controller_lost()
+
+
+func controller_lost() -> void:
+	if not is_inside_tree() or get_tree().paused:
+		return
+	if ending == "" and not purged:
+		open_pause()
+	else:
+		get_tree().paused = true
 		_focus_paused = true
 
 

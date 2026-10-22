@@ -155,6 +155,10 @@ var session_recalled: Array[String] = []
 var session_seam := -1
 
 var _session_closed := true
+## Whether play has started this session (arm_session).
+var _armed := false
+## How the session before a "starting" one ended (restored if it never starts).
+var start_previous := "none"
 var _path := SAVE_PATH
 
 
@@ -230,23 +234,54 @@ func deaths_in(area: String) -> Array[Vector2]:
 	return out
 
 
-## Starts a new session and returns how the previous one ended.
-func begin_session() -> String:
+## Starts a new session and returns how the previous one ended. A deferred
+## session (the World's) only counts once arm_session() is called.
+func begin_session(deferred := false) -> String:
 	var previous := last_exit
 	previous_exit = previous
 	last_run_glitches = session_glitches
 	session_glitches = 0
 	sessions += 1
-	last_exit = "active"
+	# "starting" until play begins (arm_session): closing the game, or a
+	# crash, during the boot text costs nothing (docs/VERTICAL_SLICE.md D1).
+	last_exit = "starting"
+	start_previous = previous
+	_armed = false
 	session_helpers.clear()
 	session_recalled.clear()
 	session_frayed.clear()
 	session_seam = -1
 	session_spots.clear()
 	_session_closed = false
+	if deferred:
+		save_memory()
+	else:
+		arm_session()
+	return previous
+
+
+## Play has started (Rue is under the player's control): from now on a quit
+## or a crash counts, as the pause menu says.
+func arm_session() -> void:
+	if _session_closed or _armed:
+		return
+	_armed = true
+	last_exit = "active"
 	save_memory()
 	_leave_guard(true)
-	return previous
+
+
+func session_armed() -> bool:
+	return _armed and not _session_closed
+
+
+## Closed before play began: as if the session never started.
+func _abandon_unstarted() -> void:
+	sessions = maxi(0, sessions - 1)
+	last_exit = start_previous
+	_session_closed = true
+	save_memory()
+	_leave_guard(false)
 
 
 ## Rue meets someone (a conversation opened). Returns true the first time ever.
@@ -488,6 +523,9 @@ func record_death(area: String, at: Vector2, reason := "") -> bool:
 func record_quit() -> void:
 	if _session_closed:
 		return
+	if not _armed:
+		_abandon_unstarted()
+		return
 	_lose_carried_note()
 	quits += 1
 	purge += 1
@@ -630,6 +668,8 @@ func wipe() -> void:
 
 ## Every field back to a new game's, in memory only (nothing is written).
 func clear_state() -> void:
+	_armed = false
+	start_previous = "none"
 	sessions = 0
 	deaths = 0
 	quits = 0
@@ -758,6 +798,7 @@ func save_memory() -> void:
 		"returned_pending": returned_pending,
 		"shed_said": shed_said,
 		"last_exit": last_exit,
+		"start_previous": start_previous,
 		"encounters": encounters,
 		"conversations": conversations,
 		"rel_events": rel_events,
@@ -916,6 +957,7 @@ func load_memory() -> void:
 	wins = _int(data, "wins", 0)
 	purge = _int(data, "purge", 0, MAX_PURGE)
 	last_exit = _str(data, "last_exit", "none")
+	start_previous = _str(data, "start_previous", "none")
 	met_archivist = _bool(data, "met_archivist")
 	found_pip = _bool(data, "found_pip")
 	wren_saved = _bool(data, "wren_saved")
@@ -1042,6 +1084,11 @@ func load_memory() -> void:
 		quits += 1
 		purge += 1
 		last_exit = "crash"
+		save_memory()
+	elif last_exit == "starting":
+		# Died before play began (the boot text): it never started.
+		sessions = maxi(0, sessions - 1)
+		last_exit = start_previous
 		save_memory()
 
 
