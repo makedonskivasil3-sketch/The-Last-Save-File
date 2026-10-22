@@ -114,3 +114,163 @@ scene:
 **Known limit:** the page cues are character-count fractions of the take,
 a fallback rather than word alignment. No recordings exist to author real
 cues from. The tests use silent fixtures, which are not voice acting.
+
+## Seven areas: what each is for
+
+| Area | Entry view | Landmark | First useful action | Route choice | Cover | Threat | Optional find | Exit | On return |
+|---|---|---|---|---|---|---|---|---|---|
+| Arin's room | The act card over the rug, Rue at the bottom | The TV and Mira's corner | Talk to Mira, or read the note | Door (locks) or the seam | — | The owner's attention bar | The second controller memory | The seam, once suspicion opens it | "Welcome home" notes change by run |
+| Square | West framing: Arin's door, the well, Wren | The well; now also the **Archive's gatehouse** east | Meet Wren | Road across the crossing, the bench detour, or the **lane** (once its gate is lifted) | Wren, the bench, the lane | Arin's cone; the lamp on the crossing | The well's words; the false memory | Gatehouse (Archive), north road, well, Arin's door | Gate open, lamp turned onto it, chalk on the rim, board text |
+| Archive | West door, aisle runner ahead | **Tall cases and the high window**, the desk under its lamp | Talk to the Archivist | Records (lit stands) either side of the aisle | The whole room (cools awareness) | — | Four records; the CHARACTER FILE at the FILE stage | West to the Square, east to the Bin (a bin over the door) | **North-road map pinned to the desk** after the pointer; read records dimmed |
+| House | Front door, bottom centre | The couch and TV | Look under the couch | — | Walk-in closets | Arin's visit; the chime warns 4 s before | The controller | Front door | — |
+| Out of Bounds | The pillar landing | The far ledge (Pip) | Cross the streaming floor | Chunk timing | Anchors | Falling (grace 0.12 s) | Pip; the FIRST HITBOX (later) | The pillar, back up | The kept place mark |
+| Bin | West door | System files with their shadows | Stand by a deleted file | Restore order between sweeps | System-file shadows (one definition) | The sweep | Restorations | West door | Restored people return elsewhere |
+| Edge | South entry | Slot 2, top right | Reach the slot | Lure the cursor away | Guards' blind sides | Cursor, static | Two memories | Slot 2 | (Phases already readable; unchanged) |
+
+**What changed in this pass:** the Square's entrance and crossing; the
+Archive's layout and its change on return; the House's chime cue; the
+floor warnings in Out of Bounds; the Bin's shelter edge.
+
+**Unchanged on purpose:**
+- **Arin's room and the Edge.** Their entry views already show one first
+  action. The Edge's phases and holds were fixed earlier, and nothing
+  here justified moving them without an observation from a player.
+- **The pause map.** It is a **topology diagram** (places and
+  connections), labelled as a map of places. It is not a floorplan, and
+  this pass did not build one.
+
+## Square routes, measured
+
+`tests/tour_route_measure.gd` steers Rue with real input from (560, 182)
+to the Archive. Arin is held at the far west, so only the crossing is
+measured. Each route runs at **8 phases of the lamp's cycle**, at purge
+0, 3 and 5. The raw figures are in `docs/review/oct22/route_measure.txt`.
+
+| Route | Reached | Time | Awareness gained (mean, worst) | Time in the beam (mean, worst) |
+|---|---|---|---|---|
+| Direct, purge 0 | 8/8 | 4.3–4.4 s | +1.5, +1.5 | 0.33 s, 0.93 s |
+| Bench, purge 0 | 8/8 | 5.3–13.3 s | +0.8, +0.9 | 0.07 s, 0.35 s |
+| Lane (gate open), purge 0 | 8/8 | 6.4–6.6 s | +2.3, +2.3 | 0.09 s, 0.41 s |
+| Direct, purge 5 | 8/8 | 4.3–4.4 s | +3.4, +3.5 | 0.30 s, 0.85 s |
+| Bench, purge 5 | 8/8 | 5.3–13.4 s | +3.9, +3.9 | 0.08 s, 0.35 s |
+| Lane, purge 5 | 8/8 | 6.4–6.5 s | +5.2, +5.2 | 0.10 s, 0.43 s |
+
+**Reading:**
+- The lamp's 0.6 s grace means a straight crossing almost never costs
+  attention. The gains above are the owner's background drift over time,
+  which is why the slower routes gain slightly more.
+- After the purge-5 regression, raising the lamp's cost was the wrong
+  lever. Instead, **being held in the beam past its grace teaches the
+  owner the spot** (`OwnerMemory.note_spot`). Arin's learned patrol then
+  walks the crossing in later runs. Crossing openly is cheap now and
+  costly later, and the bench and lane are how to avoid that.
+- There is room to retreat on every route: the road is 24 px of setts
+  inside a 124 px-deep plaza, and the bench sits 30 px off the road.
+
+## Visual language
+
+**Rules applied in this pass:**
+- **Accents mean something.** Rue's cyan and the owner's warm red are
+  kept for information: the lamp, warnings, shelter edges. The crossing's
+  paving was toned down after a first pass made it the brightest surface.
+- **Landmarks are architecture.** The Archive is entered through its
+  gatehouse; the facade has no door. In the Archive, the tall cases and
+  the high window give the room its silhouette.
+- **Light leads:**
+  - the gatehouse's lamp spills onto the road;
+  - each record has its own reading lamp;
+  - in the House, the door's light spills in when the chime sounds.
+- **Collision matches what you see.** The gatehouse piers are solid. The
+  Archive's taller cases are drawn above the solid shelf, so the
+  footprint is unchanged.
+- **HUD hierarchy:**
+  - one actionable sentence for the goal;
+  - the save header dimmed to 60%;
+  - the owner's colour-split shadow halved, so essential owner lines stay
+    readable under the screen's own colour split.
+
+**The "SLOT 1 · ARIN" header:** kept. It is the save's label, and it
+becomes RUE as she recovers her name. Dimming it makes it read as
+"whose save" rather than "who you are". Whether new players still read
+it as their own name is a question for the playtest.
+
+## Characters and motion
+
+- **Tobben** has an occupational idle ("tend"): both hands at counter
+  height, turning things over. He still waves when Rue comes close.
+- **The Archivist** already reads.
+- **Rue, Mira and Wren:** their weight, settle, turn squeeze, blink and
+  contact shadow were already in place. They are not rewritten, because
+  without an observed problem a rewrite would only change, not improve.
+- **Clips** (in `docs/review/oct22/`, 10 frames a second of game time,
+  in-engine): `motion_walk.mp4` (walk and stop),
+  `motion_tobben.mp4` (tending, then waving as Rue comes near),
+  `motion_dialogue.mp4` (a line typing out, then waiting) and
+  `motion_escort.mp4` (Wren following).
+- **Not captured:** a return after a death.
+
+**No new portraits or recorded performances exist.** The procedural
+fallback is kept.
+
+## Audio and voice (status, not new work)
+
+The game's audio is of five kinds, kept apart:
+- procedural music;
+- sound effects;
+- per-speaker syllable blips;
+- optional device text-to-speech (off by default; not acting);
+- silent test fixtures (used in tests only).
+
+**No approved acting exists.** `audio/voice/manifest.csv` is an inventory,
+not shipped audio. `VOICE_AUDITION.md` holds the pilot script. Human
+listening has not happened, and the mix against music is not judged here.
+
+## Performance and determinism (candidates, not measured defects)
+
+- **The lamp raycasts twice:** for its look, and again in `_draw()` for
+  the beam (11 rays per frame).
+- **Cosmetic effects share the global RNG with gameplay:** the HUD
+  header's glitch, blinks and flicker.
+
+Both are profiling candidates. No measurement on this branch showed a
+frame-time or determinism problem, so neither was refactored. The bot
+runs and the route measurement are repeatable at the precision reported.
+
+## Evidence
+
+- **Stills:** `docs/review/oct22/before_*.jpg` were captured at
+  `7710f10` in a worktree; `after_*.jpg` at this pass's head. Both use
+  the same tour (`tests/tour_review.gd`) and the same states:
+  - the title;
+  - a true first launch (opening skipped, boot read, first frame);
+  - the Square, west and east;
+  - the Archive;
+  - the House at the chime;
+  - Out of Bounds, normal and with Reduce flashing;
+  - the Bin at a sweep;
+  - the Edge.
+- **Motion:** as listed above. Stills alone do not show animation.
+
+## Unfamiliar-player round (prepared, not run)
+
+**Who:** five to eight people, the same build, no coaching for the first
+10–15 minutes.
+
+**Observe:**
+- the first meaningful action;
+- wrong-door approaches (the Archive's facade);
+- crossing choices (road, bench, lane);
+- whether closets and shelves are found;
+- unnecessary deaths;
+- whether a restart is understood.
+
+**Ask afterwards, without leading:**
+1. Who are you?
+2. Where are you going?
+3. What does hiding protect you from?
+4. What survived?
+5. What does the well prove?
+
+Write observations and interpretations in separate columns
+(`COMMERCIAL_DIRECTION.md` §8). **No participants were available, and no
+results are claimed.**

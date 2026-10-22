@@ -289,7 +289,7 @@ func _process(delta: float) -> void:
 		if d < 50.0 and not _noticed and notice_emote != "":
 			_noticed = true
 			emote(notice_emote)
-		s.waving = idle_style == "wave" and d < 70.0 and not talking and state != State.RESTRICTED
+		s.waving = idle_style in ["wave", "tend"] and d < 70.0 and not talking and state != State.RESTRICTED
 	if state == State.DELETING:
 		_delete_t += delta
 		if _delete_t > 1.6:

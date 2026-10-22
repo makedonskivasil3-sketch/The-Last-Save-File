@@ -1,0 +1,9 @@
+direct    purge 0: reached 8/8; time 4.3-4.4 s; awareness mean +1.5, worst +1.5; beam mean 0.33 s, worst 0.93 s
+bench     purge 0: reached 8/8; time 5.3-13.3 s; awareness mean +0.8, worst +0.9; beam mean 0.07 s, worst 0.35 s
+shortcut  purge 0: reached 8/8; time 6.4-6.6 s; awareness mean +2.3, worst +2.3; beam mean 0.09 s, worst 0.41 s
+direct    purge 3: reached 8/8; time 4.3-4.4 s; awareness mean +3.5, worst +3.5; beam mean 0.32 s, worst 0.90 s
+bench     purge 3: reached 8/8; time 5.3-13.4 s; awareness mean +3.9, worst +4.2; beam mean 0.06 s, worst 0.26 s
+shortcut  purge 3: reached 8/8; time 6.4-6.7 s; awareness mean +5.2, worst +5.3; beam mean 0.08 s, worst 0.40 s
+direct    purge 5: reached 8/8; time 4.3-4.4 s; awareness mean +3.4, worst +3.5; beam mean 0.30 s, worst 0.85 s
+bench     purge 5: reached 8/8; time 5.3-13.4 s; awareness mean +3.9, worst +3.9; beam mean 0.08 s, worst 0.35 s
+shortcut  purge 5: reached 8/8; time 6.4-6.5 s; awareness mean +5.2, worst +5.2; beam mean 0.10 s, worst 0.43 s

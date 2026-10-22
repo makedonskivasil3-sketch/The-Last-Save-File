@@ -251,3 +251,13 @@ func test_held_in_the_lamp_the_owner_learns_the_crossing() -> void:
 		w.area._on_lamp_sees(0.05)
 		await frames(1)
 	check_eq(memory().session_spots.size(), quick, "a quick crossing teaches it nothing")
+
+
+func test_leaving_the_house_takes_its_chime_alert_with_it() -> void:
+	var w := await start_session()
+	await go_to(w, "house", "front")
+	w.area.next_visit = ArinsHouse.CHIME_LEAD - 0.1
+	await wait(0.3)
+	check_eq(w.hud.warning_text(), ArinsHouse.CHIME_ALERT, "the chime's alert")
+	await go_to(w, "square", "house")
+	check_eq(w.hud.warning_text(), "", "gone once Rue has left the house")

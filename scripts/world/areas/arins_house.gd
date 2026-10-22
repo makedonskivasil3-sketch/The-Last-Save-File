@@ -133,9 +133,19 @@ func area_process(delta: float) -> void:
 		Sfx.play("ui_confirm", 0.0, 0.6)  # the door chime
 		# At once, whatever the console is still typing; and seen, not only
 		# heard (the door's light, the closets' open sides: _ClosetCue).
-		world.hud.alert("(the door. someone's coming in.)")
+		world.hud.alert(CHIME_ALERT)
 	if next_visit <= 0.0:
 		_arin_comes_home()
+
+
+## The chime's alert belongs to this house: leaving takes it down (it must
+## not say "someone's coming in" somewhere else).
+const CHIME_ALERT := "(the door. someone's coming in.)"
+
+
+func _exit_tree() -> void:
+	if world and world.hud and world.hud.warning_text() == CHIME_ALERT:
+		world.hud.cancel_warning()
 
 
 func _arin_comes_home() -> void:

@@ -281,7 +281,7 @@ func build() -> void:
 	tobben.dress_color = Color("7a5a8a")
 	tobben.hair_color = Color("bbbbbb")
 	tobben.body_kind = "apron"
-	tobben.idle_style = "wave"
+	tobben.idle_style = "tend"  # at his wares; he still waves when you come close
 	tobben.notice_emote = "?"
 	tobben.skin_color = Color("e0b48a")
 	tobben.accent_color = Color("bbbbbb")

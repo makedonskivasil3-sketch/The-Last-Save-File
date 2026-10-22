@@ -243,6 +243,10 @@ func _arms(p: _Parts, shoulder: Vector2, sh: float, phase: float, side: bool) ->
 				hand.x = at.x + phase * 2.6
 		if hug and not moving:
 			hand = shoulder + Vector2(-s * sh * 0.4, arm_len * 0.55)
+		if idle_style == "tend" and not moving and not talking:
+			# A shopkeeper's idle: both hands forward at counter height,
+			# turning things over, one after the other.
+			hand = at + Vector2(-s * 0.6, arm_len * 0.62 + sin(_t * 2.2 + s * 1.6) * 0.7)
 		if waving and s > 0.0:
 			hand = at + Vector2(2.4, -arm_len * 0.8 + absf(sin(_t * 8.0)) * 1.5)
 		if pointing and s > 0.0:
