@@ -225,6 +225,16 @@ backdrop. The camera follows Rue across it.
 | The Archive's front (landmark) | Pale stone, tall windows, a rose window, and an arch over the road out east | Visible from the crossing: where the road goes |
 | Earned shortcut | A fenced lane behind Tobben's, with a gate latched on the lane side | Walk the lane once and lift the latch. It stays open (`OwnerMemory.square_gate_open`), giving a sheltered way between the old square and the Archive road |
 
+**Balance**
+- The lamp is a warning more than a hunter: its grace is 0.6 s (Arin's is
+  0.35 s), and its rate is 6 per second, about a quarter of Arin's 22.
+- With the first tuning, at 0.8 of Arin's rate, the walk from the Archive
+  back to the north road added about 30 owner attention on the bots' route.
+  Before the wider Square it added about 16. The purge-5 bot was purged at
+  the Edge in CI run 127.
+- After retuning, the same walk adds 15–21 attention, measured across five
+  bot runs.
+
 **Return trips reveal change**
 - The gate stays open.
 - The owner turns the lamp's arc to cover the gate mouth: the shortcut is
@@ -367,7 +377,7 @@ or SwiftShader).
 | Check | Command | Revision | Result |
 |---|---|---|---|
 | Strict full suite | `GODOT=… tests/run.sh` | `a43a072` (game code identical to `bd73368`) | **567/567**, exit 0 (1276 s) |
-| Ending bots, fresh profile each | `tests/run.sh --bots --speed=3` | `bd73368` | **5/5 exact endings**: escape; message; escape at purge 3; escape at purge 5 (one Edge death, then a retry); Wren |
+| Ending bots, fresh profile each | `tests/run.sh --bots --speed=3` | `bd73368`, and again after the lamp retune | **5/5 exact endings** both times. After the retune, the purge-5 bot reached its ending with no deaths |
 | Exports | `--export-release` Web / Windows Desktop / Linux | `bd73368` | All exit 0. The Linux binary runs 300 frames under xvfb |
 | Headless Chromium page check | `tests/web/web_check.cjs` | `bd73368` | All pass. Rue moves on real keys; a tab closed mid-run counts as a quit; no page errors |
 | Headless Chromium audio check | `tests/web/audio_output_check.cjs` | `bd73368` | Audible after a gesture; no visible badge |
@@ -382,6 +392,8 @@ or SwiftShader).
   which is now inside the Square.
 - Both are fixed in `bd73368`, which points the bots past the new edge and
   replans the north road after a reload.
+- Run 127, at `4425779`: the purge-5 bot was purged at the Edge. The cause
+  was the lamp's first tuning (see §3c, Balance), which is now retuned.
 
 **Kept visible: warnings**
 - "ObjectDB instances leaked at exit" and "resources still in use at

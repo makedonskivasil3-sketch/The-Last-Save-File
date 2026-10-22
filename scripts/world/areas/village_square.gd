@@ -27,6 +27,11 @@ const EAST_GAP := Vector2(160, 200)
 const NORTH_GAP := Vector2(300, 340)
 const TREES: Array[Vector2] = [Vector2(190, 268), Vector2(560, 250), Vector2(420, 274), Vector2(566, 132), Vector2(60, 160),
 	Vector2(840, 262), Vector2(616, 270)]
+## The lamp is a warning more than a hunter: a longer grace than Arin's look
+## and a quarter of his rate, so crossing on the road costs little and
+## lingering in the beam costs a lot (balance: VERTICAL_SLICE.md §3c).
+const LAMP_GRACE := 0.6
+const LAMP_RATE := 6.0
 ## The east half (docs/VERTICAL_SLICE.md §3c).
 ## The crossing: open cobbles, no cover, the lamp's beam.
 const CROSSING := Rect2(600, 118, 190, 124)
@@ -514,9 +519,9 @@ func _on_lamp_sees(delta: float) -> void:
 		_lamp_seen_for = 0.0
 	_lamp_seen_frame = frame
 	_lamp_seen_for += delta
-	if _lamp_seen_for < SIGHT_GRACE:
+	if _lamp_seen_for < LAMP_GRACE:
 		return
-	world.director.add_awareness(SIGHT_RATE * 0.8 * delta)
+	world.director.add_awareness(LAMP_RATE * delta)
 	world.flags["seen_by_lamp"] = true
 	if not _lamp_spotted:
 		_lamp_spotted = true
