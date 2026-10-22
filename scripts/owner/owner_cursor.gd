@@ -36,6 +36,9 @@ var _whine: AudioStreamPlayer
 var _hum: AudioStreamPlayer2D
 var _t := 0.0
 var _done := false
+## Its wandering has its own generator, apart from the cosmetic static
+## drawn every frame, so a run can be replayed with `rng.seed`.
+var rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
@@ -151,7 +154,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _random_point() -> Vector2:
-	return Vector2(randf_range(bounds.position.x, bounds.end.x), randf_range(bounds.position.y, bounds.end.y))
+	return Vector2(rng.randf_range(bounds.position.x, bounds.end.x), rng.randf_range(bounds.position.y, bounds.end.y))
 
 
 func _process(delta: float) -> void:

@@ -261,3 +261,42 @@ func test_leaving_the_house_takes_its_chime_alert_with_it() -> void:
 	check_eq(w.hud.warning_text(), ArinsHouse.CHIME_ALERT, "the chime's alert")
 	await go_to(w, "square", "house")
 	check_eq(w.hud.warning_text(), "", "gone once Rue has left the house")
+
+
+## Cosmetic static is drawn every rendered frame from random numbers. When the
+## spread shared that generator, a fixed seed gave a different path drawn
+## than undrawn (36 of 60 cells in common), so the frame rate steered it and
+## a failing run couldn't be replayed.
+func test_the_static_goes_the_same_way_however_often_it_is_drawn() -> void:
+	var paths := []
+	for drawn in [true, false]:
+		var w := await start_session()
+		await go_to(w, "edge", "south")
+		var e: Node = w.area.erasure
+		e.mature_time = 0.0001  # settle at once, so the void's static is drawn
+		e.rng.seed = 20261022
+		seed(1)
+		for i in 60:
+			e._grow()
+			e._t += 0.01
+			e._settle_cells()
+			if drawn:
+				e._draw()
+		var cells: Array = e._cells.keys()
+		cells.sort()
+		paths.append(cells)
+		w.queue_free()
+		await frames(2)
+	check_eq(paths[0], paths[1], "the static's path doesn't depend on how often it is drawn")
+
+
+func test_the_cursor_wanders_from_its_own_generator() -> void:
+	var c := OwnerCursor.new()
+	c.bounds = Rect2(0, 0, 640, 360)
+	c.rng.seed = 7
+	var a: Vector2 = c._random_point()
+	c.rng.seed = 7
+	randf()  # the global generator moving (a frame's static) changes nothing
+	check_eq(c._random_point(), a, "the same seed, the same wandering point")
+	c.free()
+
