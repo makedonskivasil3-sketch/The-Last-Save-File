@@ -117,7 +117,7 @@ func test_places_survive_a_retry() -> void:
 	var w := await start_session()
 	check("room" in memory().places, "the room is discovered on waking")
 	await go_to(w, "square", "house")
-	w.kill("arin", "test")
+	w.kill("overwritten", "arin")
 	var w2 := await wait_for_new_session(w)
 	check("square" in memory().places, "the square stays discovered after a death")
 	check_eq(_titles("places"), ["Arin's room", "Ashvale square"], "listed in the order found")

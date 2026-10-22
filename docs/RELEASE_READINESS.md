@@ -13,21 +13,44 @@
 **Canon:** still **proposed**, and needs the author's decision
 (`docs/CANON_DECISIONS.md`). Nothing on this branch is approved canon.
 
-**Last fully green CI:** run 129 (`7710f10`),
-https://github.com/makedonskivasil3-sketch/The-Last-Save-File/actions/runs/39749038209
+**Last fully green CI:** run 134 (`33145ea`),
+https://github.com/makedonskivasil3-sketch/The-Last-Save-File/actions/runs/39781409580
 - It covered the strict suite, five ending bots, Web, Windows and Linux
   exports, browser audio and lifecycle checks, and the Linux smoke test.
-- Earlier CI runs on this branch failed and are kept on record in
-  `docs/VERTICAL_SLICE.md` §7:
-  - runs 121 and 123–125: a bot harness that didn't know the wider Square;
-  - run 127: a real purge-5 balance regression from the lamp, since
-    retuned;
-  - run 128: a flaky test.
+- Runs 132 (`2880d5b`) and 133 (`2785c6e`) were also green.
+- **Run 131 (`2cb42dd`) failed and stays on record.** The purge-3 bot was
+  left in the Edge's corner by the owner's reload, stalled, and was
+  erased. That death seeded the static that caught it twice more in the
+  Square. The harness now replans once per stall with the area's NavGrid
+  (`33145ea`). Stalls are still counted and printed; nothing teleports.
+- CI on the later heads is linked from PR #10.
 
-**This milestone:**
-- The review findings and their fixes are in `docs/REVIEW_OCT22.md`.
-- This section is updated with the final head, CI run and test counts
-  when the milestone closes.
+**This milestone (22 October review), local results:**
+
+| Check | Head | Result |
+|---|---|---|
+| Strict suite (`tests/run.sh`) | `0773f52` | **581 passed, 0 failed** (1,304 s) |
+| Same, one revision earlier | `2785c6e` | 580/581. `test_cursor_drags_the_crates_across_the_road` timed out; it passed alone. The cursor now enters the wider Square from ~300 px further east, so the wait was raised from 22 s to 40 s (`0773f52`). |
+| Ending bots (`--bots --speed=3`) | `0773f52` | **5/5**: escape, message, escape at purge 3, escape at purge 5, Wren. **0 deaths.** The purge-3 run logged **15 stalls** in the Edge (recovered by replanning); the others logged 0 |
+| Web, Windows, Linux exports | `0773f52` | Exit 0; no errors or warnings in the export logs |
+| Linux smoke (CI command) | `0773f52` | Exit 0 |
+| `web_check.cjs` (Chromium) | `0773f52` | All passed, including keyboard movement, save on close and no page errors |
+| `audio_output_check.cjs` | `0773f52` | Audible after a gesture; no clipping; no page errors |
+
+**Warnings in the suite log (`0773f52`), each investigated, none
+suppressed:**
+- `Parse JSON failed` (×3) and `SafeFile … unreadable / recovered` (×3):
+  the save-safety tests feed broken files on purpose.
+- `Sfx: unknown sound 'death_arin'`: a **test bug**.
+  `test_places_survive_a_retry` called `kill("arin")`; Arin's real catch
+  is `kill("overwritten", "arin")`. The test is fixed and the warning has
+  gone.
+- `ObjectDB instances leaked at exit` and `resources still in use`: the
+  known shutdown diagnostic (A14 in `CONTINUITY_MILESTONE.md`). Still
+  unresolved, and not claimed fixed.
+
+**Playable build:** https://claude.ai/artifact/3G95pCn7jTAYr2DPmmWu5w
+(version 17, built from `0773f52`). Private to its owner until shared.
 
 **Not verified:**
 - Windows execution (an export is not a playtest)

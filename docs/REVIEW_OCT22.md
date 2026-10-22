@@ -250,6 +250,12 @@ runs and the route measurement are repeatable at the precision reported.
   - the Bin at a sweep;
   - the Edge.
 - **Motion:** as listed above. Stills alone do not show animation.
+- **Verification:** the head, commands, counts, warnings and CI runs
+  are in `RELEASE_READINESS.md` (current section). Local results and CI
+  are kept apart there. Summary at `0773f52`:
+  - suite 581/581;
+  - bots 5/5 with 0 deaths, and 15 stalls in one run, reported;
+  - three exports, the smoke test and both browser checks pass.
 
 ## Unfamiliar-player round (prepared, not run)
 
