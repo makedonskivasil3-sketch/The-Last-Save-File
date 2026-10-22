@@ -537,7 +537,17 @@ func _go(w: Node, points: Array, timeout := STEP_TIMEOUT) -> bool:
 				elif route.size() >= 2:
 					_say("replanned round it (%d steps)" % route.size())
 					_replanning = true
-					var ok := await _go(w, Array(route).slice(1), 6.0)
+					# Walked a step at a time, looking again before each: the
+					# static can grow onto a route after it was planned.
+					var ok := true
+					for q in Array(route).slice(1):
+						if _through_static(w, PackedVector2Array([q])):
+							_say("replan abandoned: the static reached the way round")
+							ok = false
+							break
+						if not await _go(w, [q], 2.0):
+							ok = false
+							break
 					_replanning = false
 					if ok and w.player.global_position.distance_to(p) < 12.0:
 						continue
