@@ -13,7 +13,7 @@ func _lines(w: Node) -> String:
 func _died_in_room_with_mira(w: Node) -> Node:
 	w.player.global_position = w.area.mira.global_position + Vector2(0, 30)
 	await frames(2)
-	w.kill("arin", "arin")
+	w.kill("overwritten", "arin")
 	return await wait_for_new_session(w)
 
 
@@ -190,7 +190,7 @@ func test_mira_on_the_walk_and_after_it() -> void:
 	check(memory().has_event("mira.walked"), "walking her out is something that happened")
 	await go_to(w, "square", "house")
 	check(w.escort_id() == "mira", "she came with you")
-	w.kill("arin", "arin")
+	w.kill("overwritten", "arin")
 	var w2 := await wait_for_new_session(w)
 	check(memory().has_event("mira.note_lost"), "taken with her: her note is lost")
 	check(not memory().has_event("mira.saw_death"), "in the square she didn't see it happen in her room")

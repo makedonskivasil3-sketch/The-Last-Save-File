@@ -273,15 +273,17 @@ func test_the_static_goes_the_same_way_however_often_it_is_drawn() -> void:
 		var w := await start_session()
 		await go_to(w, "edge", "south")
 		var e: Node = w.area.erasure
+		e.active = false  # grown by hand below, one step a frame
 		e.mature_time = 0.0001  # settle at once, so the void's static is drawn
+		e.visible = drawn  # hidden: the engine doesn't draw it
 		e.rng.seed = 20261022
 		seed(1)
 		for i in 60:
 			e._grow()
 			e._t += 0.01
 			e._settle_cells()
-			if drawn:
-				e._draw()
+			e.queue_redraw()
+			await frames(1)
 		var cells: Array = e._cells.keys()
 		cells.sort()
 		paths.append(cells)

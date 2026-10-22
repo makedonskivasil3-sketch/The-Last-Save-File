@@ -21,7 +21,7 @@ func test_coherence_captures() -> void:
 	await go_to(w, "room", "start")
 	w.player.global_position = w.area.mira.global_position + Vector2(0, 30)
 	await frames(2)
-	w.kill("arin", "tour")
+	w.kill("overwritten", "arin")
 	var w2 := await wait_for_new_session(w)
 	w2.director.stop()
 	# 1. The map after a death: everything found is still named.

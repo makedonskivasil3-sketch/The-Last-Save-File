@@ -73,7 +73,7 @@ func test_history_survives_death_and_restart() -> void:
 	await go_to(w, "square", "house")
 	await interact_with(w, _wren(w))
 	await finish_dialogue(w)
-	w.kill("arin", "test")
+	w.kill("overwritten", "arin")
 	var w2 := await wait_for_new_session(w)
 	check(memory().has_met("wren"), "still met after a death")
 	check(memory().has_event("wren.saw_death"), "she was there: she saw it")
@@ -91,7 +91,7 @@ func test_characters_acknowledge_only_what_they_saw() -> void:
 	await interact_with(w, _wren(w))
 	await finish_dialogue(w)
 	await go_to(w, "room", "start")
-	w.kill("arin", "test")  # in Arin's room: Wren isn't there
+	w.kill("overwritten", "arin")  # in Arin's room: Wren isn't there
 	var w2 := await wait_for_new_session(w)
 	check(not memory().has_event("wren.saw_death"), "Wren didn't see a death in Arin's room")
 	await go_to(w2, "square", "house")

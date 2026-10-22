@@ -8,7 +8,7 @@ func test_found_places_stay_found_after_a_death() -> void:
 	var w := await start_session()
 	await go_to(w, "square", "house")
 	await go_to(w, "archive", "west")
-	w.kill("arin", "test")
+	w.kill("overwritten", "arin")
 	var w2 := await wait_for_new_session(w)
 	var map: Dictionary = w2.map_state()
 	check_eq(map.current, "room", "a new run starts in the room")
