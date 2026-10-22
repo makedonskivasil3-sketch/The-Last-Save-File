@@ -61,7 +61,16 @@ func test_the_title_room_drifts_within_bounds_and_holds_with_reduced_motion() ->
 	await wait(0.5)
 	var art: TitleArt = scene().find_children("*", "TitleArt", true, false)[0]
 	var buttons := scene().find_children("*", "Button", true, false)
-	var before := buttons.map(func(b: Button) -> Vector2: return b.global_position)
+	var where := func() -> Array: return buttons.map(func(b: Button) -> Vector2: return b.global_position)
+	# (The menu lays itself out over the first frames, the records line
+	# included: measure once it has settled.)
+	var before: Array = where.call()
+	for i in 20:
+		await wait(0.25)
+		var now: Array = where.call()
+		if now == before:
+			break
+		before = now
 	var widest := 0.0
 	for i in 200:
 		art.elapsed = i * 0.7
@@ -69,7 +78,7 @@ func test_the_title_room_drifts_within_bounds_and_holds_with_reduced_motion() ->
 		check(art.layer_offset("wall").length() <= art.layer_offset("near").length() + 0.001, "further layers move less")
 	check(widest > 1.0 and widest <= TitleArt.PARALLAX * 1.42, "the nearest layer drifts, at most %.0f px (%.2f)" % [TitleArt.PARALLAX, widest])
 	await wait(0.5)
-	check_eq(buttons.map(func(b: Button) -> Vector2: return b.global_position), before, "the menu never moves")
+	check_eq(where.call(), before, "the menu never moves while the room drifts")
 	settings().reduce_motion = true
 	for i in 20:
 		art.elapsed = i * 3.1
