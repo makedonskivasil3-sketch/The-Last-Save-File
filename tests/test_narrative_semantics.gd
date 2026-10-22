@@ -76,3 +76,12 @@ func test_a_new_session_after_a_broken_off_introduction_is_not_a_reunion() -> vo
 
 func Archive_first(i: int) -> String:
 	return ArchiveArea.ARCHIVIST_FIRST[i]
+
+
+func test_a_save_from_before_this_change_is_greeted_as_returning() -> void:
+	memory().met_archivist = true  # an older save: pointer, no "introduced", no pending mark
+	var w := await start_session()
+	await _archive(w)
+	var lines := _lines(w.area._archivist_lines())
+	check(lines.has(ArchiveArea.ARCHIVIST_BACK), "greeted as someone who kept the pointer (%s)" % lines)
+	check(not lines.has(ArchiveArea.ARCHIVIST_RESUMED_OPEN), "not told the introduction again")

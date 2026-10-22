@@ -193,8 +193,10 @@ var _greeted := false
 
 func _archivist_core(commit: Array) -> Array:
 	if world.flags.get("pointer", false):
-		if not Relationships.has("archivist.introduced"):
+		if Relationships.has("archivist.intro_pending") and not Relationships.has("archivist.introduced"):
 			# Given the pointer, but he never got to say who he is: he does.
+			# (Saves from before "introduced" existed have no pending mark:
+			# they heard it then, and are greeted as returning visitors.)
 			commit.append("archivist.introduced")
 			var again: Array = [ARCHIVIST_RESUMED_OPEN]
 			again.append_array(ARCHIVIST_FIRST.slice(1, 5))
@@ -215,6 +217,7 @@ func _archivist_core(commit: Array) -> Array:
 	PlaytestLog.mark("got the pointer (north road open)", "", true)
 	world.hud.say("RECEIVED: slot_2.ptr", "system")
 	OwnerMemory.met_archivist = true
+	Relationships.add("archivist.intro_pending")  # (not shown in the journal)
 	Relationships.add("archivist.pointer")  # saves
 	commit.append("archivist.introduced")  # once it's heard
 	return ARCHIVIST_FIRST.duplicate()
