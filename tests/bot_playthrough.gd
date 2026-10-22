@@ -527,10 +527,14 @@ func _go(w: Node, points: Array, timeout := STEP_TIMEOUT) -> bool:
 			_release_all()
 			# Before giving up: plan a way round with the area's own walking
 			# grid (the one Arin uses), as a player would look for one, once.
-			if not _replanning and w.area.has_meta("nav_grid") and w.ending == "":
-				var grid: NavGrid = w.area.get_meta("nav_grid")
+			if not _replanning and w.ending == "":
+				var grid := _grid(w)
 				var route := grid.path(w.player.global_position, p)
-				if route.size() >= 2:
+				# The grid knows walls, not the static: a way round through
+				# (or brushing) erased floor is no way round.
+				if route.size() >= 2 and _through_static(w, route):
+					_say("replan refused: the way round crosses the static")
+				elif route.size() >= 2:
 					_say("replanned round it (%d steps)" % route.size())
 					_replanning = true
 					var ok := await _go(w, Array(route).slice(1), 6.0)
@@ -543,6 +547,28 @@ func _go(w: Node, points: Array, timeout := STEP_TIMEOUT) -> bool:
 
 
 var _replanning := false
+
+
+func _through_static(w: Node, route: PackedVector2Array) -> bool:
+	var e: Variant = w.area.get("erasure")
+	if e == null or not is_instance_valid(e):
+		return false
+	for q in route:
+		if (e as Erasure).nearest_cell(q, 16.0) != Vector2.INF:
+			return true
+	return false
+
+
+## The area's walking grid if a walker already built one (it stays fresh as
+## doors and crates move), else a fresh one for this replan only, built the
+## way Arin's is. Not stored on the area, so the game's own state is untouched.
+func _grid(w: Node) -> NavGrid:
+	if w.area.has_meta("nav_grid"):
+		return w.area.get_meta("nav_grid")
+	var grid := NavGrid.new()
+	var skip: Array[RID] = [w.player.get_rid()]
+	grid.build(w.area.get_world_2d().direct_space_state, w.area.bounds, w.player.collision_mask, skip, OwnerAvatar.RADIUS)
+	return grid
 
 
 ## Dodging the cursor or Arin must not carry the bot out through a doorway
