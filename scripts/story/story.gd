@@ -693,6 +693,8 @@ static func _recall_holds(condition: String) -> bool:
 ## memories and two of their pieces, the Archive's CHARACTER FILE opens.
 
 const TRUTH_PIECES_NEEDED := 2
+## At Slot 2, knowing what she is: not the girl's two taps. One press.
+const RUE_OWN_PRESS := "(one press. not her two taps. mine.)"
 ## What each of them noticed, said once ever (OwnerMemory.truth_pieces).
 const TRUTH_LINES := {
 	"mira": "Can I tell you something? Arin only moves when the owner's there. You move when nobody is. So who's holding you?",

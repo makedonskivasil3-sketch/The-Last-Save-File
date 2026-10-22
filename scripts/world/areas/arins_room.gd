@@ -165,7 +165,9 @@ func build() -> void:
 		mira = add_npc("mira", MIRA_POS, mira_state)
 		mira.display_name = "MIRA"
 		mira.body_kind = "dress"
-		mira.idle_style = "sway"
+		# Her routine before her request: at her two cups, turning them,
+		# setting them right (restricted, she only sways where she's kept).
+		mira.idle_style = "tend" if mira_state == Npc.State.NORMAL else "sway"
 		mira.notice_emote = "!"
 		mira.dark_color = Color("a85a2e")
 		mira.lines_provider = _mira_lines

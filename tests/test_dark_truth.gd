@@ -123,6 +123,7 @@ func test_rue_needs_the_truth() -> void:
 	w.hud._chosen.emit(0)
 	await wait_until(func() -> bool: return memory().last_ending != "", 5.0, "the ending")
 	check_eq(memory().last_ending, "escape", "it's the plain escape")
+	check_eq(w.slot2_press, "habit", "not knowing: her press is still the girl's two taps")
 
 
 func test_rue_with_the_truth() -> void:
@@ -134,10 +135,12 @@ func test_rue_with_the_truth() -> void:
 	w.flags["seen_by_arin"] = true
 	w.reach_slot2()
 	await until_choosing(w)
-	check(Story.SLOT2_ESCAPE_NAMED in _choices(w), "knowing who you are, the slot takes your name")
+	check(Story.SLOT2_ESCAPE_NAMED in _choices(w), "knowing what you are, the slot takes your name")
 	w.hud._chosen.emit(0)
 	await wait_until(func() -> bool: return memory().last_ending != "", 5.0, "the ending")
 	check_eq(memory().last_ending, "rue", "RUE")
+	check_eq(w.slot2_press, "own", "knowing what she is: one press, her own (the author's direction)")
+	check(await wait_until(func() -> bool: return w.hud.history.any(func(e: Dictionary) -> bool: return str(e.text).contains(Story.RUE_OWN_PRESS)), 8.0, "her own press, noticed"), "and she notices it")
 
 
 func test_the_message_tells_the_real_girl() -> void:

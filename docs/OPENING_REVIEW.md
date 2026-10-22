@@ -81,3 +81,29 @@ controller.
   and what people think happened at 87% and under PAUSE, are the first
   questions of the playtest round (`PLAYTEST_PLAN.md`).
 - Input was injected, not played on hardware: no real pad was unplugged.
+
+## Character experience matrix
+
+**Implemented** means it is in the game at this head (new in this pass
+where marked). **Proposed** means it is not built.
+
+| Character | First sight | Distinctive action | Immediate want | Fear | Contradiction | Player choice | Consequence | Return beat | Optional revelation | Ending relevance |
+|---|---|---|---|---|---|---|---|---|---|---|
+| **Rue** | The amber figure in the opening; **you** over her in the room (**new**) | The girl's two-tap habit (inherited). At Slot 2, knowing what she is: **one press, her own** (**new**: "(one press. not her two taps. mine.)") | Get out of Arin's room; then out of the owner's reach | Being overwritten again | Made of someone else's attention; acts on her own | Every route; whom she helps; which ending | Colour restored with memories; borrowed pieces | Waking again; the well's chalk mark | The CHARACTER FILE | All six; RUE needs the truth |
+| **Mira** | In her corner at her two cups, **tending them** (**new**: her routine shown before any request) | Keeps her room; writes a note for the board | To be seen ("I talk. I remember.") | Being reset | Notices Rue moves when nobody holds her, but can't leave her room alone | Walk her to the square, or not | The note pinned (the board changes) or lost; reset; restoration | Her conversations by event (Relationships) | "So who's holding you?" (a truth piece) | The message ending clears her fate |
+| **Wren** | Hopping in the square | Shelters Rue beside her ("the owner can't see what I'm standing beside") | To see the Edge | Being taken out of the save | Cut content who wants to finish | The promise; the escort | Sheltering is recorded only when it happened, and concealment only when Arin's look reached Rue | The chalk mark at the well after a death (her action) | "Nobody plays me…" | The Wren ending |
+| **Tobben** | At his stall, **tending his wares** (previous pass) | The compulsory welcome, breaking ("you don't have an inventory") | To follow his script | Not reporting | Reports Rue, and is sorry | Write Rue's name back into the guest book | His greeting changes after the book (`TOBBEN_GREETING_BOOK`); written-only after fraying | A one-time reaction after the book | "You wrote RUE back in a different hand" | — |
+| **Archivist** | At his desk, **reading** | Keeps the records nobody reads | That someone reads them | Being seen (he can't be deleted only while unseen) | Gives the way out; can't leave | Talk; read the records | The pointer opens the north road (an immediate grant); the introduction now counts **only once heard** (**new**) | "You came back. I hadn't finished." after a broken-off introduction (**new**); otherwise "Back again." | The CHARACTER FILE at his desk | The truth that RUE needs |
+| **Pip** | Under the well, waiting | Recognises her first: "...rue? rue! you fell back in! i waited…" (existing; now tested) | To be with her | Being saved back in (and deleted) | The girl's drawing, still here | Wake it | It follows and guides | A first-talk line each run, by memories | — | Goes with her into the slot, or with Wren |
+| **Arin** | P1 · ARIN in the opening, waiting for her at the save point (**new**) | Walks only when the owner plays; mute | — (the owner's) | — | An avatar without a will | Hide from his look | Learns routes and spots (`note_spot`) | Patrols what he learned | — | — |
+| **Owner** | The opening's reply that stops; notes | Lamp, cursor, reload, save-over | An empty slot 2 | That it's her | "You're not her" is true and misses the point | — | Adapts to what Rue actually did | Notes per run | "...rue?" | The message ending |
+| **The girl** | The amber controller, the taped cable, the habit | Two light taps, then the press | — | — | Absent; present in every habit | — | — | The well keeps her message | Months later: "still have my save?" | The message ending tells her what she left running |
+
+**Proposed, not built:**
+- Pip: a quiet return gesture after separation.
+- Mira: a visible board change that she reacts to in person.
+- The Archivist: split his seven-page introduction into a shorter first
+  exchange and a follow-up, so it isn't one long speech (it was kept, and
+  its completion is now tracked).
+- A second gesture of Rue's own, earlier than Slot 2, for players who never
+  read the file.

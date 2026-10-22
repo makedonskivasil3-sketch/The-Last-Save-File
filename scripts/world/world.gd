@@ -1811,8 +1811,30 @@ func reach_slot2() -> void:
 		message = await hud.choose(Story.MESSAGE_QUESTION, Story.messages())
 		if not is_inside_tree() or message < 0:
 			return
+	await _slot2_press()
+	if not is_inside_tree():
+		return
 	_cutscene = false
 	win(ids[pick], message)
+
+
+## Her press at Slot 2. Until she knows what she is, it is the girl's
+## habit (two light taps, then the press: the opening, the well). Knowing,
+## it is one press, her own: the first gesture that is only hers (the
+## author's direction, CANON_DECISIONS.md §1).
+var slot2_press := ""
+
+
+func _slot2_press() -> void:
+	if OwnerMemory.knows_truth:
+		slot2_press = "own"  # (she says so as the final exchange opens: win())
+		Sfx.play("click", -6.0, 0.85, 0.0)
+		await get_tree().create_timer(0.6).timeout
+	else:
+		slot2_press = "habit"
+		for h in Opening.HABIT:
+			get_tree().create_timer(h[0]).timeout.connect(func() -> void: Sfx.play("click", h[1], 1.3 if h[0] < 0.5 else 1.0, 0.0))
+		await get_tree().create_timer(0.8).timeout
 
 
 ## An ending: "escape" (Rue takes Slot 2), "wren" (Wren gets it), or
@@ -1842,7 +1864,10 @@ func win(chosen := "escape", message := 0) -> void:
 	if not is_inside_tree():
 		return
 	# The console, live: the last thing said.
-	await hud.cinematic("", Story.FINAL_EXCHANGE.get(chosen, []), Hud.OWNER_COLOR, 0.85, "final." + chosen, CharacterArt.rue("determined", player.palette()))
+	var exchange: Array = Story.FINAL_EXCHANGE.get(chosen, []).duplicate()
+	if slot2_press == "own":
+		exchange.push_front(Story.RUE_OWN_PRESS)  # her first gesture that is only hers
+	await hud.cinematic("", exchange, Hud.OWNER_COLOR, 0.85, "final." + chosen, CharacterArt.rue("determined", player.palette()))
 	if not is_inside_tree():
 		return
 	if pip:
