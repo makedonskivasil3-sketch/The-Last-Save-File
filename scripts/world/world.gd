@@ -828,12 +828,17 @@ func _base_light() -> Color:
 
 ## True if something in the area hides this position from the owner.
 ## Whoever hides you is noted: the owner finds out if this session ends badly.
-func is_player_hidden(pos: Vector2) -> bool:
+## `witness` names a watcher whose look has already reached `pos` (range,
+## angle and walls checked: Arin binds "arin"): only then is a concealment
+## something Rue saw happen, and the journal may say so.
+func is_player_hidden(pos: Vector2, witness := "") -> bool:
 	if area and area.has_method("hides_player") and area.hides_player(pos):
 		return true
 	var helper := _hider_at(pos)
 	if helper:
 		OwnerMemory.note_helper(helper.npc_id)
+		if witness == "arin" and helper.npc_id == "wren" and not Relationships.has("wren.concealed"):
+			Relationships.add("wren.concealed")
 	return helper != null
 
 

@@ -2,7 +2,43 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current: coherence milestone, review branch (2026-10-21)
+## Current: review milestone after the vertical slice (2026-10-22)
+
+**Branch:** `claude/last-save-file-prototype-ljwuq4`.
+- PR #10 is a **draft, not merged**. `main` is at `09aeb3b`.
+- Runtime code changed after `537df8c`: the vertical slice, then the
+  22 October review fixes. The previous "documents only" note below is
+  history, not the current state.
+
+**Canon:** still **proposed**, and needs the author's decision
+(`docs/CANON_DECISIONS.md`). Nothing on this branch is approved canon.
+
+**Last fully green CI:** run 129 (`7710f10`),
+https://github.com/makedonskivasil3-sketch/The-Last-Save-File/actions/runs/39749038209
+- It covered the strict suite, five ending bots, Web, Windows and Linux
+  exports, browser audio and lifecycle checks, and the Linux smoke test.
+- Earlier CI runs on this branch failed and are kept on record in
+  `docs/VERTICAL_SLICE.md` §7:
+  - runs 121 and 123–125: a bot harness that didn't know the wider Square;
+  - run 127: a real purge-5 balance regression from the lamp, since
+    retuned;
+  - run 128: a flaky test.
+
+**This milestone:**
+- The review findings and their fixes are in `docs/REVIEW_OCT22.md`.
+- This section is updated with the final head, CI run and test counts
+  when the milestone closes.
+
+**Not verified:**
+- Windows execution (an export is not a playtest)
+- an iPhone
+- a real GPU or gamepad
+- human listening
+- uncoached players
+
+None of these is claimed.
+
+## Previous: coherence milestone, review branch (2026-10-21)
 
 Branch: `claude/last-save-file-prototype-ljwuq4` (PR #10, draft, **not
 merged**). `main` = `09aeb3b`. The code head is `537df8c`; later commits

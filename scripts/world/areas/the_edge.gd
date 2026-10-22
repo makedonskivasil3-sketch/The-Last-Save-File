@@ -344,7 +344,7 @@ func _send_arin() -> void:
 	arin.position = Vector2((SOUTH_GAP.x + SOUTH_GAP.y) * 0.5, bounds.end.y - 6)
 	arin.speed = ARIN_SPEED
 	arin.player = world.player
-	arin.is_hidden = world.is_player_hidden
+	arin.is_hidden = world.is_player_hidden.bind("arin")
 	arin.touched_player.connect(func() -> void: world.kill("overwritten", "arin"))
 	arin.sees_player.connect(func(d: float) -> void:
 		world.director.add_awareness(12.0 * d)

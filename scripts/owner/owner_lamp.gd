@@ -61,6 +61,20 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 
+## The owner turns the lamp to cover more (the opened gate): the arc's start
+## moves there over `seconds`, ticking as it goes, so the change is seen
+## happening rather than found later. 0 seconds: already there (a save
+## restored with the gate open).
+func widen_to(from_angle: float, seconds := 1.5) -> void:
+	if seconds <= 0.0:
+		arc_from = from_angle
+		return
+	Sfx.play("click", -14.0, 0.5, 0.0)
+	var tw := create_tween()
+	tw.tween_property(self, "arc_from", from_angle, seconds).set_trans(Tween.TRANS_SINE)
+	tw.tween_callback(func() -> void: Sfx.play("click", -16.0, 0.6, 0.0))
+
+
 func facing() -> float:
 	return _angle
 

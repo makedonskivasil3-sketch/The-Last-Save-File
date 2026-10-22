@@ -151,6 +151,19 @@ static func chunk_present(offset: float, t: float) -> bool:
 	return fmod(t + offset, PERIOD) < ON
 
 
+## Seconds this chunk has left before it goes (0 when it isn't there): the
+## same clock as floor_at(), so what's drawn is what holds you.
+static func chunk_time_left(offset: float, t: float) -> float:
+	var phase := fmod(t + offset, PERIOD)
+	return maxf(0.0, ON - phase) if phase < ON else 0.0
+
+
+## Seconds until a missing chunk comes back (0 when it's there).
+static func chunk_time_until(offset: float, t: float) -> float:
+	var phase := fmod(t + offset, PERIOD)
+	return 0.0 if phase < ON else PERIOD - phase
+
+
 ## 0 = steady, 1 = about to vanish (for the flicker).
 static func chunk_warning(offset: float, t: float) -> float:
 	var phase := fmod(t + offset, PERIOD)
@@ -203,17 +216,26 @@ func _draw() -> void:
 		draw_rect(Rect2(x, y, 1, 1), Color(WIRE, 0.25))
 	for pos: Vector2 in LABELS:
 		draw_string(UiStyle.system_font(), pos, LABELS[pos], HORIZONTAL_ALIGNMENT_LEFT, -1, 7, Color(WIRE, 0.22 + 0.06 * sin(_t * 1.3 + pos.x)))
-	# Chunks: tiles when present (flickering before they go), a dotted
-	# outline where they will come back.
+	# Chunks, in three states told apart by pattern, not colour or sound:
+	#   there:          a grid, with a bar along its edge draining to empty;
+	#   about to go:    diagonal hatching over the grid, the bar nearly gone
+	#                   (and, unless Reduce flashing, a slow pulse);
+	#   gone:           a dotted outline that fills back in as it returns.
 	for c in CHUNKS:
 		var present := chunk_present(c[1], _t)
 		var warn := chunk_warning(c[1], _t)
 		for rect: Rect2 in c[0]:
 			if present:
-				var blink := warn > 0.0 and fmod(_t, 0.16) < 0.08 + 0.04 * (1.0 - warn)
-				_draw_tiles(rect, Color(1.0, 0.35, 0.45) if blink else WIRE, 0.55 if not blink else 0.3)
+				var pulse := 0.0 if Settings.reduce_flashing or warn <= 0.0 else 0.5 + 0.5 * sin(_t * TAU * 2.5)
+				var col := WIRE.lerp(Color(1.0, 0.45, 0.5), warn * (0.5 + 0.5 * pulse))
+				_draw_tiles(rect, col, 0.55 - 0.15 * warn)
+				if warn > 0.0:
+					_draw_hatch(rect, Color(col, 0.55))
+				_draw_timer(rect, chunk_time_left(c[1], _t) / ON, col)
 			else:
 				_draw_dotted(rect, Color(WIRE, 0.18))
+				var back := 1.0 - chunk_time_until(c[1], _t) / (PERIOD - ON)
+				_draw_timer(rect, back, Color(WIRE, 0.35))
 	# Anchors: solid debug platforms.
 	for a in ANCHORS:
 		draw_rect(a, Color(0.05, 0.12, 0.14))
@@ -249,6 +271,26 @@ func _draw_tiles(rect: Rect2, col: Color, alpha: float) -> void:
 		draw_line(Vector2(rect.position.x, y), Vector2(rect.end.x, y), Color(col, alpha * 0.5))
 		y += 8.0
 	draw_rect(rect, Color(col, alpha), false, 1.0)
+
+
+## Diagonal lines across a chunk that is about to go (a pattern, readable
+## without colour).
+func _draw_hatch(rect: Rect2, col: Color) -> void:
+	var step := 6.0
+	var d := -rect.size.y
+	while d < rect.size.x:
+		var a := Vector2(rect.position.x + maxf(d, 0.0), rect.position.y + maxf(-d, 0.0))
+		var len := minf(rect.end.x - a.x, rect.end.y - a.y)
+		draw_line(a, a + Vector2(len, len), col, 1.0)
+		d += step
+
+
+## A bar along the chunk's bottom edge: how much of its time is left (or,
+## for a missing chunk, how close it is to coming back).
+func _draw_timer(rect: Rect2, fraction: float, col: Color) -> void:
+	var bar := Rect2(rect.position.x + 2, rect.end.y - 3, rect.size.x - 4, 2)
+	draw_rect(bar, Color(0, 0, 0, 0.5))
+	draw_rect(Rect2(bar.position, Vector2(bar.size.x * clampf(fraction, 0.0, 1.0), bar.size.y)), Color(col, 0.9))
 
 
 func _draw_dotted(rect: Rect2, col: Color) -> void:

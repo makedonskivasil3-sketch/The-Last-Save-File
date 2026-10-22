@@ -6,6 +6,8 @@ extends StaticBody2D
 ## shortcut to the Archive road stays open for good
 ## (OwnerMemory.square_gate_open).
 
+signal opened
+
 var size := Vector2(34, 6)
 ## The side the latch is on: Rue must be north of this y to lift it.
 var latch_side_y := 0.0
@@ -48,6 +50,7 @@ func interact() -> Variant:
 	_col.set_deferred("disabled", true)
 	Area.notify_geometry(self, Rect2(position - size, size * 2.0))
 	Sfx.play("door_lock", -8.0, 1.4)  # the latch (the lock sound, lighter)
+	opened.emit()
 	return "The latch lifts. The gate stays open: a way back that isn't the crossing."
 
 

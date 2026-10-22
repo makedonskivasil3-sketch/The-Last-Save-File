@@ -26,7 +26,8 @@ extends RefCounted
 ## Listed in the order they can happen, which breaks ties within a session.
 const EVENTS := {
 	"wren.met": "Met Wren in the square.",
-	"wren.sheltered": "Wren hid you from Arin.",
+	"wren.sheltered": "You hid beside Wren.",
+	"wren.concealed": "Arin looked straight at you while you hid beside Wren, and didn't see you.",
 	"wren.promised": "You promised to take Wren to the Edge.",
 	"wren.saw_death": "Wren saw you taken.",
 	"wren.reunited": "You came back to Wren after she saw you taken.",

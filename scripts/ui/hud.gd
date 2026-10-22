@@ -1136,18 +1136,29 @@ func clear_queue() -> void:
 ## and whatever is open (a conversation, a scene), stays for its reading
 ## time, and goes in the History once. It never waits in the console queue.
 func warn(text: String) -> void:
-	var shown := "> " + text
+	_strip("> " + text, text, OWNER_COLOR, "OWNER", "owner")
+
+
+## The same strip for something Rue notices that won't wait (the door
+## chiming before Arin comes in): at once, in her colour, never queued.
+func alert(text: String) -> void:
+	_strip(text, text, SELF_COLOR, "RUE", "self")
+
+
+func _strip(shown: String, text: String, color: Color, who: String, kind: String) -> void:
+	_warning.add_theme_color_override("font_color", color)
 	_warning.text = shown
 	_warning.visible = true
 	_warning.modulate.a = 1.0
 	_warning.reset_size()
 	_warning.size.x = 400
 	hide_tip(true)
-	Sfx.owner_blip(text[0] if text != "" else "a")
+	if kind == "owner":
+		Sfx.owner_blip(text[0] if text != "" else "a")
 	console_history.append(shown)
 	if console_history.size() > MAX_HISTORY:
 		console_history.pop_front()
-	_log_line("OWNER", text, "owner")
+	_log_line(who, text, kind)
 	if _warning_tween:
 		_warning_tween.kill()
 	_warning_tween = create_tween()

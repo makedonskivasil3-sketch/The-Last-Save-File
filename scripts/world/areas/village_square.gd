@@ -32,6 +32,9 @@ const TREES: Array[Vector2] = [Vector2(190, 268), Vector2(560, 250), Vector2(420
 ## lingering in the beam costs a lot (balance: VERTICAL_SLICE.md §3c).
 const LAMP_GRACE := 0.6
 const LAMP_RATE := 6.0
+## Where the lamp's sweep starts once the lane gate is open (it covers the
+## gate's mouth as well as the crossing).
+const LAMP_GATE_ARC := -0.25
 ## The east half (docs/VERTICAL_SLICE.md §3c).
 ## The crossing: open cobbles, no cover, the lamp's beam.
 const CROSSING := Rect2(600, 118, 190, 124)
@@ -261,9 +264,11 @@ func build() -> void:
 	lamp.position = LAMP_POS
 	lamp.player = world.player
 	lamp.is_hidden = world.is_player_hidden
-	# Once the gate is open, the owner turns the lamp to cover it too.
+	# Once the gate is open, the owner turns the lamp to cover it too: the
+	# moment it opens (watched), and from then on (restored).
 	if OwnerMemory.square_gate_open:
-		lamp.arc_from = -0.25
+		lamp.widen_to(LAMP_GATE_ARC, 0.0)
+	gate.opened.connect(_on_gate_opened)
 	lamp.sees_player.connect(_on_lamp_sees)
 	add_child(lamp)
 
@@ -286,7 +291,7 @@ func build() -> void:
 	# Even at the worst, Arin stays slower than you (90): you can always run.
 	arin.speed = 38.0 + OwnerMemory.purge * 4.0
 	arin.player = world.player
-	arin.is_hidden = world.is_player_hidden
+	arin.is_hidden = world.is_player_hidden.bind("arin")
 	arin.sees_player.connect(_on_arin_sees)
 	arin.touched_player.connect(func() -> void: world.kill("overwritten", "arin"))
 	arin.lure = world.lure_point
@@ -510,6 +515,11 @@ func _on_marked(_who: Node) -> void:
 
 func _exit_tree() -> void:
 	Relationships.wren_at_well = false  # only on this visit
+
+
+func _on_gate_opened() -> void:
+	lamp.widen_to(LAMP_GATE_ARC)
+	world.director.say("the gate behind the stall. i'll keep the lamp on it.")
 
 
 ## In the lamp's beam: like Arin's look (a short grace, then attention).

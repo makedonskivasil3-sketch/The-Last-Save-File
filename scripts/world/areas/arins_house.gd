@@ -131,7 +131,9 @@ func area_process(delta: float) -> void:
 	if next_visit <= CHIME_LEAD and not _chimed:
 		_chimed = true
 		Sfx.play("ui_confirm", 0.0, 0.6)  # the door chime
-		world.hud.say("(the door. someone's coming in.)", "self")
+		# At once, whatever the console is still typing; and seen, not only
+		# heard (the door's light, the closets' open sides: _ClosetCue).
+		world.hud.alert("(the door. someone's coming in.)")
 	if next_visit <= 0.0:
 		_arin_comes_home()
 
@@ -145,7 +147,7 @@ func _arin_comes_home() -> void:
 	arin.position = Vector2(320, bounds.end.y - 4)
 	arin.speed = 40.0
 	arin.player = world.player
-	arin.is_hidden = world.is_player_hidden
+	arin.is_hidden = world.is_player_hidden.bind("arin")
 	arin.touched_player.connect(func() -> void: world.kill("overwritten", "arin"))
 	arin.sees_player.connect(func(d: float) -> void:
 		world.director.add_awareness(20.0 * d)
@@ -268,6 +270,14 @@ class ClosetView:
 		if house == null or house.world == null:
 			return
 		var p: Vector2 = house.world.player.global_position
+		# Between the chime and Arin walking in: light spills in from the
+		# front door, and every closet's open side is marked (until he's in).
+		var coming := house.arin == null and house.next_visit <= CHIME_LEAD
+		if coming:
+			var k := 1.0 - house.next_visit / CHIME_LEAD
+			var door := Vector2((FRONT_GAP.x + FRONT_GAP.y) * 0.5, house.bounds.end.y)
+			draw_colored_polygon(PackedVector2Array([door + Vector2(-20, 0), door + Vector2(20, 0), door + Vector2(34 + 30 * k, -40 - 50 * k), door + Vector2(-34 - 30 * k, -40 - 50 * k)]),
+				Color(1.0, 0.85, 0.55, 0.12 + 0.12 * k))
 		for i in CLOSETS.size():
 			var c: Rect2 = CLOSETS[i]
 			var k: float = _open.get(i, 0.0)
@@ -277,6 +287,8 @@ class ClosetView:
 				draw_rect(Rect2(c.position.x, c.position.y + 2, w, c.size.y - 4), Color(WOOD.lightened(0.12), 0.85))
 				draw_rect(Rect2(c.end.x - w, c.position.y + 2, w, c.size.y - 4), Color(WOOD.lightened(0.12), 0.85))
 			var ty := house.threshold_y(c)
+			if coming and k < 0.5:
+				draw_line(Vector2(c.position.x + 2, ty), Vector2(c.end.x - 2, ty), Color(1.0, 0.92, 0.8, 0.85), 2.0)
 			var near := Vector2(c.get_center().x, ty).distance_to(p)
 			if k < 0.5 and near < CLOSET_CUE:
 				var a := 0.8 * (1.0 - near / CLOSET_CUE) + 0.2

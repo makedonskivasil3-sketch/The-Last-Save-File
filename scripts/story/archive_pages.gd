@@ -131,7 +131,11 @@ static func facts(who: String) -> Array:
 			if OwnerMemory.has_met("wren"):
 				seen.call("seen.wren", "Stands by the crates in the square.")
 			if Relationships.has("wren.sheltered"):
-				seen.call("seen.wren_hid", "Arin looked straight past you while you stood by her. It's true.")
+				seen.call("seen.wren_hid", "You stood beside her and the owner's marks didn't settle on you.")
+			# Only from a look that actually reached Rue and was turned aside
+			# (World.is_player_hidden, asked by Arin after range, angle and walls).
+			if Relationships.has("wren.concealed"):
+				seen.call("seen.wren_hid_arin", "Arin looked straight past you while you stood by her. It's true.")
 			if Relationships.has("wren.promise_kept"):
 				seen.call("seen.wren_cut", "She was moved to CUT CONTENT at the Edge. The owner can't delete her now.")
 		"tobben":
