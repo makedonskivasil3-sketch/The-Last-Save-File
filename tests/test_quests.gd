@@ -135,3 +135,14 @@ func test_the_archive_records_who_lit_the_fifth_lantern() -> void:
 	var log: Array = w.area._session_log()
 	check(log.any(func(l: String) -> bool: return l.begins_with("LANTERN 5")), "the SESSION LOG has it")
 
+
+func test_the_message_ending_remembers_the_festival() -> void:
+	for f in Story.FRAGMENTS:
+		memory().fragments.append(f.id)
+	var lines := Story.epilogue("message", Story.FRAGMENTS.size(), false)
+	check(lines.any(func(l: String) -> bool: return l.begins_with(">") and l.contains("festival") and l.contains("last lantern")),
+		"the owner says they walked off before the last lantern")
+	var edge := TheEdge.new()
+	check(edge.has_method("_draw_fifth_lantern"), "and the fifth lantern is drawn beside Slot 2")
+	edge.free()
+

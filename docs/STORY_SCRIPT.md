@@ -91,8 +91,8 @@ photo of a screen. A music box plays.*
 > two people on one couch. one screen. one save.
 > "you be arin," i said. "i'll make my own."
 
-**RUE:** (i was here before. not in this room. in front of it.)
-**RUE:** (a scarf. red. i picked that colour myself.)
+**RUE:** (i know this evening. not from this room. from the other side of the glass.)
+**RUE:** (a scarf. red. somebody picked that colour for me, carefully.)
 
 *Rue's scarf turns red.*
 

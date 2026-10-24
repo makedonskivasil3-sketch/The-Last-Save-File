@@ -252,3 +252,25 @@ The prompt path is much shorter than §2's estimate of about 4 minutes, because 
   - `cast_world_square_before_after.jpg`;
   - and the style sheets `style_cast_before_after.jpg` and `style_rue_walk_moods.jpg`.
 
+### F4. Story leaks fixed (§5)
+
+| # | Before | After |
+|---|---|---|
+| L1 | "i was here before. not in this room. in front of it." | "i know this evening. not from this room. from the other side of the glass." |
+| L2 | "i moved away. i said i'd come back. i came back twice." | "she moved away. she said she'd come back. ...why do i remember the boxes?" |
+| L3 | "a scarf. red. i picked that colour myself." | "a scarf. red. somebody picked that colour for me, carefully." |
+| L4 | Memories in "i", with no frame | Each plays in a frame: "REPLAY · P2 · 00:00:41" (the first evening) … "REPLAY · P2 · 41:07:12" (the last time); the deletion "LOG · SLOT 02 · AFTER THE LAST SESSION"; the planted one "REPLAY · NO SIGNATURE". It shows with speaker labels off, and opens the memory's journal page |
+| L5 | The boot repeated after the festival | Not shown after the festival (F1) |
+| L6 | The old film contradicts the festival | Off the first-run path (Q3) |
+| L7 | "Get out of Arin's room." | "THE FIFTH LANTERN · Find who kept the fifth lantern burning: get out of Arin's room." (F2) |
+| L8 | No festival in the chronology | Rows added: the festival on moving day, the lantern through the years, the load. The argument in memory 4 is the moment Player 1 left (41:07:12) |
+
+**Payoffs:**
+- The fifth lantern is drawn beside Slot 2 at the Edge ("lantern_05 · lit"). It holds steady under reduced flashing.
+- In the message ending, with every memory, the owner says: "> the festival. i walked off before the last lantern. i never saw who lit it."
+
+`tests/test_story_leaks.gd` fails on the lines and frames as they were. It checks:
+- no line of Rue's before the file claims the girl's life;
+- every memory has its frame;
+- the frame shows with speaker labels off;
+- the journal page keeps it.

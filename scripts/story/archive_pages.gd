@@ -241,8 +241,14 @@ static func documents() -> Array:
 
 ## A document grows when the owner rewrites a note Rue has read (every
 ## version is kept): its revision is how many versions it holds.
+## A memory's page opens with the frame it played in (REPLAY · P2 · ...).
 static func _from_journal(e: Dictionary) -> Dictionary:
-	return {"key": "journal:" + e.id, "title": e.title, "kind": e.kind, "area": e.area, "body": "\n\n".join(e.lines), "who": "",
+	var body := "\n\n".join(e.lines)
+	if e.kind == "memory":
+		var frame := Story.replay_frame(str(e.id).trim_prefix("memory:"))
+		if frame != "":
+			body = frame + "\n\n" + body
+	return {"key": "journal:" + e.id, "title": e.title, "kind": e.kind, "area": e.area, "body": body, "who": "",
 		"rev": str(e.lines.size())}
 
 

@@ -232,7 +232,7 @@ func recover_fragment(m: MemoryFragment) -> void:
 	# Rue's face, as much of it as is back: remembering, or afraid of the
 	# memory that isn't hers.
 	var face := CharacterArt.rue("afraid" if planted else "remembering", player.palette())
-	await hud.cinematic(f.title, f.lines, Color("ffb0a0") if planted else Hud.SELF_COLOR, 0.45, "memory." + f.id, face)
+	await hud.cinematic(f.title, f.lines, Color("ffb0a0") if planted else Hud.SELF_COLOR, 0.45, "memory." + f.id, face, f.get("replay", ""))
 	if not is_inside_tree() or ending != "":
 		return  # the run ended during the scene: nothing here is kept
 	# Kept only once it has been lived through: quitting mid-memory changes

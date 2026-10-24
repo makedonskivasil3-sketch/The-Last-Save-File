@@ -516,7 +516,9 @@ func set_portrait(portrait: CharacterArt.Portrait) -> void:
 ## `dim` darkens the world behind the text (0 = see-through, 1 = black).
 ## voice_prefix: the scene's id stem; each line's id is voice_id(prefix, text).
 ## portrait: a character portrait shown with the text (CharacterArt), or null.
-func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: float = 0.55, voice_prefix := "", portrait: CharacterArt.Portrait = null) -> void:
+## `replay`: the frame a recording plays in ("REPLAY · P2 · 41:07:12"),
+## shown even with speaker labels off: it says whose memory this is.
+func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: float = 0.55, voice_prefix := "", portrait: CharacterArt.Portrait = null, replay := "") -> void:
 	# A scene owns the screen: an open dialogue box is hidden and holds its
 	# place (it is NOT closed: closing would end the conversation and run its
 	# side effects mid-scene), and the act card clears.
@@ -538,6 +540,8 @@ func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: floa
 	_console_box.visible = false
 	_prompt.visible = false
 	_cine_title.text = title if Settings.speaker_labels or title == "EPILOGUE" else ""
+	if replay != "":
+		_cine_title.text = replay + ("   ·   " + _cine_title.text if _cine_title.text != "" else "")
 	_cine_text.add_theme_color_override("font_color", color)
 	_show_portrait(portrait)
 	for l in [_cine_title, _cine_text, _cine_hint, _cine_backing]:

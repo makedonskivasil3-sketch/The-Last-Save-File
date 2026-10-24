@@ -89,7 +89,7 @@ const VOICE := {
 ## What comes back with each recovered fragment (1..5): your own colours,
 ## restored onto your body one part at a time (see Player.RESTORE_ORDER).
 const RESTORED := {
-	1: "a scarf. red. i picked that colour myself.",
+	1: "a scarf. red. somebody picked that colour for me, carefully.",
 	2: "my hair. it always stuck up at the back like that.",
 	3: "a yellow raincoat. it was raining the day we made me.",
 	4: "real shoes. i can feel the floor now.",
@@ -97,11 +97,17 @@ const RESTORED := {
 }
 
 ## The five memory fragments, in the order the story makes most sense.
-## area / pos: where the shard floats. lines: the flashback.
+## area / pos: where the shard floats. lines: the flashback. replay: the
+## frame it plays in (docs/INTRO_REBUILD.md L4). They are recordings of
+## Player 2's sessions, kept in the save: the "i" in them is the girl who
+## held the controller, not Rue, and the frame says so before the truth does.
+## "THE LAST TIME" is the festival's end: moving day, at 41:07:12, when
+## Player 1 walked off (docs/STORY_CHRONOLOGY.md).
 const FRAGMENTS := [
 	{
 		"id": "controller",
 		"title": "MEMORY · THE SECOND CONTROLLER",
+		"replay": "REPLAY · P2 · 00:00:41",
 		"area": "room", "pos": Vector2(505, 96),
 		"lines": [
 			"a second controller, the cable taped where the dog chewed it.",
@@ -109,11 +115,12 @@ const FRAGMENTS := [
 			"\"you be arin,\" i said. \"i'll make my own.\"",
 			"[the rest of the evening is too bright to look at]",
 		],
-		"after": "i was here before. not in this room. in front of it.",
+		"after": "i know this evening. not from this room. from the other side of the glass.",
 	},
 	{
 		"id": "well",
 		"title": "MEMORY · THE WELL",
+		"replay": "REPLAY · P2 · 06:18:02",
 		"area": "oob", "pos": Vector2(540, 112),
 		"lines": [
 			"my character walked into the well by accident. a yellow raincoat, falling.",
@@ -125,6 +132,7 @@ const FRAGMENTS := [
 	{
 		"id": "new_game",
 		"title": "MEMORY · NEW GAME",
+		"replay": "REPLAY · P2 · 00:00:00",
 		"area": "archive", "pos": Vector2(470, 104),
 		"lines": [
 			"NEW GAME.  SLOT 02.  ENTER NAME: _",
@@ -136,6 +144,7 @@ const FRAGMENTS := [
 	{
 		"id": "argument",
 		"title": "MEMORY · THE LAST TIME",
+		"replay": "REPLAY · P2 · 41:07:12",
 		"area": "edge", "pos": Vector2(92, 262),
 		"lines": [
 			"boxes in the hall. my half of the room already empty.",
@@ -143,11 +152,12 @@ const FRAGMENTS := [
 			"\"it's my console anyway.\"",
 			"the second controller stayed on the floor where i dropped it.",
 		],
-		"after": "i moved away. i said i'd come back. i came back twice.",
+		"after": "she moved away. she said she'd come back. ...why do i remember the boxes?",
 	},
 	{
 		"id": "delete",
 		"title": "MEMORY · DELETE SLOT 2?",
+		"replay": "LOG · SLOT 02 · AFTER THE LAST SESSION",
 		"area": "edge", "pos": Vector2(470, 262),
 		"lines": [
 			"a message, months later: \"still have my save?\"",
@@ -165,6 +175,7 @@ const FRAGMENTS := [
 const FALSE_FRAGMENT := {
 	"id": "false",
 	"title": "MEMORY · YOU LEFT FIRST",
+	"replay": "REPLAY · NO SIGNATURE",
 	"area": "square", "pos": Vector2(500, 250),
 	"lines": [
 		"you packed the second controller first. you didn't look at the screen.",
@@ -507,6 +518,7 @@ static func epilogue(ending: String, found: int, pip: bool, message := 0) -> Arr
 			if full:
 				lines.append_array(["> ...rue?", "> i didn't know you were still in there."])
 				lines.append(["> i stopped waiting. i shouldn't have.", "> i kept your controller. it's still under the couch.", "> i won't. i promise."][clampi(message, 0, 2)])
+				lines.append("> the festival. i walked off before the last lantern. i never saw who lit it.")
 				lines.append("> i'm going to call you. the real you.")
 				if OwnerMemory.knows_truth:
 					lines.append_array(MESSAGE_TRUTH)
@@ -1053,6 +1065,13 @@ static func fragment(id: String) -> Dictionary:
 		if f.id == id:
 			return f
 	return {}
+
+
+## The frame a memory plays in ("" for none), the planted one included.
+static func replay_frame(id: String) -> String:
+	if id == FALSE_FRAGMENT.id:
+		return FALSE_FRAGMENT.replay
+	return fragment(id).get("replay", "")
 
 
 static func fragments_in(area: String) -> Array:
