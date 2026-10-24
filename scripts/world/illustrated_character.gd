@@ -121,6 +121,15 @@ func draw(ci: CanvasItem, opts: Dictionary = {}) -> void:
 	var s_head := float(slices[0]) * flip
 	var s_body := float(slices[1]) * flip
 	var s_legs := float(slices[2]) * flip
+	# Starting off: the head and shoulders go first (sideways), or the body
+	# dips into the step (towards or away from the viewer). Drawing only:
+	# the collision box and speed don't change.
+	var lean := sin(clampf(start / START_TIME, 0.0, 1.0) * PI)
+	if side:
+		s_head += lean * 1.2
+		s_body += lean * 0.5
+	else:
+		dy += lean * 0.6
 	var parts := _Parts.new(self, ci, solid, grey, alpha)
 	_legs(parts, Vector2(s_legs, dy * 0.4), phase, side)
 	_torso(parts, Vector2(s_body, dy), phase, side, step)

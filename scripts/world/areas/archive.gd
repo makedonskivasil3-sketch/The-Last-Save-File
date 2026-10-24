@@ -9,6 +9,8 @@ const SHELVES: Array[Rect2] = [
 	Rect2(130, 118, 140, 12), Rect2(370, 118, 140, 12),
 ]
 const DESK := Rect2(296, 204, 48, 14)
+## Where the four records stand, each in its alcove.
+const RECORD_SPOTS: Array[Vector2] = [Vector2(180, 138), Vector2(440, 138), Vector2(200, 84), Vector2(440, 84)]
 const WEST_GAP := Vector2(160, 200)
 ## East: a door to the Recycle Bin.
 const EAST_GAP := Vector2(160, 200)
@@ -65,8 +67,8 @@ func build() -> void:
 
 	# The records: open books on stands in front of the shelves, so they read
 	# as things to pick up, not as more spines (docs/VISUAL_DIRECTION.md).
-	for rec in [["SESSION LOG", Vector2(180, 138), _session_log], ["DELETED ASSETS", Vector2(440, 138), _deleted_assets],
-			["CUT CONTENT", Vector2(200, 84), _cut_content], ["THE OWNER", Vector2(440, 84), _owner_notes]]:
+	for rec in [["SESSION LOG", RECORD_SPOTS[0], _session_log], ["DELETED ASSETS", RECORD_SPOTS[1], _deleted_assets],
+			["CUT CONTENT", RECORD_SPOTS[2], _cut_content], ["THE OWNER", RECORD_SPOTS[3], _owner_notes]]:
 		var book := add_readable(rec[0], rec[1], Readable.Look.RECORD, rec[2])
 		add_light(rec[1] + Vector2(0, -6), Color(1.0, 0.85, 0.6), 0.75, 44.0)  # each record has its reading lamp
 		var title: String = rec[0]
@@ -336,6 +338,21 @@ func _paint(ci: CanvasItem) -> void:
 	ci.draw_colored_polygon(PackedVector2Array([win.position + Vector2(4, win.size.y), Vector2(win.end.x - 4, win.end.y),
 		Vector2(win.end.x + 30, aisle.position.y + 10), Vector2(win.position.x - 30, aisle.position.y + 10)]), Color(0.6, 0.75, 1.0, 0.05))
 	Decor.rug(ci, Rect2(DESK.position.x - 22, DESK.position.y - 30, DESK.size.x + 44, 56), Color("4a2e30"), Color("a07a50"))
+	# The arrival: a worn mat inside the square's door, and the returns cart
+	# beside it (nobody has returned anything in years; it's full anyway).
+	var mat := Rect2(r.position.x + 4, WEST_GAP.x + 10, 26, WEST_GAP.y - WEST_GAP.x - 20)
+	ci.draw_rect(mat, Color("4a3a30"))
+	ci.draw_rect(mat.grow(-2.0), Color("5a4636"))
+	ci.draw_rect(mat, Decor.INK, false, 0.6)
+	var cart := Rect2(r.position.x + 8, WEST_GAP.y + 6, 22, 9)
+	ci.draw_rect(Rect2(cart.position + Vector2(1, 2), cart.size), Color(0, 0, 0, 0.3))
+	ci.draw_rect(cart, Color("5a4030"))
+	for k in 5:
+		ci.draw_rect(Rect2(cart.position.x + 2 + k * 4, cart.position.y - 5, 3, 6), [Color("6b3a2c"), Color("3a4a6a"), Color("5a6a3a"), Color("8a7a68"), Color("7a5a2a")][k])
+	ci.draw_rect(cart, Decor.INK, false, 0.6)
+	for wx: float in [cart.position.x + 3, cart.end.x - 3]:
+		ci.draw_circle(Vector2(wx, cart.end.y + 1), 1.4, Decor.INK)
+	ci.draw_string(ThemeDB.fallback_font, cart.position + Vector2(0, -7), "RETURNS", HORIZONTAL_ALIGNMENT_LEFT, -1, 6, Color("c8b890"))
 	for sh in SHELVES:
 		# Tall cases behind the shelf (their height is drawn, their foot is
 		# the solid shelf), so the room has its silhouette from the door.
@@ -365,6 +382,16 @@ func _paint(ci: CanvasItem) -> void:
 			ci.draw_line(Vector2(x + w * 0.5, sh.position.y - h + 1), Vector2(x + w * 0.5, sh.position.y - 1), Color(c.lightened(0.3), 0.5), 0.5)
 			x += w + 0.6
 			i += 1
+	# Each record has its own alcove cut into the cases behind it, with a
+	# brass plate: four places to read, not a lecture.
+	for at: Vector2 in RECORD_SPOTS:
+		var arch := Rect2(at.x - 11, at.y - 30, 22, 22)
+		ci.draw_rect(arch, Color("1a1418"))
+		ci.draw_arc(Vector2(arch.get_center().x, arch.position.y + 6), 11.0, PI, TAU, 12, Color("1a1418"), 6.0)
+		ci.draw_arc(Vector2(arch.get_center().x, arch.position.y + 6), 11.0, PI, TAU, 12, Color("a07a50"), 1.0)
+		ci.draw_line(arch.position + Vector2(0, 6), Vector2(arch.position.x, arch.end.y), Color("a07a50"), 1.0)
+		ci.draw_line(Vector2(arch.end.x, arch.position.y + 6), arch.end, Color("a07a50"), 1.0)
+		ci.draw_rect(Rect2(at.x - 4, arch.end.y - 4, 8, 2), Color("c8a040"))
 	var desk := Decor.furniture(ci, DESK, Color("6a5040"), 4.0)
 	ci.draw_rect(Rect2(desk.position + Vector2(6, 2), Vector2(12, 7)), Color("e8dcc4"))
 	ci.draw_line(desk.position + Vector2(8, 4), desk.position + Vector2(16, 4), Color("8a7a68"), 0.5)

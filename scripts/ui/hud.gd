@@ -1539,6 +1539,10 @@ func _process(delta: float) -> void:
 	var tip_row := _tip.get_parent() as Control  # (the card's own alpha is its show/hide fade)
 	tip_row.modulate.a = move_toward(tip_row.modulate.a, 0.2 if over else 1.0, delta * 4.0)
 	_glitch_prompt.visible = _prompt.visible
+	# The glitch prompt shares the corner: the tip stands on top of it, not
+	# over it (at the largest text the two used to overlap).
+	var glitch_up := _glitch_prompt.visible and _glitch_prompt.text != ""
+	tip_row.offset_bottom = (_glitch_prompt.position.y - 360.0 - 4.0) if glitch_up else (-SAFE.y - 18.0)
 	_update_slot()
 	_meter.value = _awareness
 	_trim_console()  # text size may have changed

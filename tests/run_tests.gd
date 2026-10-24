@@ -51,6 +51,7 @@ func _run() -> void:
 			_timeout = BOT_TIMEOUT
 		elif arg == "--tour":
 			prefix = "tour_"
+			_timeout = BOT_TIMEOUT  # tours walk whole sessions
 		elif arg.begins_with("--speed="):
 			Engine.time_scale = clampf(float(arg.trim_prefix("--speed=")), 0.25, 8.0)
 

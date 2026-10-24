@@ -72,3 +72,47 @@ Each change is something the player sees happen. No new monologue.
 | **Pip** | Always nosed ahead toward the next goal, like a route arrow | At her heel by default. Pip leads only for 3 s after arriving somewhere, or once Rue has stood still for 2.5 s. Back with her after a run, Pip runs one quick circle round her feet | `test_pip_greets_her_when_she_comes_back`, `test_pip_leads_only_when_she_hesitates` |
 | **Arin, the owner, the girl** | — | Unchanged: Arin stays mute. The owner's only new line is Tobben's report, which now follows what Tobben actually saw. The girl is given no new scenes. Her timeline is dated (`STORY_CHRONOLOGY.md`) | — |
 
+## Maps and presentation (third commit)
+
+Bounded: what changed stays visible, and three small composition fixes.
+Collision sizes, speeds and routes are unchanged.
+
+- **Square:** Mira's pinned note and Tobben's open guest book are drawn
+  where they happened.
+- **Archive:** an arrival space inside the Square's door (a worn mat, a
+  RETURNS cart), and each of the four records in its own alcove with a
+  brass plate. The four records already carry what the Archivist no
+  longer lectures.
+- **Cast:** a start to go with the stop. The first step leans in (the head
+  and shoulders sideways, a dip toward or away from the viewer) for
+  0.14 s. Drawing only.
+- **UI at the largest text (found by the captures):** the tip card sat on
+  the "hold [E]" glitch prompt in the same corner. The tip now stands
+  above it. Regression: `test_a_tip_never_covers_the_glitch_prompt`
+  (failed first: the two rectangles overlapped).
+- Also now drawn: Mira's note pinned on the board (her "M", two pins) and
+  Tobben's open guest book (two names, the second in Rue's colour).
+
+**Evidence** (`docs/review/oct24/`, left `34b6823`, right this head;
+Compatibility renderer under xvfb, 1280×720):
+`compare_square_board_and_stall.jpg`, `compare_archive_arrival.jpg`,
+`compare_wren_waves.jpg`, `compare_room_own_press.jpg`,
+`compare_ui_max_text_card_and_tip.jpg`,
+`compare_ui_max_text_dialogue_and_tip.jpg`. Motion at 30 frames a second
+of game time: `motion_start_stop.mp4` (start, stop, turn) and
+`motion_wave.mp4` (Wren waving Rue over as Arin comes). Captures:
+`tests/tour_oct24.gd`.
+
+**Reviewed at the largest text and with touch on, not changed:** the act
+card still sits centred over the Square (it holds the owner until read;
+moving it is a design decision, `OPENING_REVIEW.md`). At the largest
+subtitle size, a one-line dialogue leaves the box mostly empty, because
+its minimum height is sized for two lines plus the portrait. Readable, not
+fixed.
+
+**Not done in this pass (proposals):** House (shared versus emptied
+rooms), Out of Bounds (authored unfinished look, Pip's stable ground), the
+Bin (discarded-data landscape, restore silhouettes) and the Edge (a final
+composition around Slot 2) were not recomposed. Hand and arm poses and
+gaze were not redrawn. There are no new portraits; no approved assets
+exist.

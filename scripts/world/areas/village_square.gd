@@ -380,6 +380,7 @@ func interact_extra(node: Node2D) -> void:
 		OwnerMemory.mira_quest = "pinned"
 		OwnerMemory.save_memory()
 		board.set_text_now(Story.MIRA_NOTE_TEXT)
+		queue_redraw()
 		world.hud.close_dialogue()
 		world.hud.say("PINNED: mira_note.txt", "system")
 		Sfx.play("seal", -4.0, 1.3)
@@ -658,6 +659,7 @@ func _offer_guestbook() -> void:
 		return
 	OwnerMemory.guestbook_restored = true
 	Relationships.add("tobben.guestbook")  # saves
+	queue_redraw()
 	world.player.frozen = true
 	# A quiet moment: two notes of the theme, the name, the owner noticing.
 	var music := AudioStreamPlayer.new()
@@ -734,6 +736,23 @@ func _tobben_report_lands() -> void:
 
 
 func _draw() -> void:
+	# Mira's note, pinned beside the notices: her paper, her hand, two pins.
+	if OwnerMemory.mira_quest == "pinned":
+		var n := Rect2(BOARD_POS + Vector2(6, -9), Vector2(11, 9))
+		draw_rect(Rect2(n.position + Vector2(1, 1), n.size), Color(0, 0, 0, 0.3))
+		draw_rect(n, Color("f4e6c8"))
+		draw_rect(n, Decor.INK, false, 0.6)
+		draw_string(ThemeDB.fallback_font, n.position + Vector2(2, 7.5), "M", HORIZONTAL_ALIGNMENT_LEFT, -1, 7, Color("c9733e"))
+		for px: float in [n.position.x + 1.5, n.end.x - 1.5]:
+			draw_circle(Vector2(px, n.position.y + 1.2), 0.9, Color("c84a3a"))
+	# Tobben's guest book, open on the counter once RUE is back in it.
+	if OwnerMemory.guestbook_restored:
+		var b := Rect2(STALL.position + Vector2(STALL.size.x * 0.5 - 7, 6), Vector2(14, 7))
+		draw_rect(b, Color("efe4cc"))
+		draw_line(Vector2(b.get_center().x, b.position.y), Vector2(b.get_center().x, b.end.y), Color("8a7a68"), 0.6)
+		draw_line(b.position + Vector2(1.5, 2.5), b.position + Vector2(5.5, 2.5), Color("3a2a20"), 0.6)  # ARIN
+		draw_line(b.position + Vector2(1.5, 4.5), b.position + Vector2(4.5, 4.5), Color("2a8aa0"), 0.8)  # RUE, a different hand
+		draw_rect(b, Decor.INK, false, 0.5)
 	# Wren's chalk on the rim (kept for good once she's shown you).
 	if Relationships.has("wren.marked_well"):
 		var c := Color(0.95, 0.95, 0.9, 0.85)
