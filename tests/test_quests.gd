@@ -146,3 +146,17 @@ func test_the_message_ending_remembers_the_festival() -> void:
 	check(edge.has_method("_draw_fifth_lantern"), "and the fifth lantern is drawn beside Slot 2")
 	edge.free()
 
+
+func test_the_title_says_where_she_was_going() -> void:
+	memory().sessions = 2
+	memory().found_pip = true
+	tree.change_scene_to_file(TITLE_SCENE)
+	await frames(5)
+	var next := scene().find_child("NextMission", true, false) as Label
+	check(next != null, "a returning profile sees its next mission on the title")
+	if next:
+		check(next.text.contains(Quests.TITLES.who_kept), "the one it reached (%s)" % next.text)
+	memory().sessions = 0
+	tree.change_scene_to_file(TITLE_SCENE)
+	await frames(5)
+	check(scene().find_child("NextMission", true, false) == null, "a new profile doesn't: the festival tells it")

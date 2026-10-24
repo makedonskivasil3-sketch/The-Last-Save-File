@@ -2,7 +2,54 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current: consistency, characters and places (2026-10-24)
+## Current: the first ten minutes rebuilt (2026-10-24, afternoon)
+
+**Branch:** `claude/last-save-file-prototype-ljwuq4`. PR #10 is still a
+**draft, not merged**; `main` is `09aeb3b`. The brief is
+`docs/prompts/INTRO_HOOK_REBUILD_PROMPT.md`; everything else (audit, design,
+ledger, measurements, author questions) is in `docs/INTRO_REBUILD.md`, and
+the art direction in `docs/ART_BIBLE.md`.
+
+- **The festival** (a playable prologue) replaces the opening film on a
+  first run:
+  - control at 0.1 s;
+  - first decision at 15.6 s;
+  - 3 YEARS LATER at 36.7 s on the prompt path (2:34 with no input);
+  - a skip reaches the present in 0.8 s.
+- **Missions:** one active mission in every first-hour map, read from the
+  save, so old saves open on the mission they have reached. The
+  festival's payoffs are in place: Mira, Wren, Tobben, the Archive's log,
+  the lantern by the well and at Slot 2, and the message ending.
+- **The cast is redrawn:** `HeroFigure`, with an artist-sheet pipeline and
+  fallback. Frame time is within 10% (worst measured +8.2%, the house;
+  software renderer). Procedural, not final art (Q4).
+- **Story leaks:** three lines where Rue spoke as the girl are rewritten.
+  Memories play in a "REPLAY · P2 · …" frame. The chronology has the
+  festival.
+- **Defects found and fixed (ledger D1–D4):**
+  - the goal ignored the pointer;
+  - a festival line dropped the reunion greeting;
+  - two missing glyphs;
+  - no touch controls in the festival.
+- **CI:** the web check expected the old film, so CI was red on `dfdb29e`
+  and `f4a0cae`. Fixed: it now expects the festival and skips it.
+- **Suite:** 680 of 681 in the final full run. The one failure was the voice manifest, out of date after the message-ending line was added. It was regenerated, and that test file then passed 3/3.
+- **Bots:** the same machine, baseline `0b8f0d9` against this state:
+  - baseline 4/5, failing escape purge 3 (the owner wins);
+  - this state 4/5 twice: escape purge 3 failed once and passed once; escape purge 5 failed once.
+  - purge 5 alone then passed 2/2 on both.
+  - Per route: purge 3 at 0/1 against 1/2, purge 5 at 3/3 against 3/4, every other route passing every run.
+  - That is within the variance both states show; no regression is claimed or ruled out.
+- **Exports:** Linux, Windows and Web all exit 0. The web check passes in headless Chromium: the festival plays and Esc skips it, the run is playable after 1.7 s of game time, and there are no page errors.
+- **Not done:**
+  - no unfamiliar players were available: the protocol and the
+    instrumentation are ready (`PLAYTEST_PLAN.md`, the festival round);
+  - no hand-drawn art;
+  - no hardware GPU number;
+  - nothing published or bought.
+- **Open author decisions:** Q1–Q5 in `INTRO_REBUILD.md` §4.
+
+## Previous: consistency, characters and places (2026-10-24)
 
 **Branch:** `claude/last-save-file-prototype-ljwuq4`. PR #10 is still a
 **draft, not merged**; `main` is `09aeb3b`. The review started from

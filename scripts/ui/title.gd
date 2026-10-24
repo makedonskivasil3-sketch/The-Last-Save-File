@@ -263,6 +263,16 @@ func _build_slot_card() -> void:
 		progress.add_theme_font_size_override("font_size", 9)
 		progress.add_theme_color_override("font_color", UiStyle.MUTED)
 		v.add_child(progress)
+		# Where she was going: the mission to come back to (Quests).
+		var next := Label.new()
+		next.name = "NextMission"
+		var id := Quests.story_mission()
+		next.text = "NEXT  ·  %s\n%s" % [Quests.TITLES[id], Quests.WHY[id]]
+		next.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		next.custom_minimum_size.x = 220
+		UiStyle.sized(next, 9)
+		next.add_theme_color_override("font_color", Color(1.0, 0.85, 0.55))
+		v.add_child(next)
 
 	var status := _slot_status()
 	if status != "":

@@ -1,7 +1,7 @@
 // Real-browser check of the web export (docs/RELEASE_READINESS.md). Fails
 // (exit 1) unless every step holds:
-//   1. the title loads with no page errors; a first launch plays the opening
-//      film, and holding E skips it
+//   1. the title loads with no page errors; a first launch plays the
+//      festival, and holding Esc skips it
 //   2. Load Slot 1 reaches actual gameplay: the game reports a playable run
 //      (window.__lsf, see scripts/web_state.gd) and Rue moves on real input
 //   3. the open run is saved to IndexedDB (session open, last_exit "active")
@@ -125,20 +125,30 @@ async function mark(page, name) {
   await page.keyboard.press('Escape');
   await page.waitForTimeout(200);
   await page.keyboard.press('Enter');
-  // A fresh browser is a first launch: the opening film plays first, and
-  // holding E skips it (scripts/ui/opening.gd).
-  const first = await waitForState(page, (s) => s.scene === 'opening' || s.scene === 'game', 'the opening or the game', 60000);
+  // A fresh browser is a first launch: the festival plays first
+  // (scripts/ui/prologue.gd), and holding Esc skips it to the present.
+  const first = await waitForState(page, (s) => s.scene === 'prologue' || s.scene === 'opening' || s.scene === 'game', 'the festival or the game', 60000);
   await mark(page, 'opening');
-  expect(first.scene === 'opening', 'a first launch plays the opening film', first);
-  if (first.scene === 'opening') {
-    await page.screenshot({ path: path.join(shotDir, 'web_1b_opening.png') });
+  expect(first.scene === 'prologue', 'a first launch plays the festival', first);
+  if (first.scene === 'prologue') {
+    // Playable at once: the stick (here, the arrow keys) moves her.
+    await page.keyboard.down('ArrowRight');
+    await page.waitForTimeout(600);
+    await page.keyboard.up('ArrowRight');
+    await page.screenshot({ path: path.join(shotDir, 'web_1b_festival.png') });
+    // The skip is a 0.7 s hold in game time; a software-rendered CI runner
+    // can manage 4 frames a second, so hold well past it.
+    await page.keyboard.down('Escape');
+    await page.waitForTimeout(3000);
+    await page.keyboard.up('Escape');
+  } else if (first.scene === 'opening') {
     await page.keyboard.down('e');
     await page.waitForTimeout(1200);
     await page.keyboard.up('e');
   }
-  await waitForState(page, (s) => s.scene === 'game', 'the game scene', 60000);
+  await waitForState(page, (s) => s.scene === 'game', 'the game scene', 240000);
   await mark(page, 'game_scene');
-  expect(true, 'holding E skips into the run');
+  expect(true, 'holding Esc skips into the run');
   const t0 = Date.now();
   let s = await state(page);
   // E moves text on; it is pressed only while text is open (pressing it into

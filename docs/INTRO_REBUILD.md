@@ -131,6 +131,7 @@ The five memories, the truth gates (two truth pieces, then the CHARACTER FILE) a
 Found while building. Each was caught by an existing test, which failed first and passes now.
 - **D1** (introduced by F2, fixed before commit). The mission line ignored the run's `pointer` flag and read only the save's `met_archivist`. A run holding the pointer still read "Reach the fifth lantern…" instead of the north road (`test_gameplay_consistency.test_goal_keeps_the_way_out_and_adds_the_hint`). `Quests` now takes the flag.
 - **D2** (introduced by F2, fixed before commit). A line carrying a festival memory came back as a conversation, so `Npc.interact` dropped the familiar greeting on a reunion (`test_relationships.test_several_sessions_later`, `test_tobben_remembers_without_reintroducing`). Such lines are now marked as usual lines, and the greeting opens them.
+- **D4** (in F1, committed, found in verification). The festival never created `TouchControls`. On a phone there was no stick and no E button, so Rue couldn't be moved: only the autopilot after 24 s, or the skip chip. Fixed by adding them; `test_prologue.test_a_phone_can_play_it` fails on the committed prologue. Its drawn tags and emotes now also grow with Large text, as its Labels already did.
 - **D3** (introduced by F1, fixed before commit). The prologue used ⏭ and ♪, which the bundled fonts don't have (`test_fonts`).
 
 ### Source-backed risks
@@ -274,3 +275,32 @@ The prompt path is much shorter than §2's estimate of about 4 minutes, because 
 - every memory has its frame;
 - the frame shows with speaker labels off;
 - the journal page keeps it.
+
+## 7. Against the brief's acceptance criteria (§9)
+
+| Criterion | Result | Evidence |
+|---|---|---|
+| Control ≤ 10 s | **Met:** 0.1 s (hesitant 7.0 s) | `tour_timing_intro.gd`, §6 F1 |
+| Festival + leaves + 3 YEARS LATER ≤ 4 min (prompt) | **Met:** 36.7 s (no input 2:34) | same |
+| Skip reaches the present ≤ 15 s | **Met:** 0.8 s | `test_prologue`, the timing tour |
+| First choice ≤ 3 min | **Met:** 15.6 s (no input 2:13) | same |
+| Every first-hour map transition has a mission | **Met** for all 7 maps | `test_quests` |
+| No chronology contradictions | **Met** for the pairs checked | `STORY_CHRONOLOGY.md`, "Contradictions checked" |
+| Rue and Arin redrawn, with fallback | **Met** for the whole cast. Procedural, not final art | `test_character_pipeline`, `cast_world_*` |
+| ≤ 10% frame-time regression | **Met** on the software renderer: worst +8.2% (house); square +4.3% | §6 F3 |
+| Suite green | **Met:** 680/681, then the stale manifest regenerated and passing | `RELEASE_READINESS.md` |
+| Bots no worse (A/B) | **Inconclusive:** baseline 4/5, this 4/5 twice, the failing route differs by run | same |
+| Exports and web green | **Met:** 3 exports exit 0; the web check passes | same |
+| Old saves load | **Met** | `test_prologue`, `test_quests` |
+| Hook targets, measured on people | **Not met:** no unfamiliar players were available. Protocol ready | `PLAYTEST_PLAN.md` |
+
+**Asset status:**
+- No art was bought, generated or commissioned. No voices were generated or cloned. Nothing was published.
+- The new lines (festival callbacks, the owner's line in the message ending) are text-only in the voice manifest.
+
+**Author decisions, with recommendations:**
+- **Q1** (who leaves first): keep Player 1 leaving first. It matches memory 4's argument and the owner's notes.
+- **Q2** (mission framing): keep "Find who kept the fifth lantern burning". The answer, a Slot-2 record with no controller held, is a truth clue that doesn't spoil the file.
+- **Q3** (the old film): retire it after a playtest round confirms the festival works. It is kept but unreachable on a first run, with only a replay path.
+- **Q4** (final art): commission a test character (Rue) from `ART_BIBLE.md`'s brief before deciding. The procedural cast is a clear step up, but not the bar the author described.
+- **Q5** (trim lantern 4): keep it until playtests show the length (~37 s autoplayed, likely 1.5–3 min for a person) is a problem. That length is an estimate, not a measurement.

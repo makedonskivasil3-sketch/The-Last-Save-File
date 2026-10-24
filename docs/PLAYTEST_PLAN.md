@@ -192,3 +192,48 @@ Player __ · device __ · browser/desktop __ · input __ · minutes played __
 | Edge: cause of first failure | | | |
 
 Report denominators ("2 of 5"), not percentages; five players is exploratory evidence.
+
+## Round focus: the festival and the first ten minutes (`INTRO_REBUILD.md`)
+
+**Status: protocol and instrumentation ready. No session has been run.** No unfamiliar players were available during this pass, so every number in `INTRO_REBUILD.md` §6 comes from scripted runs (autoplay, a 6 s hesitant script, no input), not from people.
+
+**Setup:**
+- A clean profile. Start from the title with Start (not "The Festival").
+- Web: add `?playtest=1`. Desktop: `-- --playtest`.
+- Five players who have never seen the game.
+- Don't explain anything. Answer only "I can't say" until the debrief.
+
+**The log already marks** (PlaytestLog, pause menu → "Playtest log"):
+- `prologue: first movement`;
+- each `lantern N`;
+- `player 1 left`;
+- `the first decision` (lit / stayed / idle);
+- `player 2 left`;
+- `prologue skipped` (at which beat);
+- `prologue over` (with the choice).
+
+The room, the first goal and the rest come from the existing marks.
+
+**Watch for** (time from Start; classify every miss as in pass 5):
+
+| Moment | Time | Classification | Notes |
+|---|---|---|---|
+| First movement (target < 10 s) | | | |
+| First lantern / first co-op success (target < 45 s) | | | |
+| Hid beside Arin from Tobben's look, without being told twice | | | |
+| Maypole: held [E] together on purpose | | | |
+| PLAYER 1 HAS LEFT: what they did next (looked for him / lit it / stayed) | | | |
+| The decision: which, and how long they took | | | |
+| Skipped? At which beat? | | | |
+| "who's in my save?": surprise by about 2:30? (ask afterwards) | | | |
+| Reached the square: did they head for the lantern by the well? | | | |
+| Talked to Mira: did "You lit the last one" land? (ask afterwards) | | | |
+
+**Debrief**, in this order, word for word:
+1. Who were you at the start, and who was the other one?
+2. What happened to the other player? And to yours?
+3. Why could you still move?
+4. Who do you think kept the fifth lantern burning?
+5. Would you keep playing right now? Why?
+
+Answers to 1–3 test whether the connection was felt and the premise read. Answer 4 tests the hook. Report denominators ("3 of 5"), never percentages, and quote players' words exactly, not paraphrased.

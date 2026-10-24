@@ -179,6 +179,9 @@ func _ready() -> void:
 	WebState.publish({"scene": "prologue", "playable": true})
 	PlaytestLog.mark("prologue: the festival", "replay" if replay else "first run")
 	_build_hud()
+	# Phones and tablets: the same on-screen stick and E button as the game
+	# (hidden until the screen is touched).
+	add_child(TouchControls.new())
 	rue.facing = Vector2.UP
 	arin.facing = Vector2.LEFT
 	wren.idle_style = "hop"
@@ -309,6 +312,7 @@ func _mark_input() -> void:
 	_idle = 0.0
 	if not acted.has("control"):
 		acted["control"] = elapsed
+		PlaytestLog.mark("prologue: first movement", "%.1f s" % elapsed)
 
 
 # --- the loop -----------------------------------------------------------------------
@@ -1269,8 +1273,10 @@ func _draw_figure(f: HeroFigure, at: Vector2, who: String) -> void:
 			col = OWNER_COLOR
 	if text == "":
 		return
-	var w := float(text.length()) * 4.4
-	draw_string(font, top + Vector2(-w * 0.5 + 6, 0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, col)
+	# Larger text grows the tags too (they're drawn, not Labels).
+	var fs := roundi(8 * Settings.text_scale())
+	var w := float(text.length()) * 4.4 * fs / 8.0
+	draw_string(font, top + Vector2(-w * 0.5 + 6, 0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
 	var mark := top + Vector2(-w * 0.5, -3)
 	if shape == "circle":
 		draw_circle(mark, 2.6, col)
@@ -1282,9 +1288,10 @@ func _draw_emote(who: String, at: Vector2) -> void:
 	if not _emotes.has(who):
 		return
 	var text: String = _emotes[who][0]
-	var w := 6.0 + text.length() * 6.0
-	draw_rect(Rect2(at - Vector2(w * 0.5, 8), Vector2(w, 11)), Color(0.97, 0.95, 0.9, 0.95))
-	draw_string(UiStyle.system_font(), at + Vector2(-w * 0.5 + 3, 1), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(0.15, 0.1, 0.1))
+	var k := Settings.text_scale()
+	var w := 6.0 + text.length() * 6.0 * k
+	draw_rect(Rect2(at - Vector2(w * 0.5, 8 * k), Vector2(w, 11 * k)), Color(0.97, 0.95, 0.9, 0.95))
+	draw_string(UiStyle.system_font(), at + Vector2(-w * 0.5 + 3, 1), text, HORIZONTAL_ALIGNMENT_LEFT, -1, roundi(9 * k), Color(0.15, 0.1, 0.1))
 
 
 func _draw_look() -> void:

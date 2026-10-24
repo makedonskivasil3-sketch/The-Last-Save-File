@@ -290,3 +290,18 @@ func test_every_step_says_what_to_do_without_sound() -> void:
 		p.beat = b
 		check(p.step_hint() != "", "%s has its words on screen" % Prologue.Beat.keys()[b])
 	await _end(p)
+
+
+func test_a_phone_can_play_it() -> void:
+	# The festival had no on-screen controls: on a phone she couldn't move.
+	var p := await _festival(true)
+	var touch: TouchControls = null
+	for c in p.get_children():
+		if c is TouchControls:
+			touch = c
+	check(touch != null, "the same on-screen stick and E button as the game")
+	if touch:
+		check(touch.BUTTONS.interact.actions.has("interact"), "E is interact (light, hold at the maypole)")
+		var e_button := Rect2(touch.BUTTONS.interact.center - Vector2.ONE * touch.BUTTONS.interact.radius, Vector2.ONE * touch.BUTTONS.interact.radius * 2.0)
+		check(not e_button.intersects(Prologue.SKIP_CHIP), "and it doesn't cover the skip chip")
+	await _end(p)
