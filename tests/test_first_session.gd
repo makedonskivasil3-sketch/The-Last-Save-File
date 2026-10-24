@@ -1,8 +1,9 @@
 extends "res://tests/test_case.gd"
-## A first session from a clean profile (2026-10-22 opening review, §10):
-## title, the opening (played, skipped, or left to play itself), the
-## hand-off, the boot, the first step, Mira, and leaving the room. Nothing
-## is fabricated: no earlier death, no earlier run.
+## A first session from a clean profile: title, the festival (played,
+## skipped, or left to play itself: scripts/ui/prologue.gd), the hand-off,
+## the room (no boot log: the festival showed its own), the first step,
+## Mira, and leaving the room. Nothing is fabricated: no earlier death, no
+## earlier run.
 
 
 
@@ -15,13 +16,12 @@ func _fresh_title() -> Node:
 	return scene()
 
 
-## From the film to the room: the boot read, Rue awake, "you" over her.
+## From the festival to the room: no boot log, Rue awake, "you" over her.
 func _into_the_room() -> Node:
-	await wait_until(func() -> bool: return scene() is World, 8.0, "the first room")
+	await wait_until(func() -> bool: return scene() is World, 12.0, "the first room")
 	var w := scene()
-	await wait_until(func() -> bool: return w.hud.is_cinematic(), 4.0, "the boot text")
-	await read_through_cinematic(w)
-	await wait_until(func() -> bool: return w._awake and not w._cutscene, 6.0, "awake")
+	await wait_until(func() -> bool: return w._awake and not w._cutscene, 8.0, "awake")
+	check(not w.hud.is_cinematic(), "no boot log: the festival showed it, in the square")
 	check_eq(memory().sessions, 1, "one genuine first session")
 	check_eq(memory().deaths + memory().quits, 0, "no death or quit was fabricated")
 	check(w.player.you_cue, "'you' over her: the same figure the player drove")
@@ -44,15 +44,28 @@ func _first_minute(w: Node) -> void:
 	check_eq(w.area.area_id, "square", "out of Arin's room")
 
 
+func _the_festival() -> Prologue:
+	await wait_until(func() -> bool: return scene() is Prologue, 3.0, "the festival")
+	return scene()
+
+
+## Steps the festival in game time until `cond` (the rest is covered in
+## test_prologue), then lets the hand-off happen in real frames.
+func _step_until(p: Prologue, cond: Callable, seconds: float) -> void:
+	for i in int(seconds / 0.05):
+		if cond.call() or p._done:
+			return
+		p._process(0.05)
+
+
 func test_played_through() -> void:
 	var title := await _fresh_title()
 	title._start()
-	await wait_until(func() -> bool: return scene() is Opening, 3.0, "the film")
-	var film: Opening = scene()
-	film.autoplay = true  # each state is done at once (the player's actions are covered in test_opening)
-	await wait_until(func() -> bool: return film._t > Opening.GATE_AT[Opening.Gate.IMPOSSIBLE] + 1.0, 60.0, "through the three states")
-	check(film.acted.has("ritual_auto") and film.acted.has("interrupt_auto") and film.acted.has("impossible"), "every state done, in order (%s)" % film.acted)
-	film._t = Opening.LENGTH - 0.5  # (the rest is film)
+	var p := await _the_festival()
+	p.autoplay = true  # the player acts as soon as asked (the steps are covered in test_prologue)
+	_step_until(p, func() -> bool: return p._done, 400.0)
+	check(p.acted.has("lit_4") and p.acted.has("p1_left") and p.acted.has("p2_left") and p.acted.has("load"), "every beat, in order (%s)" % [str(p.acted)])
+	check_eq(memory().festival_choice, "lit", "her first decision is kept")
 	var w := await _into_the_room()
 	await _first_minute(w)
 
@@ -60,12 +73,13 @@ func test_played_through() -> void:
 func test_skipped() -> void:
 	var title := await _fresh_title()
 	title._start()
-	await wait_until(func() -> bool: return scene() is Opening, 3.0, "the film")
+	var p := await _the_festival()
 	await frames(2)
-	Input.action_press("interact")
-	await wait(Opening.SKIP_HOLD + 0.2)
-	check(scene() is Opening and scene()._done, "held to the end: skipped, and the hand-off waits for the release")
-	Input.action_release("interact")
+	Input.action_press("ui_cancel")
+	await wait(Prologue.SKIP_HOLD + 0.2)
+	_step_until(p, func() -> bool: return p._done, Prologue.LOAD_TIME + 1.0)
+	check(scene() is Prologue and p._done, "held to the end: skipped, and the hand-off waits for the release")
+	Input.action_release("ui_cancel")
 	var w := await _into_the_room()
 	check_eq(w.glitch._charge, 0.0, "the skip's press didn't charge anything in the room")
 	await _first_minute(w)
@@ -74,15 +88,13 @@ func test_skipped() -> void:
 func test_left_to_play_itself() -> void:
 	var title := await _fresh_title()
 	title._start()
-	await wait_until(func() -> bool: return scene() is Opening, 3.0, "the film")
-	var film: Opening = scene()
-	# No input at all: each state hints, then plays itself. (Time is
-	# advanced through the waiting, not skipped: the gates still decide.)
-	for i in 400:
-		if film._done or not is_instance_valid(film):
-			break
-		film._process(0.25)
-	check(film.acted.has("ritual_auto") and film.acted.has("interrupt_auto") and film.acted.has("impossible_auto"), "nobody pressed: all three played themselves (%s)" % film.acted)
+	var p := await _the_festival()
+	# No input at all: each step shows what to do, then plays itself, and
+	# nobody decides at the break. (Time is advanced, not skipped.)
+	_step_until(p, func() -> bool: return p._done, 900.0)
+	check(p._done and p.acted.has("lit_4"), "nobody pressed: it played itself through (%s)" % [str(p.acted)])
+	check_eq(p.choice, "idle", "the decision isn't made for them: doing nothing is recorded as such")
+	check(p.acted.has("lit_by_herself"), "and Rue lights the last one herself, with nobody holding her")
 	var w := await _into_the_room()
 	await _first_minute(w)
 

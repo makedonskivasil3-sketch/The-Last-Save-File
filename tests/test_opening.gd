@@ -1,6 +1,8 @@
 extends "res://tests/test_case.gd"
-## The opening film (scripts/ui/opening.gd): first launch only, skippable,
-## replayable, and no run starts until it ends.
+## The opening film (scripts/ui/opening.gd) and the first launch. Since the
+## festival (scripts/ui/prologue.gd, docs/INTRO_REBUILD.md) the first launch
+## plays the festival, not the film; the film's own behaviour is still
+## tested here (it is kept, off the first-run path: author question Q3).
 
 
 func _title() -> Node:
@@ -9,29 +11,29 @@ func _title() -> Node:
 	return scene()
 
 
-func test_first_launch_plays_the_film_before_any_run() -> void:
+func test_first_launch_plays_the_festival_before_any_run() -> void:
 	settings().opening_seen = false
 	var title := await _title()
 	title._start()
 	await frames(5)
-	check(scene() is Opening, "the film plays first")
+	check(scene() is Prologue, "the festival plays first")
 	check_eq(memory().sessions, 0, "and no run has started")
 	await wait(2.0)
 	check_eq(memory().sessions, 0, "still none while it plays (quitting now costs nothing)")
 
 
-func test_holding_interact_skips_into_the_run() -> void:
+func test_holding_skip_skips_into_the_run() -> void:
 	settings().opening_seen = false
 	var title := await _title()
 	title._start()
 	await frames(5)
 	await wait(1.0)
-	Input.action_press("interact")
+	Input.action_press("ui_cancel")
 	await wait(0.4)
-	check(scene() is Opening and scene()._hint.modulate.a > 0.1, "a press shows how to skip")
+	check(scene() is Prologue and scene()._skip_t > 0.1, "a held skip shows its bar")
 	await wait(0.6)
-	Input.action_release("interact")
-	await wait_until(func() -> bool: return scene() is World, 5.0, "the run")
+	Input.action_release("ui_cancel")
+	await wait_until(func() -> bool: return scene() is World, 12.0, "the run")
 	check(settings().opening_seen, "seen once skipped: it won't play again by itself")
 	check_eq(memory().sessions, 1, "the run starts after it")
 
@@ -56,12 +58,12 @@ func test_it_can_be_replayed_from_the_title_and_comes_back() -> void:
 	var title := await _title()
 	var replay: Button = null
 	for b in title.find_children("*", "Button", true, false):
-		if (b as Button).text == "Opening":
+		if (b as Button).text == "The Festival":
 			replay = b
-	check(replay != null, "the title offers the opening again")
+	check(replay != null, "the title offers the festival again")
 	replay.pressed.emit()
 	await frames(5)
-	check(scene() is Opening and scene().replay, "it plays")
+	check(scene() is Prologue and scene().replay, "it plays")
 	scene()._finish()
 	await wait_until(func() -> bool: return scene() != null and scene().has_method("_start"), 4.0, "the title again")
 	check_eq(memory().sessions, 0, "a replay never starts a run")

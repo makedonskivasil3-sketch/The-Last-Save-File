@@ -27,7 +27,7 @@ func _begin() -> Opening:
 	tree.change_scene_to_file(TITLE_SCENE)
 	await frames(5)
 	_t0 = Time.get_ticks_msec()
-	scene()._start()
+	scene()._play_opening(false)  # (the earlier film, now off the first-run path)
 	await wait_until(func() -> bool: return scene() is Opening, 3.0, "the film")
 	return scene()
 

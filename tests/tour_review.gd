@@ -26,7 +26,7 @@ func test_review_states() -> void:
 	tree.change_scene_to_file("res://scenes/title.tscn")
 	await wait(1.5)
 	await shot(_l("01_title"))
-	scene()._start()
+	scene()._play_opening(false)  # (the earlier film, now off the first-run path)
 	await wait_until(func() -> bool: return scene() is Opening, 3.0, "opening")
 	await wait(0.6)  # (a press already down when the film starts doesn't skip)
 	Input.action_press("interact")

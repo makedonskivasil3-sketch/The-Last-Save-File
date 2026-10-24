@@ -139,6 +139,11 @@ var well_events: Array[String] = []
 ## The checkpoint (layer C): {"id", "version", "session"} or empty. The place
 ## is looked up from the id (World.ANCHORS), never stored as coordinates.
 var anchor: Dictionary = {}
+## The festival (Prologue): whether this profile played it, and the first
+## decision there: "lit" (the fifth lantern, alone), "stayed" (beside Arin),
+## "idle", or "skipped". Saves from before it have neither.
+var festival_seen := false
+var festival_choice := ""
 ## Archive entries opened: key -> the revision that was read (ArchivePages
 ## builds a revision from what an entry says, as ids, never its wording).
 ## Missing: new. A different revision: updated.
@@ -736,6 +741,8 @@ func clear_state() -> void:
 	facts.clear()
 	places.clear()
 	well_events.clear()
+	festival_seen = false
+	festival_choice = ""
 	anchor.clear()
 	archive_seen.clear()
 	session_helpers.clear()
@@ -821,6 +828,8 @@ func save_memory() -> void:
 		"places": places,
 		"well_events": well_events,
 		"anchor": anchor,
+		"festival_seen": festival_seen,
+		"festival_choice": festival_choice,
 		"archive_seen": archive_seen,
 	}
 	SafeFile.write_atomic(_path, JSON.stringify(data, "\t"))
@@ -1088,6 +1097,10 @@ func load_memory() -> void:
 		for k in marks:
 			if marks[k] is String:
 				archive_seen[str(k)] = marks[k]
+	festival_seen = data.get("festival_seen", false) == true
+	festival_choice = _str(data, "festival_choice", "")
+	if festival_choice not in ["", "lit", "stayed", "idle", "skipped"]:
+		festival_choice = ""
 	anchor.clear()
 	var an: Variant = data.get("anchor", {})
 	if an is Dictionary and an.get("id") is String and _whole(an, "version"):

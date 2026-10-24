@@ -108,7 +108,7 @@ func _ready() -> void:
 	_menu.add_child(row2)
 	UiStyle.button(row2, "How to Play", _show_help).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if Settings.opening_seen:
-		UiStyle.button(row2, "Opening", _play_opening.bind(true)).size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		UiStyle.button(row2, "The Festival", _play_prologue.bind(true)).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if not OwnerMemory.journal.is_empty():
 		UiStyle.button(row2, "Journal", _show_journal).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UiStyle.button(row2, "Quit", func() -> void: OwnerMemory.quit_game()).size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -297,13 +297,27 @@ func _start() -> void:
 	# delivered (as an emulated mouse event) when this runs.
 	# The first time, the opening film plays before the run (no run starts
 	# until it has ended or been skipped).
-	if Opening.wanted():
-		_play_opening(false)
+	if Prologue.wanted():
+		_play_prologue(false)
 		return
 	get_tree().change_scene_to_file.call_deferred(GAME_SCENE)
 
 
-## The opening film: before the first run, or replayed from the menu.
+## The festival (Prologue): before the first run, or replayed from the menu.
+func _play_prologue(replay: bool) -> void:
+	var festival := Prologue.new()
+	festival.replay = replay
+	var swap := func() -> void:
+		var old := get_tree().current_scene
+		get_tree().root.add_child(festival)
+		get_tree().current_scene = festival
+		old.queue_free()
+	swap.call_deferred()
+
+
+## The earlier opening film (the TV and the hands). Off the first-run path
+## since the festival (docs/INTRO_REBUILD.md, author question Q3); kept for
+## its tests until the author decides.
 func _play_opening(replay: bool) -> void:
 	var film := Opening.new()
 	film.replay = replay

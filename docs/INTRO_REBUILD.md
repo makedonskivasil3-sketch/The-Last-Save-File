@@ -163,4 +163,37 @@ The five memories, the truth gates (two truth pieces, then the CHARACTER FILE) a
 
 ## 6. Progress and evidence
 
-*(Filled in as each commit group lands.)*
+### F1. The festival, playable (`scripts/ui/prologue.gd`)
+
+- Beats A–E are built as the state machine `Prologue.Beat` (L1–L4, P1_LEFT, P2_LEFT, TIMELAPSE, LOAD).
+- First launch: Start → the festival → Arin's room. The room's 8-line boot log isn't shown again; the festival's LOAD beat is where that information now appears.
+- Profiles that have already started never get it. The title's replay button is now **The Festival**, and a replay changes nothing in the save.
+- `OwnerMemory` saves two new fields, `festival_seen` and `festival_choice` (lit / stayed / idle / skipped). Saves written before them load with both empty (`test_prologue`).
+- Skipping: hold Esc / pause / the touch chip, from any beat, to go straight to the present. The years are always skippable.
+- Reduced motion: the time-lapse plays without particles or flicker.
+- Every step has its instruction written on screen.
+- The P1/P2 tags carry a shape (P1 a triangle, P2 a circle) as well as a colour.
+- A player who does nothing is never stuck. An autopilot takes over after 24 s idle, everywhere except the decision. The decision times out after 20 s as "idle", and Rue then lights the fifth lantern herself during the years.
+
+**After evidence** (`docs/review/intro/`):
+- `after_*.jpg`: key frames, by `tests/tour_prologue_frames.gd`.
+- `after_prompt_first_90s.mp4` and `after_prompt_stills_every_2s.jpg`: the first 90 s on the prompt path, by `tests/tour_intro_capture.gd`. Compare `before_*`.
+
+**Measured times** (`tests/tour_timing_intro.gd`), real time from pressing Start. *Prompt* is autoplay, which is faster than any human; *hesitant* waits 6 s before each act; *no input* touches nothing.
+
+| Path | Control | 1st lantern | P1 leaves | Decision | P2 leaves | 3 YEARS LATER | Present | In the room |
+|---|---|---|---|---|---|---|---|---|
+| Prompt | 0.1 s | 1.1 s | 15.5 s | 15.6 s (lit) | 17.2 s | 36.7 s | 41.7 s | 47.8 s |
+| Hesitant | 7.0 s | 8.1 s | 42.6 s | 49.9 s | 51.5 s | 71.0 s | 76.0 s | 83.0 s |
+| No input | — | 25.1 s | 110.5 s | 132.8 s (idle) | 134.4 s | 153.9 s | 158.9 s | 165.0 s |
+| Skip | — | — | — | — | — | — | 0.8 s | 6.9 s |
+
+Against §9 of the brief:
+- control ≤ 10 s: **met** (0.1 s; 7.0 s hesitant).
+- festival + leaves + 3 YEARS LATER ≤ 4 min: **met** (36.7 s prompt; 2:34 with no input).
+- skip to the present ≤ 15 s: **met** (0.8 s).
+- first choice ≤ 3 min: **met** (15.6 s prompt; 2:13 with no input).
+- Co-op success < 45 s: met on the prompt path (the maypole special). A first-time human is not measured: no playtest has been run (§7).
+
+The prompt path is much shorter than §2's estimate of about 4 minutes, because autoplay never hesitates. R1 is smaller than feared.
+

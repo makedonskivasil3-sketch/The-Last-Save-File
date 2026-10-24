@@ -145,7 +145,8 @@ func _begin_session(previous: String) -> void:
 	PlaytestLog.mark("session %d started" % OwnerMemory.sessions, "purge %d/%d, last exit: %s" % [OwnerMemory.purge, OwnerMemory.MAX_PURGE, previous])
 	_cutscene = true
 	player.frozen = true
-	if OwnerMemory.sessions == 1 and previous == "none":
+	# The boot log, unless the festival just showed its own (in the square).
+	if OwnerMemory.sessions == 1 and previous == "none" and not Prologue.take_boot_shown():
 		await hud.cinematic("", Story.BOOT, Hud.SYSTEM_COLOR, 1.0, "boot")
 		if not is_inside_tree() or ending != "":
 			return
