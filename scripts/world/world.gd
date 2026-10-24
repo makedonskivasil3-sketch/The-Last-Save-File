@@ -161,6 +161,8 @@ func _begin_session(previous: String) -> void:
 	# The first run: "you" over her (the opening's figure, the same one),
 	# whether the film was watched or skipped. Gone at the first step.
 	player.you_cue = OwnerMemory.sessions == 1
+	if pip and OwnerMemory.sessions > 1:
+		pip.greet()  # back with her
 	OwnerMemory.arm_session()  # play starts now: quits and crashes count from here
 	_area_intro()
 	director.start(self, previous)

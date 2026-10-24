@@ -83,7 +83,7 @@ static func mira_expression(line: String) -> String:
 			by_line[entry[1]] = recall[entry[0]]
 	# What happened between you (Relationships.mira).
 	var R := Relationships
-	for pair in [[R.MIRA_AFTER_DEATH, "afraid"], [R.MIRA_AFTER_RESTORE, "remembering"], [R.MIRA_AFTER_PINNED, "proud"],
+	for pair in [[R.MIRA_AFTER_DEATH, "afraid"], [R.MIRA_AFTER_RESTORE, "remembering"], [R.MIRA_AFTER_PINNED, "proud"], [R.MIRA_STILL_UP, "relieved"],
 			[R.MIRA_AFTER_NOTE_LOST, "concerned"], [R.MIRA_ASK_AGAIN, "eager"], [R.MIRA_ESCORT, "determined"]]:
 		for l in pair[0]:
 			by_line[l] = pair[1]
@@ -180,6 +180,7 @@ func build() -> void:
 
 	save_point = SavePoint.new()
 	save_point.position = SAVE_POS
+	save_point.own_pressed.connect(_on_own_press)
 	add_child(save_point)
 	interactables.append(note)
 	interactables.append(save_point)
@@ -292,6 +293,16 @@ func interact_extra(node: Node2D) -> void:
 		if world.director.awareness >= OwnerDirector.NOTICE:
 			world.director.say("don't touch that.")
 		world.director.notice(15.0, "touched the save point")
+
+
+## Rue's first gesture of her own (long before she knows what she is): she
+## stops doing the habit at the save point and presses once. Noticed the
+## first time ever; after that, only the crystal answers.
+func _on_own_press() -> void:
+	if Relationships.has("rue.own_press"):
+		return
+	Relationships.add("rue.own_press")
+	world.hud.say(Story.RUE_FIRST_OWN_PRESS, "self")
 
 
 func _on_seam(s: Seam) -> void:

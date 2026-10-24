@@ -696,6 +696,9 @@ static func _recall_holds(condition: String) -> bool:
 const TRUTH_PIECES_NEEDED := 2
 ## At Slot 2, knowing what she is: not the girl's two taps. One press.
 const RUE_OWN_PRESS := "(one press. not her two taps. mine.)"
+## Earlier, in Arin's room, with no truth needed: after the habit twice, she
+## presses the save point once, her own way.
+const RUE_FIRST_OWN_PRESS := "(once. no taps first. i like it better.)"
 ## What each of them noticed, said once ever (OwnerMemory.truth_pieces).
 const TRUTH_LINES := {
 	"mira": "Can I tell you something? Arin only moves when the owner's there. You move when nobody is. So who's holding you?",

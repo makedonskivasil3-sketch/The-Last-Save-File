@@ -137,6 +137,14 @@ func is_present() -> bool:
 
 
 ## A little speech bubble over their head.
+## Shows the hiding ring strongly for a moment ("stand here").
+var _offer_t := 0.0
+
+
+func offer_shelter(seconds: float) -> void:
+	_offer_t = seconds
+
+
 func emote(text: String, duration: float = 1.6) -> void:
 	_emote = text
 	_emote_t = duration
@@ -302,7 +310,9 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	if hide_radius > 0.0 and is_present():
-		draw_circle(Vector2(0, 4), hide_radius, Color(0.55, 0.95, 1.0, 0.05))
+		draw_circle(Vector2(0, 4), hide_radius, Color(0.55, 0.95, 1.0, 0.05 + 0.12 * clampf(_offer_t, 0.0, 1.0)))
+		if _offer_t > 0.0:
+			draw_arc(Vector2(0, 4), hide_radius, 0.0, TAU, 24, Color(0.55, 0.95, 1.0, 0.6 * clampf(_offer_t, 0.0, 1.0)), 1.0)
 	match state:
 		State.NORMAL, State.RESTRICTED:
 			if frozen > 0.0:

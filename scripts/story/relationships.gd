@@ -53,6 +53,8 @@ const EVENTS := {
 	"mira.restored": "You brought Mira back from the Recycle Bin.",
 	"mira.piece_taken": "You took Mira's colour.",
 	"mira.piece_returned": "You gave Mira her colour back.",
+	"rue.own_press": "At Arin's save point you stopped tapping twice first, and pressed once.",
+	"mira.board_checked": "You checked the board for Mira: her note is still up.",
 	"tobben.met": "Met Tobben at his stall.",
 	"tobben.guestbook": "You wrote RUE back in Tobben's guest book.",
 	"tobben.restored": "You brought Tobben back from the Recycle Bin.",
@@ -118,6 +120,11 @@ const MIRA_AFTER_PINNED := [
 	"I pinned it. Me! With my own hands, in the square. The owner stood at the board for a whole minute. They didn't take it down.",
 	"I keep wondering if it's still up. I can't check. You can. Tell me if it is?",
 ]
+## Rue looked at the board because Mira asked her to.
+const MIRA_STILL_UP := [
+	"It's still up? ...It's still up.",
+	"Thank you for looking. Nobody's ever gone and looked for me before.",
+]
 const MIRA_AFTER_NOTE_LOST := [
 	"My note... they took it off me, after they took you. I had it in both hands.",
 	"It's alright. I'll write another one. ...I won't. I don't think I can, twice.",
@@ -140,7 +147,7 @@ static func wren_lines() -> Array:
 
 
 static func mira_lines() -> Array:
-	return MIRA_ESCORT + MIRA_ASK_AGAIN + [MIRA_HUSHED] + MIRA_AFTER_DEATH + MIRA_AFTER_RESTORE + MIRA_AFTER_PINNED \
+	return MIRA_ESCORT + MIRA_ASK_AGAIN + [MIRA_HUSHED] + MIRA_AFTER_DEATH + MIRA_AFTER_RESTORE + MIRA_AFTER_PINNED + MIRA_STILL_UP \
 		+ MIRA_AFTER_NOTE_LOST + [MIRA_WREN_GONE, MIRA_WREN_SAFE, MIRA_GREETING, MIRA_GREETING_FADED, MIRA_GREETING_HUSHED]
 
 
@@ -304,6 +311,10 @@ static func _mira_news(ask_ready: bool) -> Dictionary:
 		var told := _once("mira.after_pinned", MIRA_AFTER_PINNED)
 		if not told.is_empty():
 			return told
+		if has("mira.board_checked"):
+			told = _once("mira.still_up", MIRA_STILL_UP)
+			if not told.is_empty():
+				return told
 	# What the save's list tells her (not what she saw: she can't leave).
 	if OwnerMemory.is_deleted("wren"):
 		var told := _once("mira.wren_gone:%d" % OwnerMemory.event_count("wren.promise_broken"), [MIRA_WREN_GONE])

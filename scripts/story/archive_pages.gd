@@ -76,7 +76,7 @@ const FACTS := {
 		"text": "Whose the other name in his guest book was."},
 	"archivist.cut": {"who": "archivist", "kind": "said", "line": "I'm the Archivist. I was cut from this game before it shipped. The owner has never seen me.",
 		"text": "He says he was cut from the game before it shipped, so the owner has never seen him."},
-	"archivist.slot2": {"who": "archivist", "kind": "said", "line": "There's a slot the owner thinks is gone. Slot 2. They deleted it, but what was left washed up past the edge, with the rest of the cut things. It's empty.",
+	"archivist.slot2": {"who": "archivist", "kind": "said", "line": "Slot 2? They deleted it. What was left washed up past the Edge, with the rest of the cut things. It's empty.",
 		"text": "He says Slot 2 was deleted, but what was left of it washed up past the Edge. He says it's empty."},
 }
 

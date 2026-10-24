@@ -57,3 +57,18 @@ audio are unchanged. The existing caption and journal suites pass.
 
 The audit of the "helping him changes him" claims is in
 `STORY_CHRONOLOGY.md` (contradictions).
+
+## Characters (second commit)
+
+Each change is something the player sees happen. No new monologue.
+
+| Character | Before | Now | Test |
+|---|---|---|---|
+| **Rue** | Her only gesture of her own was at Slot 2, and needed the truth | At Arin's save point, the first two presses are the inherited habit (two light taps, then the press, now audible), and both are refused. The third press is one press: no refusal, and the crystal glows her cyan. The first time ever, she says "(once. no taps first. i like it better.)". It needs no truth and claims nothing about whose habit it was | `test_rue_presses_the_save_point_once_her_own_way` |
+| **Mira** | After pinning her note she asks Rue to check that it's still up ("Tell me if it is?"). Nothing answered that | Reading the board after she asked records `mira.board_checked` ("(still up. i'll tell her.)"). Her next talk is the answer: "It's still up? ...It's still up. / Thank you for looking. Nobody's ever gone and looked for me before." Her introduction and reset are unchanged | `test_mira_hears_her_note_is_still_up`, `…_before_she_asked` |
+| **Wren** | Her generosity was explained (line 2) before it was ever shown | When Arin comes and Rue is in the open near her, before Rue has ever sheltered, Wren waves her over ("here!") and her shelter ring shows. The explanation comes after. A kept promise is now material: safe for good, she can cover Rue from further out (30 px, not 22) | `test_wren_waves_rue_over_before_she_explains`, `test_a_kept_promise_makes_her_shelter_wider` |
+| **Tobben** | Reported after every conversation; the book changed only his greeting | See defect C: one report, a cooldown, none while written, and a smaller report after the book that leaves out what she asked. | `test_after_the_guest_book_he_tells_less`, `test_written_tobben_cannot_tell` |
+| **Archivist** | A seven-line first speech | Four lines (who he is, the pointer, what it's for). The rest comes one piece per later talk: Slot 2's remains, the unloaded road, "why you", why he can't be deleted. Each is kept until heard to the end, then the usual directions. The pointer is still immediate, and the introduction still counts only once heard. Old saves are greeted as before | `test_the_archivist_s_first_exchange…`, `test_the_rest_is_there_if_she_asks_again`, `test_walking_off_a_topic_keeps_it`, the existing `test_narrative_semantics` |
+| **Pip** | Always nosed ahead toward the next goal, like a route arrow | At her heel by default. Pip leads only for 3 s after arriving somewhere, or once Rue has stood still for 2.5 s. Back with her after a run, Pip runs one quick circle round her feet | `test_pip_greets_her_when_she_comes_back`, `test_pip_leads_only_when_she_hesitates` |
+| **Arin, the owner, the girl** | — | Unchanged: Arin stays mute. The owner's only new line is Tobben's report, which now follows what Tobben actually saw. The girl is given no new scenes. Her timeline is dated (`STORY_CHRONOLOGY.md`) | — |
+

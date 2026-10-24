@@ -94,14 +94,22 @@ const ARCHIVIST_POINTER := [
 	"Keep away from Arin's eyes. And from the hand, if it comes.",
 	"The hand can't select what Wren stands beside. Don't ask me why. I wasn't finished either.",
 ]
+## The first exchange: who he is, the way out, and what it's for. The rest
+## he tells a piece at a time if she talks to him again (ARCHIVIST_TOPICS).
 const ARCHIVIST_FIRST := [
 	"Oh. A visitor. Nobody visits.",
 	"I'm the Archivist. I was cut from this game before it shipped. The owner has never seen me.",
-	"Which means they can't delete me. Lucky me. Lucky you, maybe.",
-	"You want out. Everything in here wants out, but you're the only one who can actually leave.",
-	"There's a slot the owner thinks is gone. Slot 2. They deleted it, but what was left washed up past the edge, with the rest of the cut things. It's empty.",
-	"Here. A pointer to it. It'll open the north road. The world isn't loaded up there, so the owner reaches in by hand.",
+	"You want out. Here: a pointer to Slot 2, the slot the owner thinks is gone. It opens the north road.",
 	"Reach Slot 2 and you can write yourself into it. A save of your own. Nothing here could delete you then.",
+]
+## What used to be the rest of his first speech, one piece per later talk,
+## each kept until heard to the end. (The records say the same things in
+## their own words: he isn't the only way to learn them.)
+const ARCHIVIST_TOPICS := [
+	"Slot 2? They deleted it. What was left washed up past the Edge, with the rest of the cut things. It's empty.",
+	"The north road isn't loaded. Up there the owner reaches in by hand. Keep away from the hand.",
+	"Why you? Everything in here wants out. You're the only one I've filed who can actually leave.",
+	"And they can't delete me: they'd have to see me first. Lucky me. Lucky you, maybe.",
 ]
 ## The introduction again, for someone given the pointer who walked off
 ## before he'd finished (or whose save predates "archivist.introduced").
@@ -119,7 +127,7 @@ static func _archivist_remembers() -> String:
 ## Every line the Archivist can say that is the same in every run, by voice
 ## id stem (VoiceManifest). Lines with run counts in them stay text only.
 static func voice_lines() -> Dictionary:
-	return {"npc.archivist": ARCHIVIST_POINTER + ARCHIVIST_FIRST + [ARCHIVIST_RESUMED_OPEN, ARCHIVIST_RESUMED_POINTER, ARCHIVIST_BACK, ARCHIVIST_AGAIN, ARCHIVIST_NO_PIECES, _archivist_remembers(),
+	return {"npc.archivist": ARCHIVIST_POINTER + ARCHIVIST_FIRST + ARCHIVIST_TOPICS + [ARCHIVIST_RESUMED_OPEN, ARCHIVIST_RESUMED_POINTER, ARCHIVIST_BACK, ARCHIVIST_AGAIN, ARCHIVIST_NO_PIECES, _archivist_remembers(),
 		Story.ARCHIVIST_FILE_HINT, Story.ARCHIVIST_KNOWS, Story.ARCHIVIST_PIECE_BACK, Story.ARCHIVIST_NOTHING_TO_TAKE] + Story.ARCHIVIST_SHED_FIRST}
 
 
@@ -132,7 +140,12 @@ static func voice_lines() -> Dictionary:
 func _archivist_lines() -> Dictionary:
 	var after: Array = []
 	var commit: Array = []
-	var lines: Array = _archivist_core(commit) + [_fragment_comment()]
+	_topic_after = -1
+	var lines: Array = _archivist_core(commit)
+	if _topic_after >= 0:
+		# A topic is its own short exchange.
+		return {"lines": lines, "id": "", "commit": [], "after": [_heard_topic.bind(_topic_after)]}
+	lines.append(_fragment_comment())
 	if OwnerMemory.fragments.size() >= Story.FRAGMENTS.size():
 		lines.append(Story.ARCHIVIST_KNOWS if OwnerMemory.knows_truth else Story.ARCHIVIST_FILE_HINT)
 	# What he thinks of her leaving bodies behind (each said once, heard).
@@ -143,6 +156,23 @@ func _archivist_lines() -> Dictionary:
 		after.append(_said.bind("archivist_back"))
 		lines.append(Story.ARCHIVIST_PIECE_BACK)
 	return {"lines": lines, "id": "", "commit": commit, "after": after}
+
+
+var _topic_after := -1
+
+
+## The topics he hasn't finished telling her (by index).
+func topics_left() -> Array:
+	return range(ARCHIVIST_TOPICS.size()).filter(func(i: int) -> bool: return "archivist.topic:%d" % i not in OwnerMemory.shed_said)
+
+
+func _next_topic() -> int:
+	var left := topics_left()
+	return left[0] if not left.is_empty() else -1
+
+
+static func _heard_topic(i: int) -> void:
+	_said("archivist.topic:%d" % i)
 
 
 static func _said(key: String) -> void:
@@ -198,12 +228,12 @@ func _archivist_core(commit: Array) -> Array:
 			# (Saves from before "introduced" existed have no pending mark:
 			# they heard it then, and are greeted as returning visitors.)
 			commit.append("archivist.introduced")
-			var again: Array = [ARCHIVIST_RESUMED_OPEN]
-			again.append_array(ARCHIVIST_FIRST.slice(1, 5))
-			again.append(ARCHIVIST_RESUMED_POINTER)
-			again.append(ARCHIVIST_FIRST[6])
-			return again
+			return [ARCHIVIST_RESUMED_OPEN, ARCHIVIST_FIRST[1], ARCHIVIST_RESUMED_POINTER, ARCHIVIST_FIRST[3]]
 		if _greeted or not OwnerMemory.met_archivist:
+			var topic := _next_topic()
+			if topic >= 0:
+				_topic_after = topic
+				return [ARCHIVIST_TOPICS[topic]]
 			return ARCHIVIST_POINTER.duplicate()
 		_greeted = true
 		var back: Array = [ARCHIVIST_BACK]

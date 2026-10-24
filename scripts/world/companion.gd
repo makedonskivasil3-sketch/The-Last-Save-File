@@ -20,6 +20,13 @@ const WHITE := Color("f4ead8")
 const NAME_COLOR := Color("f0a050")
 ## Arin closer than this gets a warning yip.
 const WARN_DISTANCE := 85.0
+## Pip leads (noses toward what's next) for this long after arriving in an
+## area, and again once Rue has stood still this long. Otherwise it stays at
+## her heel: a companion, not a route arrow.
+const ARRIVAL_LEAD := 3.0
+const HESITATE := 2.5
+## Coming back to her (a new run): one quick circle round her feet.
+const GREET := 1.4
 
 var mode: Mode = Mode.WAITING
 var world: World
@@ -33,6 +40,24 @@ var _join_after_talk := false
 ## Seconds the "!" stays up, and the cooldown before the next warning.
 var _yip := 0.0
 var _yip_cooldown := 0.0
+var _since_arrival := 0.0
+var _still := 0.0
+var _greet := 0.0
+var _leading := false
+
+
+func greeting() -> bool:
+	return _greet > 0.0
+
+
+func leading() -> bool:
+	return _leading
+
+
+## Back with her after a run: Pip runs one circle round her, then sits.
+func greet() -> void:
+	_greet = GREET
+	Sfx.play("pop", -6.0, 1.8)
 
 
 func can_interact() -> bool:
@@ -61,6 +86,7 @@ func interact() -> Dictionary:
 ## Appear next to the player (new area, new session).
 func arrive(at: Vector2) -> void:
 	position = at + Vector2(-14, 6)
+	_since_arrival = 0.0
 
 
 func _process(delta: float) -> void:
@@ -81,8 +107,16 @@ func _process(delta: float) -> void:
 func _follow(delta: float) -> void:
 	var p: Vector2 = world.player.global_position
 	var want := p + Vector2(-12.0 * _facing, 6.0)
+	_since_arrival += delta
+	_still = _still + delta if world.player.velocity.length() < 5.0 else 0.0
+	if _greet > 0.0:
+		_greet -= delta
+		var a := (1.0 - _greet / GREET) * TAU
+		want = p + Vector2(cos(a), sin(a) * 0.6) * 16.0  # round her feet
 	var goal := world.guide_target()
-	if goal != Vector2.INF and goal.distance_to(p) > 20.0:
+	_leading = _greet <= 0.0 and goal != Vector2.INF and goal.distance_to(p) > 20.0 \
+		and (_since_arrival < ARRIVAL_LEAD or _still > HESITATE)
+	if _leading:
 		want = p + (goal - p).normalized() * LEAD  # nose toward what's next
 	var to := want - global_position
 	_moving = to.length() > 3.0

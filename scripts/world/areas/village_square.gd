@@ -71,6 +71,15 @@ const WREN_LINES := [
 	"If they find out I hid you, they'll take me out of the save. It's okay. Go.",
 	"You look like someone who used to play here. Before. They fell in the well once. It was funny.",
 ]
+## Wren's wave, when Arin comes and Rue is in the open near her (before
+## she has ever explained why standing beside her works).
+const WREN_BECKON := "here!"
+const BECKON_ARIN := 150.0
+const BECKON_RUE := 110.0
+## Her shelter, and after the Edge (safe for good, out of the owner's reach):
+## she can cover Rue from a little further out.
+const WREN_SHELTER := 22.0
+const WREN_SHELTER_SAFE := 30.0
 const TOBBEN_LINES := [
 	"Welcome to Tobben's! Finest wares in Ashvale!",
 	"Welcome to Tobben's! Finest... you don't have any gold. You don't have an inventory.",
@@ -361,8 +370,12 @@ func on_owner_event(threshold: float) -> void:
 				cursor.speed = minf(cursor.speed * 1.2, CURSOR_MAX_SPEED)
 
 
-## Pinning Mira's note to the board.
+## Pinning Mira's note to the board (and, once she's asked, looking for her).
 func interact_extra(node: Node2D) -> void:
+	if node == board and OwnerMemory.mira_quest == "pinned" and OwnerMemory.has_conversation("mira.after_pinned") \
+			and not Relationships.has("mira.board_checked"):
+		Relationships.add("mira.board_checked")
+		world.hud.say("(still up. i'll tell her.)", "self")
 	if node == board and OwnerMemory.mira_quest == "carried":
 		OwnerMemory.mira_quest = "pinned"
 		OwnerMemory.save_memory()
@@ -402,8 +415,13 @@ func on_dialogue_closed(who: Node) -> void:
 		world.hud.show_dialogue("WREN", wren.name_color, Story.WREN_DECLINED, "npc.wren", CharacterArt.for_npc(wren), World.expressions_for(wren, Story.WREN_DECLINED))
 
 
+var wren_beckoned := false
+var _beckon_cooldown := 0.0
+
+
 func area_process(delta: float) -> void:
 	_well_process(delta)
+	_wren_beckon(delta)
 	_mark_process()
 	# UNLOCK on the front door: walk in while it's glitched open.
 	if door.is_forced_open() and world.player.global_position.distance_to(door.global_position) < 18.0:
@@ -417,6 +435,21 @@ func area_process(delta: float) -> void:
 	lamp.paused = arin.paused
 	if world.player.global_position.distance_to(well.global_position) < 40.0:
 		world.voice("well_look")
+
+
+## Before she has said a word about it, Wren waves Rue over when Arin comes
+## (her generosity is something she does first, and explains later).
+func _wren_beckon(delta: float) -> void:
+	_beckon_cooldown = maxf(0.0, _beckon_cooldown - delta)
+	if _beckon_cooldown > 0.0 or wren == null or not is_instance_valid(wren) or not wren.is_present() \
+			or Relationships.has("wren.sheltered") or world.player.sheltered or world.is_talking():
+		return
+	var rue := world.player.global_position
+	if arin.global_position.distance_to(rue) < BECKON_ARIN and rue.distance_to(wren.global_position) < BECKON_RUE:
+		wren_beckoned = true
+		_beckon_cooldown = 6.0
+		wren.emote(WREN_BECKON, 2.0)
+		wren.offer_shelter(2.0)
 
 
 func _house_door_lines() -> Array:
@@ -569,7 +602,7 @@ static func make_wren(parent: Node, pos: Vector2) -> Npc:
 	n.idle_style = "hop"
 	n.notice_emote = "!"
 	n.dark_color = Color("4a6a3a")
-	n.hide_radius = 22.0
+	n.hide_radius = WREN_SHELTER_SAFE if OwnerMemory.wren_saved else WREN_SHELTER
 	parent.add_child(n)
 	n.player = parent.get("world").player if parent.get("world") else null
 	n.setup(Npc.State.DELETED if OwnerMemory.is_deleted("wren") else Npc.State.NORMAL)

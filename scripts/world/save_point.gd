@@ -5,8 +5,17 @@ extends StaticBody2D
 const CRYSTAL := Color("7fd6a8")
 const DENIED := Color("e0704f")
 
+## Rue pressed it once, her own way (not the habit).
+signal own_pressed
+
+## From this press in a run Rue stops doing the habit (two light taps, then
+## the press: her player's, from the opening) and presses once.
+const OWN_AT := 3
+const RUE_CYAN := Color("8cf2ff")
+
 var _t := 0.0
 var _denied := 0.0
+var _own := 0.0
 var _uses := 0
 
 
@@ -27,10 +36,26 @@ func interact_prompt() -> String:
 	return "save"
 
 
+## "habit" (the two taps, then the press) or "own" (one press), for the
+## next press.
+func press_kind() -> String:
+	return "own" if _uses + 1 >= OWN_AT else "habit"
+
+
 func interact() -> String:
-	_denied = 1.0
+	var kind := press_kind()
 	_uses += 1
-	Sfx.play("denied")
+	if kind == "own":
+		# One press. It still doesn't save; it doesn't refuse her either.
+		_own = 1.0
+		Sfx.play("click", -6.0, 0.85, 0.0)
+		own_pressed.emit()
+		return ""
+	for h in Opening.HABIT:
+		get_tree().create_timer(h[0]).timeout.connect(func() -> void: Sfx.play("click", h[1], 1.3 if h[0] < 0.5 else 1.0, 0.0))
+	get_tree().create_timer(0.7).timeout.connect(func() -> void:
+		_denied = 1.0
+		Sfx.play("denied"))
 	if _uses == 1:
 		return "SAVE FAILED: profile mismatch."
 	return "SAVE DENIED: you are not the owner of this file."
@@ -39,12 +64,13 @@ func interact() -> String:
 func _process(delta: float) -> void:
 	_t += delta
 	_denied = maxf(0.0, _denied - delta)
+	_own = maxf(0.0, _own - delta * 0.6)
 	queue_redraw()
 
 
 func _draw() -> void:
 	var bob := sin(_t * 2.0) * 1.5
-	var c := CRYSTAL.lerp(DENIED, _denied)
+	var c := CRYSTAL.lerp(DENIED, _denied).lerp(RUE_CYAN, _own)
 	var pts := PackedVector2Array([
 		Vector2(0, -12 + bob), Vector2(5, -4 + bob), Vector2(0, 4 + bob), Vector2(-5, -4 + bob)
 	])
