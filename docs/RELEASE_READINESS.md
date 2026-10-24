@@ -2,7 +2,47 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current: opening, character and world revision (2026-10-22, evening)
+## Current: consistency, characters and places (2026-10-24)
+
+**Branch:** `claude/last-save-file-prototype-ljwuq4`. PR #10 is still a
+**draft, not merged**; `main` is `09aeb3b`. The review started from
+`34b6823`. Everything is in `docs/REVIEW_OCT24.md`; the chronology is in
+`docs/STORY_CHRONOLOGY.md`.
+
+- **Fixed, each with a regression that failed first:**
+  - facts were learned before their line was on screen;
+  - off-screen NPCs were recorded as seen;
+  - Tobben's reports stacked;
+  - the pagination limit was ignored;
+  - the message ending's wording was ambiguous;
+  - the tip covered the glitch prompt at the largest text.
+- **Characters:**
+  - Rue's first press of her own, at Arin's save point;
+  - Mira hears that her note is still up;
+  - Wren waves Rue over before she explains;
+  - a kept promise widens Wren's shelter;
+  - the Archivist speaks four lines, with the rest as topics;
+  - Pip stays at Rue's heel and greets her on return.
+- **Places:** what changed stays visible; the Archive has an arrival and
+  alcoves; the cast lean into their first step.
+- **Measured:**
+  - the opening's wall-clock times on four paths;
+  - the Square with Arin active (72 runs, 0 deaths);
+  - CPU frame time on a software renderer (no GPU figure claimed);
+  - the exported Linux build's start and quit.
+- **Suite:** 643 passed, 0 failed.
+- **Bots:** 4 of 5 passed in the first run. The purge-3 bot failed once,
+  passed in 2 of 3 reruns, and shows the same pattern on the baseline.
+- **Exports:** Linux, Windows and Web export; the web title loads with no
+  console errors.
+- **Not done:** no unfamiliar players were available; there is no
+  hardware GPU number; House, Out of Bounds, the Bin and the Edge were not
+  recomposed.
+- **Open author decisions:** listed at the end of `REVIEW_OCT24.md`
+  (opening auto-play waits, Suspend, the demo endpoint, the act card, and
+  the cost of Rue's press).
+
+## Previous: opening, character and world revision (2026-10-22, evening)
 
 **Branch:** `claude/last-save-file-prototype-ljwuq4`.
 - PR #10 is a **draft, not merged**. `main` is at `09aeb3b`.

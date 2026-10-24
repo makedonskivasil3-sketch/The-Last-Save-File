@@ -116,3 +116,141 @@ Bin (discarded-data landscape, restore silhouettes) and the Edge (a final
 composition around Slot 2) were not recomposed. Hand and arm poses and
 gaze were not redrawn. There are no new portraits; no approved assets
 exist.
+
+## Opening: wall-clock times (§4)
+
+`tests/tour_timing_oct24.gd`, fresh profile, injected input, real time,
+headless, one machine. Times are from pressing Start on the title. The boot
+was pressed through line by line, and Mira was talked to with immediate
+presses. A person reads slower, so the room figures are lower bounds.
+
+| Path | First agency (opening) | Film over | Boot over | Awake in the room | First step | First decision (Mira's request) |
+|---|---|---|---|---|---|---|
+| Prompt (acts as soon as asked) | 5.0 s | 53.5 s | 56.2 s | 57.5 s | 57.8 s | 59.6 s |
+| Hesitant (waits for each hint) | 11.0 s | 71.5 s | 74.2 s | 75.5 s | 75.8 s | 77.6 s |
+| No input (each state plays itself) | — | 93.6 s | 96.3 s | 97.7 s | 98.0 s | 99.8 s |
+| Skip (hold) | — | 1.1 s | 3.8 s | 5.1 s | 5.4 s | 7.2 s |
+
+- First agency is the ritual's gate at 5 s: before it, the film doesn't
+  take input. That is a design choice, kept.
+- The boot is 8 lines, 33.1 s at the auto-mode reading allowance, against
+  2.7 s pressed through.
+- **Finding:** the no-input path costs 40 s more than the prompt path,
+  through the auto-play waits (16 + 8 + 16 s). Shortening them is an author
+  decision (`AUTO_AFTER`). They were not changed.
+- The shared gesture: the routine is the two of them saving together, a hop
+  and SAVING SLOT 2. No monologue was added.
+
+## The Square with Arin active (§7)
+
+`tests/tour_route_arin_oct24.gd`: the direct crossing, the bench (shelter)
+and the lane shortcut, at purge 0, 3 and 5, eight lamp phases each, so 72
+runs. Rue starts at (560, 182). The routes are fixed: she doesn't dodge.
+Unlike the 22 October measurement, Arin patrols normally.
+
+| Route | Purge 0 | Purge 3 | Purge 5 |
+|---|---|---|---|
+| Direct | 8/8 reached, 0 deaths; 4.2–4.3 s; awareness +1.8 mean (+3.8 worst) | 8/8, 0; +3.7 (+5.8) | 8/8, 0; +3.7 (+5.8) |
+| Bench | 8/8, 0; 5.2–13.2 s; +0.9 | 8/8, 0; +3.8 | 8/8, 0; +3.8 |
+| Shortcut | 8/8, 0; 6.3 s; +2.2 | 8/8, 0; +5.0 | 8/8, 0; +5.0 |
+
+**Reading:** from that start, Arin's patrol never reached Rue on any of the
+three routes, so the crossing is the lamp's alone. The combined encounter
+happens in the west half, near Wren, the well and the house door; this
+measurement doesn't cover it. Purge raises the awareness each route costs,
+but not the risk of dying on these routes. No difficulty change was made.
+
+## Replay loop (§6)
+
+- What carries over after a failure is already listed on the death card
+  ("kept") and in the journal. The new fact timing (A) means the journal
+  lists only what was actually read.
+- Repeated exposition is shorter: the Archivist's speech is four lines
+  plus optional topics, each heard once; Pip no longer guides
+  continuously; Tobben's report doesn't repeat per conversation.
+- Quitting still raises purge. A concrete Suspend proposal for the author
+  is in `SAVE_AND_EXIT_PROPOSAL.md` (not built).
+
+## Commercial (§11)
+
+`STORE_KIT.md` has the pitch, the three promises, the feature list, an
+evaluation of the demo endpoint (it shows the first promise, the second
+only to players who retry, and the third barely), a gameplay-first trailer
+storyboard built only from implemented scenes and readable without sound,
+a five-screenshot shortlist and a capsule-art brief. Nothing is
+published, and nothing is claimed about sales, quotes or playtime.
+
+## Audio (§10)
+
+No audio code changed. The habit at Arin's save point uses the existing
+click (the same as the well and Slot 2), and the categories are unchanged.
+No voice was generated and no credits were spent. Listening has not been
+done in this container (no audio device): the audition pilot still needs a
+human listener (`VOICE_AUDITION.md`).
+
+## Performance (§9)
+
+**What this container can measure:** no hardware GPU (llvmpipe, a
+software rasteriser) and no audio device. **GPU time is not reported**:
+under llvmpipe the "GPU" is the CPU, so a separate GPU figure would be
+meaningless. Frame time is wall clock. CPU is Godot's process monitor. The
+numbers compare heads on this machine; they don't predict a player's PC.
+`tools/run_benchmark.sh` on real hardware is still pending.
+
+`tour_benchmark` at `fa0798b` + this pass, 10 s per workload, quiet machine,
+1280×720:
+
+| Workload | Frame p50 / p95 / max (ms) | CPU p50 (ms) | Draw calls |
+|---|---|---|---|
+| Room, exploring | 57.4 / 68.6 / 83.1 | 66.6 | 598 |
+| Square, calm | 69.1 / 82.5 / 89.7 | 81.2 | 794 |
+| Square, hunted, Wren escort | **invalid**: Wren is deleted at 9.2 s, and the baseline `34b6823` does the same at 9.1 s (a harness issue that predates this pass, not fixed) | — | — |
+| Archive, dialogue portrait (maximum-text conversation not separately profiled) | 58.0 / 66.8 / 71.0 | 66.3 | 373 |
+| House, Arin visiting | 60.5 / 70.6 / 77.0 | 71.4 | 713 |
+| Edge, static spreading | 48.0 / 59.2 / 71.2 | 58.6 | 468 |
+| Stress: square hunted, CRT, full effects | 66.1 / 81.2 / 91.2 | 79.0 | 835 |
+| Area change (transition, wall clock) | 611 / 649 / 649 | — | — |
+| Opening film | 26.9 / 32.8 / 38.7 | 35.1 | 529 |
+
+**Exported Linux build** (`build/linux`, release, under xvfb):
+- start and quit after 1 frame: 3.0–4.0 s wall clock, including xvfb's own
+  start;
+- 300 frames on the title: 19.0–19.3 s;
+- exit code 0 every time. The only engine error is the missing ALSA device.
+
+Startup and shutdown aren't separated in this measurement. No optimisation
+was made: nothing here shows a regression that would justify one, and
+there is no hardware number to optimise against. The timer warning stays
+visible (unchanged).
+
+## Verification (this head)
+
+| Check | Result |
+|---|---|
+| Full suite after each commit group | 631 → 642 → 643 passed, 0 failed (exit warning: ObjectDB instances leaked, as before) |
+| Regressions failing first | A (2 tests), B (2), C (4), D (1), the message wording (1), the tip overlap (1) |
+| Bots, exact endings | escape, message, escape at purge 5 and Wren: pass, 0 deaths, 0 stalls. Escape at purge 3: **failed once** (Edge eraser death, then "the owner reloaded" followed by death to Arin in the Square in each of three sessions, purged), then passed twice (0 deaths; 0 and 5 stalls). The baseline `34b6823` shows the same failure in 1 of 2 runs, so this is variance in the bot's post-death route, not a regression |
+| Exports | Linux, Windows and Web export without errors |
+| Linux smoke | Above |
+| Web | Served locally in Chromium (SwiftShader): the title loads in 34.9 s with 0 console errors |
+| Fresh profile: watched, hesitant, no input, skipped | `tour_timing_oct24` (above) and `test_first_session` (in the suite) |
+| Maximum text, touch | `tour_oct24` captures; the tip-overlap fix |
+| Interrupted dialogue, save migration, death and return, shutdown | Existing suites (`test_narrative_semantics`, `test_save_safety`, `test_first_session`), plus the topic and observation tests above |
+| Reduced flashing and motion, muted audio, missing assets | Existing suites pass. Not re-captured |
+
+**Unfamiliar players:** none were available. The protocol and the
+instrumentation (`PLAYTEST_PLAN.md`, the `--playtest` log) are ready.
+No results are claimed.
+
+## Questions for the author
+
+1. Shorten the no-input opening (16 + 8 + 16 s of auto-play waits)?
+2. Suspend: (a) keep today's rule, (b) Suspend, or (c) Suspend with a cost
+   (`SAVE_AND_EXIT_PROPOSAL.md`)?
+3. The demo endpoint: keep it at the arch, move it past the Archivist's
+   first exchange, or label it as the first act (`STORE_KIT.md`)?
+4. The act card's placement over the Square (still centred, still holding
+   the owner)?
+5. Should Rue's room press (the third press at the save point) cost
+   awareness like the other two (+15)? It does today. The gesture is her
+   own; whether the owner notices it is a design call.
