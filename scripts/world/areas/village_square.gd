@@ -642,23 +642,62 @@ func _offer_guestbook() -> void:
 	world.director.say("...who wrote her name in the book.")
 
 
+## Seconds after a conversation before Tobben's report reaches the owner.
+const REPORT_DELAY := 4.0
+const TOBBEN_REPORT := "tobben says you were asking questions."
+## After the guest book: he still reports (it's his script), and leaves out
+## what she asked.
+const TOBBEN_REPORT_BOOK := "tobben says you came by. he didn't say what for."
+
+
+## After a report, he doesn't tell again for this long (he already did).
+const REPORT_COOLDOWN := 60.0
+var _report_pending := false
+
+
+## Tobben tells the owner about Rue after she talks to him: once, a few
+## seconds after the conversation (and after any scene that follows), not
+## once per conversation. He can't while his voice is Rue's (written). After
+## the guest book he still does, but leaves out what she asked.
 func _tobben_reports() -> void:
-	# He tells the owner a few seconds after you stop talking, not while you
-	# are still reading him.
-	while is_inside_tree() and world.hud.is_dialogue_open():
-		await get_tree().process_frame
+	if _report_pending or tobben.mute or not _report_cooled():
+		return
+	_report_pending = true
+	await _story_clear()
+	if not is_inside_tree():
+		return
+	await get_tree().create_timer(REPORT_DELAY).timeout
+	await _story_clear()  # a scene that started meanwhile goes first
 	if is_inside_tree():
-		get_tree().create_timer(4.0).timeout.connect(_tobben_report_lands)
+		_tobben_report_lands()
+	_report_pending = false
+
+
+func _report_cooled() -> bool:
+	var at: float = world.get_meta("tobben_reported_at", -INF)
+	return Time.get_ticks_msec() / 1000.0 - at >= REPORT_COOLDOWN
+
+
+## Waits until nobody is talking and no scene or question is on screen.
+func _story_clear() -> void:
+	while is_inside_tree() and (world.hud.is_dialogue_open() or world.hud.is_cinematic() or world.hud.is_choosing() or world._cutscene):
+		await get_tree().process_frame
 
 
 func _tobben_report_lands() -> void:
-	if is_inside_tree() and world.ending == "":
-		if world.director.is_believing_lie():
-			# The owner already believes the lie on the board.
-			world.director.say("tobben says you're gone. good.")
-			return
-		world.director.say("tobben says you were asking questions.")
-		world.director.notice(12.0, "tobben told on you")
+	if not is_inside_tree() or world.ending != "" or tobben.mute:
+		return
+	world.set_meta("tobben_reported_at", Time.get_ticks_msec() / 1000.0)
+	if world.director.is_believing_lie():
+		# The owner already believes the lie on the board.
+		world.director.say("tobben says you're gone. good.")
+		return
+	if OwnerMemory.guestbook_restored:
+		world.director.say(TOBBEN_REPORT_BOOK)
+		world.director.notice(6.0, "tobben mentioned you")
+		return
+	world.director.say(TOBBEN_REPORT)
+	world.director.notice(12.0, "tobben told on you")
 
 
 func _draw() -> void:

@@ -2,7 +2,7 @@ extends "res://tests/test_case.gd"
 ## The truth (docs/DARK_TRUTH_DESIGN.md, layer A): the people who watched Rue
 ## each notice one thing, her CHARACTER FILE opens with every memory and two
 ## of their pieces, and only then is the RUE ending hers. The message ending
-## tells the real girl that a part of her stayed.
+## tells the real girl about the character she left running.
 
 
 func _all_memories() -> void:
@@ -150,4 +150,4 @@ func test_the_message_tells_the_real_girl() -> void:
 	memory().knows_truth = true
 	var with_truth: Array = Story.epilogue("message", 5, false, 0)
 	check(with_truth.has(Story.MESSAGE_TRUTH[0]) and with_truth.has(Story.MESSAGE_TRUTH[1]), "with it, the owner promises to tell her")
-	check(Story.ending_text("message", 5).contains("a part of her stayed behind"), "and the end card says she's about to hear it")
+	check(Story.ending_text("message", 5).contains("the character she left running"), "and the end card says she's about to hear it")

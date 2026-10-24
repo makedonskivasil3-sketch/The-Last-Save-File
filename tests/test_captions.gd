@@ -36,7 +36,7 @@ func test_a_long_recorded_line_plays_once_across_its_caption_pages() -> void:
 	var id := Hud.voice_id("test.long", LONG)
 	VoiceOver.register(id, _clip(8.0))
 	var shown := []
-	w.hud.line_shown.connect(func(t: String) -> void: shown.append(t))
+	w.hud.line_revealed.connect(func(t: String) -> void: shown.append(t))
 	w.hud.show_dialogue("RUE", Hud.SELF_COLOR, [LONG], "test.long")
 	await frames(2)
 	var pages: int = w.hud._dialogue_lines.size()

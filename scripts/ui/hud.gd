@@ -6,7 +6,16 @@ extends CanvasLayer
 signal dialogue_closed
 ## A line of the open conversation has been shown whole (its last page is on
 ## screen). Carries the line as written, before it was split into pages.
-signal line_shown(line: String)
+## The milestones of one line of dialogue (a "line" is one of the lines
+## given to show_dialogue, however many caption pages it takes):
+##   line_presented   its first page opened (nothing is read yet);
+##   line_revealed    its last page is fully visible: what it says is known
+##                    (World learns facts and truth pieces here, once);
+##   line_acknowledged  the player moved on from it;
+## and the conversation completes when the box closes with dialogue_finished.
+signal line_presented(line: String)
+signal line_revealed(line: String)
+signal line_acknowledged(line: String)
 ## choose() picked an option (index).
 signal _chosen(index: int)
 
@@ -727,6 +736,7 @@ func show_dialogue(speaker: String, color: Color, lines: Array, voice_prefix := 
 	_dialogue_voice_prefix = voice_prefix
 	var paged := paginate(lines, voice_prefix)
 	_dialogue_source_lines = lines.duplicate()
+	_revealed_sources.clear()
 	_dialogue_sources.assign(paged[2])
 	_dialogue_lines = paged[0]
 	_dialogue_ids.assign(paged[1])
@@ -888,9 +898,23 @@ func fade(to_black: bool, duration: float = 0.25) -> Tween:
 	return tw
 
 
-## For line_shown: the lines as given, and which of them each page is from.
+## The lines as given, and which of them each page is from.
 var _dialogue_source_lines: Array = []
 var _dialogue_sources: Array[int] = []
+## Lines (by index) already revealed in this conversation: each once.
+var _revealed_sources := {}
+
+
+## The current page is fully visible. On a line's last page, the line is
+## revealed (once).
+func _page_revealed() -> void:
+	if _dialogue_index >= _dialogue_sources.size():
+		return
+	var src := _dialogue_sources[_dialogue_index]
+	var last_page := _dialogue_index + 1 >= _dialogue_sources.size() or _dialogue_sources[_dialogue_index + 1] != src
+	if last_page and src < _dialogue_source_lines.size() and not _revealed_sources.has(src):
+		_revealed_sources[src] = true
+		line_revealed.emit(str(_dialogue_source_lines[src]))
 ## The open conversation's speaker can't speak (show_dialogue silent).
 var dialogue_silent := false
 
@@ -898,11 +922,6 @@ var dialogue_silent := false
 func _show_dialogue_line() -> void:
 	var text := str(_dialogue_lines[_dialogue_index])
 	_dialogue_text.text = text
-	if _dialogue_index < _dialogue_sources.size():
-		var src := _dialogue_sources[_dialogue_index]
-		var last_page := _dialogue_index + 1 >= _dialogue_sources.size() or _dialogue_sources[_dialogue_index + 1] != src
-		if last_page and src < _dialogue_source_lines.size():
-			line_shown.emit(str(_dialogue_source_lines[src]))
 	var src: int = _dialogue_sources[_dialogue_index]
 	var first_page := _dialogue_index == 0 or _dialogue_sources[_dialogue_index - 1] != src
 	var last_page := _dialogue_index + 1 == _dialogue_sources.size() or _dialogue_sources[_dialogue_index + 1] != src
@@ -917,6 +936,7 @@ func _show_dialogue_line() -> void:
 	_pacer = LinePacer.new(text, StoryPacing.is_auto(), _caption_voice_busy.bind(_page_fraction(_dialogue_lines, _dialogue_sources, _dialogue_index), last_page))
 	if first_page:
 		_log_line(_dialogue_speaker.text, str(_dialogue_source_lines[src]), "npc", _dialogue_voice if _dialogue_recorded else "")
+		line_presented.emit(str(_dialogue_source_lines[src]))
 	_dialogue_hint.text = ""
 	_face_t = 0.0
 	_update_dialogue_face(0.0)
@@ -1068,6 +1088,10 @@ func _next_dialogue_line() -> void:
 	var continuation := _dialogue_index + 1 < _dialogue_sources.size() and _dialogue_sources[_dialogue_index + 1] == _dialogue_sources[_dialogue_index]
 	if not continuation:
 		VoiceOver.stop()
+		_page_revealed()  # (moved on from: it was seen)
+		var src := _dialogue_sources[_dialogue_index] if _dialogue_index < _dialogue_sources.size() else -1
+		if src >= 0 and src < _dialogue_source_lines.size():
+			line_acknowledged.emit(str(_dialogue_source_lines[src]))
 	narrator.stop()
 	if _dialogue_index < _dialogue_lines.size() - 1:
 		_dialogue_index += 1
@@ -1111,6 +1135,7 @@ func _update_dialogue(delta: float) -> void:
 			_dialogue_text.visible_characters = -1
 			_pacer.reveal(frame)
 			_fit_dialogue()
+			_page_revealed()
 		if int(_dialogue_typed) > before and not is_inf(cps) and not VoiceOver.is_playing():
 			# Each speaker has their own voice (Sfx.VOICE_PROFILES); books and notes rustle.
 			if narrator.voicing():
@@ -1129,6 +1154,7 @@ func _update_dialogue(delta: float) -> void:
 		interact_used_frame = frame
 		if _pacer.press(frame) == "reveal":
 			_dialogue_text.visible_characters = -1  # first press: the whole line, nothing more
+			_page_revealed()
 	if _pacer.is_done():
 		_next_dialogue_line()
 

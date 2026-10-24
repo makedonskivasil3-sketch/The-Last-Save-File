@@ -39,7 +39,7 @@ func test_people_appear_only_once_met_and_without_spoilers() -> void:
 	check(wren.body.contains("RUE:"), "now Rue has a reading of her, marked as hers")
 	Relationships.add("wren.promised")
 	check(not _entry("people", "person:wren").body.contains("wants to see the Edge before"), "a promise isn't her telling you why")
-	w._on_line_shown(Story.WREN_ASK)
+	w._on_line_revealed(Story.WREN_ASK)
 	check(_entry("people", "person:wren").body.contains("wants to see the Edge before they delete her"), "learned when she asks")
 	check(_entry("people", "person:wren").body.contains("STILL OPEN: You promised her the Edge."), "the open promise")
 

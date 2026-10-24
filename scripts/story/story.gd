@@ -6,7 +6,8 @@ extends RefCounted
 ## THE STORY (spoilers for the player, notes for the writer):
 ## Two people shared one console. The owner always played Arin in slot 1.
 ## A girl made her own character in slot 2 and played her for 41 hours.
-## Then she moved away; months later the owner deleted slot 2.
+## Then she moved away; months later the owner deleted slot 2. The game
+## is set three years after that (docs/STORY_CHRONOLOGY.md).
 ## You are Rue, that character, left running in the save that survived:
 ## not the girl, but what she left behind. The owner thinks you're a bug.
 ## Find all five memories and you remember your name; read the CHARACTER
@@ -25,7 +26,7 @@ const BOOT := [
 	"SLOT 1  ·  ARIN  ·  LV 7  ·  14:22:00",
 	"LOADING SAVE DATA . . . . . . . . OK",
 	"PLAYER 1 . . . . . . ARIN",
-	"PLAYER 2 . . . . . . [deleted]",
+	"PLAYER 2 . . . . . . [DELETED 3 YEARS AGO]",
 	"VERIFYING . . . . . [!] 1 UNRECOGNISED ENTITY IN ARIN'S ROOM",
 	"ENTITY NAME: none.   ENTITY SLOT: 02",
 	"slot 02 does not exist.",
@@ -565,7 +566,7 @@ static func ending_text(ending: String, found: int) -> String:
 			return "you gave the last save file away.\nyou're still out here, in someone else's save.\nbut someone is safe because of you."
 		"message":
 			if found >= FRAGMENTS.size() and OwnerMemory.knows_truth:
-				return "you didn't take the slot. you gave it back, with your name on it.\nsomewhere, a phone is ringing. she's about to hear that a part of her stayed behind."
+				return "you didn't take the slot. you gave it back, with your name on it.\nsomewhere, a phone is ringing. she's about to hear about the character she left running."
 			if found >= FRAGMENTS.size():
 				return "you didn't take the slot. you gave it back, with your name on it.\nsomewhere, a phone is ringing."
 			return "you didn't take the slot. you gave the owner a reason to stop.\n(memories recovered: %d of %d)" % [found, FRAGMENTS.size()]
@@ -736,7 +737,7 @@ const TRUTH_AFTER := "so this body is a file. files can be left."
 ## The message ending, knowing the truth: the real girl will hear about Rue.
 const MESSAGE_TRUTH := [
 	"(tell her about me. tell her what she left running.)",
-	"> ...i will. she should know a part of her stayed.",
+	"> ...i will. she should know her character is still running.",
 ]
 ## The Archivist, once you remember everything but don't know yet.
 const ARCHIVIST_FILE_HINT := "There's a file on my desk with your name on it now. Ask the ones who've watched you first. They've noticed things I can't."

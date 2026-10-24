@@ -99,7 +99,7 @@ static func is_auto() -> bool:
 	return Settings.advance_mode == 1
 
 
-## `text` split into pages of at most PAGE_CHARS: between sentences where
+## `text` split into pages of at most `page_chars` (PAGE_CHARS by default): between sentences where
 ## possible, else between words. Joining the pages with spaces gives the text
 ## back exactly. Short text is one page.
 static func pages(text: String, page_chars := PAGE_CHARS) -> Array[String]:
@@ -116,8 +116,8 @@ static func pages(text: String, page_chars := PAGE_CHARS) -> Array[String]:
 		if cut <= 0:
 			# A long resource id/URL still needs bounded captions. The full
 			# original remains the history/journal source, without inserted spaces.
-			out.append(rest.substr(0, PAGE_CHARS))
-			rest = rest.substr(PAGE_CHARS)
+			out.append(rest.substr(0, page_chars))
+			rest = rest.substr(page_chars)
 			continue
 		out.append(rest.substr(0, cut))
 		rest = rest.substr(cut + 1)

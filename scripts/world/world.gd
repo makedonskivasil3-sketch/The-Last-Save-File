@@ -103,7 +103,7 @@ func _ready() -> void:
 	_light = CanvasModulate.new()
 	add_child(_light)
 	hud.dialogue_closed.connect(_on_dialogue_closed)
-	hud.line_shown.connect(_on_line_shown)
+	hud.line_revealed.connect(_on_line_revealed)
 	touch = TouchControls.new()
 	add_child(touch)
 	_focus_marker = FocusMarker.new()
@@ -465,6 +465,10 @@ func _publish_web_state(delta: float) -> void:
 
 func _process(delta: float) -> void:
 	update_camera(delta)
+	_observe_t -= delta
+	if _observe_t <= 0.0:
+		_observe_t = OBSERVE_EVERY
+		_observe_in_view()
 	_publish_web_state(delta)
 	_handle_wipe(delta)
 	# Before anything returns early: a scene holds the owner like a question
@@ -825,6 +829,26 @@ func _make_area(id: String) -> Area:
 	return VillageSquare.new()
 
 
+## How often Rue looks around (seconds): what she sees goes in her journal.
+const OBSERVE_EVERY := 0.25
+var _observe_t := 0.0
+
+
+## Rue sees how the people in view are (her journal says what she last
+## saw). In view: inside the screen as it is framed now, and drawn. Someone
+## off-screen keeps what she last saw of them, however they are now.
+## (No line of sight: the screen is the rule. Talking to someone also sees
+## them, Npc.)
+func _observe_in_view() -> void:
+	if area == null:
+		return
+	var view := Rect2(view_offset, Area.BACKDROP_SIZE).grow(-4.0)
+	for n in area.interactables + ([escort] if escort else []):
+		if n is Npc and is_instance_valid(n) and n.is_inside_tree() and n.is_visible_in_tree() \
+				and view.has_point(n.global_position):
+			OwnerMemory.observe(n.npc_id, n.observed_state())
+
+
 func _load_area(next: Area, arrival: String) -> void:
 	if area:
 		remove_child(area)
@@ -838,10 +862,6 @@ func _load_area(next: Area, arrival: String) -> void:
 	add_child(area)
 	move_child(area, 0)
 	area.build()
-	# Rue sees how the people here are (her journal says what she last saw).
-	for n in area.interactables + ([escort] if escort else []):
-		if n is Npc and is_instance_valid(n):
-			OwnerMemory.observe(n.npc_id, n.observed_state())
 	var atmosphere := AreaAtmosphere.new()
 	atmosphere.area = area
 	area.add_child(atmosphere)
@@ -849,6 +869,7 @@ func _load_area(next: Area, arrival: String) -> void:
 	player.position = area.entry_point(arrival)
 	player.velocity = Vector2.ZERO
 	update_camera(0.0, true)  # arrive already framed: no pan on the way in
+	_observe_in_view()
 	if pip:
 		pip.arrive(player.position)
 	_crumbs.clear()
@@ -1011,8 +1032,9 @@ func current_goal() -> String:
 
 ## What someone noticed about Rue counts once she has actually read it:
 ## walking away before the line leaves it for next time.
-func _on_line_shown(line: String) -> void:
-	# What someone just told Rue becomes something she knows (her journal).
+func _on_line_revealed(line: String) -> void:
+	# What someone just told Rue, once the whole line is on screen, becomes
+	# something she knows (her journal). Once per line (Hud.line_revealed).
 	for id in ArchivePages.facts_taught_by(line):
 		OwnerMemory.learn_fact(id)
 	if OwnerMemory.knows_truth:

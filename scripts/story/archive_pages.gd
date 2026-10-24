@@ -95,7 +95,7 @@ const RUE_READS := {
 static var escort_now := ""
 
 
-## Facts by id that a line teaches (for World._on_line_shown).
+## Facts by id that a line teaches (for World._on_line_revealed).
 static func facts_taught_by(line: String) -> Array[String]:
 	var out: Array[String] = []
 	for id in FACTS:

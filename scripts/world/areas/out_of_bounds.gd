@@ -112,7 +112,7 @@ func catch_up() -> void:
 
 
 func _first_shape() -> Array:
-	return Story.FIRST_SHAPE.duplicate()  # counted on its last line (World._on_line_shown)
+	return Story.FIRST_SHAPE.duplicate()  # counted on its last line (World._on_line_revealed)
 
 
 ## Where Pip (once found) would lead you: the ledge, then back to the pillar.
