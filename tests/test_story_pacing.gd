@@ -350,12 +350,13 @@ func test_owner_lines_go_ahead_of_telemetry_but_not_thoughts() -> void:
 func test_the_goal_shows_when_it_changes() -> void:
 	var w := await start_session()
 	await wait(0.3)
-	check(w.hud.objective_text().contains("Get out of Arin's room."), "the first goal is on screen without opening a menu")
-	await wait(StoryPacing.reading_time("Get out of Arin's room.") + 5.0)
+	# The goal is the mission now (Quests): its title, then what to do.
+	check(w.hud.objective_text().contains(Quests.ROOM), "the first goal is on screen without opening a menu")
+	await wait(StoryPacing.reading_time(Quests.goal("room")) + 5.0)
 	check_eq(w.hud.objective_text(), "", "and fades once read")
 	await go_to(w, "square", "house")
 	await wait(0.6)
-	check(w.hud.objective_text().contains("Explore the village"), "a new area brings its goal back")
+	check(w.hud.objective_text().contains(Quests.TITLES.well_light), "a new area brings its goal back (the next mission)")
 
 
 # --- review fixes ------------------------------------------------------------------

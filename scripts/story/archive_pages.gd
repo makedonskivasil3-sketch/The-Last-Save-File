@@ -314,6 +314,7 @@ static func leads() -> Array:
 	var out: Array = []
 	var add := func(id: String, title: String, body: String) -> void:
 		out.append({"key": "lead:" + id, "title": title, "kind": "lead", "area": "", "body": body, "who": "", "rev": ""})
+	add.call("mission", "Mission: " + Quests.TITLES[Quests.active(Quests.area_now)].capitalize(), Quests.log_text(Quests.area_now))
 	add.call("goal", "Where you're going", Progression.journal_summary())
 	for who in ["wren", "mira", "tobben"]:
 		var open := Relationships.unresolved(who)

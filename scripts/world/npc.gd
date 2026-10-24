@@ -260,10 +260,12 @@ func interact() -> Dictionary:
 	if state != State.DELETED:
 		OwnerMemory.meet(npc_id, _where(), sprite().palette)
 	OwnerMemory.observe(npc_id, observed_state())
-	# Their usual lines (no conversation id): a greeting first, if they knew
-	# Rue in an earlier session. Never before something that happened: a
+	# Their usual lines (no conversation id, or "usual": one of their lines
+	# with a remembered topic after it): a greeting first, if they knew Rue
+	# in an earlier session. Never before something that happened: a
 	# reunion or a promise says it in its own words.
-	if present and urgent.is_empty() and conversation == "" and told is Array:
+	var usual: bool = told is Array or (told is Dictionary and told.get("usual", false))
+	if present and urgent.is_empty() and usual:
 		var hello := Relationships.greeting(self)
 		if hello != "":
 			lines = [hello] + lines

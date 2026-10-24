@@ -860,6 +860,7 @@ func _load_area(next: Area, arrival: String) -> void:
 	area.world = self
 	area.arrival = arrival
 	OwnerMemory.discover_place(area.area_id)
+	Quests.area_now = area.area_id
 	if owner_moves:
 		owner_moves.on_area_changed()
 	add_child(area)
@@ -999,27 +1000,13 @@ func _update_objective() -> void:
 
 
 func current_goal() -> String:
-	var goal := ""
-	match area.area_id if area else "":
-		"room":
-			goal = "Get out of Arin's room."
-		"edge":
-			goal = area.goal_text() if area.has_method("goal_text") else "Lead the cursor away, then stand in Slot 2 to write yourself in."
-		"bin":
-			goal = "When the bin empties, stand in a system file's shadow; between sweeps, restore what was deleted."
-		"house":
-			goal = "When the door chimes, step into a closet; until then, look around Arin's house." if not OwnerMemory.found_controller else "Get back to the square: you found what was under the couch."
-		"oob":
-			goal = "Climb back up at the respawn point." if OwnerMemory.found_pip else "Cross to the far ledge. Something is waiting there."
-		_:
-			if flags.get("pointer", false):
-				goal = "Take the north road out of the village square."
-			elif _visited.has("archive"):
-				goal = "Ask the Archivist where slot 2 went."
-			else:
-				goal = "Explore the village: the road east leads somewhere old."
-			if area and area.area_id == "square" and not OwnerMemory.found_pip:
-				goal += " The well looks deeper than it should."
+	# The mission (Quests): its title, then what to do, survival first where
+	# a place can kill her.
+	var id := area.area_id if area else ""
+	var edge_goal: String = area.goal_text() if id == "edge" and area.has_method("goal_text") else ""
+	var goal := Quests.goal(id, edge_goal, flags.get("pointer", false))
+	if id == "square" and not OwnerMemory.found_pip:
+		goal += " The well looks deeper than it should."
 	if sheds_this_run >= 2:
 		goal += " " + Story.GOAL_WATCHED_HIDING
 	# The truth route, as a quiet hint; the way out above stays open.

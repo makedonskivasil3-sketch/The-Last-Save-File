@@ -631,7 +631,7 @@ func _wren_lines() -> Variant:
 		return [Story.WREN_ASK]
 	var line: String = WREN_LINES[mini(_wren_line, WREN_LINES.size() - 1)]
 	_wren_line += 1
-	return [line]
+	return _with_festival(line, _wren_line > 1, Relationships.wren_festival)
 
 
 func _tobben_lines() -> Variant:
@@ -643,7 +643,19 @@ func _tobben_lines() -> Variant:
 	if OwnerMemory.met_before("tobben") and i == 0:
 		i = 2  # met in an earlier run: no "Welcome to Tobben's!" introduction again
 	_tobben_line = i + 1
-	return [TOBBEN_LINES[mini(i, TOBBEN_LINES.size() - 1)]]
+	return _with_festival(TOBBEN_LINES[mini(i, TOBBEN_LINES.size() - 1)], i >= 1, Relationships.tobben_festival)
+
+
+## After someone's own line, once they've met her: what they remember of
+## the festival (once ever, Relationships), in the same conversation.
+func _with_festival(line: String, met: bool, festival: Callable) -> Variant:
+	if met:
+		var told: Dictionary = festival.call()
+		if not told.is_empty():
+			told.lines = [line] + told.lines
+			told["usual"] = true
+			return told
+	return [line]
 
 
 ## With the torn page found: write Rue's name back into Tobben's book.
@@ -820,10 +832,24 @@ func _paint(ci: CanvasItem) -> void:
 	for k in 6:
 		ci.draw_colored_polygon(PackedVector2Array([STALL.position + Vector2(k * 16, 3), STALL.position + Vector2(k * 16 + 16, 3), STALL.position + Vector2(k * 16 + 8, 6)]),
 			Color("a8443a") if k % 2 == 0 else Color("e8dcc4"))
-	# A lantern post by the well (its light is one of the area's lights).
-	ci.draw_circle(WELL.get_center() + Vector2(22, 10), 2.0, Color(0, 0, 0, 0.3))
-	ci.draw_rect(Rect2(WELL.get_center() + Vector2(21, -2), Vector2(2, 12)), Color("3a2a20"))
-	ci.draw_circle(WELL.get_center() + Vector2(22, -3), 2.4, Color("f2c878"))
+	# The fifth lantern (the festival, docs/INTRO_REBUILD.md): still lit by
+	# the well, three years on, the only one that is. A post with a crook,
+	# a paper lantern on it, and a faded festival ribbon. Its light is one
+	# of the area's lights.
+	var post := WELL.get_center() + Vector2(22, 10)
+	ci.draw_circle(post, 2.4, Color(0, 0, 0, 0.3))
+	ci.draw_rect(Rect2(post + Vector2(-1, -18), Vector2(2, 18)), Color("3a2a20"))
+	ci.draw_line(post + Vector2(0, -18), post + Vector2(-5, -18), Color("3a2a20"), 1.4)
+	ci.draw_line(post + Vector2(-5, -18), post + Vector2(-5, -15), Color("2a2018"), 0.6)
+	var lamp := post + Vector2(-5, -11)
+	ci.draw_circle(lamp, 6.5, Color(1.0, 0.78, 0.4, 0.16))
+	ci.draw_colored_polygon(PackedVector2Array([lamp + Vector2(-2.5, -4), lamp + Vector2(2.5, -4), lamp + Vector2(3.6, 0),
+		lamp + Vector2(2.5, 4), lamp + Vector2(-2.5, 4), lamp + Vector2(-3.6, 0)]), Color("f2b860"))
+	ci.draw_line(lamp + Vector2(0, -4), lamp + Vector2(0, 4), Color("c8823a"), 0.5)
+	ci.draw_rect(Rect2(lamp + Vector2(-2.5, -5), Vector2(5, 1.2)), Color("5a3a24"))
+	ci.draw_rect(Rect2(lamp + Vector2(-2.5, 4), Vector2(5, 1.2)), Color("5a3a24"))
+	ci.draw_circle(lamp, 1.6, Color("fff0c0"))
+	ci.draw_line(post + Vector2(1, -16), post + Vector2(5, -10), Color("a8605a", 0.8), 1.0)  # the ribbon, faded
 	Decor.wall_shadow(ci, r, 10.0, 0.22)
 	Decor.walls(ci, r, WALL, Color("5a4a3a"), Color("2a2620"), [
 		{"side": "right", "from": EAST_GAP.x, "to": EAST_GAP.y},

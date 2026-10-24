@@ -55,7 +55,10 @@ const EVENTS := {
 	"mira.piece_returned": "You gave Mira her colour back.",
 	"rue.own_press": "At Arin's save point you stopped tapping twice first, and pressed once.",
 	"mira.board_checked": "You checked the board for Mira: her note is still up.",
+	"mira.festival": "Mira watched the lantern festival from the window. She saw you light the last one.",
+	"wren.lantern": "Wren told you the lantern by the well has been lit since the festival.",
 	"tobben.met": "Met Tobben at his stall.",
+	"tobben.fireworks": "Tobben still keeps the festival's fireworks under his counter.",
 	"tobben.guestbook": "You wrote RUE back in Tobben's guest book.",
 	"tobben.restored": "You brought Tobben back from the Recycle Bin.",
 	"tobben.piece_taken": "You took Tobben's voice.",
@@ -100,6 +103,40 @@ const WREN_MARKED_SAW := [
 ## woke under it this run): her next conversation is the scene.
 static var wren_at_well := false
 
+## The lantern festival, three years ago (docs/INTRO_REBUILD.md §2): the
+## last session two players shared. Each of them saw a piece of it, and says
+## it once, after they've met her. Mira watched from Arin's window; what she
+## saw is how the festival ended for this save (OwnerMemory.festival_choice).
+const MIRA_FESTIVAL_OPEN := "Wait. I know you. From the festival. I watched it from the window, the whole afternoon."
+const MIRA_FESTIVAL_HOW := {
+	"lit": "His player stopped. You didn't. You ran to the well on your own.",
+	"stayed": "His player stopped, and you stayed beside him. Then it got dark, and you went to the well anyway.",
+	"": "Everybody went home. You didn't. You went to the well on your own.",
+}
+const MIRA_FESTIVAL_LAST := "You lit the last one. Nobody else came."
+const WREN_FESTIVAL := [
+	"The lantern by the well's still lit. Since the festival. Nobody's got oil for that long.",
+	"I think it's waiting for somebody. ...Are you somebody?",
+]
+const TOBBEN_FESTIVAL := [
+	"Still got the festival fireworks under the counter. Three years.",
+	"Nobody came back to set them off. Nobody comes back for anything.",
+]
+
+
+static func mira_festival() -> Dictionary:
+	var how: String = MIRA_FESTIVAL_HOW.get(OwnerMemory.festival_choice, MIRA_FESTIVAL_HOW[""])
+	return _once("mira.festival", [MIRA_FESTIVAL_OPEN, how, MIRA_FESTIVAL_LAST], ["mira.festival"])
+
+
+static func wren_festival() -> Dictionary:
+	return _once("wren.lantern", WREN_FESTIVAL, ["wren.lantern"])
+
+
+static func tobben_festival() -> Dictionary:
+	return _once("tobben.fireworks", TOBBEN_FESTIVAL, ["tobben.fireworks"])
+
+
 ## Mira. She can't leave her room, so she knows what happens there, what
 ## the save's lists say (who's in it, which slots), and what you tell her.
 const MIRA_ESCORT := ["I'm behind you. Don't look at me, look where we're going."]
@@ -143,16 +180,17 @@ const TOBBEN_GREETING_BOOK := "Two names, still. I check every morning. Welcome 
 ## Every line said from here (the voice manifest lists them).
 static func wren_lines() -> Array:
 	return WREN_ESCORT + WREN_AFTER_DEATH + [WREN_SAW_STATIC] + WREN_AFTER_RESTORE + WREN_AFTER_RESTORE_BROKEN \
-		+ [WREN_PROMISE_OPEN, WREN_PROMISE_BROKEN] + WREN_WELL + [WREN_GREETING] + WREN_MARKED + WREN_MARKED_SAW
+		+ [WREN_PROMISE_OPEN, WREN_PROMISE_BROKEN] + WREN_WELL + [WREN_GREETING] + WREN_MARKED + WREN_MARKED_SAW + WREN_FESTIVAL
 
 
 static func mira_lines() -> Array:
 	return MIRA_ESCORT + MIRA_ASK_AGAIN + [MIRA_HUSHED] + MIRA_AFTER_DEATH + MIRA_AFTER_RESTORE + MIRA_AFTER_PINNED + MIRA_STILL_UP \
-		+ MIRA_AFTER_NOTE_LOST + [MIRA_WREN_GONE, MIRA_WREN_SAFE, MIRA_GREETING, MIRA_GREETING_FADED, MIRA_GREETING_HUSHED]
+		+ MIRA_AFTER_NOTE_LOST + [MIRA_WREN_GONE, MIRA_WREN_SAFE, MIRA_GREETING, MIRA_GREETING_FADED, MIRA_GREETING_HUSHED] \
+		+ [MIRA_FESTIVAL_OPEN] + MIRA_FESTIVAL_HOW.values() + [MIRA_FESTIVAL_LAST]
 
 
 static func tobben_lines() -> Array:
-	return [TOBBEN_GREETING, TOBBEN_GREETING_BOOK]
+	return [TOBBEN_GREETING, TOBBEN_GREETING_BOOK] + TOBBEN_FESTIVAL
 
 
 ## Records an event once; the session it happened in is kept.

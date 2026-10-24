@@ -713,6 +713,21 @@ const FIRST_SHAPE := [
 	"pip curls up in the middle of it, where it always sat.",
 	"(this is the shape she gave me. what have i been wearing since?)",
 ]
+## The Archive's record of the festival, the last session two players
+## shared (docs/STORY_CHRONOLOGY.md). Who lit the fifth lantern is the
+## answer to the first mission; how depends on how the festival ended.
+## When she stayed, or nobody chose, she lit it during the years with no
+## controller held: the log says what it saw, and doesn't explain it.
+static func festival_log(choice: String) -> Array:
+	var fifth := "LANTERN 5 · lit by P2 · never saved off." if choice == "lit" \
+		else "LANTERN 5 · lit by SLOT 2 · controller: none · never saved off."
+	return [
+		"LAST SHARED SESSION: THE LANTERN FESTIVAL. Players: 2. Then 1. Then 0.",
+		"LANTERNS 1–4 · lit by P1 + P2.",
+		fifth,
+	]
+
+
 const CHARACTER_FILE_TITLE := "CHARACTER FILE"
 static func character_file_locked(found: int) -> Array:
 	return ["CHARACTER FILE · SLOT 02. Locked. Pieces required: %d of %d. You carry %d." % [FRAGMENTS.size(), FRAGMENTS.size(), found]]

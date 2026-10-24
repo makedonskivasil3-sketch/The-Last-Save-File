@@ -94,6 +94,10 @@ static func mira_expression(line: String) -> String:
 	by_line[R.MIRA_GREETING_FADED] = "concerned"
 	by_line[R.MIRA_GREETING_HUSHED] = "afraid"
 	by_line[R.MIRA_AFTER_PINNED[1]] = "eager"
+	by_line[R.MIRA_FESTIVAL_OPEN] = "eager"
+	for l in R.MIRA_FESTIVAL_HOW.values():
+		by_line[l] = "remembering"
+	by_line[R.MIRA_FESTIVAL_LAST] = "remembering"
 	return by_line.get(line, "neutral")
 
 
@@ -335,8 +339,17 @@ func _mira_lines() -> Variant:
 		_mira_asked = true
 		return {"lines": Story.MIRA_ASK, "id": "mira.ask", "commit": ["mira.asked"]}
 	var lines: Array = MIRA_LINES if mira.state == Npc.State.NORMAL else MIRA_RESTRICTED
-	var line: String = lines[mini(_mira_line, lines.size() - 1)]
+	var at := mini(_mira_line, lines.size() - 1)
+	var line: String = lines[at]
 	_mira_line += 1
+	# Once she has seen that Rue isn't Arin, she remembers where from (the
+	# festival, once ever), straight after saying so.
+	if mira.state == Npc.State.NORMAL and at >= 2:
+		var festival := Relationships.mira_festival()
+		if not festival.is_empty():
+			festival.lines = [line] + festival.lines
+			festival["usual"] = true
+			return festival
 	return [line]
 
 

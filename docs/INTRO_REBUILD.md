@@ -128,7 +128,10 @@ The five memories, the truth gates (two truth pieces, then the CHARACTER FILE) a
 ## 4. Ledger
 
 ### Confirmed defects
-- *(See §6 for anything found while building.)*
+Found while building. Each was caught by an existing test, which failed first and passes now.
+- **D1** (introduced by F2, fixed before commit). The mission line ignored the run's `pointer` flag and read only the save's `met_archivist`. A run holding the pointer still read "Reach the fifth lantern…" instead of the north road (`test_gameplay_consistency.test_goal_keeps_the_way_out_and_adds_the_hint`). `Quests` now takes the flag.
+- **D2** (introduced by F2, fixed before commit). A line carrying a festival memory came back as a conversation, so `Npc.interact` dropped the familiar greeting on a reunion (`test_relationships.test_several_sessions_later`, `test_tobben_remembers_without_reintroducing`). Such lines are now marked as usual lines, and the greeting opens them.
+- **D3** (introduced by F1, fixed before commit). The prologue used ⏭ and ♪, which the bundled fonts don't have (`test_fonts`).
 
 ### Source-backed risks
 - **R1.** The new prologue makes the first session longer: the prompt path is about 4 minutes before the room, against 57.5 s now. That is mitigated by playable time from 0:02 instead of 5 s; a hold-skip after the first lantern; and the present reached in ≤ 15 s by skipping.
@@ -196,4 +199,23 @@ Against §9 of the brief:
 - Co-op success < 45 s: met on the prompt path (the maypole special). A first-time human is not measured: no playtest has been run (§7).
 
 The prompt path is much shorter than §2's estimate of about 4 minutes, because autoplay never hesitates. R1 is smaller than feared.
+
+### F2. Missions (`scripts/story/quests.gd`)
+
+- **One active mission**, shown on the HUD as "TITLE · what to do", in every first-hour map (`test_quests`).
+- **Missions are read from the save**, like `Progression`, never from flags of their own. A save written before missions existed opens on the mission its progress has reached, with what it has done marked done. There is nothing new in the save to migrate.
+- **Where a place can kill her**, the survival instruction comes first on screen (the Bin's shadow, the house's closets, the Edge's cursor). The mission follows it in the pause menu and the journal. This keeps `test_review_oct22`'s "the survival part comes first", and corrects §3's "survival follows the mission".
+- **The quest log** is the journal's LEADS:
+  - "Mission: …": now, why, what to do;
+  - then the missions done, each with ✓;
+  - an optional mission not started isn't listed.
+- **The festival, remembered.** Each line is said once ever and recorded as an event on the People page:
+  - **Mira**, straight after "You're not Arin. Who are you?": "Wait. I know you. From the festival…" The middle line depends on how the festival ended (lit / stayed / anything else). She ends on "You lit the last one. Nobody else came."
+  - **Wren**, after her shelter line: the lantern by the well, still lit.
+  - **Tobben**, after his first lines: the fireworks still under his counter.
+  - These ride on the speaker's own next line, so no conversation is added and every sequence the tests count is the same. A greeting still opens them on a reunion. That ordering was a regression in `test_relationships`, caught and fixed (see Confirmed defects).
+- **The Archive's SESSION LOG** has the festival record:
+  - "LANTERN 5 · lit by P2 · never saved off.";
+  - when she stayed or nobody chose: "lit by SLOT 2 · controller: none". The record says what it saw, and leaves it unexplained.
+- **The fifth lantern** is drawn by the well in the present square: a post, a paper lantern, a faded ribbon, lit.
 

@@ -261,6 +261,7 @@ func _erased_line() -> String:
 
 func _session_log() -> Array:
 	var lines: Array = ["SESSIONS: %d   DEATHS: %d   QUITS: %d   ESCAPES TO SLOT 2: %d" % [OwnerMemory.sessions, OwnerMemory.deaths, OwnerMemory.quits, OwnerMemory.wins]]
+	lines.append_array(Story.festival_log(OwnerMemory.festival_choice))
 	if OwnerMemory.deaths_log.is_empty():
 		lines.append("No deaths recorded. Yet, it says, in someone else's handwriting.")
 	for d in OwnerMemory.deaths_log:
