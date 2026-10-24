@@ -34,15 +34,32 @@ var _owns_speech := false
 var last_text := ""
 var supported := false
 
+## The device's speech service is asked for voices only when speech may be
+## used (narration on, or the settings / sound check on screen), and while
+## the answer is still "none", at most once per PROBE_INTERVAL_MS (A24).
+const PROBE_INTERVAL_MS := 2000
+## How many times the device has been asked (tests, diagnostics).
+static var probes := 0
+static var _probed_at := -PROBE_INTERVAL_MS
+
+
 func _ready() -> void:
-	supported = available()
+	supported = available() if Settings.narration else false
 	Settings.changed.connect(_settings_changed)
 
 ## Asked again while the list is empty: browsers (and some desktops) only
 ## report their voices a moment after startup, and caching the first, empty
-## answer switched narration off for the whole session.
+## answer switched narration off for the whole session. Never asked more
+## often than every PROBE_INTERVAL_MS while nothing has been found.
 static func available() -> bool:
-	if _english_voices.is_empty() and DisplayServer.has_feature(DisplayServer.FEATURE_TEXT_TO_SPEECH):
+	if not _english_voices.is_empty():
+		return true
+	var now := Time.get_ticks_msec()
+	if now - _probed_at < PROBE_INTERVAL_MS:
+		return false
+	_probed_at = now
+	probes += 1
+	if DisplayServer.has_feature(DisplayServer.FEATURE_TEXT_TO_SPEECH):
 		_english_voices = DisplayServer.tts_get_voices_for_language("en")
 	return not _english_voices.is_empty()
 
@@ -137,6 +154,8 @@ func stop() -> void:
 func _settings_changed() -> void:
 	# A volume or accessibility change must also affect an active utterance.
 	stop()
+	if Settings.narration and not supported:
+		supported = available()  # switched on: now it's worth asking
 
 func _notification(what: int) -> void:
 	if not _owns_speech:

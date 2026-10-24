@@ -6,11 +6,13 @@ extends RefCounted
 ## THE STORY (spoilers for the player, notes for the writer):
 ## Two people shared one console. The owner always played Arin in slot 1.
 ## A girl made her own character in slot 2 and played her for 41 hours.
-## Then she moved away; months later the owner deleted slot 2.
+## Then she moved away; months later the owner deleted slot 2. The game
+## is set three years after that (docs/STORY_CHRONOLOGY.md).
 ## You are Rue, that character, left running in the save that survived:
 ## not the girl, but what she left behind. The owner thinks you're a bug.
 ## Find all five memories and you remember your name; read the CHARACTER
-## FILE whole and you learn what you are.
+## FILE whole and you learn what you are. (The author's decision of
+## 2026-10-22, docs/CANON_DECISIONS.md §1: main's premise.)
 ## Rue's player also made a fox, Pip. Pip fell out of the map with Rue the day
 ## Rue walked into the well, and was never saved back in, so the deletion
 ## never reached it. Pip waits out of bounds, under the well.
@@ -24,7 +26,7 @@ const BOOT := [
 	"SLOT 1  ·  ARIN  ·  LV 7  ·  14:22:00",
 	"LOADING SAVE DATA . . . . . . . . OK",
 	"PLAYER 1 . . . . . . ARIN",
-	"PLAYER 2 . . . . . . [deleted]",
+	"PLAYER 2 . . . . . . [DELETED 3 YEARS AGO]",
 	"VERIFYING . . . . . [!] 1 UNRECOGNISED ENTITY IN ARIN'S ROOM",
 	"ENTITY NAME: none.   ENTITY SLOT: 02",
 	"slot 02 does not exist.",
@@ -47,6 +49,16 @@ const TITLE_WHISPERS := ["Load Slot 1  (it isn't yours)", "Load Slot 1  (they'll
 const TITLE_FIRST_OWNER := "> is someone there?"
 
 ## The intruder's thoughts. Keys are story beats; arrays pick at random.
+## Coming back to a place from an earlier run: a short acknowledgement
+## instead of its first-arrival line (World.change_area).
+const VOICE_BACK := {
+	"square": "(ashvale again. wren's corner. tobben's stall. the well.)",
+	"archive": "(the archive. still nobody reading but him.)",
+	"oob": "(under the well again. still nobody looking.)",
+	"bin": "(the bin. everything they threw away, still here.)",
+	"house": "(arin's house. the couch is still warm.)",
+	"edge": "(the edge again. it hasn't been drawn any further.)",
+}
 const VOICE := {
 	"wake_first": ["...where is this?", "this body isn't mine. it's barely a body.", "i'm not supposed to be here. i can feel the save pushing back."],
 	"wake_again": [
@@ -77,7 +89,7 @@ const VOICE := {
 ## What comes back with each recovered fragment (1..5): your own colours,
 ## restored onto your body one part at a time (see Player.RESTORE_ORDER).
 const RESTORED := {
-	1: "a scarf. red. i picked that colour myself.",
+	1: "a scarf. red. somebody picked that colour for me, carefully.",
 	2: "my hair. it always stuck up at the back like that.",
 	3: "a yellow raincoat. it was raining the day we made me.",
 	4: "real shoes. i can feel the floor now.",
@@ -85,11 +97,17 @@ const RESTORED := {
 }
 
 ## The five memory fragments, in the order the story makes most sense.
-## area / pos: where the shard floats. lines: the flashback.
+## area / pos: where the shard floats. lines: the flashback. replay: the
+## frame it plays in (docs/INTRO_REBUILD.md L4). They are recordings of
+## Player 2's sessions, kept in the save: the "i" in them is the girl who
+## held the controller, not Rue, and the frame says so before the truth does.
+## "THE LAST TIME" is the festival's end: moving day, at 41:07:12, when
+## Player 1 walked off (docs/STORY_CHRONOLOGY.md).
 const FRAGMENTS := [
 	{
 		"id": "controller",
 		"title": "MEMORY · THE SECOND CONTROLLER",
+		"replay": "REPLAY · P2 · 00:00:41",
 		"area": "room", "pos": Vector2(505, 96),
 		"lines": [
 			"a second controller, the cable taped where the dog chewed it.",
@@ -97,11 +115,12 @@ const FRAGMENTS := [
 			"\"you be arin,\" i said. \"i'll make my own.\"",
 			"[the rest of the evening is too bright to look at]",
 		],
-		"after": "i was here before. not in this room. in front of it.",
+		"after": "i know this evening. not from this room. from the other side of the glass.",
 	},
 	{
 		"id": "well",
 		"title": "MEMORY · THE WELL",
+		"replay": "REPLAY · P2 · 06:18:02",
 		"area": "oob", "pos": Vector2(540, 112),
 		"lines": [
 			"my character walked into the well by accident. a yellow raincoat, falling.",
@@ -113,6 +132,7 @@ const FRAGMENTS := [
 	{
 		"id": "new_game",
 		"title": "MEMORY · NEW GAME",
+		"replay": "REPLAY · P2 · 00:00:00",
 		"area": "archive", "pos": Vector2(470, 104),
 		"lines": [
 			"NEW GAME.  SLOT 02.  ENTER NAME: _",
@@ -124,6 +144,7 @@ const FRAGMENTS := [
 	{
 		"id": "argument",
 		"title": "MEMORY · THE LAST TIME",
+		"replay": "REPLAY · P2 · 41:07:12",
 		"area": "edge", "pos": Vector2(92, 262),
 		"lines": [
 			"boxes in the hall. my half of the room already empty.",
@@ -131,11 +152,12 @@ const FRAGMENTS := [
 			"\"it's my console anyway.\"",
 			"the second controller stayed on the floor where i dropped it.",
 		],
-		"after": "i moved away. i said i'd come back. i came back twice.",
+		"after": "she moved away. she said she'd come back. ...why do i remember the boxes?",
 	},
 	{
 		"id": "delete",
 		"title": "MEMORY · DELETE SLOT 2?",
+		"replay": "LOG · SLOT 02 · AFTER THE LAST SESSION",
 		"area": "edge", "pos": Vector2(470, 262),
 		"lines": [
 			"a message, months later: \"still have my save?\"",
@@ -153,6 +175,7 @@ const FRAGMENTS := [
 const FALSE_FRAGMENT := {
 	"id": "false",
 	"title": "MEMORY · YOU LEFT FIRST",
+	"replay": "REPLAY · NO SIGNATURE",
 	"area": "square", "pos": Vector2(500, 250),
 	"lines": [
 		"you packed the second controller first. you didn't look at the screen.",
@@ -316,7 +339,7 @@ const MIRA_NOTE_TEXT := "MIRA WAS HERE.\nI TALK. I REMEMBER.\n— M"
 const MIRA_NOTE_LOST := [
 	"mira_note.txt · confiscated · never pinned",
 	"\"MIRA WAS HERE. I TALK. I REMEM\"",
-	"the owner found it on you. they read it, then threw it away.",
+	"the owner took it off her when they took you. they read it, then threw it away.",
 ]
 
 ## Tobben's guest book: bring the torn page's name back. A quiet moment.
@@ -495,6 +518,7 @@ static func epilogue(ending: String, found: int, pip: bool, message := 0) -> Arr
 			if full:
 				lines.append_array(["> ...rue?", "> i didn't know you were still in there."])
 				lines.append(["> i stopped waiting. i shouldn't have.", "> i kept your controller. it's still under the couch.", "> i won't. i promise."][clampi(message, 0, 2)])
+				lines.append("> the festival. i walked off before the last lantern. i never saw who lit it.")
 				lines.append("> i'm going to call you. the real you.")
 				if OwnerMemory.knows_truth:
 					lines.append_array(MESSAGE_TRUTH)
@@ -554,7 +578,7 @@ static func ending_text(ending: String, found: int) -> String:
 			return "you gave the last save file away.\nyou're still out here, in someone else's save.\nbut someone is safe because of you."
 		"message":
 			if found >= FRAGMENTS.size() and OwnerMemory.knows_truth:
-				return "you didn't take the slot. you gave it back, with your name on it.\nsomewhere, a phone is ringing. she's about to hear that a part of her stayed behind."
+				return "you didn't take the slot. you gave it back, with your name on it.\nsomewhere, a phone is ringing. she's about to hear about the character she left running."
 			if found >= FRAGMENTS.size():
 				return "you didn't take the slot. you gave it back, with your name on it.\nsomewhere, a phone is ringing."
 			return "you didn't take the slot. you gave the owner a reason to stop.\n(memories recovered: %d of %d)" % [found, FRAGMENTS.size()]
@@ -621,12 +645,9 @@ static func recall_lines(who: String) -> Array:
 ## [condition, line] in order; the first condition that holds wins ("" says
 ## nothing). Conditions are read by _recall_holds().
 const RECALL := {
+	# Mira's pinned note, lost note, restoration and Wren's fate are her own
+	# conversations now (Relationships.mira), said once each.
 	"mira": [
-		["mira_pinned", "I pinned it. Me! With my own hands, in the square. The owner stood at the board for a whole minute. They didn't take it down."],
-		["mira_reset", ""],
-		["mira_lost", "My note... they found it on you, didn't they. It's alright. I'll write another one. I won't."],
-		["mira_restored", "I was deleted. Then I wasn't. I remember the dark in between. Thank you."],
-		["wren_lost", "They took Wren. She wanted to see the Edge so badly."],
 		["ended:message", "The owner sat with the game open for an hour last night. Didn't move Arin once. Just watched."],
 		["ended:wren", "There's a new name in the save menu. Wren's. Did you do that?"],
 		["ended:escape", "You got out. I watched the slot fill. So why are you back?"],
@@ -644,7 +665,6 @@ const RECALL := {
 		["ended:wren", "I was somewhere else last night. A whole slot, all mine, and it was so quiet. Then I woke up here again. Was that you?"],
 		["ended:message", "Did you write to them? Everything's quieter. Even the static."],
 		["ended:escape", "You got out, and you came back? For me? ...No. Probably not for me."],
-		["died:eraser", "I saw the static take you. It went right past me after. Like I wasn't worth erasing."],
 	],
 }
 
@@ -679,13 +699,18 @@ static func _recall_holds(condition: String) -> bool:
 	return false
 
 
-## --- The truth (docs/DARK_TRUTH_DESIGN.md, layer A) ---------------------------
+## --- The truth (docs/CANON_DECISIONS.md §1, decided 2026-10-22) -------------
 ## Rue isn't the girl who moved away. She's the character that girl played:
 ## forty-one hours of someone else's hands, still running on someone else's
 ## console. The people who watched her each noticed one thing; with all five
 ## memories and two of their pieces, the Archive's CHARACTER FILE opens.
 
 const TRUTH_PIECES_NEEDED := 2
+## At Slot 2, knowing what she is: not the girl's two taps. One press.
+const RUE_OWN_PRESS := "(one press. not her two taps. mine.)"
+## Earlier, in Arin's room, with no truth needed: after the habit twice, she
+## presses the save point once, her own way.
+const RUE_FIRST_OWN_PRESS := "(once. no taps first. i like it better.)"
 ## What each of them noticed, said once ever (OwnerMemory.truth_pieces).
 const TRUTH_LINES := {
 	"mira": "Can I tell you something? Arin only moves when the owner's there. You move when nobody is. So who's holding you?",
@@ -700,6 +725,21 @@ const FIRST_SHAPE := [
 	"pip curls up in the middle of it, where it always sat.",
 	"(this is the shape she gave me. what have i been wearing since?)",
 ]
+## The Archive's record of the festival, the last session two players
+## shared (docs/STORY_CHRONOLOGY.md). Who lit the fifth lantern is the
+## answer to the first mission; how depends on how the festival ended.
+## When she stayed, or nobody chose, she lit it during the years with no
+## controller held: the log says what it saw, and doesn't explain it.
+static func festival_log(choice: String) -> Array:
+	var fifth := "LANTERN 5 · lit by P2 · never saved off." if choice == "lit" \
+		else "LANTERN 5 · lit by SLOT 2 · controller: none · never saved off."
+	return [
+		"LAST SHARED SESSION: THE LANTERN FESTIVAL. Players: 2. Then 1. Then 0.",
+		"LANTERNS 1–4 · lit by P1 + P2.",
+		fifth,
+	]
+
+
 const CHARACTER_FILE_TITLE := "CHARACTER FILE"
 static func character_file_locked(found: int) -> Array:
 	return ["CHARACTER FILE · SLOT 02. Locked. Pieces required: %d of %d. You carry %d." % [FRAGMENTS.size(), FRAGMENTS.size(), found]]
@@ -727,7 +767,7 @@ const TRUTH_AFTER := "so this body is a file. files can be left."
 ## The message ending, knowing the truth: the real girl will hear about Rue.
 const MESSAGE_TRUTH := [
 	"(tell her about me. tell her what she left running.)",
-	"> ...i will. she should know a part of her stayed.",
+	"> ...i will. she should know her character is still running.",
 ]
 ## The Archivist, once you remember everything but don't know yet.
 const ARCHIVIST_FILE_HINT := "There's a file on my desk with your name on it now. Ask the ones who've watched you first. They've noticed things I can't."
@@ -913,6 +953,10 @@ const RELOAD_WARNING := "do that again and i'm loading the autosave."
 
 ## The purge ending (OwnerMemory.MAX_PURGE): the owner has learned enough,
 ## and the intruder can't load into Slot 1 any more.
+## The demo build's last card (COMMERCIAL_DIRECTION.md §4: proposed, not
+## approved). Spoiler-safe: it comes before the reveal.
+const DEMO_END := "still have my save?"
+
 const PURGED_TITLE := "PURGED"
 const PURGED_QUESTION := "Slot 1 is clean. There's nothing of you left to load."
 const PURGED_CHOICES := ["Restore the intruder  (a new game: the owner forgets everything)", "Back to the title"]
@@ -1021,6 +1065,13 @@ static func fragment(id: String) -> Dictionary:
 		if f.id == id:
 			return f
 	return {}
+
+
+## The frame a memory plays in ("" for none), the planted one included.
+static func replay_frame(id: String) -> String:
+	if id == FALSE_FRAGMENT.id:
+		return FALSE_FRAGMENT.replay
+	return fragment(id).get("replay", "")
 
 
 static func fragments_in(area: String) -> Array:

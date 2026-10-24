@@ -50,7 +50,7 @@ func test_fresh_opening_and_first_exit() -> void:
 	tree.change_scene_to_file(TITLE_SCENE)
 	await frames(5)
 	await shot("fresh_title")
-	scene()._start()
+	scene()._play_opening(false)  # (the earlier film, now off the first-run path)
 	await wait_until(func() -> bool: return scene() is Opening, 3.0, "opening")
 	await wait(2.0)
 	await shot("fresh_opening")

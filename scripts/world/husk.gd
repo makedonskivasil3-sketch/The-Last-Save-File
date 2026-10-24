@@ -13,7 +13,7 @@ func _init() -> void:
 
 ## The body itself: Rue's own figure, emptied of colour, lying on its side
 ## with its eyes closed (docs/DARK_TRUTH_DESIGN.md, layer B).
-var _body := IllustratedCharacter.new("rue", Player.RUE)
+var _body := CharacterArt.figure("rue", "rue", Player.RUE)
 
 
 func _draw() -> void:

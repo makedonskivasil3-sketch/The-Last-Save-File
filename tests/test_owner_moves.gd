@@ -68,7 +68,10 @@ func test_cursor_drags_the_crates_across_the_road() -> void:
 	w.player.global_position = Vector2(150, 150)
 	w.debug("drag")
 	var blocked := false
-	for i in 220:
+	# The cursor comes in at the corner furthest from Rue: in the wider
+	# square that's the far east corner, ~300 px further than it used to be,
+	# so its trip to the crates and across the road takes longer.
+	for i in 400:
 		await wait(0.1)
 		if not is_instance_valid(w):
 			break

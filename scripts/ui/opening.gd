@@ -1,35 +1,93 @@
 class_name Opening
 extends Node2D
-## The opening (about 28 s, in-engine, before the first run): a two-player
-## session on someone's television, late at night. Player 2's controller is
-## unplugged, a save of slot 2 starts and never finishes, the screen's
-## interface goes out one piece at a time, and one small figure is left
-## standing. A single note, and she looks up. Then the room.
+## The opening (in-engine, before the first run; the shot list is
+## docs/NARRATIVE_CONTRACT.md §8, the states docs/VERTICAL_SLICE.md §3).
+## Two pairs of hands on two controllers in front of a television, late at
+## night, and the player holds the second pair:
 ##
-## It shows a situation, not the truth (docs/DARK_TRUTH_DESIGN.md): nothing
-## says who Rue is, who played her, or what the owner did. No run starts
-## until it ends: quitting here costs nothing.
+##   RITUAL      walk the small figure to the save point with Arin and press.
+##               Her thumb taps twice before it presses (her habit), whoever
+##               is pressing.
+##   INTERRUPT   SAVING SLOT 2 stops at 87%. The same press again: two taps,
+##               a press, and a refusal. Player 1's hands leave; hers go
+##               slack: she falls asleep holding it.
+##   IMPOSSIBLE  PAUSE. Arin is still. Her hands don't move, and the figure
+##               still walks when the player moves her: to a well that
+##               shouldn't be there. The music box, one note missing. She
+##               turns and looks out at the hands.
+##   LATER       months later: her message, the owner's reply that stops.
+##   HANDOFF     into the room, where her first move is the player's again.
 ##
-## Hold interact (or Esc, or touch and hold) to skip. Replay it from the
-## title. Reduced flashing / zero glitch intensity: no camera push, no flicker.
+## Film time (_t) runs between the states and holds at each one until the
+## player does what it asks, or, if they don't, until the hands do it by
+## themselves (a hint first, then autopilot): nothing is missed by waiting,
+## and nothing is lost by getting it wrong. It shows an impossible event,
+## not an explanation: nothing names who she is. No run starts until it
+## ends: quitting here costs nothing.
+##
+## Tap interact (or tap/click the screen) to act, move to walk; hold interact
+## (or Esc, or touch and hold) to skip. Replay it from the title. Reduced
+## motion / flashing, or zero glitch intensity: no camera push, no flicker.
 
 signal finished
 
 const GAME_SCENE := "res://scenes/main.tscn"
 const TITLE_SCENE := "res://scenes/title.tscn"
-const LENGTH := 28.0
+const LENGTH := 45.0
 const SKIP_HOLD := 0.7
+## One rule for every press: let go before SKIP_HOLD and it acts (however
+## slowly it was pressed); held to SKIP_HOLD, it skips and does nothing
+## else. TAP is only when the skip bar starts to show, for a held press.
+const TAP := 0.3
+## Her habit (WellSequence.CLICK_PATTERN is the same gesture): two light
+## taps, then the press. [seconds after the press began, dB].
+const HABIT := [[0.0, -16.0], [0.25, -16.0], [0.6, -12.0]]
+
+## The states (docs/VERTICAL_SLICE.md §3): each holds film time at `at`
+## until done.
+enum Gate { RITUAL, INTERRUPT, IMPOSSIBLE, NONE }
+const GATE_AT := {Gate.RITUAL: 5.0, Gate.INTERRUPT: 10.8, Gate.IMPOSSIBLE: 23.0}
+## Waiting this long at a state shows what to do; this long, the hands do it.
+const HINT_AFTER := 5.0
+const AUTO_AFTER := {Gate.RITUAL: 16.0, Gate.INTERRUPT: 8.0, Gate.IMPOSSIBLE: 16.0}
+## On the television: the save point, and the well where no well should be.
+const SAVE_X := 384.0
+const WELL_X := 196.0
+const WALK := 26.0
 ## The television, centred on the 640×360 canvas.
-const TV := Rect2(150, 62, 340, 220)
-const FLOOR_Y := 222.0
+const TV := Rect2(150, 34, 340, 214)
+const FLOOR_Y := 196.0
+## The two pairs of hands, below the screen (player 1 left, player 2 right).
+const HANDS_Y := 284.0
+const P1_HANDS := Vector2(232, HANDS_Y)
+const P2_HANDS := Vector2(408, HANDS_Y)
+## Shot 8, months later (docs/NARRATIVE_CONTRACT.md §0.4 C1): her message
+## arrives whole; the owner's reply stops mid-word and is never sent.
+const HER_MESSAGE := "still have my save?"
+const OWNER_REPLY := "yes i still have your sa"
+## When shot 8 cuts in (months later): no push, her hands gone.
+const LATER := 38.5
 ## The figures on the television, large enough to read a posture.
 const FIGURE := 1.35
+## Who holds what (docs/OPENING_REVIEW.md): each controller's light and the
+## tag over the figure it drives share a colour. P2 is never named.
+const P1_COLOR := Color(0.55, 0.7, 1.0)
+const P2_COLOR := Color(1.0, 0.8, 0.5)
+## Arin's walk to the save point: he gets there first and waits for her.
+const ARIN_WALK := 30.0
+## The cut to months later: a black card, so the jump in time reads.
+const LATER_CARD := 1.2
 
 ## Back to the title afterwards (a replay) instead of into the game.
 var replay := false
+## Plays itself (each state's hands act at once): the storyboard and tests.
+var autoplay := false
 
 var _t := 0.0
+## Held: nothing moves, nothing skips. Two separate reasons, each cleared
+## only by its own return (the window's focus; the player's controller).
 var _held := false
+var _focus_lost := false
 var _skip_t := 0.0
 var _hint_t := 0.0
 var _done := false
@@ -52,6 +110,36 @@ var _hint: Label
 var _music: AudioStreamPlayer
 const MUSIC_DB := -15.0
 var _prewarmed := false
+var _tune_started := false
+var _gate: Gate = Gate.RITUAL
+## Time spent waiting at the current state, and since the last input.
+var _gate_t := 0.0
+var _idle_t := 0.0
+## How long interact/confirm has been down (a tap acts on release).
+var _act_down := -1.0
+## Where a tap or click asked her to walk (NAN: nowhere), and whether to
+## press once she gets there.
+var _walk_to := NAN
+var _act_on_arrival := false
+## The habit in progress (seconds since the press began; < 0: none).
+var _habit_t := -1.0
+var _habit_fired := 0
+var _refused := false
+## The left thumb, on the stick (-1..1): it follows the player's input
+## while her hands are awake, and stops when they go slack.
+var _stick := 0.0
+## The controller in use dropped out: hold, like a lost focus.
+var _pad_lost := false
+## What the player actually did (tests, docs/VERTICAL_SLICE.md §3 timings).
+var acted := {}
+## Seconds since they saved together (the shared beat; < 0: not yet).
+var _together_t := -1.0
+## The "you" cue's place: on her controller (the ritual), then on the
+## figure once her hands are still (the impossible action). Gone once the
+## player moves in that state.
+var _you_moved := {}
+var _hinted := false  # this state's hint has been on screen (playtest log)
+var elapsed := 0.0
 
 
 ## Plays the opening on the next run? (First launch only, unless asked to
@@ -75,7 +163,7 @@ static func _url_choice() -> String:
 
 
 static func calm() -> bool:
-	return Settings.reduce_flashing or Settings.glitch_intensity <= 0.01
+	return Settings.reduce_motion or Settings.reduce_flashing or Settings.glitch_intensity <= 0.01
 
 
 func _ready() -> void:
@@ -94,6 +182,7 @@ func _ready() -> void:
 	add_child(_music)
 	_arin_x = TV.position.x + 120.0
 	_rue_x = TV.position.x + 92.0
+	Input.joy_connection_changed.connect(_on_joy_connection_changed)
 
 
 func _label(layer: CanvasLayer, pos: Vector2, size: int, color: Color) -> Label:
@@ -113,16 +202,83 @@ func _notification(what: int) -> void:
 	# they are; coming back resumes from the same frame (no time jump), and a
 	# key still held from before has to be let go before it can skip.
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
-		_held = true
+		_focus_lost = true
+		_update_hold()
+	elif what == NOTIFICATION_APPLICATION_FOCUS_IN:
+		_focus_lost = false
+		_update_hold()
+
+
+## Held while either reason stands; let go only when both are back.
+func _update_hold() -> void:
+	var held := _focus_lost or _pad_lost
+	if held and not _held:
 		_skip_t = 0.0
 		_armed = false
-		if _music:
-			_music.stream_paused = true
-	elif what == NOTIFICATION_APPLICATION_FOCUS_IN:
-		_held = false
-		if _music:
-			_music.stream_paused = false
+		_act_down = -1.0
+	_held = held
+	if _music:
+		_music.stream_paused = held
 
+
+## The player's pad dropped out: hold until that pad is back, or the player
+## takes over with something else (a key, a touch, another pad's press);
+## then a fresh press is needed. Another pad coming or going changes nothing.
+func _on_joy_connection_changed(device: int, connected: bool) -> void:
+	if not connected and not _done and Settings.is_players_pad(device):
+		_lost_pad = device
+		_pad_lost = true
+		_update_hold()
+		_hint.text = "controller disconnected: reconnect it, or press any key"
+		_hint.modulate.a = 1.0
+	elif connected and _pad_lost and device == _lost_pad:
+		_pad_resumed()
+
+
+var _lost_pad := -1
+
+
+func _pad_resumed() -> void:
+	_pad_lost = false
+	_hint.text = ""
+	_update_hold()
+
+
+func _input(event: InputEvent) -> void:
+	if _pad_lost and event.is_pressed() and (event is InputEventKey or event is InputEventScreenTouch \
+			or event is InputEventMouseButton or event is InputEventJoypadButton):
+		_pad_resumed()  # the player took over: this press does nothing else
+		get_viewport().set_input_as_handled()
+		return
+	if _held or _done:
+		return
+	# A tap or click on the picture: walk there (and, at the save point,
+	# press once there). Touch also arrives as an emulated click: once.
+	var pointer := (event is InputEventScreenTouch) or (event is InputEventMouseButton \
+		and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT and event.device != InputEvent.DEVICE_ID_EMULATION)
+	if not pointer:
+		return
+	if event.is_pressed():
+		_pointer_down = Time.get_ticks_msec()
+	elif _pointer_down >= 0 and _armed and (Time.get_ticks_msec() - _pointer_down) / 1000.0 < SKIP_HOLD:
+		_pointer_down = -1
+		_tap_at(make_input_local(event).position)
+
+
+var _pointer_down := -1
+
+
+func _tap_at(at: Vector2) -> void:
+	_idle_t = 0.0
+	_you_moved[_gate] = true
+	match _gate:
+		Gate.RITUAL, Gate.IMPOSSIBLE:
+			_walk_to = clampf(at.x, _walk_min(), _walk_max())
+			_act_on_arrival = _gate == Gate.RITUAL and absf(at.x - SAVE_X) < 40.0
+			if _act_on_arrival:
+				_walk_to = SAVE_X
+		Gate.INTERRUPT:
+			_act()
 
 ## Any of the skip inputs held right now (keys, pad, a finger or the mouse).
 static func _skip_held() -> bool:
@@ -146,44 +302,235 @@ func _process(delta: float) -> void:
 	_update_skip(delta)
 	if _done:
 		return
-	_t += delta
+	elapsed += delta
+	_update_habit(delta)
+	_update_gate(delta)
+	if _gate == Gate.NONE or _t < GATE_AT[_gate]:
+		_t = minf(_t + delta, GATE_AT[_gate]) if _gate != Gate.NONE else _t + delta
 	_update_music()
-	_cue(0.4, func() -> void: _caption.text = "[a television, late at night]")
-	_cue(4.5, func() -> void: _caption.text = "")
-	_cue(9.0, func() -> void:
-		Sfx.play("denied", -6.0, 0.8, 0.0)
-		_caption.text = "[a controller is unplugged]")
-	_cue(12.0, func() -> void:
-		_caption.text = ""
-		Sfx.play("key_system", -4.0, 0.8, 0.0))
-	_cue(16.0, func() -> void: Sfx.play("click", -10.0, 0.6, 0.0))
-	_cue(23.0, func() -> void:
-		Sfx.play("fragment", -8.0, 0.75, 0.0)
-		_caption.text = "[one note, from a music box]")
-	_cue(26.0, func() -> void: _caption.text = "")
-	# The two of them walk together until Player 2 is gone; then only Arin.
-	var rue_walks := _t > 2.5 and _t < 9.0
-	var arin_walks := _t > 2.5 and _t < 11.0
-	if rue_walks:
-		_rue_x += 11.0 * delta
+	# 1. Two people, one television.
+	_cue(0.4, func() -> void: _caption.text = "[a television, late at night. two controllers.]")
+	_cue(4.6, func() -> void: _caption.text = "")
+	# 2. (The ritual: they walk to the save point together, and she presses.)
+	# The save that never finishes.
+	_cue(8.0, func() -> void: Sfx.play("key_system", -4.0, 0.8, 0.0))
+	# 3. Player 1 puts theirs down and goes; hers stays in her hands.
+	_cue(12.0, func() -> void: _caption.text = "[she falls asleep holding it]")
+	_cue(15.6, func() -> void: _caption.text = "")
+	# 5. Pause stops everything. Almost.
+	_cue(22.0, func() -> void:
+		Sfx.play("denied", -10.0, 0.7, 0.0)
+		_caption.text = "[paused.]")
+	_cue(28.0, func() -> void: _caption.text = "")
+	# 6. The well, in the wrong place: the music box, one note short.
+	_cue(29.0, func() -> void:
+		_play_tune()
+		_caption.text = "[a music box, from somewhere it can't be. one note missing.]")
+	_cue(33.0, func() -> void: _caption.text = "")
+	# 8. Months later: her message, the owner's reply that stops, and the
+	# owner's one click (hers were always two light taps first).
+	_cue(LATER + 0.1, func() -> void: _caption.text = "[months later. her message. the owner starts to answer.]")
+	_cue(LATER + 0.5, func() -> void: Sfx.play("key_system", -12.0, 1.1, 0.0))
+	_cue(42.8, func() -> void: _caption.text = "")
+	_cue(44.0, func() -> void: Sfx.play("click", -12.0, 1.0, 0.0))
+	# On the television: Arin walks to the save point with her and waits
+	# there; under PAUSE he is still, and she isn't.
+	var arin_target := SAVE_X + 22.0
+	var arin_walks := _t >= 5.0 and _t < 12.0 and _arin_x < arin_target - 0.5
 	if arin_walks:
-		_arin_x += 11.0 * delta
-	_rue.update(delta, Vector2(11, 0) if rue_walks else Vector2.ZERO)
-	_arin.update(delta, Vector2(11, 0) if arin_walks else Vector2.ZERO)
-	if _t > 11.6 and _t < 19.0:
-		_arin.look_at(Vector2.ZERO, Vector2.LEFT)  # looks back at where she stopped
-	if _t > 21.0:
-		# Left standing, she isn't quite as she was.
-		_rue.palette = _lerp_palette(Player.RUE, Player.MISSING, clampf((_t - 21.0) / 2.5, 0.0, 1.0))
-	if _t > 23.2:
-		_rue.look_at(Vector2.ZERO, Vector2.DOWN)  # at you
+		_arin_x = move_toward(_arin_x, arin_target, ARIN_WALK * delta)
+	if _together_t >= 0.0:
+		_together_t += delta
+	var paused_now := _t > 22.0 and _t < 33.0
+	_arin.update(0.0 if paused_now else delta, Vector2(13, 0) if arin_walks else Vector2.ZERO)
+	if _t > 17.5 and _t < 22.0:
+		_arin.look_at(Vector2.ZERO, Vector2.LEFT)  # waiting for input that won't come
+	elif _gate == Gate.RITUAL and _t >= GATE_AT[Gate.RITUAL] and not arin_walks:
+		# There first, he turns and waits for her: their routine.
+		_arin.look_at(Vector2.ZERO, Vector2.LEFT if _rue_x < _arin_x else Vector2.RIGHT)
+	var step := _rue_step(delta)
+	_rue.update(delta, Vector2(signf(step) * WALK, 0) if absf(step) > 0.01 else Vector2.ZERO)
+	if _t > 33.0:
+		# 7. She turns and looks out of the screen, at the hands; her
+		# colours aren't quite holding.
+		_rue.look_at(Vector2.ZERO, Vector2.DOWN)
+		_rue.palette = _lerp_palette(Player.RUE, Player.MISSING, clampf((_t - 34.0) / 3.0, 0.0, 0.6))
 	queue_redraw()
 	if _t >= LENGTH:
 		_finish()
 
 
+## Holds film time at each state until it's done; a hint, then the hands
+## do it by themselves (autopilot) if nobody does.
+func _update_gate(delta: float) -> void:
+	if _gate == Gate.NONE:
+		return
+	var at: float = GATE_AT[_gate]
+	if _t > at + 1.0:
+		_next_gate()  # jumped past it (tests, the storyboard)
+		return
+	if _t < at:
+		return
+	_gate_t += delta
+	_idle_t += delta
+	var auto: bool = _idle_t >= (0.4 if autoplay else AUTO_AFTER[_gate])
+	match _gate:
+		Gate.RITUAL:
+			if auto and is_nan(_walk_to):
+				_walk_to = SAVE_X
+				_act_on_arrival = true
+				acted["ritual_auto"] = true
+			if acted.has("ritual") and _habit_t < 0.0:
+				_next_gate()
+		Gate.INTERRUPT:
+			if auto and _habit_t < 0.0 and not _refused:
+				acted["interrupt_auto"] = true
+				_act()
+			if _refused and _habit_t < 0.0:
+				_next_gate()
+		Gate.IMPOSSIBLE:
+			if auto and is_nan(_walk_to):
+				_walk_to = WELL_X
+				acted["impossible_auto"] = true
+			if absf(_rue_x - WELL_X) < 10.0:
+				acted["impossible"] = true
+				_next_gate()
+				_t = maxf(_t, 28.9)  # the music box, from the well
+
+
+func _next_gate() -> void:
+	_log_gate()
+	_gate = (_gate + 1) as Gate
+	_gate_t = 0.0
+	_idle_t = 0.0
+	_walk_to = NAN
+	_act_on_arrival = false
+	if _gate == Gate.IMPOSSIBLE:
+		Sfx.play("click", -14.0, 0.45, 0.0)  # something where nothing should be
+
+
+## For the playtest log: how the state just finished was done (by the
+## player, or by itself after the hint), and how long it waited.
+func _log_gate() -> void:
+	var names := {Gate.RITUAL: "ritual (save with Arin)", Gate.INTERRUPT: "interruption (press at 87%)", Gate.IMPOSSIBLE: "impossible action (walk under PAUSE)"}
+	var keys := {Gate.RITUAL: "ritual", Gate.INTERRUPT: "interrupt", Gate.IMPOSSIBLE: "impossible"}
+	if not names.has(_gate):
+		return
+	var k: String = keys[_gate]
+	var how := "played itself" if acted.has(k + "_auto") else ("by the player" if acted.has(k) else "passed over")
+	PlaytestLog.mark("opening: " + names[_gate], "%s after %.1f s%s" % [how, _gate_t, ", hint shown" if _hinted else ""])
+	_hinted = false
+
+
+## What the current state asks, once the player has waited a while ("" for
+## nothing to do). Essential only: never what anything means.
+func _gate_hint() -> String:
+	if _gate == Gate.NONE or _t < GATE_AT[_gate] or (_idle_t < HINT_AFTER and not autoplay):
+		return ""
+	var press := "tap" if Settings.using_touch else "press %s" % Settings.glyph("interact")
+	var walk := "tap where to walk" if Settings.using_touch else Settings.glyph("move").to_lower() + " to walk"
+	match _gate:
+		Gate.RITUAL:
+			return "%s to the save point with Arin, then %s" % [walk, press]
+		Gate.INTERRUPT:
+			return "%s" % press
+		Gate.IMPOSSIBLE:
+			return walk
+	return ""
+
+
+## The player's press (a tap of interact, a tap on the picture): her thumb
+## taps twice before it presses, whatever it's pressing.
+func _act() -> void:
+	if _habit_t >= 0.0 or _t < GATE_AT[Gate.RITUAL] or _t >= 12.5:  # (asleep after)
+		return
+	_habit_t = 0.0
+	_habit_fired = 0
+	match _gate:
+		Gate.RITUAL:
+			if absf(_rue_x - SAVE_X) < 14.0:
+				acted["ritual"] = true
+				_together_t = 0.0  # they save together: one small shared hop
+		Gate.INTERRUPT:
+			if _t >= GATE_AT[Gate.INTERRUPT]:
+				acted["interrupt"] = true
+				_refused = true
+
+
+func _update_habit(delta: float) -> void:
+	if _habit_t < 0.0:
+		return
+	_habit_t += delta
+	while _habit_fired < HABIT.size() and _habit_t >= HABIT[_habit_fired][0]:
+		Sfx.play("click", HABIT[_habit_fired][1], 1.3 if _habit_fired < 2 else 1.0, 0.0)
+		_habit_fired += 1
+	if _habit_t > 0.75 and _refused and _habit_fired >= HABIT.size() and _habit_t - delta <= 0.75:
+		Sfx.play("denied", -12.0, 0.8, 0.0)  # the same press, and the save doesn't move
+	if _habit_t > 1.0:
+		_habit_t = -1.0
+
+
+## The thumb on the button during her habit (0: resting, 2: pressed).
+func _habit_thumb() -> float:
+	if _habit_t < 0.0:
+		return 0.0
+	for h in HABIT:
+		if _habit_t >= h[0] and _habit_t < h[0] + 0.12:
+			return 2.0
+	return 0.0
+
+
+## Her steps this frame: the player's stick or keys (or a tap's target)
+## during the ritual and under PAUSE; nobody's otherwise.
+func _rue_step(delta: float) -> float:
+	var free: bool = _gate in [Gate.RITUAL, Gate.IMPOSSIBLE] and _t >= GATE_AT[_gate] and _habit_t < 0.0
+	var axis := Input.get_axis("move_left", "move_right") if _armed and free else 0.0
+	_stick = move_toward(_stick, axis if _t < 13.0 else 0.0, delta * 8.0)
+	if not free:
+		return 0.0
+	if absf(axis) > 0.2:
+		_walk_to = NAN
+		_idle_t = 0.0
+		_you_moved[_gate] = true
+		if _gate == Gate.IMPOSSIBLE and not acted.has("walked_paused"):
+			acted["walked_paused"] = true
+			_caption.text = "[her hands are still. she moves anyway.]"
+	elif not is_nan(_walk_to):
+		axis = clampf((_walk_to - _rue_x) / 6.0, -1.0, 1.0)
+		if absf(_walk_to - _rue_x) < 1.0:
+			_walk_to = NAN
+			axis = 0.0
+			if _act_on_arrival:
+				_act_on_arrival = false
+				_act()
+	if _parked and absf(axis) < 0.2:
+		_parked = false  # let go: a fresh press walks on
+	if _parked:
+		axis = 0.0
+	var before := _rue_x
+	_rue_x = clampf(_rue_x + axis * WALK * delta, _walk_min(), _walk_max())
+	# The save point catches her during the ritual: walking onto it, she
+	# stops there (where Arin waits) until the key is let go, instead of
+	# walking straight past it.
+	if _gate == Gate.RITUAL and before != SAVE_X and (before - SAVE_X) * (_rue_x - SAVE_X) <= 0.0 and is_nan(_walk_to):
+		_rue_x = SAVE_X
+		_parked = true
+	return _rue_x - before
+
+
+var _parked := false
+
+
+func _walk_min() -> float:
+	return TV.position.x + 30.0
+
+
+func _walk_max() -> float:
+	return TV.end.x - 40.0
+
+
 func _update_music() -> void:
-	if not _music.playing and _t < 21.0:
+	if not _music.playing and _t < 20.0 and not _tune_started:
 		var key := "theme_%d_normal" % MusicBox.held_level(OwnerMemory.fragments.size())
 		if OwnerMemory.runtime_cache.has(key):
 			_music.stream = OwnerMemory.runtime_cache[key]
@@ -193,10 +540,21 @@ func _update_music() -> void:
 			MusicBox.prewarm(MusicBox.held_level(OwnerMemory.fragments.size()))
 	# Full while they play together; down as the interface goes out; gone
 	# before the note.
-	var k := 1.0 - clampf((_t - 17.0) / 5.0, 0.0, 1.0)
+	if _tune_started:
+		return
+	var k := 1.0 - clampf((_t - 13.0) / 7.0, 0.0, 1.0)
 	_music.volume_db = MUSIC_DB + linear_to_db(maxf(k, 0.0001))
 	if k <= 0.0 and _music.playing:
 		_music.stop()
+
+
+## Shot 6: the music box, one note short, from the well's direction.
+func _play_tune() -> void:
+	_tune_started = true
+	_music.stop()
+	_music.stream = MusicBox.stream(MusicBox.MAX_LEVEL - 1)
+	_music.volume_db = MUSIC_DB - 4.0
+	_music.play()
 
 
 func _cue(at: float, what: Callable) -> void:
@@ -212,7 +570,7 @@ static func _lerp_palette(a: Dictionary, b: Dictionary, k: float) -> Dictionary:
 	return out
 
 
-## Any press shows how to skip; holding it skips.
+## A tap acts; a press held a moment shows how to skip; held, it skips.
 func _update_skip(delta: float) -> void:
 	var held := _skip_held()
 	# A press that began before the film (the title's Load, held) or before
@@ -220,15 +578,39 @@ func _update_skip(delta: float) -> void:
 	if not _armed:
 		_armed = not held
 		held = false
+		_act_down = -1.0
+	var act_held := _armed and (Input.is_action_pressed("interact") or Input.is_action_pressed("confirm"))
+	if act_held:
+		_act_down = maxf(_act_down, 0.0) + delta
+	elif _act_down >= 0.0:
+		if _act_down < SKIP_HOLD:
+			_idle_t = 0.0
+			_act()
+		_act_down = -1.0
 	if held:
-		_hint_t = 3.0
 		_skip_t += delta
+		if _skip_t > TAP * 0.6:
+			_hint_t = 3.0
 		if _skip_t >= SKIP_HOLD:
+			PlaytestLog.mark("opening skipped", "at %d%%" % int(progress() * 100.0))
 			_finish()
 			return
+		_idle_t = 0.0
 	else:
 		_skip_t = maxf(0.0, _skip_t - delta * 2.0)
 		_hint_t = maxf(0.0, _hint_t - delta)
+	_show_skip(delta)
+
+
+func _show_skip(delta: float) -> void:
+	if _pad_lost:
+		return
+	var what := _gate_hint()
+	if what != "" and _hint_t <= 0.0:
+		_hinted = true
+		_hint.text = what
+		_hint.modulate.a = move_toward(_hint.modulate.a, 1.0, delta * 3.0)
+		return
 	var how := "touch and hold" if Settings.using_touch else "hold %s" % Settings.glyph("interact")
 	_hint.text = "%s to skip  %s" % [how, "▮".repeat(int(_skip_t / SKIP_HOLD * 6.0))]
 	_hint.modulate.a = move_toward(_hint.modulate.a, 1.0 if _hint_t > 0.0 else 0.0, delta * 4.0)
@@ -253,59 +635,190 @@ func progress() -> float:
 func _draw() -> void:
 	draw_rect(Rect2(0, 0, 640, 360), Color.BLACK)
 	var fade_in := clampf(_t / 2.5, 0.0, 1.0)
-	var fade_out := 1.0 - clampf((_t - 26.0) / 2.0, 0.0, 1.0)
-	var room_light := 1.0 - clampf((_t - 19.0) / 2.5, 0.0, 1.0)
-	# The push in on her at the end (not with reduced motion).
-	var push := 1.0 if calm() else 1.0 + 0.6 * smoothstep(24.0, 27.5, _t)
+	var fade_out := 1.0 - clampf((_t - 43.0) / 2.0, 0.0, 1.0)
+	var paused := _t > 22.0 and _t < 33.0
+	var room_light := 1.0 - clampf((_t - 33.0) / 3.0, 0.0, 1.0)
+	# The push in on her as she looks out (not with reduced motion).
+	var push := 1.0 if calm() or _t >= LATER else 1.0 + 0.5 * smoothstep(33.0, LATER, _t)
 	var focus := Vector2(_rue_x, FLOOR_Y)
 	draw_set_transform(focus * (1.0 - push), 0.0, Vector2(push, push))
-	# The television: bezel, glass, and its glow on the dark around it.
 	var a := fade_in * fade_out
 	for g in 4:  # the screen's glow on the dark room around it
 		draw_rect(TV.grow(14.0 + g * 10.0), Color(0.35, 0.55, 0.75, 0.018 * a * (0.4 + 0.6 * room_light)))
 	draw_rect(TV.grow(10), Color(0.07, 0.07, 0.08, a))
 	draw_rect(TV.grow(10), Color(0.2, 0.2, 0.22, a), false, 1.0)
 	draw_rect(TV, Color(0.02, 0.025, 0.03, a))
-	# On it: the room, small, the way the game draws it.
+	var inner := TV.grow(-6)
 	if room_light > 0.0:
 		var ra := a * room_light
-		var inner := TV.grow(-6)
 		Decor.planks(self, inner, Color("3a2c24"), 10.0, 2.0)
 		Decor.rug(self, Rect2(TV.get_center().x - 60, FLOOR_Y - 40, 120, 56), Color("5a3a34"), Color("b08a5a"))
 		Decor.bed(self, Rect2(inner.position.x + 18, inner.position.y + 14, 64, 40), Color("5a4030"), Color("3d5a8a"), Color("e8e0d0"))
 		var desk := Decor.furniture(self, Rect2(inner.end.x - 84, inner.position.y + 18, 54, 16), Color("6a5040"), 4.0)
 		Decor.lamp(self, desk.position + Vector2(desk.size.x - 8, desk.size.y * 0.5), Color("f0d090"))
 		draw_circle(desk.get_center(), 40.0, Color(1.0, 0.8, 0.5, 0.05))
+		# The save point they walk to together (the ritual), until PAUSE.
+		if _t < 22.0:
+			var glow := 0.5 + 0.5 * sin(_t * 3.0) if not calm() else 0.8
+			var sp := Vector2(SAVE_X, FLOOR_Y + 4)
+			var spa := ra * (1.0 if _gate == Gate.RITUAL else 0.5)
+			draw_circle(sp, 9.0, Color(0.55, 0.95, 1.0, 0.08 * spa))
+			draw_colored_polygon(PackedVector2Array([sp + Vector2(0, -7), sp + Vector2(4, 0), sp + Vector2(0, 3), sp + Vector2(-4, 0)]),
+				Color(0.55, 0.95, 1.0, (0.45 + 0.4 * glow) * spa))
+		# Shot 6: a well where no well should be, at the edge of the picture.
+		if _gate >= Gate.IMPOSSIBLE and _t > 22.0:
+			var wa := ra * clampf((_t - 22.5) / 1.0, 0.0, 1.0)
+			var wc := Vector2(WELL_X - 6.0, inner.end.y - 26)
+			draw_circle(wc, 11.0, Color(0.32, 0.31, 0.3, wa))
+			draw_circle(wc, 7.0, Color(0.02, 0.03, 0.05, wa))
+			var ring := fmod(_t * 0.8, 1.0)
+			draw_arc(wc, 3.0 + ring * 5.0, 0.0, TAU, 16, Color(0.6, 0.9, 1.0, wa * (1.0 - ring) * 0.6), 1.0)
 		draw_rect(inner, Color(0, 0, 0, 1.0 - ra))  # the picture going out
+		if paused:
+			draw_rect(inner, Color(0, 0, 0, 0.45 * ra))  # the game dims under PAUSE
 	# The figures.
-	if _t < 20.5:
-		_arin.draw(self, {"offset": Vector2(_arin_x, FLOOR_Y), "scale": FIGURE, "alpha": a * (1.0 - clampf((_t - 19.0) / 1.5, 0.0, 1.0))})
-	# (Once her colours have gone, her eyes are the two points of light the
-	# missing palette gives her: she looks up at you with them.)
-	_rue.draw(self, {"offset": Vector2(_rue_x, FLOOR_Y), "scale": FIGURE, "alpha": a})
-	# The interface on the screen, which goes out piece by piece.
+	var hop := 0.0 if _together_t < 0.0 or calm() else sin(clampf(_together_t / 0.45, 0.0, 1.0) * PI) * 3.0
+	if _t < 33.0:
+		_arin.draw(self, {"offset": Vector2(_arin_x, FLOOR_Y - hop), "scale": FIGURE, "alpha": a * (1.0 - clampf((_t - 31.0) / 2.0, 0.0, 1.0)) * (0.55 if paused else 1.0)})
+	# (Once her colours start to go, her eyes are the two points of light the
+	# missing palette gives her: she looks out at the hands with them.)
+	# (Months later she is still in there, fainter, watching the words.)
+	_rue.draw(self, {"offset": Vector2(_rue_x, FLOOR_Y - hop), "scale": FIGURE, "alpha": a * (0.55 if _t >= LATER else 1.0)})
 	var font := UiStyle.system_font()
-	var labels_a := a * (1.0 - clampf((_t - 17.0) / 1.0, 0.0, 1.0))
-	draw_string(font, TV.position + Vector2(8, 14), "P1  ARIN", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.55, 0.7, 1.0, labels_a))
-	# Player 2 is a player, not a name: the opening doesn't say who she was
-	# playing, or that the small figure is anyone in particular (that is the
-	# story's to find out; docs/DARK_TRUTH_DESIGN.md).
-	var p2 := "P2" if _t < 9.0 else "P2  --"
-	draw_string(font, Vector2(TV.end.x - 60, TV.position.y + 14), p2, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1.0, 0.8, 0.5, labels_a))
-	if _t > 9.0 and _t < 12.5:
-		var ta := a * clampf((_t - 9.0) / 0.3, 0.0, 1.0) * (1.0 - clampf((_t - 12.0) / 0.5, 0.0, 1.0))
-		var box := Rect2(TV.get_center().x - 80, TV.end.y - 34, 160, 18)
-		draw_rect(box, Color(0, 0, 0, 0.75 * ta))
-		draw_rect(box, Color(1.0, 0.8, 0.5, 0.6 * ta), false, 1.0)
-		draw_string(font, box.position + Vector2(10, 12), "PLAYER 2 DISCONNECTED", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1, 0.9, 0.8, ta))
-	if _t > 12.0 and _t < 19.5:
-		var sa := a * clampf((_t - 12.0) / 0.4, 0.0, 1.0) * (1.0 - clampf((_t - 18.5) / 1.0, 0.0, 1.0))
-		var fill := 0.87 * smoothstep(12.2, 15.5, _t)
-		var bar := Rect2(TV.get_center().x - 70, TV.end.y - 30, 140, 4)
+	var labels_a := a * (1.0 - clampf((_t - 33.0) / 1.0, 0.0, 1.0))
+	# Over each figure, the tag of the controller that drives it, in that
+	# controller's colour. Player 2 is a player, not a name. Her tag goes
+	# when her hands go still: nobody is holding her any more.
+	_tags(font, FLOOR_Y - hop - 44.0, labels_a * (1.0 if _t < 12.5 else 0.4), labels_a * (1.0 - smoothstep(13.0, 15.0, _t)))
+	if _t > 8.0 and _t < 33.0:
+		var sa := a * clampf((_t - 8.0) / 0.4, 0.0, 1.0) * (1.0 - clampf((_t - 32.0) / 1.0, 0.0, 1.0))
+		var fill := 0.87 * smoothstep(8.2, 10.5, _t)
+		var bar := Rect2(TV.get_center().x - 70, TV.end.y - 24, 140, 4)
 		draw_string(font, bar.position + Vector2(0, -6), "SAVING SLOT 2 ...", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.8, 0.95, 1.0, sa))
 		draw_rect(bar, Color(1, 1, 1, 0.12 * sa))
-		# Stuck at 87%: after a moment it flickers, as if nobody is watching.
-		var stuck_flicker := 1.0 if calm() or _t < 16.0 else (0.6 + 0.4 * sin(_t * 18.0))
+		var stuck_flicker := 1.0 if calm() or _t < 10.6 else (0.6 + 0.4 * sin(elapsed * 18.0))
 		draw_rect(Rect2(bar.position, Vector2(bar.size.x * fill, bar.size.y)), Color(0.55, 0.95, 1.0, 0.9 * sa * stuck_flicker))
-		draw_string(font, bar.position + Vector2(0, 14), "41:07:12", HORIZONTAL_ALIGNMENT_LEFT, -1, 7, Color(0.7, 0.75, 0.8, 0.7 * sa))
+		draw_string(font, bar.position + Vector2(bar.size.x + 6, 4), "87%" if _t > 10.5 else "", HORIZONTAL_ALIGNMENT_LEFT, -1, 7, Color(0.7, 0.75, 0.8, 0.8 * sa))
+	if paused:
+		var pa := a * clampf((_t - 22.0) / 0.3, 0.0, 1.0) * (1.0 - clampf((_t - 32.0) / 1.0, 0.0, 1.0))
+		draw_string(font, Vector2(TV.get_center().x - 18, TV.position.y + 40), "PAUSE", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(1, 1, 1, pa))
+	draw_set_transform(Vector2.ZERO)
+	_draw_hands(a)
+	_draw_you(font, a)
+	# The cut to months later: black, and the words, so the jump reads.
+	if _t > LATER - LATER_CARD and _t < LATER + 0.4:
+		var ca := clampf(minf(_t - (LATER - LATER_CARD), LATER + 0.4 - _t) / 0.3, 0.0, 1.0)
+		draw_rect(Rect2(0, 0, 640, 360), Color(0, 0, 0, ca))
+		draw_string(font, Vector2(0, 186), "months later", HORIZONTAL_ALIGNMENT_CENTER, 640, 12, Color(0.85, 0.85, 0.82, ca))
+	# Shot 8, months later: her message on the screen, whole; under it the
+	# owner's reply, typed and then stopping mid-word. Never sent.
+	if _t > LATER + 0.4:
+		var ma := fade_out * clampf((_t - LATER - 0.4) / 0.4, 0.0, 1.0)
+		var box := Rect2(TV.position.x + 24, TV.position.y + 24, TV.size.x - 48, 46)
+		draw_rect(box, Color(0.02, 0.03, 0.05, 0.9 * ma))
+		draw_rect(box, Color(0.55, 0.7, 0.8, 0.5 * ma), false, 1.0)
+		draw_string(font, box.position + Vector2(8, 15), HER_MESSAGE, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(1.0, 0.85, 0.6, ma))
+		var n := clampi(int((_t - 39.6) / 3.0 * OWNER_REPLY.length()), 0, OWNER_REPLY.length()) if _t > 39.6 else 0
+		var cursor := "_" if fmod(_t, 0.8) < 0.4 else " "
+		draw_string(font, box.position + Vector2(8, 34), "> " + OWNER_REPLY.substr(0, n) + cursor,
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(0.75, 0.95, 1.0, ma))
+
+
+## The two tags over the figures, centred on each, and pushed apart (each
+## away from the other) when the two stand close, so they never run
+## together.
+func _tags(font: Font, y: float, a1: float, a2: float) -> void:
+	var t1 := "P1 · ARIN"
+	var t2 := "P2"
+	var w1 := font.get_string_size(t1, HORIZONTAL_ALIGNMENT_LEFT, -1, 7).x
+	var w2 := font.get_string_size(t2, HORIZONTAL_ALIGNMENT_LEFT, -1, 7).x
+	var x1 := _arin_x - w1 * 0.5
+	var x2 := _rue_x - w2 * 0.5
+	var gap := 6.0
+	if a1 > 0.01 and a2 > 0.01:
+		if _rue_x <= _arin_x and x2 + w2 + gap > x1:
+			var mid := (_rue_x + _arin_x) * 0.5
+			x2 = minf(x2, mid - gap * 0.5 - w2)
+			x1 = maxf(x1, mid + gap * 0.5)
+		elif _rue_x > _arin_x and x1 + w1 + gap > x2:
+			var mid := (_rue_x + _arin_x) * 0.5
+			x1 = minf(x1, mid - gap * 0.5 - w1)
+			x2 = maxf(x2, mid + gap * 0.5)
+	if a1 > 0.01:
+		draw_string(font, Vector2(x1, y), t1, HORIZONTAL_ALIGNMENT_LEFT, -1, 7, Color(P1_COLOR, a1))
+	if a2 > 0.01:
+		draw_string(font, Vector2(x2, y), t2, HORIZONTAL_ALIGNMENT_LEFT, -1, 7, Color(P2_COLOR, a2))
+
+
+## "you": on her controller while the player's input is hers (the ritual),
+## then lifted onto the figure when her hands are still (the impossible
+## action): the player isn't her hands any more; the player is the figure.
+## Shown from the moment a state asks, with the move control, and gone once
+## the player moves in it. It never names anyone.
+func _draw_you(font: Font, a: float) -> void:
+	if _gate not in [Gate.RITUAL, Gate.IMPOSSIBLE] or _t < GATE_AT[_gate] or _you_moved.get(_gate, false) or _held:
+		return
+	var on_pad := P2_HANDS + Vector2(0, -24)
+	var on_her := Vector2(_rue_x, FLOOR_Y - 54)
+	var at := on_pad
+	if _gate == Gate.IMPOSSIBLE:
+		var k := 1.0 if calm() else smoothstep(0.0, 0.7, _gate_t)
+		at = on_pad.lerp(on_her, k)
+	var how := "tap" if Settings.using_touch else Settings.glyph("move").to_lower()
+	var text := "you  ·  %s" % how
+	var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+	var pulse := 1.0 if calm() else 0.8 + 0.2 * sin(elapsed * 4.0)
+	draw_string(font, at + Vector2(-w * 0.5, 0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(P2_COLOR, a * pulse))
+	draw_colored_polygon(PackedVector2Array([at + Vector2(-3, 3), at + Vector2(3, 3), at + Vector2(0, 7)]), Color(P2_COLOR, a * pulse))
+
+
+## Two pairs of hands on two controllers, below the screen: player 1's leave
+## (12–13.5 s); hers (the player's) follow the stick and tap twice before
+## pressing, then go slack, and stay still under PAUSE whatever she does.
+## Her controller's cable is taped where the dog chewed it (the memory THE
+## SECOND CONTROLLER). Months later (shot 8) only the owner's hands are
+## there; hers is on the floor where she dropped it.
+func _draw_hands(a: float) -> void:
+	var skin := Color(0.78, 0.62, 0.5)
+	if _t >= LATER:
+		_controller(P2_HANDS + Vector2(80, 12), skin, a, 0.6, 0.0, true, false)
+		var typing := 1.5 if _t > 39.6 and _t < 42.6 and fmod(_t, 0.25) < 0.12 else 0.0
+		_controller(P1_HANDS, skin, a * clampf((_t - LATER) / 0.4, 0.0, 1.0), 0.0, typing)
+		return
+	var p1_off := smoothstep(12.0, 13.5, _t) * 70.0
+	var slack := smoothstep(13.0, 15.0, _t)
+	_controller(P1_HANDS + Vector2(-p1_off, p1_off * 0.4), skin, a * (1.0 - smoothstep(12.5, 13.5, _t)), 0.0, 0.0, false, true, 0.0, Color(P1_COLOR, 1.0))
+	# Her light answers the player's input while her hands hold it, and goes
+	# out once they're slack: under PAUSE it stays dark while she walks.
+	var live := 1.0 - slack
+	var busy := 1.0 if absf(_stick) > 0.1 or _habit_thumb() > 0.0 else 0.0
+	_controller(P2_HANDS + Vector2(0, slack * 6.0), skin, a, slack * 0.25, _habit_thumb(), true, true, _stick,
+		Color(P2_COLOR, live * (0.55 + 0.45 * busy)))
+
+
+## `stick`: her left thumb pushed along the stick (-1..1).
+func _controller(at: Vector2, skin: Color, a: float, tilt: float, thumb: float, taped := false, hands := true, stick := 0.0, light := Color(0, 0, 0, 0)) -> void:
+	if a <= 0.0:
+		return
+	draw_set_transform(at, tilt, Vector2.ONE)
+	if taped:
+		# The cable, out of the bottom and away; a band of tape halfway.
+		draw_line(Vector2(0, 8), Vector2(6, 30), Color(0.1, 0.1, 0.12, a), 2.0)
+		draw_line(Vector2(6, 30), Vector2(-4, 60), Color(0.1, 0.1, 0.12, a), 2.0)
+		draw_rect(Rect2(2, 18, 6, 4), Color(0.85, 0.85, 0.78, a))
+	draw_rect(Rect2(-24, -6, 48, 14), Color(0.12, 0.12, 0.14, a))
+	draw_circle(Vector2(-22, 2), 8.0, Color(0.12, 0.12, 0.14, a))
+	draw_circle(Vector2(22, 2), 8.0, Color(0.12, 0.12, 0.14, a))
+	draw_circle(Vector2(14, -1), 2.0, Color(0.85, 0.3, 0.3, a))
+	if light.a > 0.0:  # the player light: whose controller this is
+		draw_circle(Vector2(0, -3), 6.0, Color(light, light.a * a * 0.22))
+		draw_circle(Vector2(0, -3), 2.4, Color(light, light.a * a))
+	if not hands:
+		draw_set_transform(Vector2.ZERO)
+		return
+	# Thumbs on top, the rest of the hand around the grips.
+	draw_circle(Vector2(-26, 6), 7.0, Color(skin, a))
+	draw_circle(Vector2(26, 6), 7.0, Color(skin, a))
+	draw_circle(Vector2(-12 + stick * 3.0, -6), 3.5, Color(skin, a))
+	draw_circle(Vector2(13, -6 - thumb), 3.5, Color(skin, a))
 	draw_set_transform(Vector2.ZERO)

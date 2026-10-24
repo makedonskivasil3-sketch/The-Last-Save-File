@@ -278,7 +278,8 @@ func _at_entry(w: Node) -> bool:
 
 func _archive(w: Node, with_bin: bool) -> bool:
 	var from: Vector2 = w.player.global_position
-	var path: Array = [Vector2(320, 272), Vector2(590, 272), Vector2(590, 182), Vector2(640, 182)]
+	# (Out past the square's east edge: it's wider than the screen now.)
+	var path: Array = [Vector2(320, 272), Vector2(590, 272), Vector2(590, 182), Vector2(w.area.bounds.end.x + 20.0, 182)]
 	if from.y < 160.0:
 		path = [Vector2(150, 150), Vector2(150, 272)] + path.slice(1)
 	if not await _go(w, path, 30.0):
@@ -342,11 +343,16 @@ func _shelter_through_sweep(w: Node, bin: RecycleBin) -> void:
 
 
 func _north(w: Node) -> bool:
-	var p: Vector2 = w.player.global_position
-	var path: Array = [Vector2(560, 180), Vector2(560, 110), Vector2(320, 110), Vector2(320, 20)]
-	if p.x < 300.0:
-		path = [Vector2(150, 150), Vector2(180, 100), Vector2(320, 100), Vector2(320, 20)]
-	await _go(w, path, 30.0)
+	# Planned again from wherever Rue is if the first try didn't get there
+	# (the owner's reload can move her back, e.g. to just south of the well).
+	for attempt in 2:
+		var p: Vector2 = w.player.global_position
+		var path: Array = [Vector2(560, 180), Vector2(560, 110), Vector2(320, 110), Vector2(320, 20)]
+		if p.x < 300.0:
+			path = [Vector2(150, 150), Vector2(180, 100), Vector2(320, 100), Vector2(320, 20)]
+		await _go(w, path, 30.0)
+		if w.area.area_id != "square" or w.ending != "":
+			break
 	return await _arrived(w, "edge")
 
 
@@ -519,9 +525,60 @@ func _go(w: Node, points: Array, timeout := STEP_TIMEOUT) -> bool:
 			_stalls += 1
 			_say("stall in %s going to %s, at %s" % [area_id, p, w.player.global_position.round()])
 			_release_all()
+			# Before giving up: plan a way round with the area's own walking
+			# grid (the one Arin uses), as a player would look for one, once.
+			if not _replanning and w.ending == "":
+				var grid := _grid(w)
+				var route := grid.path(w.player.global_position, p)
+				# The grid knows walls, not the static: a way round through
+				# (or brushing) erased floor is no way round.
+				if route.size() >= 2 and _through_static(w, route):
+					_say("replan refused: the way round crosses the static")
+				elif route.size() >= 2:
+					_say("replanned round it (%d steps)" % route.size())
+					_replanning = true
+					# Walked a step at a time, looking again before each: the
+					# static can grow onto a route after it was planned.
+					var ok := true
+					for q in Array(route).slice(1):
+						if _through_static(w, PackedVector2Array([q])):
+							_say("replan abandoned: the static reached the way round")
+							ok = false
+							break
+						if not await _go(w, [q], 2.0):
+							ok = false
+							break
+					_replanning = false
+					if ok and w.player.global_position.distance_to(p) < 12.0:
+						continue
 			return false
 	_release_all()
 	return true
+
+
+var _replanning := false
+
+
+func _through_static(w: Node, route: PackedVector2Array) -> bool:
+	var e: Variant = w.area.get("erasure")
+	if e == null or not is_instance_valid(e):
+		return false
+	for q in route:
+		if (e as Erasure).nearest_cell(q, 16.0) != Vector2.INF:
+			return true
+	return false
+
+
+## The area's walking grid if a walker already built one (it stays fresh as
+## doors and crates move), else a fresh one for this replan only, built the
+## way Arin's is. Not stored on the area, so the game's own state is untouched.
+func _grid(w: Node) -> NavGrid:
+	if w.area.has_meta("nav_grid"):
+		return w.area.get_meta("nav_grid")
+	var grid := NavGrid.new()
+	var skip: Array[RID] = [w.player.get_rid()]
+	grid.build(w.area.get_world_2d().direct_space_state, w.area.bounds, w.player.collision_mask, skip, OwnerAvatar.RADIUS)
+	return grid
 
 
 ## Dodging the cursor or Arin must not carry the bot out through a doorway

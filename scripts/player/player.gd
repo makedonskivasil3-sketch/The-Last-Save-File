@@ -57,6 +57,18 @@ var instability := 0.0
 var _jitter := Vector2.ZERO
 var _tear_rows := PackedFloat32Array([0, 0, 0])
 var _blink := false
+## Tears, dropped frames and colour dropouts: rates and holds in seconds
+## (TimedGlitch), the same on screen at any frame rate. At full instability
+## and glitch intensity each tear row shows 25% of the time, the body drops
+## out 2% of the time and restored colours drop out 4%, about as they did at 60 FPS
+## when they were rolled each frame.
+const TEAR_RATE := 10.0  # per second per row, x instability
+const DROPOUT_RATE := 0.6  # per second, x instability
+const COLOUR_DROP_RATE := 1.2  # per second, x instability
+const GLITCH_HOLD := 1.0 / 30.0
+var _tears: Array[TimedGlitch] = [TimedGlitch.new(GLITCH_HOLD), TimedGlitch.new(GLITCH_HOLD), TimedGlitch.new(GLITCH_HOLD)]
+var _dropout := TimedGlitch.new(GLITCH_HOLD)
+var _colour_drop := TimedGlitch.new(GLITCH_HOLD)
 var _trail: Array[Vector2] = []
 var _trail_timer := 0.0
 var _t := 0.0
@@ -64,7 +76,7 @@ var _t := 0.0
 var _last_step := 0
 var _dissolve := ""
 var _dissolve_t := 0.0
-var _sprite := IllustratedCharacter.new("rue", MISSING)
+var _sprite := CharacterArt.figure("rue", "rue", MISSING)
 ## The palette for how much of you is restored, and the fully-missing one
 ## the restored parts flicker back to under pressure.
 var _palette: Dictionary = MISSING
@@ -140,7 +152,7 @@ func facing() -> Vector2:
 
 ## The sprite (for DECOY: a frame of exactly how you look right now).
 func sprite_snapshot() -> PixelCharacter:
-	var copy := IllustratedCharacter.new("rue", _palette)
+	var copy := CharacterArt.figure("rue", "rue", _palette)
 	copy.facing = _sprite.facing
 	copy.leg_color = _sprite.leg_color
 	copy.shoe_color = _sprite.shoe_color
@@ -209,9 +221,14 @@ func _process(delta: float) -> void:
 	_jitter = Vector2(randf_range(-2.0, 2.0), 0.0) if randf() < (2.0 + instability * 10.0) * delta * glitch else Vector2.ZERO
 	# Body slices: each row of the sprite occasionally renders a few pixels off.
 	for i in _tear_rows.size():
-		_tear_rows[i] = randf_range(-3.0, 3.0) * unstable if randf() < unstable * 0.25 else 0.0
+		var was := _tears[i].active()
+		if _tears[i].update(delta, unstable * TEAR_RATE):
+			if not was:
+				_tear_rows[i] = randf_range(-3.0, 3.0) * unstable  # one offset per tear
+		else:
+			_tear_rows[i] = 0.0
 	# Rare dropped frames: you briefly aren't drawn at all.
-	_blink = randf() < instability * 0.02 * glitch * Settings.flash_scale()
+	_blink = _dropout.update(delta, instability * DROPOUT_RATE * glitch * Settings.flash_scale())
 
 	_trail_timer -= delta
 	if _trail_timer <= 0.0:
@@ -254,8 +271,15 @@ func _update_mood(delta: float) -> void:
 	else:
 		_sprite.glance = 0
 	# Restored colours aren't stable yet: under pressure they drop out.
-	var flicker := _restored > 0 and randf() < instability * 0.04 * Settings.glitch_intensity
+	var flicker := _colour_drop.update(delta, instability * COLOUR_DROP_RATE * Settings.glitch_intensity if _restored > 0 else 0.0)
 	_sprite.palette = MISSING if flicker else _palette
+
+
+## "you" over her head (World: the first run, until the first step).
+var you_cue := false:
+	set(v):
+		you_cue = v
+		queue_redraw()
 
 
 func _draw() -> void:
@@ -279,6 +303,14 @@ func _draw() -> void:
 	if _restore_flash > 0.0:
 		# Your colours flood back in: a white silhouette fading out.
 		_sprite.draw(self, {"solid": Color(1, 1, 1, _restore_flash / 1.2 * 0.8)})
+	if you_cue:
+		# The first run only: "you", in the opening's colour for the figure
+		# the player drove there, until the first step. No name.
+		var f := UiStyle.system_font()
+		var w := f.get_string_size("you", HORIZONTAL_ALIGNMENT_LEFT, -1, 7).x
+		var c := Color(Opening.P2_COLOR, 0.75 + 0.25 * sin(_t * 4.0))
+		draw_string(f, Vector2(-w * 0.5, top - 10), "you", HORIZONTAL_ALIGNMENT_LEFT, -1, 7, c)
+		draw_colored_polygon(PackedVector2Array([Vector2(-2.5, top - 7), Vector2(2.5, top - 7), Vector2(0, top - 4)]), c)
 	if _startle_mark > 0.0:
 		# "!" over your head.
 		var c := Color(1.0, 0.85, 0.45, minf(1.0, _startle_mark * 3.0))

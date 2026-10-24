@@ -20,6 +20,13 @@ const WHITE := Color("f4ead8")
 const NAME_COLOR := Color("f0a050")
 ## Arin closer than this gets a warning yip.
 const WARN_DISTANCE := 85.0
+## Pip leads (noses toward what's next) for this long after arriving in an
+## area, and again once Rue has stood still this long. Otherwise it stays at
+## her heel: a companion, not a route arrow.
+const ARRIVAL_LEAD := 3.0
+const HESITATE := 2.5
+## Coming back to her (a new run): one quick circle round her feet.
+const GREET := 1.4
 
 var mode: Mode = Mode.WAITING
 var world: World
@@ -33,6 +40,24 @@ var _join_after_talk := false
 ## Seconds the "!" stays up, and the cooldown before the next warning.
 var _yip := 0.0
 var _yip_cooldown := 0.0
+var _since_arrival := 0.0
+var _still := 0.0
+var _greet := 0.0
+var _leading := false
+
+
+func greeting() -> bool:
+	return _greet > 0.0
+
+
+func leading() -> bool:
+	return _leading
+
+
+## Back with her after a run: Pip runs one circle round her, then sits.
+func greet() -> void:
+	_greet = GREET
+	Sfx.play("pop", -6.0, 1.8)
 
 
 func can_interact() -> bool:
@@ -61,6 +86,7 @@ func interact() -> Dictionary:
 ## Appear next to the player (new area, new session).
 func arrive(at: Vector2) -> void:
 	position = at + Vector2(-14, 6)
+	_since_arrival = 0.0
 
 
 func _process(delta: float) -> void:
@@ -81,8 +107,16 @@ func _process(delta: float) -> void:
 func _follow(delta: float) -> void:
 	var p: Vector2 = world.player.global_position
 	var want := p + Vector2(-12.0 * _facing, 6.0)
+	_since_arrival += delta
+	_still = _still + delta if world.player.velocity.length() < 5.0 else 0.0
+	if _greet > 0.0:
+		_greet -= delta
+		var a := (1.0 - _greet / GREET) * TAU
+		want = p + Vector2(cos(a), sin(a) * 0.6) * 16.0  # round her feet
 	var goal := world.guide_target()
-	if goal != Vector2.INF and goal.distance_to(p) > 20.0:
+	_leading = _greet <= 0.0 and goal != Vector2.INF and goal.distance_to(p) > 20.0 \
+		and (_since_arrival < ARRIVAL_LEAD or _still > HESITATE)
+	if _leading:
 		want = p + (goal - p).normalized() * LEAD  # nose toward what's next
 	var to := want - global_position
 	_moving = to.length() > 3.0
@@ -102,7 +136,18 @@ func _warn_about_arin() -> void:
 		Sfx.play("pop", -2.0, 1.6)
 
 
+## Pip's size beside the taller cast (docs/ART_BIBLE.md: about 10 px tall,
+## always low to the ground).
+const DRAW_SCALE := 1.3
+
+
 func _draw() -> void:
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE * DRAW_SCALE)
+	_draw_fox()
+	draw_set_transform(Vector2.ZERO)
+
+
+func _draw_fox() -> void:
 	# A small fox, illustrated like the cast (docs/VISUAL_DIRECTION.md): soft
 	# shapes with the shared outline, drawn facing right and mirrored.
 	var f := _facing
@@ -133,10 +178,15 @@ func _draw() -> void:
 		draw_line(top, foot, Decor.INK, 2.4)
 		draw_line(top, foot, DARK, 1.4)
 	_blob(Vector2(-0.6 * f, y - 4.0 + (0.6 if sit else 0.0)), Vector2(5.4, 3.0), ORANGE, true)
+	# Painted light from the upper left, like the cast: a darker belly and a
+	# warm highlight along the back.
+	_ellipse(Vector2(-0.6 * f, y - 2.6 + (0.6 if sit else 0.0)), Vector2(4.6, 1.4), ORANGE.darkened(0.16))
+	_ellipse(Vector2(-1.4 * f, y - 5.6 + (0.6 if sit else 0.0)), Vector2(3.2, 0.8), ORANGE.lightened(0.22))
 	_blob(Vector2(1.4 * f, y - 2.8), Vector2(2.2, 1.4), WHITE, false)  # white chest
 	var head := Vector2(4.4 * f, y - 7.6 + (0.4 if sit else 0.0))
 	for ear: float in [-1.4, 1.4]:
 		_poly(PackedVector2Array([head + Vector2((ear - 1.0) * f, -1.6), head + Vector2(ear * f, -5.0), head + Vector2((ear + 1.2) * f, -1.8)]), ORANGE)
+		_poly(PackedVector2Array([head + Vector2((ear - 0.4) * f, -2.0), head + Vector2(ear * f, -4.0), head + Vector2((ear + 0.6) * f, -2.1)]), DARK, false)  # inside the ear
 	_poly(PackedVector2Array([head + Vector2(-2.6 * f, -1.8), head + Vector2(2.2 * f, -2.2), head + Vector2(4.6 * f, 0.6), head + Vector2(1.6 * f, 2.2), head + Vector2(-2.4 * f, 1.4)]), ORANGE)
 	_poly(PackedVector2Array([head + Vector2(1.4 * f, 0.2), head + Vector2(4.6 * f, 0.6), head + Vector2(1.8 * f, 2.2)]), WHITE, false)  # muzzle
 	Decor.disc(self, head + Vector2(4.6 * f, 0.5), 0.7, Decor.INK, 8)  # nose

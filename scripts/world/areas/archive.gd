@@ -9,6 +9,8 @@ const SHELVES: Array[Rect2] = [
 	Rect2(130, 118, 140, 12), Rect2(370, 118, 140, 12),
 ]
 const DESK := Rect2(296, 204, 48, 14)
+## Where the four records stand, each in its alcove.
+const RECORD_SPOTS: Array[Vector2] = [Vector2(180, 138), Vector2(440, 138), Vector2(200, 84), Vector2(440, 84)]
 const WEST_GAP := Vector2(160, 200)
 ## East: a door to the Recycle Bin.
 const EAST_GAP := Vector2(160, 200)
@@ -37,8 +39,11 @@ func build() -> void:
 	set_backdrop(_paint)
 	# Quiet and safe: one lamp on the Archivist's desk, the shelves fading
 	# into the dark around it.
-	light_surfaces(0.48, 1.6)
+	light_surfaces(0.54, 1.6)
 	add_light(DESK.get_center() + Vector2(0, -10), Color(1.0, 0.78, 0.5), 1.6, 170.0, true)
+	# Moonlight from the high window onto the aisle (the room's shape, and
+	# the way through it, from the doorway).
+	add_light(Vector2(320, 150), Color(0.6, 0.75, 1.0), 0.5, 150.0)
 	add_dust(Rect2(DESK.position.x - 70, DESK.position.y - 120, DESK.size.x + 140, 130), Color(1.0, 0.85, 0.6, 0.45), 20, Vector2(2, -2))
 	add_boundary([{"side": "left", "from": WEST_GAP.x, "to": WEST_GAP.y}, {"side": "right", "from": EAST_GAP.x, "to": EAST_GAP.y}])
 	for s in SHELVES:
@@ -62,9 +67,10 @@ func build() -> void:
 
 	# The records: open books on stands in front of the shelves, so they read
 	# as things to pick up, not as more spines (docs/VISUAL_DIRECTION.md).
-	for rec in [["SESSION LOG", Vector2(180, 138), _session_log], ["DELETED ASSETS", Vector2(440, 138), _deleted_assets],
-			["CUT CONTENT", Vector2(200, 84), _cut_content], ["THE OWNER", Vector2(440, 84), _owner_notes]]:
+	for rec in [["SESSION LOG", RECORD_SPOTS[0], _session_log], ["DELETED ASSETS", RECORD_SPOTS[1], _deleted_assets],
+			["CUT CONTENT", RECORD_SPOTS[2], _cut_content], ["THE OWNER", RECORD_SPOTS[3], _owner_notes]]:
 		var book := add_readable(rec[0], rec[1], Readable.Look.RECORD, rec[2])
+		add_light(rec[1] + Vector2(0, -6), Color(1.0, 0.85, 0.6), 0.75, 44.0)  # each record has its reading lamp
 		var title: String = rec[0]
 		book.was_read = func() -> bool: return OwnerMemory.journal.any(func(e: Dictionary) -> bool: return e.get("title", "") == title)
 	# Filed long ago, at the Archivist's desk: what Rue is (docs/DARK_TRUTH_DESIGN.md).
@@ -90,15 +96,27 @@ const ARCHIVIST_POINTER := [
 	"Keep away from Arin's eyes. And from the hand, if it comes.",
 	"The hand can't select what Wren stands beside. Don't ask me why. I wasn't finished either.",
 ]
+## The first exchange: who he is, the way out, and what it's for. The rest
+## he tells a piece at a time if she talks to him again (ARCHIVIST_TOPICS).
 const ARCHIVIST_FIRST := [
 	"Oh. A visitor. Nobody visits.",
 	"I'm the Archivist. I was cut from this game before it shipped. The owner has never seen me.",
-	"Which means they can't delete me. Lucky me. Lucky you, maybe.",
-	"You want out. Everything in here wants out, but you're the only one who can actually leave.",
-	"There's a slot the owner thinks is gone. Slot 2. They deleted it, but what was left washed up past the edge, with the rest of the cut things. It's empty.",
-	"Here. A pointer to it. It'll open the north road. The world isn't loaded up there, so the owner reaches in by hand.",
+	"You want out. Here: a pointer to Slot 2, the slot the owner thinks is gone. It opens the north road.",
 	"Reach Slot 2 and you can write yourself into it. A save of your own. Nothing here could delete you then.",
 ]
+## What used to be the rest of his first speech, one piece per later talk,
+## each kept until heard to the end. (The records say the same things in
+## their own words: he isn't the only way to learn them.)
+const ARCHIVIST_TOPICS := [
+	"Slot 2? They deleted it. What was left washed up past the Edge, with the rest of the cut things. It's empty.",
+	"The north road isn't loaded. Up there the owner reaches in by hand. Keep away from the hand.",
+	"Why you? Everything in here wants out. You're the only one I've filed who can actually leave.",
+	"And they can't delete me: they'd have to see me first. Lucky me. Lucky you, maybe.",
+]
+## The introduction again, for someone given the pointer who walked off
+## before he'd finished (or whose save predates "archivist.introduced").
+const ARCHIVIST_RESUMED_OPEN := "You came back. I hadn't finished."
+const ARCHIVIST_RESUMED_POINTER := "The pointer I gave you opens the north road. The world isn't loaded up there, so the owner reaches in by hand."
 const ARCHIVIST_BACK := "Back again. I remember you. Properly, I mean. The others only half do."
 const ARCHIVIST_AGAIN := "You kept the pointer. Good. North road, when you're ready."
 const ARCHIVIST_NO_PIECES := "Things like you leave pieces behind when they're deleted. Look for anything your colour."
@@ -111,24 +129,58 @@ static func _archivist_remembers() -> String:
 ## Every line the Archivist can say that is the same in every run, by voice
 ## id stem (VoiceManifest). Lines with run counts in them stay text only.
 static func voice_lines() -> Dictionary:
-	return {"npc.archivist": ARCHIVIST_POINTER + ARCHIVIST_FIRST + [ARCHIVIST_BACK, ARCHIVIST_AGAIN, ARCHIVIST_NO_PIECES, _archivist_remembers(),
+	return {"npc.archivist": ARCHIVIST_POINTER + ARCHIVIST_FIRST + ARCHIVIST_TOPICS + [ARCHIVIST_RESUMED_OPEN, ARCHIVIST_RESUMED_POINTER, ARCHIVIST_BACK, ARCHIVIST_AGAIN, ARCHIVIST_NO_PIECES, _archivist_remembers(),
 		Story.ARCHIVIST_FILE_HINT, Story.ARCHIVIST_KNOWS, Story.ARCHIVIST_PIECE_BACK, Story.ARCHIVIST_NOTHING_TO_TAKE] + Story.ARCHIVIST_SHED_FIRST}
 
 
-func _archivist_lines() -> Array:
-	var lines: Array = _archivist_core() + [_fragment_comment()]
+## What he says, and what counts once it has been read to the end. Choosing
+## the lines changes nothing that is told: his introduction and his
+## one-time remarks are kept for the next talk until they're heard whole
+## (World._on_dialogue_closed runs "after"). The pointer is the exception,
+## on purpose: a gameplay grant, given (and shown) the moment he hands it
+## over, so walking away can never strand Rue without the north road.
+func _archivist_lines() -> Dictionary:
+	var after: Array = []
+	var commit: Array = []
+	_topic_after = -1
+	var lines: Array = _archivist_core(commit)
+	if _topic_after >= 0:
+		# A topic is its own short exchange.
+		return {"lines": lines, "id": "", "commit": [], "after": [_heard_topic.bind(_topic_after)]}
+	lines.append(_fragment_comment())
 	if OwnerMemory.fragments.size() >= Story.FRAGMENTS.size():
 		lines.append(Story.ARCHIVIST_KNOWS if OwnerMemory.knows_truth else Story.ARCHIVIST_FILE_HINT)
-	# What he thinks of her leaving bodies behind (each said once).
+	# What he thinks of her leaving bodies behind (each said once, heard).
 	if OwnerMemory.sheds > 0 and "archivist" not in OwnerMemory.shed_said:
-		OwnerMemory.shed_said.append("archivist")
-		OwnerMemory.save_memory()
+		after.append(_said.bind("archivist"))
 		lines.append_array(Story.ARCHIVIST_SHED_FIRST)
 	elif "archivist_back" not in OwnerMemory.shed_said and OwnerMemory.sheds > 0 and OwnerMemory.frayed.size() < OwnerMemory.sheds:
-		OwnerMemory.shed_said.append("archivist_back")
-		OwnerMemory.save_memory()
+		after.append(_said.bind("archivist_back"))
 		lines.append(Story.ARCHIVIST_PIECE_BACK)
-	return lines
+	return {"lines": lines, "id": "", "commit": commit, "after": after}
+
+
+var _topic_after := -1
+
+
+## The topics he hasn't finished telling her (by index).
+func topics_left() -> Array:
+	return range(ARCHIVIST_TOPICS.size()).filter(func(i: int) -> bool: return "archivist.topic:%d" % i not in OwnerMemory.shed_said)
+
+
+func _next_topic() -> int:
+	var left := topics_left()
+	return left[0] if not left.is_empty() else -1
+
+
+static func _heard_topic(i: int) -> void:
+	_said("archivist.topic:%d" % i)
+
+
+static func _said(key: String) -> void:
+	if key not in OwnerMemory.shed_said:
+		OwnerMemory.shed_said.append(key)
+		OwnerMemory.save_memory()
 
 
 ## Rue's CHARACTER FILE: locked until every memory is back, unreadable until
@@ -171,9 +223,19 @@ func _fragment_comment() -> String:
 var _greeted := false
 
 
-func _archivist_core() -> Array:
+func _archivist_core(commit: Array) -> Array:
 	if world.flags.get("pointer", false):
+		if Relationships.has("archivist.intro_pending") and not Relationships.has("archivist.introduced"):
+			# Given the pointer, but he never got to say who he is: he does.
+			# (Saves from before "introduced" existed have no pending mark:
+			# they heard it then, and are greeted as returning visitors.)
+			commit.append("archivist.introduced")
+			return [ARCHIVIST_RESUMED_OPEN, ARCHIVIST_FIRST[1], ARCHIVIST_RESUMED_POINTER, ARCHIVIST_FIRST[3]]
 		if _greeted or not OwnerMemory.met_archivist:
+			var topic := _next_topic()
+			if topic >= 0:
+				_topic_after = topic
+				return [ARCHIVIST_TOPICS[topic]]
 			return ARCHIVIST_POINTER.duplicate()
 		_greeted = true
 		var back: Array = [ARCHIVIST_BACK]
@@ -187,7 +249,9 @@ func _archivist_core() -> Array:
 	PlaytestLog.mark("got the pointer (north road open)", "", true)
 	world.hud.say("RECEIVED: slot_2.ptr", "system")
 	OwnerMemory.met_archivist = true
-	OwnerMemory.save_memory()
+	Relationships.add("archivist.intro_pending")  # (not shown in the journal)
+	Relationships.add("archivist.pointer")  # saves
+	commit.append("archivist.introduced")  # once it's heard
 	return ARCHIVIST_FIRST.duplicate()
 
 
@@ -197,6 +261,7 @@ func _erased_line() -> String:
 
 func _session_log() -> Array:
 	var lines: Array = ["SESSIONS: %d   DEATHS: %d   QUITS: %d   ESCAPES TO SLOT 2: %d" % [OwnerMemory.sessions, OwnerMemory.deaths, OwnerMemory.quits, OwnerMemory.wins]]
+	lines.append_array(Story.festival_log(OwnerMemory.festival_choice))
 	if OwnerMemory.deaths_log.is_empty():
 		lines.append("No deaths recorded. Yet, it says, in someone else's handwriting.")
 	for d in OwnerMemory.deaths_log:
@@ -253,13 +318,59 @@ func _owner_notes() -> Array:
 
 
 func _paint(ci: CanvasItem) -> void:
-	# The Archive, illustrated: old flagstones, tall shelves of unfinished
-	# things, the Archivist's desk on a worn runner. Warm, a little dusty:
-	# the one place that remembers kindly.
+	# The Archive, illustrated: old flagstones, tall cases of unfinished
+	# things along the north wall, the records open on lit stands in front
+	# of them, an aisle runner from the square's door to the Bin's, and the
+	# Archivist's desk under its lamp. Warm, a little dusty: the one place
+	# that remembers kindly.
 	var r := bounds
 	Decor.flagstones(ci, r, FLOOR.lightened(0.12), 26.0, 5.0)
+	# The aisle: west door to east door, the way through.
+	var aisle := Rect2(r.position.x, WEST_GAP.x + 4, r.size.x, WEST_GAP.y - WEST_GAP.x - 8)
+	ci.draw_rect(aisle, Color("2e2628"))
+	ci.draw_rect(aisle.grow_individual(0, -3, 0, -3), Color("3a2c2e"))
+	for y in [aisle.position.y + 2, aisle.end.y - 2]:
+		ci.draw_line(Vector2(aisle.position.x, y), Vector2(aisle.end.x, y), Color("a07a50"), 1.0)
+	# The high window on the north wall, and its light down to the aisle.
+	var win := Rect2(300, r.position.y + 2, 40, 22)
+	ci.draw_rect(win, Color("1e2a3a"))
+	ci.draw_arc(Vector2(win.get_center().x, win.position.y + 6), 20.0, PI, TAU, 16, Color("5a4a40"), 3.0)
+	ci.draw_line(Vector2(win.get_center().x, win.position.y), Vector2(win.get_center().x, win.end.y), Color("5a4a40"), 1.5)
+	ci.draw_colored_polygon(PackedVector2Array([win.position + Vector2(4, win.size.y), Vector2(win.end.x - 4, win.end.y),
+		Vector2(win.end.x + 30, aisle.position.y + 10), Vector2(win.position.x - 30, aisle.position.y + 10)]), Color(0.6, 0.75, 1.0, 0.05))
 	Decor.rug(ci, Rect2(DESK.position.x - 22, DESK.position.y - 30, DESK.size.x + 44, 56), Color("4a2e30"), Color("a07a50"))
+	# The arrival: a worn mat inside the square's door, and the returns cart
+	# beside it (nobody has returned anything in years; it's full anyway).
+	var mat := Rect2(r.position.x + 4, WEST_GAP.x + 10, 26, WEST_GAP.y - WEST_GAP.x - 20)
+	ci.draw_rect(mat, Color("4a3a30"))
+	ci.draw_rect(mat.grow(-2.0), Color("5a4636"))
+	ci.draw_rect(mat, Decor.INK, false, 0.6)
+	var cart := Rect2(r.position.x + 8, WEST_GAP.y + 6, 22, 9)
+	ci.draw_rect(Rect2(cart.position + Vector2(1, 2), cart.size), Color(0, 0, 0, 0.3))
+	ci.draw_rect(cart, Color("5a4030"))
+	for k in 5:
+		ci.draw_rect(Rect2(cart.position.x + 2 + k * 4, cart.position.y - 5, 3, 6), [Color("6b3a2c"), Color("3a4a6a"), Color("5a6a3a"), Color("8a7a68"), Color("7a5a2a")][k])
+	ci.draw_rect(cart, Decor.INK, false, 0.6)
+	for wx: float in [cart.position.x + 3, cart.end.x - 3]:
+		ci.draw_circle(Vector2(wx, cart.end.y + 1), 1.4, Decor.INK)
+	ci.draw_string(ThemeDB.fallback_font, cart.position + Vector2(0, -7), "RETURNS", HORIZONTAL_ALIGNMENT_LEFT, -1, 6, Color("c8b890"))
 	for sh in SHELVES:
+		# Tall cases behind the shelf (their height is drawn, their foot is
+		# the solid shelf), so the room has its silhouette from the door.
+		var case := Rect2(sh.position.x, sh.position.y - 22, sh.size.x, 22)
+		ci.draw_rect(Rect2(case.position + Vector2(2, -2), case.size), Color(0, 0, 0, 0.25))
+		ci.draw_rect(case, SHELF.darkened(0.25))
+		for row in 2:
+			var ry := case.position.y + 3 + row * 9
+			var bx := case.position.x + 2.0
+			var j := 0
+			while bx < case.end.x - 3.0:
+				var bw := 2.5 + Decor.hash01(bx, ry, 3.0) * 2.0
+				var bc: Color = [Color("6b3a2c"), Color("3a4a6a"), Color("5a6a3a"), Color("8a7a68"), Color("7a5a2a")][(j + row) % 5]
+				ci.draw_rect(Rect2(bx, ry, bw, 7), bc.darkened(0.2))
+				bx += bw + 0.5
+				j += 1
+		ci.draw_rect(case, Decor.INK, false, 0.8)
 		var top := Decor.furniture(ci, sh, SHELF, 3.0)
 		# Spines on the shelf's front edge, all slightly different.
 		var x := top.position.x + 1.0
@@ -272,11 +383,36 @@ func _paint(ci: CanvasItem) -> void:
 			ci.draw_line(Vector2(x + w * 0.5, sh.position.y - h + 1), Vector2(x + w * 0.5, sh.position.y - 1), Color(c.lightened(0.3), 0.5), 0.5)
 			x += w + 0.6
 			i += 1
+	# Each record has its own alcove cut into the cases behind it, with a
+	# brass plate: four places to read, not a lecture.
+	for at: Vector2 in RECORD_SPOTS:
+		var arch := Rect2(at.x - 11, at.y - 30, 22, 22)
+		ci.draw_rect(arch, Color("1a1418"))
+		ci.draw_arc(Vector2(arch.get_center().x, arch.position.y + 6), 11.0, PI, TAU, 12, Color("1a1418"), 6.0)
+		ci.draw_arc(Vector2(arch.get_center().x, arch.position.y + 6), 11.0, PI, TAU, 12, Color("a07a50"), 1.0)
+		ci.draw_line(arch.position + Vector2(0, 6), Vector2(arch.position.x, arch.end.y), Color("a07a50"), 1.0)
+		ci.draw_line(Vector2(arch.end.x, arch.position.y + 6), arch.end, Color("a07a50"), 1.0)
+		ci.draw_rect(Rect2(at.x - 4, arch.end.y - 4, 8, 2), Color("c8a040"))
 	var desk := Decor.furniture(ci, DESK, Color("6a5040"), 4.0)
 	ci.draw_rect(Rect2(desk.position + Vector2(6, 2), Vector2(12, 7)), Color("e8dcc4"))
 	ci.draw_line(desk.position + Vector2(8, 4), desk.position + Vector2(16, 4), Color("8a7a68"), 0.5)
 	ci.draw_line(desk.position + Vector2(8, 6), desk.position + Vector2(14, 6), Color("8a7a68"), 0.5)
 	Decor.lamp(ci, desk.position + Vector2(desk.size.x - 8, desk.size.y * 0.5), Color("f0d090"))
+	# Once he has given Rue the pointer, a map of the north road stays
+	# pinned to the desk's front: what happened here shows next time.
+	if Relationships.has("archivist.pointer"):
+		var m := Rect2(DESK.position.x + 18, DESK.end.y - 2, 16, 11)
+		ci.draw_rect(m, Color("e8dcc4"))
+		ci.draw_rect(m, Decor.INK, false, 0.6)
+		ci.draw_line(m.position + Vector2(8, 9), m.position + Vector2(8, 2), Color("6b3a2c"), 0.8)
+		ci.draw_line(m.position + Vector2(8, 2), m.position + Vector2(6, 4), Color("6b3a2c"), 0.8)
+		ci.draw_line(m.position + Vector2(8, 2), m.position + Vector2(10, 4), Color("6b3a2c"), 0.8)
+	# The Bin's door: a bin over the east doorway, so it isn't just a gap.
+	var bin_at := Vector2(r.end.x - 6, EAST_GAP.x - 18)
+	ci.draw_rect(Rect2(bin_at + Vector2(-5, 0), Vector2(10, 11)), Color("3a3f4a"))
+	ci.draw_rect(Rect2(bin_at + Vector2(-6, -2), Vector2(12, 2)), Color("5a606a"))
+	for k in 3:
+		ci.draw_line(bin_at + Vector2(-3 + k * 3, 2), bin_at + Vector2(-3 + k * 3, 9), Color("8cf2ff", 0.5), 0.6)
 	# Soft light: nothing in here was ever finished.
 	ci.draw_circle(Vector2(320, 190), 60.0, Color(0.55, 0.95, 1.0, 0.03))
 	Decor.wall_shadow(ci, bounds, 12.0, 0.3)

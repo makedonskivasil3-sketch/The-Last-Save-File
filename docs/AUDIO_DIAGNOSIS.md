@@ -168,3 +168,23 @@ The babble path works. On a phone speaker, 70 ms syllables under the music are e
 2. **Laptop speakers at a normal volume:** on the title you should hear the music box. In Arin's room the hum should be just audible and the theme faint.
 3. **Headphones:** the hum shouldn't feel boomy, and the added harmonics shouldn't sound like a buzz. This is a timbre change to judge by ear.
 4. **Settings:** set Music to 0. The theme and the hum should stop, and the effects should continue.
+
+
+## The visible sound badge was removed (continuity milestone)
+
+The bottom-left "Sound on / Turn off silent mode…" badge covered subtitles and
+narration, so `web/sound_unlock.js` no longer draws anything. Everything else
+is unchanged:
+- unlock on the first gesture;
+- the iOS sample-rate handling;
+- the silent media loop;
+- `audioSession`;
+- recovery after speech and on a 1.5 s check;
+- the visibility handling.
+
+The state (`waiting`, `off`, `blocked`, `running`) is now kept on
+`document.documentElement.dataset.soundState`. That is what
+`tests/web/audio_output_check.cjs` reads. That check also fails if a
+`#sound-state` element appears.
+
+A real operating-system notification is not something a web page can remove.

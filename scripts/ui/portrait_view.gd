@@ -62,7 +62,7 @@ func _draw() -> void:
 	draw_circle(Vector2(size.x * 0.5, size.y * 0.4), size.x * 0.34, Color(tint, 0.16))
 	if _asset:
 		var shown_frame := frame
-		if shown_frame == "talk" and _figure and fmod(_figure._t, 0.24) >= 0.12:
+		if shown_frame == "talk" and not mouth_open():
 			shown_frame = ""
 		var tex := _asset.texture(shown_frame)
 		var source := Rect2(_asset.crop.position * tex.get_size(), _asset.crop.size * tex.get_size())
@@ -75,3 +75,10 @@ func _draw() -> void:
 	var head_y := float(PixelCharacter.FEET_Y) + _figure._head_y()
 	var offset := Vector2(size.x * 0.5, size.y * 0.44 - head_y * k)
 	_figure.draw(self, {"offset": offset, "scale": k})
+
+
+## Is the mouth open in this frame? While the line is spoken (frame "talk")
+## it opens and closes on one clock, the figure's own, for the drawn bust and
+## finished art alike; nothing else toggles it.
+func mouth_open() -> bool:
+	return frame == "talk" and (_figure == null or fmod(_figure._t, 0.24) < 0.12)

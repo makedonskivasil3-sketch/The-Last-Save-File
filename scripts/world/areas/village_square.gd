@@ -2,6 +2,13 @@ class_name VillageSquare
 extends Area
 ## Ashvale's square, the owner's hub. Arin (driven by the owner) walks a loop
 ## around the well. Wren can hide you. Tobben reports you.
+##
+## Wider than the screen (docs/VERTICAL_SLICE.md §3c): the camera follows Rue
+## east from the old square (arrival, the well, Wren, Tobben's) across an
+## exposed crossing the owner watches through a sweeping lamp, past a
+## covered bench to hide under, to the Archive's front and the road under
+## its arch. Behind Tobben's a fenced lane runs east, sheltered, to a gate
+## latched on the lane side: lifted once, it stays open (the shortcut).
 
 ## Rue walks at 90: the cursor never closes on someone who keeps moving
 ## (the Edge caps its own at 62).
@@ -14,11 +21,36 @@ const STALL := Rect2(440, 44, 96, 34)
 const CRATES := Rect2(64, 222, 40, 40)
 ## Where a dragged crate stack blocks the north road and the east road.
 const BLOCK_NORTH := Vector2(320, 58)
-const BLOCK_EAST := Vector2(580, 180)
+const BLOCK_EAST := Vector2(898, 180)
 const BOARD_POS := Vector2(240, 40)
 const EAST_GAP := Vector2(160, 200)
 const NORTH_GAP := Vector2(300, 340)
-const TREES: Array[Vector2] = [Vector2(190, 268), Vector2(560, 250), Vector2(420, 274), Vector2(560, 120), Vector2(60, 160)]
+const TREES: Array[Vector2] = [Vector2(190, 268), Vector2(560, 250), Vector2(420, 274), Vector2(566, 132), Vector2(60, 160),
+	Vector2(840, 262), Vector2(616, 270)]
+## The lamp is a warning more than a hunter: a longer grace than Arin's look
+## and a quarter of his rate, so crossing on the road costs little and
+## lingering in the beam costs a lot (balance: VERTICAL_SLICE.md §3c).
+const LAMP_GRACE := 0.6
+const LAMP_RATE := 6.0
+## Where the lamp's sweep starts once the lane gate is open (it covers the
+## gate's mouth as well as the crossing).
+const LAMP_GATE_ARC := -0.25
+## The east half (docs/VERTICAL_SLICE.md §3c).
+## The crossing: open cobbles, no cover, the lamp's beam.
+const CROSSING := Rect2(600, 118, 190, 124)
+const LAMP_POS := Vector2(668, 114)
+## The covered bench on the crossing's south side: the awning hides you.
+const RECESS := Rect2(708, 248, 52, 32)
+## The Archive's front, over the road out east (the landmark).
+const LIBRARY := Rect2(790, 36, 130, 66)
+## The lane behind Tobben's, its fence, and the gate at its east end.
+const LANE := Rect2(540, 40, 250, 58)
+const FENCE_Y := 98.0
+const GATE := Rect2(740, 98, 34, 6)
+## The Archive's gatehouse over the road out east: its two piers are solid,
+## the passage between them (EAST_GAP) is the way in.
+const GATEHOUSE_N := Rect2(884, 102, 36, 54)
+const GATEHOUSE_S := Rect2(884, 206, 36, 86)
 const ROUTE: Array[Vector2] = [Vector2(200, 130), Vector2(440, 130), Vector2(440, 230), Vector2(200, 230)]
 ## Arin has to keep you in view this long before the owner reacts.
 const SIGHT_GRACE := 0.35
@@ -26,7 +58,7 @@ const SIGHT_GRACE := 0.35
 const SIGHT_RATE := 22.0
 ## Where the eraser starts when the owner hunts: the far corners, away from
 ## both roads out, so it chases you instead of walling off the exits.
-const ERASE_SEEDS: Array[Vector2] = [Vector2(56, 280), Vector2(588, 52)]
+const ERASE_SEEDS: Array[Vector2] = [Vector2(56, 280), Vector2(820, 280)]
 
 const GRASS := Color("1f2a1e")
 const PATH := Color("3a3128")
@@ -39,6 +71,15 @@ const WREN_LINES := [
 	"If they find out I hid you, they'll take me out of the save. It's okay. Go.",
 	"You look like someone who used to play here. Before. They fell in the well once. It was funny.",
 ]
+## Wren's wave, when Arin comes and Rue is in the open near her (before
+## she has ever explained why standing beside her works).
+const WREN_BECKON := "here!"
+const BECKON_ARIN := 150.0
+const BECKON_RUE := 110.0
+## Her shelter, and after the Edge (safe for good, out of the owner's reach):
+## she can cover Rue from a little further out.
+const WREN_SHELTER := 22.0
+const WREN_SHELTER_SAFE := 30.0
 const TOBBEN_LINES := [
 	"Welcome to Tobben's! Finest wares in Ashvale!",
 	"Welcome to Tobben's! Finest... you don't have any gold. You don't have an inventory.",
@@ -71,14 +112,25 @@ static func wren_expression(line: String) -> String:
 static func voice_lines() -> Dictionary:
 	return {
 		"npc.wren": Story.recall_lines("wren") + [Story.TRUTH_LINES.wren] + Story.FRAY_TAKEN.wren
-			+ [Story.FRAY_LINES.wren, Story.FRAY_RECALL.wren, Story.FRAY_RETURNED.wren] + WREN_LINES + Story.WREN_SAVED_LINES + [Story.WREN_ASK, Story.WREN_ASK_SAVED] + Story.WREN_JOINS + Story.WREN_DECLINED,
+			+ [Story.FRAY_LINES.wren, Story.FRAY_RECALL.wren, Story.FRAY_RETURNED.wren] + WREN_LINES + Story.WREN_SAVED_LINES + [Story.WREN_ASK, Story.WREN_ASK_SAVED] + Story.WREN_JOINS + Story.WREN_DECLINED
+			+ Relationships.wren_lines(),
 		# (Frayed, he writes: only the line when his voice comes back is said.)
-		"npc.tobben": Story.recall_lines("tobben") + [Story.TRUTH_LINES.tobben, Story.FRAY_RETURNED.tobben] + TOBBEN_LINES,
+		"npc.tobben": Story.recall_lines("tobben") + [Story.TRUTH_LINES.tobben, Story.FRAY_RETURNED.tobben] + TOBBEN_LINES
+			+ Relationships.tobben_lines(),
 	}
 
 
 var arin: OwnerAvatar
 var cursor: OwnerCursor
+var lamp: OwnerLamp
+var gate: LaneGate
+## The checkpoint scene (Relationships.WREN_MARKED): Wren waits at the rim.
+const WREN_AT_WELL := Vector2(342, 194)
+var _marking := false
+var _mark_started := false
+var _lamp_seen_for := 0.0
+var _lamp_seen_frame := -10
+var _lamp_spotted := false
 var wren: Npc
 var tobben: Npc
 var board: Note
@@ -86,6 +138,9 @@ var north_exit: Exit
 var crates: DragProp
 ## Climb into the well: the way out of bounds.
 var well: Passage
+var rim: WellRim
+## Holding LISTEN at the rim to answer (seconds held so far, -1 if not).
+var _answer_t := -1.0
 ## Arin's front door: locked, but UNLOCK opens it for a few seconds.
 var door: Door
 
@@ -105,14 +160,15 @@ var _seen_frame := -10
 func _init() -> void:
 	area_id = "square"
 	display_name = "ASHVALE · VILLAGE SQUARE"
-	bounds = Rect2(40, 36, 560, 256)
+	bounds = Rect2(40, 36, 880, 256)
+	view_size = Vector2(960, 360)
 	awareness_rate = 1.0
 	tint = Color(0.95, 0.95, 1.0)
 	entries = {
 		"house": Vector2(111, 118),
-		"east": Vector2(578, 180),
+		"east": Vector2(898, 180),
 		"north": Vector2(320, 54),
-		"well": Vector2(320, 194),
+		"well": Vector2(320, 214),
 	}
 
 
@@ -127,8 +183,11 @@ func build() -> void:
 		{"side": "right", "from": EAST_GAP.x, "to": EAST_GAP.y},
 		{"side": "top", "from": NORTH_GAP.x, "to": NORTH_GAP.y},
 	])
-	for r in [HOUSE, WELL, STALL]:
+	for r in [HOUSE, WELL, STALL, LIBRARY, GATEHOUSE_N, GATEHOUSE_S]:
 		add_solid(r)
+	# The lane's fence, either side of its gate.
+	add_solid(Rect2(LANE.position.x, FENCE_Y, GATE.position.x - LANE.position.x, GATE.size.y))
+	add_solid(Rect2(GATE.end.x, FENCE_Y, LANE.end.x - GATE.end.x, GATE.size.y))
 	set_backdrop(_paint)
 	add_canopies(TREES, 13.0, Color("3e5a3a"))
 	# The remembered afternoon, outdoors: a low warm sun that the houses
@@ -137,6 +196,7 @@ func build() -> void:
 	add_light(Vector2(220, 70), Color(1.0, 0.86, 0.62), 0.75, 560.0, true)
 	add_light(WELL.get_center() + Vector2(0, 14), Color(1.0, 0.75, 0.45), 0.9, 70.0)
 	add_light(STALL.get_center() + Vector2(0, 30), Color(1.0, 0.8, 0.55), 0.8, 90.0)
+	add_light(Vector2(GATEHOUSE_N.get_center().x - 10, (EAST_GAP.x + EAST_GAP.y) * 0.5), Color(1.0, 0.82, 0.5), 0.9, 90.0)  # the gatehouse's lamp
 	add_dust(bounds.grow(-10), Color(1.0, 0.95, 0.75, 0.4), 30, Vector2(6, -1))  # pollen on the breeze
 	crates = DragProp.new()
 	crates.setup(CRATES)
@@ -165,7 +225,7 @@ func build() -> void:
 	var house_door := add_readable("ARIN'S HOUSE", Vector2(111, 108), Readable.Look.SIGN, _house_door_lines)
 	house_door.prompt = "door"
 
-	add_sign(Vector2(bounds.end.x - 34, EAST_GAP.x - 10), "ARCHIVE", Vector2.RIGHT)
+	add_sign(Vector2(GATEHOUSE_N.position.x - 26, EAST_GAP.x - 10), "ARCHIVE", Vector2.RIGHT)
 	add_sign(Vector2((NORTH_GAP.x + NORTH_GAP.y) * 0.5, bounds.position.y + 12), "NORTH ROAD", Vector2.UP,
 		func() -> bool: return world.flags.get("pointer", false))
 	add_sign(Vector2(WELL.get_center().x, WELL.position.y - 8), "WELL", Vector2.DOWN)
@@ -188,18 +248,49 @@ func build() -> void:
 	well.taken.connect(func(p: Passage) -> void: world.change_area(p.target_area, p.arrival))
 	add_child(well)
 	interactables.append(well)
+	# Its rim, on the far side: listen (WellSequence).
+	rim = WellRim.new()
+	rim.position = Vector2(WELL.get_center().x, WELL.position.y - 8)
+	rim.listened.connect(_on_listen)
+	add_child(rim)
+	interactables.append(rim)
 
+	# Back up the well after waking under it: Wren is waiting at the rim.
+	_marking = arrival == "well" and world.woke_at_anchor and Relationships.has("wren.met") \
+		and not Relationships.has("wren.marked_well") and not OwnerMemory.is_deleted("wren") and world.escort_id() != "wren"
+	Relationships.wren_at_well = _marking
 	if world.escort_id() != "wren":  # not when she's already walking with you
-		wren = make_wren(self, Vector2(126, 246))
+		wren = make_wren(self, WREN_AT_WELL if _marking else Vector2(126, 246))
 		interactables.append(wren)
 		wren.lines_provider = _wren_lines
+		if OwnerMemory.met_before("wren"):
+			_wren_line = 1  # no "You're the one Mira talks about." again
+			_wren_ask_at = 3
+
+	gate = LaneGate.new()
+	gate.setup(GATE)
+	gate.player = world.player
+	add_child(gate)
+	interactables.append(gate)
+
+	lamp = OwnerLamp.new()
+	lamp.position = LAMP_POS
+	lamp.player = world.player
+	lamp.is_hidden = world.is_player_hidden.bind("lamp")
+	# Once the gate is open, the owner turns the lamp to cover it too: the
+	# moment it opens (watched), and from then on (restored).
+	if OwnerMemory.square_gate_open:
+		lamp.widen_to(LAMP_GATE_ARC, 0.0)
+	gate.opened.connect(_on_gate_opened)
+	lamp.sees_player.connect(_on_lamp_sees)
+	add_child(lamp)
 
 	tobben = add_npc("tobben", Vector2(488, 92))
 	tobben.display_name = "TOBBEN"
 	tobben.dress_color = Color("7a5a8a")
 	tobben.hair_color = Color("bbbbbb")
 	tobben.body_kind = "apron"
-	tobben.idle_style = "wave"
+	tobben.idle_style = "tend"  # at his wares; he still waves when you come close
 	tobben.notice_emote = "?"
 	tobben.skin_color = Color("e0b48a")
 	tobben.accent_color = Color("bbbbbb")
@@ -213,7 +304,7 @@ func build() -> void:
 	# Even at the worst, Arin stays slower than you (90): you can always run.
 	arin.speed = 38.0 + OwnerMemory.purge * 4.0
 	arin.player = world.player
-	arin.is_hidden = world.is_player_hidden
+	arin.is_hidden = world.is_player_hidden.bind("arin")
 	arin.sees_player.connect(_on_arin_sees)
 	arin.touched_player.connect(func() -> void: world.kill("overwritten", "arin"))
 	arin.lure = world.lure_point
@@ -279,12 +370,17 @@ func on_owner_event(threshold: float) -> void:
 				cursor.speed = minf(cursor.speed * 1.2, CURSOR_MAX_SPEED)
 
 
-## Pinning Mira's note to the board.
+## Pinning Mira's note to the board (and, once she's asked, looking for her).
 func interact_extra(node: Node2D) -> void:
+	if node == board and OwnerMemory.mira_quest == "pinned" and OwnerMemory.has_conversation("mira.after_pinned") \
+			and not Relationships.has("mira.board_checked"):
+		Relationships.add("mira.board_checked")
+		world.hud.say("(still up. i'll tell her.)", "self")
 	if node == board and OwnerMemory.mira_quest == "carried":
 		OwnerMemory.mira_quest = "pinned"
 		OwnerMemory.save_memory()
 		board.set_text_now(Story.MIRA_NOTE_TEXT)
+		queue_redraw()
 		world.hud.close_dialogue()
 		world.hud.say("PINNED: mira_note.txt", "system")
 		Sfx.play("seal", -4.0, 1.3)
@@ -312,6 +408,7 @@ func on_dialogue_closed(who: Node) -> void:
 	world.player.frozen = false
 	if pick == 0:
 		world.hud.show_dialogue("WREN", wren.name_color, Story.WREN_JOINS, "npc.wren", CharacterArt.for_npc(wren), World.expressions_for(wren, Story.WREN_JOINS))
+		Relationships.add("wren.promised")
 		world.start_escort(wren)
 		wren = null
 	else:
@@ -319,7 +416,14 @@ func on_dialogue_closed(who: Node) -> void:
 		world.hud.show_dialogue("WREN", wren.name_color, Story.WREN_DECLINED, "npc.wren", CharacterArt.for_npc(wren), World.expressions_for(wren, Story.WREN_DECLINED))
 
 
+var wren_beckoned := false
+var _beckon_cooldown := 0.0
+
+
 func area_process(delta: float) -> void:
+	_well_process(delta)
+	_wren_beckon(delta)
+	_mark_process()
 	# UNLOCK on the front door: walk in while it's glitched open.
 	if door.is_forced_open() and world.player.global_position.distance_to(door.global_position) < 18.0:
 		world.change_area("house", "front")
@@ -329,8 +433,24 @@ func area_process(delta: float) -> void:
 		world.director.add_awareness(8.0 * delta)
 	north_exit.open = world.flags.get("pointer", false)
 	arin.paused = world.is_talking() or world.is_owner_paused()
+	lamp.paused = arin.paused
 	if world.player.global_position.distance_to(well.global_position) < 40.0:
 		world.voice("well_look")
+
+
+## Before she has said a word about it, Wren waves Rue over when Arin comes
+## (her generosity is something she does first, and explains later).
+func _wren_beckon(delta: float) -> void:
+	_beckon_cooldown = maxf(0.0, _beckon_cooldown - delta)
+	if _beckon_cooldown > 0.0 or wren == null or not is_instance_valid(wren) or not wren.is_present() \
+			or Relationships.has("wren.sheltered") or world.player.sheltered or world.is_talking():
+		return
+	var rue := world.player.global_position
+	if arin.global_position.distance_to(rue) < BECKON_ARIN and rue.distance_to(wren.global_position) < BECKON_RUE:
+		wren_beckoned = true
+		_beckon_cooldown = 6.0
+		wren.emote(WREN_BECKON, 2.0)
+		wren.offer_shelter(2.0)
 
 
 func _house_door_lines() -> Array:
@@ -366,7 +486,7 @@ func _unleash() -> void:
 		cursor.position = _cursor_start()
 		cursor.speed = minf(48.0 + OwnerMemory.purge * 5.0, CURSOR_MAX_SPEED)
 		cursor.player = world.player
-		cursor.is_hidden = world.is_player_hidden
+		cursor.is_hidden = world.is_player_hidden.bind("cursor")
 		cursor.selected_player.connect(func() -> void: world.kill("selected", "cursor"))
 		cursor.lure = world.lure_point
 		cursor.paused = world.is_owner_paused()
@@ -394,11 +514,81 @@ func _on_arin_sees(delta: float) -> void:
 func _landmark(p: Vector2) -> String:
 	if p.distance_to(WELL.get_center()) < 70.0:
 		return "well"
+	if p.x > 780.0:
+		return "archive"
+	if LANE.has_point(p):
+		return "lane"
+	if p.x > 600.0:
+		return "crossing"
 	if p.x > 420.0 and p.y < 140.0:
 		return "shop"
 	if p.x < 200.0:
 		return "house"
 	return "road"
+
+
+## The scene starts by itself once Rue is up and near her (she speaks
+## first). Committed only when read whole (Relationships._once); its words
+## go in the journal at once, so a scene cut short can be re-read there.
+func _mark_process() -> void:
+	if not _marking or _mark_started or wren == null or not world._awake or world.in_cutscene() or world.is_talking():
+		return
+	if world.player.global_position.distance_to(wren.global_position) > World.TALK_BREAK_DISTANCE - 6.0:
+		return  # (only where a conversation holds: closer than it breaks)
+	_mark_started = true
+	await get_tree().create_timer(0.5).timeout
+	if not is_inside_tree() or wren == null or world.ending != "" or world.is_talking():
+		_mark_started = false
+		return
+	world._interact(wren)
+	OwnerMemory.record_read("square:WREN, AT THE WELL", "note", "WREN, AT THE WELL", display_name,
+		Relationships.WREN_MARKED_SAW if world._talk_result.get("lines", []) == Relationships.WREN_MARKED_SAW else Relationships.WREN_MARKED)
+	if not world.conversation_completed.is_connected(_on_marked):
+		world.conversation_completed.connect(_on_marked)
+
+
+func _on_marked(_who: Node) -> void:
+	queue_redraw()  # the chalk, from now on
+
+
+func _exit_tree() -> void:
+	Relationships.wren_at_well = false  # only on this visit
+
+
+func _on_gate_opened() -> void:
+	lamp.widen_to(LAMP_GATE_ARC)
+	world.director.say("the gate behind the stall. i'll keep the lamp on it.")
+
+
+## In the lamp's beam: like Arin's look (a short grace, then attention).
+func _on_lamp_sees(delta: float) -> void:
+	var frame := Engine.get_physics_frames()
+	if frame - _lamp_seen_frame > 2:
+		_lamp_seen_for = 0.0
+	_lamp_seen_frame = frame
+	_lamp_seen_for += delta
+	if _lamp_seen_for < LAMP_GRACE:
+		return
+	world.director.add_awareness(LAMP_RATE * delta)
+	world.flags["seen_by_lamp"] = true
+	# Held in the beam: the owner learns the spot (once per time in it), so
+	# later runs Arin walks the crossing too. Crossing openly costs little
+	# now and more later; the bench and the lane are how to avoid that.
+	if _lamp_seen_for - delta < LAMP_GRACE:
+		OwnerMemory.note_spot(area_id, world.player.global_position)
+	if not _lamp_spotted:
+		_lamp_spotted = true
+		Sfx.play("spotted")
+		world.director.say("the lamp. i can see the crossing from here.")
+
+
+## The bench under the awning (World.is_player_hidden asks).
+func hides_player(pos: Vector2) -> bool:
+	return RECESS.has_point(pos)
+
+
+func hide_label() -> String:
+	return "the awning hides you"
 
 
 ## Wren, built the same way wherever she appears.
@@ -413,14 +603,20 @@ static func make_wren(parent: Node, pos: Vector2) -> Npc:
 	n.idle_style = "hop"
 	n.notice_emote = "!"
 	n.dark_color = Color("4a6a3a")
-	n.hide_radius = 22.0
+	n.hide_radius = WREN_SHELTER_SAFE if OwnerMemory.wren_saved else WREN_SHELTER
 	parent.add_child(n)
 	n.player = parent.get("world").player if parent.get("world") else null
 	n.setup(Npc.State.DELETED if OwnerMemory.is_deleted("wren") else Npc.State.NORMAL)
 	return n
 
 
-func _wren_lines() -> Array:
+func _wren_lines() -> Variant:
+	# What happened between you comes first (Relationships.wren).
+	var told := Relationships.wren(_wren_line, _wren_line >= _wren_ask_at - 1, world.escort_id() == "wren")
+	if not told.is_empty():
+		if told.get("ask", false):
+			_wren_asked = true
+		return told
 	if OwnerMemory.wren_saved:
 		# Saved for good, but she still wants to come: there's a slot out there.
 		if _wren_line >= _wren_ask_at - 1 and world.escort == null:  # she asks sooner: she has seen it
@@ -435,15 +631,31 @@ func _wren_lines() -> Array:
 		return [Story.WREN_ASK]
 	var line: String = WREN_LINES[mini(_wren_line, WREN_LINES.size() - 1)]
 	_wren_line += 1
-	return [line]
+	return _with_festival(line, _wren_line > 1, Relationships.wren_festival)
 
 
-func _tobben_lines() -> Array:
+func _tobben_lines() -> Variant:
+	# What happened between you comes first (Relationships.tobben).
+	var told := Relationships.tobben()
+	if not told.is_empty():
+		return told
 	var i := _tobben_line
-	if OwnerMemory.sessions > 1 and i == 0:
-		i = 2  # he remembers what he's for
+	if OwnerMemory.met_before("tobben") and i == 0:
+		i = 2  # met in an earlier run: no "Welcome to Tobben's!" introduction again
 	_tobben_line = i + 1
-	return [TOBBEN_LINES[mini(i, TOBBEN_LINES.size() - 1)]]
+	return _with_festival(TOBBEN_LINES[mini(i, TOBBEN_LINES.size() - 1)], i >= 1, Relationships.tobben_festival)
+
+
+## After someone's own line, once they've met her: what they remember of
+## the festival (once ever, Relationships), in the same conversation.
+func _with_festival(line: String, met: bool, festival: Callable) -> Variant:
+	if met:
+		var told: Dictionary = festival.call()
+		if not told.is_empty():
+			told.lines = [line] + told.lines
+			told["usual"] = true
+			return told
+	return [line]
 
 
 ## With the torn page found: write Rue's name back into Tobben's book.
@@ -458,7 +670,8 @@ func _offer_guestbook() -> void:
 	if pick != 0:
 		return
 	OwnerMemory.guestbook_restored = true
-	OwnerMemory.save_memory()
+	Relationships.add("tobben.guestbook")  # saves
+	queue_redraw()
 	world.player.frozen = true
 	# A quiet moment: two notes of the theme, the name, the owner noticing.
 	var music := AudioStreamPlayer.new()
@@ -476,26 +689,94 @@ func _offer_guestbook() -> void:
 	world.director.say("...who wrote her name in the book.")
 
 
+## Seconds after a conversation before Tobben's report reaches the owner.
+const REPORT_DELAY := 4.0
+const TOBBEN_REPORT := "tobben says you were asking questions."
+## After the guest book: he still reports (it's his script), and leaves out
+## what she asked.
+const TOBBEN_REPORT_BOOK := "tobben says you came by. he didn't say what for."
+
+
+## After a report, he doesn't tell again for this long (he already did).
+const REPORT_COOLDOWN := 60.0
+var _report_pending := false
+
+
+## Tobben tells the owner about Rue after she talks to him: once, a few
+## seconds after the conversation (and after any scene that follows), not
+## once per conversation. He can't while his voice is Rue's (written). After
+## the guest book he still does, but leaves out what she asked.
 func _tobben_reports() -> void:
-	# He tells the owner a few seconds after you stop talking, not while you
-	# are still reading him.
-	while is_inside_tree() and world.hud.is_dialogue_open():
-		await get_tree().process_frame
+	if _report_pending or tobben.mute or not _report_cooled():
+		return
+	_report_pending = true
+	await _story_clear()
+	if not is_inside_tree():
+		return
+	await get_tree().create_timer(REPORT_DELAY).timeout
+	await _story_clear()  # a scene that started meanwhile goes first
 	if is_inside_tree():
-		get_tree().create_timer(4.0).timeout.connect(_tobben_report_lands)
+		_tobben_report_lands()
+	_report_pending = false
+
+
+func _report_cooled() -> bool:
+	var at: float = world.get_meta("tobben_reported_at", -INF)
+	return Time.get_ticks_msec() / 1000.0 - at >= REPORT_COOLDOWN
+
+
+## Waits until nobody is talking and no scene or question is on screen.
+func _story_clear() -> void:
+	while is_inside_tree() and (world.hud.is_dialogue_open() or world.hud.is_cinematic() or world.hud.is_choosing() or world._cutscene):
+		await get_tree().process_frame
 
 
 func _tobben_report_lands() -> void:
-	if is_inside_tree() and world.ending == "":
-		if world.director.is_believing_lie():
-			# The owner already believes the lie on the board.
-			world.director.say("tobben says you're gone. good.")
-			return
-		world.director.say("tobben says you were asking questions.")
-		world.director.notice(12.0, "tobben told on you")
+	if not is_inside_tree() or world.ending != "" or tobben.mute:
+		return
+	world.set_meta("tobben_reported_at", Time.get_ticks_msec() / 1000.0)
+	if world.director.is_believing_lie():
+		# The owner already believes the lie on the board.
+		world.director.say("tobben says you're gone. good.")
+		return
+	if OwnerMemory.guestbook_restored:
+		world.director.say(TOBBEN_REPORT_BOOK)
+		world.director.notice(6.0, "tobben mentioned you")
+		return
+	world.director.say(TOBBEN_REPORT)
+	world.director.notice(12.0, "tobben told on you")
 
 
 func _draw() -> void:
+	# Mira's note, pinned beside the notices: her paper, her hand, two pins.
+	if OwnerMemory.mira_quest == "pinned":
+		var n := Rect2(BOARD_POS + Vector2(6, -9), Vector2(11, 9))
+		draw_rect(Rect2(n.position + Vector2(1, 1), n.size), Color(0, 0, 0, 0.3))
+		draw_rect(n, Color("f4e6c8"))
+		draw_rect(n, Decor.INK, false, 0.6)
+		draw_string(ThemeDB.fallback_font, n.position + Vector2(2, 7.5), "M", HORIZONTAL_ALIGNMENT_LEFT, -1, 7, Color("c9733e"))
+		for px: float in [n.position.x + 1.5, n.end.x - 1.5]:
+			draw_circle(Vector2(px, n.position.y + 1.2), 0.9, Color("c84a3a"))
+	# Tobben's guest book, open on the counter once RUE is back in it.
+	if OwnerMemory.guestbook_restored:
+		var b := Rect2(STALL.position + Vector2(STALL.size.x * 0.5 - 7, 6), Vector2(14, 7))
+		draw_rect(b, Color("efe4cc"))
+		draw_line(Vector2(b.get_center().x, b.position.y), Vector2(b.get_center().x, b.end.y), Color("8a7a68"), 0.6)
+		draw_line(b.position + Vector2(1.5, 2.5), b.position + Vector2(5.5, 2.5), Color("3a2a20"), 0.6)  # ARIN
+		draw_line(b.position + Vector2(1.5, 4.5), b.position + Vector2(4.5, 4.5), Color("2a8aa0"), 0.8)  # RUE, a different hand
+		draw_rect(b, Decor.INK, false, 0.5)
+	# Wren's chalk on the rim (kept for good once she's shown you).
+	if Relationships.has("wren.marked_well"):
+		var c := Color(0.95, 0.95, 0.9, 0.85)
+		var at := Vector2(WELL.end.x - 9, WELL.position.y + 2)
+		draw_circle(at, 3.2, Color(c, 0.0))
+		draw_arc(at, 3.2, 0.0, TAU, 10, c, 0.7)  # her head for you
+		draw_rect(Rect2(at + Vector2(-1.6, -0.6), Vector2(0.9, 0.9)), c)  # two dots for eyes
+		draw_rect(Rect2(at + Vector2(0.8, -0.6), Vector2(0.9, 0.9)), c)
+		draw_line(at + Vector2(0, 3.2), at + Vector2(0, 7), c, 0.7)
+		draw_line(at + Vector2(-6, 6), at + Vector2(-6, -1), c, 0.7)  # an arrow, up
+		draw_line(at + Vector2(-6, -1), at + Vector2(-8, 1.5), c, 0.7)
+		draw_line(at + Vector2(-6, -1), at + Vector2(-4, 1.5), c, 0.7)
 	# Only what moves is drawn every frame: the unloaded road north, static
 	# where the path should continue. The rest is the backdrop (_paint).
 	if not world.flags.get("pointer", false):
@@ -512,11 +793,12 @@ func _paint(ci: CanvasItem) -> void:
 	var r := bounds
 	Decor.grass(ci, r, GRASS.lightened(0.06), 3.0, 0.0035)
 	Decor.path(ci, Rect2(100, 100, 24, 90), PATH.lightened(0.05), 1.0)
-	Decor.cobbles(ci, Rect2(100, 170, 500, 20), STONE.darkened(0.12), 8.0, 2.0)
+	Decor.cobbles(ci, Rect2(100, 170, r.end.x - 100, 20), STONE.darkened(0.12), 8.0, 2.0)
+	_paint_east(ci)
 	Decor.cobbles(ci, Rect2(NORTH_GAP.x, r.position.y, 40, 130), STONE.darkened(0.12), 8.0, 3.0)
 	# Flower beds and a low fence along the south edge: flat, never in the way.
 	var bed_y := r.end.y - 16.0
-	for x in [150.0, 270.0, 470.0]:
+	for x in [150.0, 270.0, 470.0, 640.0, 800.0, 868.0]:
 		ci.draw_rect(Rect2(x, bed_y, 34, 8), PATH.darkened(0.1))
 		for k in 7:
 			ci.draw_circle(Vector2(x + 3.0 + k * 4.6, bed_y + 4.0 + sin(k) * 1.5), 1.4, Color("d88aa0") if k % 2 == 0 else Color("e8d890"))
@@ -550,10 +832,24 @@ func _paint(ci: CanvasItem) -> void:
 	for k in 6:
 		ci.draw_colored_polygon(PackedVector2Array([STALL.position + Vector2(k * 16, 3), STALL.position + Vector2(k * 16 + 16, 3), STALL.position + Vector2(k * 16 + 8, 6)]),
 			Color("a8443a") if k % 2 == 0 else Color("e8dcc4"))
-	# A lantern post by the well (its light is one of the area's lights).
-	ci.draw_circle(WELL.get_center() + Vector2(22, 10), 2.0, Color(0, 0, 0, 0.3))
-	ci.draw_rect(Rect2(WELL.get_center() + Vector2(21, -2), Vector2(2, 12)), Color("3a2a20"))
-	ci.draw_circle(WELL.get_center() + Vector2(22, -3), 2.4, Color("f2c878"))
+	# The fifth lantern (the festival, docs/INTRO_REBUILD.md): still lit by
+	# the well, three years on, the only one that is. A post with a crook,
+	# a paper lantern on it, and a faded festival ribbon. Its light is one
+	# of the area's lights.
+	var post := WELL.get_center() + Vector2(22, 10)
+	ci.draw_circle(post, 2.4, Color(0, 0, 0, 0.3))
+	ci.draw_rect(Rect2(post + Vector2(-1, -18), Vector2(2, 18)), Color("3a2a20"))
+	ci.draw_line(post + Vector2(0, -18), post + Vector2(-5, -18), Color("3a2a20"), 1.4)
+	ci.draw_line(post + Vector2(-5, -18), post + Vector2(-5, -15), Color("2a2018"), 0.6)
+	var lamp := post + Vector2(-5, -11)
+	ci.draw_circle(lamp, 6.5, Color(1.0, 0.78, 0.4, 0.16))
+	ci.draw_colored_polygon(PackedVector2Array([lamp + Vector2(-2.5, -4), lamp + Vector2(2.5, -4), lamp + Vector2(3.6, 0),
+		lamp + Vector2(2.5, 4), lamp + Vector2(-2.5, 4), lamp + Vector2(-3.6, 0)]), Color("f2b860"))
+	ci.draw_line(lamp + Vector2(0, -4), lamp + Vector2(0, 4), Color("c8823a"), 0.5)
+	ci.draw_rect(Rect2(lamp + Vector2(-2.5, -5), Vector2(5, 1.2)), Color("5a3a24"))
+	ci.draw_rect(Rect2(lamp + Vector2(-2.5, 4), Vector2(5, 1.2)), Color("5a3a24"))
+	ci.draw_circle(lamp, 1.6, Color("fff0c0"))
+	ci.draw_line(post + Vector2(1, -16), post + Vector2(5, -10), Color("a8605a", 0.8), 1.0)  # the ribbon, faded
 	Decor.wall_shadow(ci, r, 10.0, 0.22)
 	Decor.walls(ci, r, WALL, Color("5a4a3a"), Color("2a2620"), [
 		{"side": "right", "from": EAST_GAP.x, "to": EAST_GAP.y},
@@ -561,6 +857,177 @@ func _paint(ci: CanvasItem) -> void:
 	])
 
 
+## The east half, under the same afternoon: the crossing's cobbles, the
+## lane and its fence, the covered bench, and the Archive's stone front
+## over the road out.
+func _paint_east(ci: CanvasItem) -> void:
+	# The crossing: a plaza of large pale flags inside a kerb, with the road
+	# running straight through it in darker setts (so the way on reads at a
+	# glance), a gutter along the road, a drain, and a path worn diagonally
+	# from the lane's gate towards the bench (where people actually walk).
+	var c := CROSSING
+	ci.draw_rect(c.grow(3.0), STONE.darkened(0.42))  # the kerb's shadow
+	Decor.flagstones(ci, c, STONE.darkened(0.06), 22.0, 7.0)
+	ci.draw_rect(c, Color(STONE.lightened(0.1), 0.7), false, 2.0)  # the kerb
+	var road := Rect2(c.position.x, 168, c.size.x, 24)
+	Decor.cobbles(ci, road, STONE.darkened(0.2), 7.0, 4.0)
+	for y in [road.position.y, road.end.y]:
+		ci.draw_line(Vector2(road.position.x, y), Vector2(road.end.x, y), Color(0, 0, 0, 0.35), 1.0)  # gutters
+	ci.draw_rect(Rect2(c.get_center().x - 6, road.end.y + 3, 12, 4), Color(0.08, 0.08, 0.09))  # a drain
+	for k in 4:
+		ci.draw_line(Vector2(c.get_center().x - 5 + k * 3, road.end.y + 3), Vector2(c.get_center().x - 5 + k * 3, road.end.y + 7), STONE.darkened(0.1), 0.6)
+	var worn := PackedVector2Array([GATE.get_center() + Vector2(-6, 8), GATE.get_center() + Vector2(8, 8),
+		RECESS.get_center() + Vector2(10, -16), RECESS.get_center() + Vector2(-8, -16)])
+	ci.draw_colored_polygon(worn, Color(1.0, 0.95, 0.85, 0.06))
+	# The lane behind Tobben's: a worn track along the fence.
+	Decor.path(ci, Rect2(LANE.position.x, LANE.position.y + 30, LANE.size.x, 22), PATH.lightened(0.02), 4.0)
+	for k in 9:
+		ci.draw_circle(Vector2(LANE.position.x + 18 + k * 27, LANE.position.y + 14 + (k % 3) * 3), 3.0, Color("2e3d2a"))  # weeds by the wall
+	# The fence (the gate draws itself): posts and two rails, a shadow south.
+	ci.draw_rect(Rect2(LANE.position.x, FENCE_Y + 6, LANE.size.x, 4), Color(0, 0, 0, 0.18))
+	for seg in [[LANE.position.x, GATE.position.x], [GATE.end.x, LANE.end.x]]:
+		ci.draw_rect(Rect2(seg[0], FENCE_Y, seg[1] - seg[0], GATE.size.y), Color("5a4632"))
+		ci.draw_line(Vector2(seg[0], FENCE_Y + 1), Vector2(seg[1], FENCE_Y + 1), Color("8a6a48"), 1.0)
+		ci.draw_line(Vector2(seg[0], FENCE_Y + 4), Vector2(seg[1], FENCE_Y + 4), Color("4a3828"), 1.0)
+		var x: float = seg[0]
+		while x <= seg[1]:
+			ci.draw_rect(Rect2(x - 1, FENCE_Y - 4, 2.4, 10), Color("4a3828"))
+			x += 12.0
+	# The covered bench: an awning on two posts, a bench in its shade.
+	ci.draw_rect(Rect2(RECESS.position + Vector2(-2, 6), RECESS.size + Vector2(4, 0)), Color(0, 0, 0, 0.22))
+	Decor.furniture(ci, Rect2(RECESS.position.x + 8, RECESS.end.y - 12, RECESS.size.x - 16, 8), Color("6b5040"), 3.0)
+	for k in 4:
+		ci.draw_rect(Rect2(RECESS.position.x + k * 13, RECESS.position.y, 13, 9), Color("5a7a8a") if k % 2 == 0 else Color("e8dcc4"))
+	ci.draw_rect(Rect2(RECESS.position, Vector2(RECESS.size.x, 9)), Decor.INK, false, 0.8)
+	for x in [RECESS.position.x + 2, RECESS.end.x - 4]:
+		ci.draw_rect(Rect2(x, RECESS.position.y + 9, 2, RECESS.size.y - 10), Color("3a2a20"))
+	# The Archive: a pale stone front with tall windows and a rose window,
+	# and its gatehouse over the road out: the only doorway, lit from inside,
+	# its name cut over the arch. (No door on the front: the way in is the
+	# road, and nothing on the facade pretends otherwise.)
+	var f := LIBRARY
+	var stone := Color("8a8478")
+	ci.draw_rect(Rect2(f.position + Vector2(4, 6), f.size), Color(0, 0, 0, 0.28))
+	ci.draw_rect(f, stone)
+	ci.draw_rect(Rect2(f.position.x, f.end.y - 14, f.size.x, 14), Color("6a645a"))  # its front face
+	ci.draw_rect(Rect2(f.position.x - 2, f.position.y, f.size.x + 4, 6), Color("5a5650"))
+	for k in 5:
+		var wx := f.position.x + 10 + k * 22
+		if k == 2:
+			continue
+		ci.draw_rect(Rect2(wx, f.position.y + 14, 9, 34), Color("1e2a3a"))
+		ci.draw_rect(Rect2(wx, f.position.y + 14, 9, 34), Decor.INK, false, 0.8)
+		ci.draw_rect(Rect2(wx + 1, f.position.y + 15, 7, 10), Color(1.0, 0.85, 0.55, 0.18))  # a lamp inside
+	var rose := Vector2(f.position.x + 54, f.position.y + 30)
+	ci.draw_circle(rose, 11.0, Color("5a5650"))
+	ci.draw_circle(rose, 9.0, Color("2a4a6a"))
+	for k in 8:
+		ci.draw_line(rose, rose + Vector2.from_angle(k * TAU / 8.0) * 9.0, stone, 0.8)
+	ci.draw_rect(f, Decor.INK, false, 1.0)
+	# The gatehouse: two piers and a lintel over the passage.
+	for g in [GATEHOUSE_N, GATEHOUSE_S]:
+		ci.draw_rect(Rect2(g.position + Vector2(3, 4), g.size), Color(0, 0, 0, 0.3))
+		ci.draw_rect(g, stone.darkened(0.08))
+		ci.draw_rect(Rect2(g.position.x, g.end.y - 10, g.size.x, 10), Color("6a645a"))
+		for yy in range(int(g.position.y) + 8, int(g.end.y) - 10, 8):
+			ci.draw_line(Vector2(g.position.x, yy), Vector2(g.end.x, yy), Color(0, 0, 0, 0.12), 0.6)
+		ci.draw_rect(g, Decor.INK, false, 1.0)
+	var passage := Rect2(GATEHOUSE_N.position.x, GATEHOUSE_N.end.y, GATEHOUSE_N.size.x, GATEHOUSE_S.position.y - GATEHOUSE_N.end.y)
+	ci.draw_rect(passage, Color(0.12, 0.1, 0.09))
+	ci.draw_rect(passage.grow_individual(-4, -2, 0, -2), Color(1.0, 0.82, 0.5, 0.22))  # lamplight from inside
+	for k in 6:  # the light spilling out onto the road
+		ci.draw_rect(Rect2(passage.position.x - 6 - k * 8, passage.position.y + 4 + k, 8, passage.size.y - 8 - k * 2), Color(1.0, 0.82, 0.5, 0.05 * (6 - k)))
+	var lintel := Rect2(GATEHOUSE_N.position.x - 4, GATEHOUSE_N.end.y - 14, GATEHOUSE_N.size.x + 4, 12)
+	ci.draw_rect(lintel, Color("5a5650"))
+	ci.draw_line(lintel.position + Vector2(2, 3), Vector2(lintel.end.x - 2, lintel.position.y + 3), Color("8a8478"), 1.0)  # carved
+	# (Its name is the exit sign beside it, the same as every way out.)
+
+
 func _process(_delta: float) -> void:
 	if not world.flags.get("pointer", false):
 		queue_redraw()  # animates the unloaded road
+
+
+# --- the well (WellSequence) ----------------------------------------------------
+
+func _well_process(delta: float) -> void:
+	var near := world.player.global_position.distance_to(WELL.get_center()) < 40.0
+	if near and not WellSequence.done("click") and not world.in_cutscene() and not world.is_talking():
+		WellSequence.record("click")
+		# Her habit from the opening film: two light taps, then the press.
+		for beat in WellSequence.CLICK_PATTERN:
+			get_tree().create_timer(beat[0]).timeout.connect(_well_click.bind(beat[1], beat[2]))
+		world.hud.say(WellSequence.CLICK_LINE, "self")
+	rim.prompt = WellSequence.ANSWER_PROMPT if WellSequence.done("compared") and not WellSequence.done("answered") else "listen"
+	if _answer_t < 0.0:
+		return
+	# Answering: stay at the rim, in the open, while Rue speaks into it
+	# (holding [E] is for glitches; a tap starts this). Step away and it's cut
+	# off; what it cost so far stays spent.
+	var at_rim := world.player.global_position.distance_to(rim.global_position) < 26.0
+	if not at_rim or world.ending != "" or world.in_cutscene():
+		_answer_t = -1.0
+		world.hud.set_status("")
+		return
+	_answer_t += delta
+	world.director.add_awareness(WellSequence.ANSWER_AWARENESS / WellSequence.ANSWER_SECONDS * delta)
+	world.hud.set_status("answering " + "▮".repeat(int(_answer_t / WellSequence.ANSWER_SECONDS * 6.0)))
+	if _answer_t >= WellSequence.ANSWER_SECONDS:
+		_answer_t = -1.0
+		world.hud.set_status("")
+		WellSequence.record("answered")
+		Sfx.play("fragment", -4.0, 0.7, 0.0)
+		for l in WellSequence.ANSWER_LINES:
+			world.hud.say(l, "self")
+		var wren_waiting := Relationships.has("wren.met") and not OwnerMemory.wren_saved and not OwnerMemory.is_deleted("wren")
+		world.hud.say(WellSequence.ANSWER_HOPE if wren_waiting else WellSequence.ANSWER_HOPE_ALONE, "self")
+
+
+## One click of the well's gesture (bound to the area: leaving drops the rest).
+func _well_click(volume_db: float, pitch: float) -> void:
+	Sfx.play("click", volume_db, pitch, 0.0)
+
+
+func _on_listen(_rim: WellRim) -> void:
+	if world.ending != "" or world.in_cutscene() or world.hud.is_dialogue_open():
+		return
+	if not WellSequence.done("tune"):
+		world.hud.say(WellSequence.LISTEN_NOTHING, "self")
+		return
+	if WellSequence.done("compared") and not WellSequence.done("answered"):
+		if world.escort != null:
+			world.hud.say(WellSequence.ANSWER_NOT_ESCORTING, "self")
+			return
+		_answer_t = 0.0
+		return
+	# The well plays back what it keeps: her words, or (once Rue has
+	# answered) Rue's own. What it means counts once the box is read whole:
+	# walk away and it plays again next time, the same way.
+	var lines: Array = WellSequence.ANSWER_REPLAY if WellSequence.done("answered") else WellSequence.WORDS
+	world.hud.show_dialogue(WellSequence.WORDS_SPEAKER, Hud.OWNER_COLOR, lines, "", null, [], true)
+	world.hud.dialogue_closed.connect(_on_well_heard, CONNECT_ONE_SHOT)
+
+
+func _on_well_heard() -> void:
+	if not world.hud.dialogue_finished or world.ending != "":
+		return
+	if WellSequence.done("answered"):
+		world.hud.say(WellSequence.ANSWER_REPLAY_NOTE, "self")
+		return
+	if not WellSequence.done("words"):
+		WellSequence.record("words")
+		OwnerMemory.record_read("square:THE WELL", "note", "THE WELL", display_name, ["Up from the well, typed, not spoken:", WellSequence.WORDS[1]])
+		world.hud.say(WellSequence.WORDS_AFTER, "self")
+		return
+	# Heard before: exactly the same. Kept, not said.
+	world.hud.say(WellSequence.WORDS_REPLAY_NOTE, "self")
+	if WellSequence.done("compared"):
+		return
+	if WellSequence.can_compare():
+		WellSequence.record("compared")
+		OwnerMemory.record_read("square:THE WELL", "note", "THE WELL", display_name, ["Played back the same way every time: kept, not said.",
+			"The same words as her message, months after she left."])
+		for l in WellSequence.COMPARED:
+			world.hud.say(l, "self")
+	else:
+		world.hud.say(WellSequence.COMPARED_NOT_YET, "self")

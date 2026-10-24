@@ -162,11 +162,17 @@ func start_sweep() -> void:
 	world.fx.spike(0.4 * Settings.flash_scale(), 0.5)
 
 
+## The protected shadow of one system file: the one definition the sweep,
+## the drawing and any debug view all use, so a glow never promises safety
+## the sweep doesn't give.
+static func shelter_rect(file: Rect2) -> Rect2:
+	return Rect2(file.position, file.size + SHADOW).grow_individual(0, 6, 0, 6)
+
+
 ## Is this spot in a protected file's shadow?
 static func sheltered_at(p: Vector2) -> bool:
 	for r in SYSTEM_FILES:
-		var shade := Rect2(r.position, r.size + SHADOW).grow_individual(0, 6, 0, 6)
-		if shade.has_point(p):
+		if shelter_rect(r).has_point(p):
 			return true
 	return false
 
@@ -251,10 +257,14 @@ func _draw() -> void:
 		draw_line(Vector2(r.position.x, y), Vector2(r.end.x, y), Color(1, 1, 1, 0.025))
 	var warn := next_empty <= WARNING or sweep_x >= 0.0
 	for f in SYSTEM_FILES:
-		# The protected shadow: brighter when the bin is about to empty.
-		var shade := Rect2(f.position, f.size + SHADOW).grow_individual(0, 6, 0, 6)
-		var a := 0.06 + (0.12 + 0.06 * sin(_t * 8.0) if warn else 0.0)
+		# The protected shadow: brighter when the bin is about to empty
+		# (steady with Reduce flashing), with a solid edge that is exactly
+		# where the sweep stops counting you.
+		var shade := shelter_rect(f)
+		var pulse := 0.0 if Settings.reduce_flashing else 0.06 * sin(_t * 8.0)
+		var a := 0.06 + (0.12 + pulse if warn else 0.0)
 		draw_rect(shade, Color(0.55, 0.95, 1.0, a))
+		draw_rect(shade, Color(0.55, 0.95, 1.0, 0.35 + (0.3 if warn else 0.0)), false, 1.0)
 		draw_rect(f, Color("3a3f4a"))
 		draw_rect(f, Color("8cf2ff", 0.5), false, 1.0)
 		# A little padlock.

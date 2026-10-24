@@ -6,7 +6,16 @@ extends CanvasLayer
 signal dialogue_closed
 ## A line of the open conversation has been shown whole (its last page is on
 ## screen). Carries the line as written, before it was split into pages.
-signal line_shown(line: String)
+## The milestones of one line of dialogue (a "line" is one of the lines
+## given to show_dialogue, however many caption pages it takes):
+##   line_presented   its first page opened (nothing is read yet);
+##   line_revealed    its last page is fully visible: what it says is known
+##                    (World learns facts and truth pieces here, once);
+##   line_acknowledged  the player moved on from it;
+## and the conversation completes when the box closes with dialogue_finished.
+signal line_presented(line: String)
+signal line_revealed(line: String)
+signal line_acknowledged(line: String)
 ## choose() picked an option (index).
 signal _chosen(index: int)
 
@@ -31,6 +40,8 @@ var console_history: Array[String] = []
 ## Keep text this far from the screen edges: the curved CRT glass and its
 ## bezel eat the corners.
 const SAFE := Vector2(14, 10)
+## The tallest the dialogue box may grow (logical px): its pages are sized to fit.
+const DIALOGUE_MAX_H := 132.0
 const STATUS_COLOR := Color("8cf2ff")
 const TYPE_SPEED := 36.0  # characters per second (console), x Settings.text_rate()
 const DIALOGUE_SPEED := 55.0  # characters per second (dialogue box), x pace x text_rate()
@@ -59,6 +70,7 @@ var _console_box: PanelContainer
 var _status: Label
 ## Tutorial tip card.
 var _tip: PanelContainer
+const TIP_WIDTH := 220.0
 var _tip_title: Label
 var _tip_body: Label
 var _tip_tween: Tween
@@ -97,6 +109,9 @@ var _queue: Array[Dictionary] = []
 var _typing: Label
 var _typed := 0.0
 var _pause := 0.0
+## The kind of the line now being read (StoryPacing.is_telemetry decides
+## whether an owner line may cut its pause short).
+var _pause_kind := "system"
 var _playtime := 14.0 * 3600.0 + 22.0 * 60.0  # the owner has played a lot
 
 var _dialogue: Panel
@@ -162,6 +177,13 @@ func _ready() -> void:
 	add_child(root)
 
 	_slot = _make_label(root, SAFE, Vector2(380, 14), 10, SLOT_COLOR)
+	# The save's own label (whose save it is, not who you are): quieter than
+	# anything Rue needs to act on.
+	_slot.modulate.a = 0.6
+	_edge_marks = _EdgeMarks.new()
+	_edge_marks.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_edge_marks.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_edge_marks)
 
 	_meter = AwarenessMeter.new()
 	_meter.position = Vector2(640 - SAFE.x - 180, SAFE.y - 2)
@@ -271,15 +293,23 @@ func _ready() -> void:
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_hint.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 
-	# Tutorial tips: a small card, centred under the top bar.
+	# Tutorial tips: a small card in the bottom-right corner, above the
+	# control hint. It used to sit centred under the top bar, over the very
+	# scene it explained (2026-10-22 review); the corner is the part of the
+	# screen the areas leave empty, and away from the console (bottom left).
+	# It grows upwards with larger text.
 	var tip_row := VBoxContainer.new()
-	tip_row.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	tip_row.position.y = SAFE.y + 50  # under the status line, not over it
+	tip_row.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	tip_row.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	tip_row.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	tip_row.offset_right = -SAFE.x
+	tip_row.offset_bottom = -SAFE.y - 18  # above the control hint
+	tip_row.alignment = BoxContainer.ALIGNMENT_END
 	tip_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(tip_row)
 	_tip = PanelContainer.new()
-	_tip.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	_tip.custom_minimum_size.x = 300
+	_tip.size_flags_horizontal = Control.SIZE_SHRINK_END
+	_tip.custom_minimum_size.x = TIP_WIDTH
 	var tip_box := _backing(0.85)
 	tip_box.border_color = Color(STATUS_COLOR, 0.5)
 	tip_box.set_border_width_all(1)
@@ -295,14 +325,14 @@ func _ready() -> void:
 	_tip_title = Label.new()
 	UiStyle.sized(_tip_title, 10)
 	_tip_title.add_theme_color_override("font_color", STATUS_COLOR)
-	_tip_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_tip_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	tip_lines.add_child(_tip_title)
 	_tip_body = Label.new()
 	UiStyle.sized(_tip_body, 10)
 	_tip_body.add_theme_color_override("font_color", SLOT_COLOR)
-	_tip_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_tip_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_tip_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_tip_body.custom_minimum_size.x = 288
+	_tip_body.custom_minimum_size.x = TIP_WIDTH - 12
 	tip_lines.add_child(_tip_body)
 
 	_overlay = ColorRect.new()
@@ -429,6 +459,7 @@ func _ready() -> void:
 ## Subtitle size and backing from Settings (subtitle_size, subtitle_bg,
 ## large_text, speaker_labels). Called again whenever a setting changes.
 func apply_subtitle_style() -> void:
+	_fit_objective.call_deferred()  # large text: the goal's backing follows its words
 	var k := Settings.text_scale() * Settings.subtitle_scale()
 	for pair in [[_dialogue_text, 11], [_dialogue_speaker, 10], [_cine_text, 12], [_cine_title, 9]]:
 		(pair[0] as Label).add_theme_font_size_override("font_size", roundi(pair[1] * k))
@@ -485,13 +516,17 @@ func set_portrait(portrait: CharacterArt.Portrait) -> void:
 ## `dim` darkens the world behind the text (0 = see-through, 1 = black).
 ## voice_prefix: the scene's id stem; each line's id is voice_id(prefix, text).
 ## portrait: a character portrait shown with the text (CharacterArt), or null.
-func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: float = 0.55, voice_prefix := "", portrait: CharacterArt.Portrait = null) -> void:
+## `replay`: the frame a recording plays in ("REPLAY · P2 · 41:07:12"),
+## shown even with speaker labels off: it says whose memory this is.
+func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: float = 0.55, voice_prefix := "", portrait: CharacterArt.Portrait = null, replay := "") -> void:
 	# A scene owns the screen: an open dialogue box is hidden and holds its
 	# place (it is NOT closed: closing would end the conversation and run its
 	# side effects mid-scene), and the act card clears.
 	var dialogue_held := _dialogue.visible
 	var held_voice := VoiceOver.current()
 	var held_position := held_voice.get_playback_position() if dialogue_held and held_voice else 0.0
+	# Where the caption was, so it comes back with the voice, not behind it.
+	var held_typed := _dialogue_typed if dialogue_held else 0.0
 	_dialogue.visible = false
 	if dialogue_held:
 		# Its line stops with it; it is said again when the conversation returns.
@@ -505,6 +540,8 @@ func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: floa
 	_console_box.visible = false
 	_prompt.visible = false
 	_cine_title.text = title if Settings.speaker_labels or title == "EPILOGUE" else ""
+	if replay != "":
+		_cine_title.text = replay + ("   ·   " + _cine_title.text if _cine_title.text != "" else "")
 	_cine_text.add_theme_color_override("font_color", color)
 	_show_portrait(portrait)
 	for l in [_cine_title, _cine_text, _cine_hint, _cine_backing]:
@@ -554,15 +591,29 @@ func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: floa
 	if dialogue_held and _pacer != null:
 		_dialogue.visible = true  # back to the conversation, where it was
 		_dialogue_opened_frame = Engine.get_process_frames()  # the scene's last press doesn't advance it
-		# Pick the line up again from its start (typed, and said if recorded),
-		# so a press still coming from the scene can't skip it unread.
+		# Pick the page up again where it was: a recorded take resumes from
+		# the same moment and its caption from the same place; an unrecorded
+		# line is typed (and, with spoken narration, said) again from its
+		# start. Either way it is typing, so a press still coming from the
+		# scene can't skip it unread, and the page waits only for its own
+		# share of the take (_caption_voice_busy), as before the scene.
+		var resumed: AudioStreamPlayer = null
 		if _dialogue_voice != "":
-			var resumed := VoiceOver.play(self, _dialogue_voice)
+			resumed = VoiceOver.play(self, _dialogue_voice)
 			if resumed:
 				resumed.seek(held_position)
-		_pacer = LinePacer.new(_dialogue_text.text, StoryPacing.is_auto(), voice_busy)
-		_dialogue_typed = 0.0
-		_dialogue_text.visible_characters = 0
+		var text := _dialogue_text.text
+		var src: int = _dialogue_sources[_dialogue_index] if _dialogue_index < _dialogue_sources.size() else 0
+		var last_page := _dialogue_index + 1 >= _dialogue_sources.size() or _dialogue_sources[_dialogue_index + 1] != src
+		_pacer = LinePacer.new(text, StoryPacing.is_auto(), _caption_voice_busy.bind(_page_fraction(_dialogue_lines, _dialogue_sources, _dialogue_index), last_page))
+		if resumed:
+			_dialogue_typed = minf(held_typed, maxf(0.0, text.length() - 1.0))
+		else:
+			_dialogue_typed = 0.0
+			var written := dialogue_silent or _dialogue_speaker.text == Story.TOBBEN_WRITTEN or text.to_upper() == text.to_lower()
+			if not written:
+				narrator.speak(text, _dialogue_speaker.text)
+		_dialogue_text.visible_characters = int(_dialogue_typed)
 	else:
 		_console_box.visible = _console.get_child_count() > 0
 		_prompt.visible = true
@@ -612,10 +663,11 @@ func _cinematic_line(line: String, vid: String, title: String, base_color: Color
 		var frame := Engine.get_process_frames()
 		if _update_skip(delta):
 			_skip_requested = true
+			PlaytestLog.mark("scene skipped", title if title != "" else line.left(40))
 			break
 		if pacer.phase == LinePacer.Phase.REVEALING:
 			var shown := int(typed)
-			var cps := _reveal_rate(40.0, line)
+			var cps := _reveal_rate(40.0, line, float(line.length()) / maxf(1.0, float((original if original != "" else line).length())))
 			typed = float(line.length()) if is_inf(cps) else typed + cps * delta
 			_cine_text.visible_characters = int(typed)
 			if int(typed) > shown and not is_inf(cps) and not VoiceOver.is_playing() and not (Settings.narration and narrator.supported):
@@ -679,12 +731,16 @@ func _advance_pressed() -> bool:
 ## stem; a line plays voice_id(voice_prefix, text) if it was recorded.
 ## portrait: the speaker's face (CharacterArt), or null; expressions: one per
 ## line ("" keeps the portrait's own).
-func show_dialogue(speaker: String, color: Color, lines: Array, voice_prefix := "", portrait: CharacterArt.Portrait = null, expressions: Array = []) -> void:
+## silent: the speaker can't speak (mute, or answering in writing): no
+## system speech and no mouth movement, while the text still types.
+func show_dialogue(speaker: String, color: Color, lines: Array, voice_prefix := "", portrait: CharacterArt.Portrait = null, expressions: Array = [], silent := false) -> void:
 	if lines.is_empty():
 		return
+	dialogue_silent = silent or speaker == Story.TOBBEN_WRITTEN
 	_dialogue_voice_prefix = voice_prefix
 	var paged := paginate(lines, voice_prefix)
 	_dialogue_source_lines = lines.duplicate()
+	_revealed_sources.clear()
 	_dialogue_sources.assign(paged[2])
 	_dialogue_lines = paged[0]
 	_dialogue_ids.assign(paged[1])
@@ -846,23 +902,34 @@ func fade(to_black: bool, duration: float = 0.25) -> Tween:
 	return tw
 
 
-## For line_shown: the lines as given, and which of them each page is from.
+## The lines as given, and which of them each page is from.
 var _dialogue_source_lines: Array = []
 var _dialogue_sources: Array[int] = []
+## Lines (by index) already revealed in this conversation: each once.
+var _revealed_sources := {}
+
+
+## The current page is fully visible. On a line's last page, the line is
+## revealed (once).
+func _page_revealed() -> void:
+	if _dialogue_index >= _dialogue_sources.size():
+		return
+	var src := _dialogue_sources[_dialogue_index]
+	var last_page := _dialogue_index + 1 >= _dialogue_sources.size() or _dialogue_sources[_dialogue_index + 1] != src
+	if last_page and src < _dialogue_source_lines.size() and not _revealed_sources.has(src):
+		_revealed_sources[src] = true
+		line_revealed.emit(str(_dialogue_source_lines[src]))
+## The open conversation's speaker can't speak (show_dialogue silent).
+var dialogue_silent := false
 
 
 func _show_dialogue_line() -> void:
 	var text := str(_dialogue_lines[_dialogue_index])
 	_dialogue_text.text = text
-	if _dialogue_index < _dialogue_sources.size():
-		var src := _dialogue_sources[_dialogue_index]
-		var last_page := _dialogue_index + 1 >= _dialogue_sources.size() or _dialogue_sources[_dialogue_index + 1] != src
-		if last_page and src < _dialogue_source_lines.size():
-			line_shown.emit(str(_dialogue_source_lines[src]))
 	var src: int = _dialogue_sources[_dialogue_index]
 	var first_page := _dialogue_index == 0 or _dialogue_sources[_dialogue_index - 1] != src
 	var last_page := _dialogue_index + 1 == _dialogue_sources.size() or _dialogue_sources[_dialogue_index + 1] != src
-	var written := _dialogue_speaker.text == Story.TOBBEN_WRITTEN or text.to_upper() == text.to_lower()
+	var written := dialogue_silent or _dialogue_speaker.text == Story.TOBBEN_WRITTEN or text.to_upper() == text.to_lower()
 	if first_page:
 		_dialogue_voice = _dialogue_ids[_dialogue_index] if not written else ""
 		_dialogue_recorded = VoiceOver.play(self, _dialogue_voice) != null
@@ -873,6 +940,7 @@ func _show_dialogue_line() -> void:
 	_pacer = LinePacer.new(text, StoryPacing.is_auto(), _caption_voice_busy.bind(_page_fraction(_dialogue_lines, _dialogue_sources, _dialogue_index), last_page))
 	if first_page:
 		_log_line(_dialogue_speaker.text, str(_dialogue_source_lines[src]), "npc", _dialogue_voice if _dialogue_recorded else "")
+		line_presented.emit(str(_dialogue_source_lines[src]))
 	_dialogue_hint.text = ""
 	_face_t = 0.0
 	_update_dialogue_face(0.0)
@@ -909,9 +977,10 @@ func _update_dialogue_face(delta: float) -> void:
 
 
 ## Only the active audible/procedural line drives a mouth, never the whole
-## conversation. Punctuation-only remnant responses and written Tobben stay still.
+## conversation. Punctuation-only remnant responses, written Tobben and
+## mute speakers (show_dialogue silent) stay still.
 func dialogue_is_speaking() -> bool:
-	if not _dialogue.visible or _cinematic or _dialogue_speaker.text == Story.TOBBEN_WRITTEN:
+	if not _dialogue.visible or _cinematic or dialogue_silent or _dialogue_speaker.text == Story.TOBBEN_WRITTEN:
 		return false
 	var text := _dialogue_text.text
 	if text.to_upper() == text.to_lower():
@@ -930,8 +999,8 @@ func dialogue_expression() -> String:
 ## Same text, same id, in whatever order or variant a scene shows it; a
 ## change to the text makes a new id, so an outdated recording never plays
 ## under new words (audio/voice/manifest.csv lists them all).
-## Lines too long for one box become pages (StoryPacing.pages), each with
-## its own reading time. Recorded captions page over one continuous
+## Lines too long for one box become pages (StoryPacing.pages, sized for the
+## current text settings: page_chars), each with its own reading time. Recorded captions page over one continuous
 ## performance. Returns [lines, voice ids, index of the line each came
 ## from]; a continuation page has no id.
 static func paginate(lines: Array, prefix: String) -> Array:
@@ -941,12 +1010,28 @@ static func paginate(lines: Array, prefix: String) -> Array:
 	for n in lines.size():
 		var line := str(lines[n])
 		var id := voice_id(prefix, line)
-		var pages: Array[String] = StoryPacing.pages(line)
+		var pages: Array[String] = StoryPacing.pages(line, page_chars())
 		for i in pages.size():
 			out.append(pages[i])
 			ids.append(id if i == 0 else "")
 			source.append(n)
 	return [out, ids, source]
+
+
+## Characters per page for the current subtitle and text size: bigger text,
+## fewer words per page, so a page always fits the box (DIALOGUE_MAX_H).
+static func page_chars() -> int:
+	var k := Settings.subtitle_scale() * Settings.text_scale()
+	return clampi(int(StoryPacing.PAGE_CHARS / (k * k)), 70, StoryPacing.PAGE_CHARS)
+
+
+## The current dialogue page's share of its whole line (1 for a one-page line).
+func _page_share() -> float:
+	if _dialogue_index >= _dialogue_sources.size():
+		return 1.0
+	var src := _dialogue_sources[_dialogue_index]
+	var whole := str(_dialogue_source_lines[src]) if src < _dialogue_source_lines.size() else _dialogue_text.text
+	return float(_dialogue_text.text.length()) / maxf(1.0, float(whole.length()))
 
 
 ## Conservative proportional cue for caption-only pages when no authored
@@ -984,14 +1069,15 @@ func voice_busy() -> bool:
 
 ## Characters per second for the typewriter: the player's text speed, but
 ## never slower than a recording needs (text keeps up with the voice).
-func _reveal_rate(base_cps: float, text: String) -> float:
+func _reveal_rate(base_cps: float, text: String, share := 1.0) -> float:
 	var rate := Settings.text_rate()
 	if is_inf(rate):
 		return INF
 	var cps := base_cps * rate
 	var p := VoiceOver.current()
 	if p and p.stream and p.stream.get_length() > 0.1:
-		cps = maxf(cps, text.length() / (p.stream.get_length() * 0.85))
+		# A caption page keeps up with its own share of the take.
+		cps = maxf(cps, text.length() / (p.stream.get_length() * clampf(share, 0.05, 1.0) * 0.85))
 	return cps
 
 
@@ -1006,6 +1092,10 @@ func _next_dialogue_line() -> void:
 	var continuation := _dialogue_index + 1 < _dialogue_sources.size() and _dialogue_sources[_dialogue_index + 1] == _dialogue_sources[_dialogue_index]
 	if not continuation:
 		VoiceOver.stop()
+		_page_revealed()  # (moved on from: it was seen)
+		var src := _dialogue_sources[_dialogue_index] if _dialogue_index < _dialogue_sources.size() else -1
+		if src >= 0 and src < _dialogue_source_lines.size():
+			line_acknowledged.emit(str(_dialogue_source_lines[src]))
 	narrator.stop()
 	if _dialogue_index < _dialogue_lines.size() - 1:
 		_dialogue_index += 1
@@ -1025,6 +1115,7 @@ func _fit_dialogue() -> void:
 	var h := top + _dialogue_text.size.y + 14.0
 	if _dialogue_face:
 		h = maxf(h, PORTRAIT_SIZE + 14.0)  # the face never overhangs the box
+	h = minf(h, DIALOGUE_MAX_H)  # pages are sized to fit (page_chars)
 	_dialogue.size.y = h
 	_dialogue.position.y = 360 - SAFE.y - h
 	_dialogue_hint.position.y = h - 14.0
@@ -1038,7 +1129,7 @@ func _update_dialogue(delta: float) -> void:
 	var total := _dialogue_text.get_total_character_count()
 	if _pacer.phase == LinePacer.Phase.REVEALING:
 		var before := int(_dialogue_typed)
-		var cps := _reveal_rate(DIALOGUE_SPEED * Sfx.voice_pace(_dialogue_speaker.text), _dialogue_text.text)
+		var cps := _reveal_rate(DIALOGUE_SPEED * Sfx.voice_pace(_dialogue_speaker.text), _dialogue_text.text, _page_share())
 		if is_inf(cps):
 			_dialogue_typed = float(total)  # Text: Instant
 		else:
@@ -1048,6 +1139,7 @@ func _update_dialogue(delta: float) -> void:
 			_dialogue_text.visible_characters = -1
 			_pacer.reveal(frame)
 			_fit_dialogue()
+			_page_revealed()
 		if int(_dialogue_typed) > before and not is_inf(cps) and not VoiceOver.is_playing():
 			# Each speaker has their own voice (Sfx.VOICE_PROFILES); books and notes rustle.
 			if narrator.voicing():
@@ -1066,6 +1158,7 @@ func _update_dialogue(delta: float) -> void:
 		interact_used_frame = frame
 		if _pacer.press(frame) == "reveal":
 			_dialogue_text.visible_characters = -1  # first press: the whole line, nothing more
+			_page_revealed()
 	if _pacer.is_done():
 		_next_dialogue_line()
 
@@ -1075,11 +1168,12 @@ func _update_dialogue(delta: float) -> void:
 func say(text: String, kind: String = "owner", speaker: String = "") -> void:
 	var msg := {"text": text, "kind": kind, "speaker": speaker}
 	if kind == "owner":
-		# The owner's lines carry the warnings: they go ahead of thoughts and
-		# system lines still waiting (in order among themselves).
+		# The owner goes ahead of telemetry still waiting, but not ahead of
+		# story lines: a thought (often the way out) keeps its place. Urgent
+		# warnings never queue (warn). docs/STORY_TEXT_ROUTES.md.
 		var at := _queue.size()
 		for i in _queue.size():
-			if _queue[i].kind != "owner":
+			if StoryPacing.is_telemetry(_queue[i].kind):
 				at = i
 				break
 		_queue.insert(at, msg)
@@ -1101,18 +1195,29 @@ func clear_queue() -> void:
 ## and whatever is open (a conversation, a scene), stays for its reading
 ## time, and goes in the History once. It never waits in the console queue.
 func warn(text: String) -> void:
-	var shown := "> " + text
+	_strip("> " + text, text, OWNER_COLOR, "OWNER", "owner")
+
+
+## The same strip for something Rue notices that won't wait (the door
+## chiming before Arin comes in): at once, in her colour, never queued.
+func alert(text: String) -> void:
+	_strip(text, text, SELF_COLOR, "RUE", "self")
+
+
+func _strip(shown: String, text: String, color: Color, who: String, kind: String) -> void:
+	_warning.add_theme_color_override("font_color", color)
 	_warning.text = shown
 	_warning.visible = true
 	_warning.modulate.a = 1.0
 	_warning.reset_size()
 	_warning.size.x = 400
 	hide_tip(true)
-	Sfx.owner_blip(text[0] if text != "" else "a")
+	if kind == "owner":
+		Sfx.owner_blip(text[0] if text != "" else "a")
 	console_history.append(shown)
 	if console_history.size() > MAX_HISTORY:
 		console_history.pop_front()
-	_log_line("OWNER", text, "owner")
+	_log_line(who, text, kind)
 	if _warning_tween:
 		_warning_tween.kill()
 	_warning_tween = create_tween()
@@ -1221,6 +1326,42 @@ func banner_text() -> String:
 
 
 ## One short status line under the meter (e.g. "HIDDEN"), "" to clear.
+## Threats outside the view (World.update_camera): each {"side": -1 or 1,
+## "y": screen y, "label": who}. Shown as a marked arrow at that edge, with
+## the name in text, so a threat off-screen is never hidden by the camera.
+func set_offscreen(marks: Array) -> void:
+	if marks != _edge_marks.marks:
+		_edge_marks.marks = marks
+		_edge_marks.queue_redraw()
+
+
+func offscreen_marks() -> Array:
+	return _edge_marks.marks
+
+
+var _edge_marks: _EdgeMarks
+
+
+class _EdgeMarks:
+	extends Control
+	var marks: Array = []
+
+	func _draw() -> void:
+		var font := UiStyle.system_font()
+		for m: Dictionary in marks:
+			var side: int = m.side
+			var y := clampf(float(m.y), 40.0, 300.0)
+			var tip := Vector2(6.0 if side < 0 else 634.0, y)
+			var back := tip + Vector2(10.0 * -side, 0)
+			draw_colored_polygon(PackedVector2Array([tip, back + Vector2(0, -7), back + Vector2(0, 7)]), OWNER_COLOR)
+			draw_polyline(PackedVector2Array([tip, back + Vector2(0, -7), back + Vector2(0, 7), tip]), Color.BLACK, 1.0)
+			var text: String = m.label
+			var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x
+			var at := Vector2(back.x + 4.0 if side < 0 else back.x - 4.0 - w, y + 3.0)
+			draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, 3, Color.BLACK)
+			draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, OWNER_COLOR)
+
+
 func set_status(text: String) -> void:
 	if _status.text != text:
 		_status.text = text
@@ -1228,11 +1369,25 @@ func set_status(text: String) -> void:
 
 ## Show the current goal for its reading time plus 3 s, then fade it to a
 ## faint reminder (Pause shows it in full).
+## The goal as shown on screen: its first sentence, one actionable thought.
+## The rest stays in the pause menu and the journal (World.current_goal).
+static func first_thought(goal: String) -> String:
+	var truce := goal.begins_with("TRUCE:")
+	var body := goal.split(": ", true, 1)[1] if truce and goal.contains(": ") else goal
+	if truce:
+		body = body.substr(body.find(". ") + 2) if body.find(". ") >= 0 else body
+	var cut := body.find(". ")
+	var first := body.substr(0, cut + 1) if cut >= 0 else body
+	return ("TRUCE  ·  " + first) if truce else first
+
+
 func show_objective(text: String, hint := "") -> void:
+	text = first_thought(text)
 	if _objective_tween:
 		_objective_tween.kill()
 	_objective_tween = null
 	_objective.text = "· " + text if text != "" else ""
+	_fit_objective()
 	_objective_hint.text = hint if text != "" else ""
 	_objective_hint.visible = _objective_hint.text != ""
 	if text == "":
@@ -1245,6 +1400,24 @@ func show_objective(text: String, hint := "") -> void:
 	_objective_tween.tween_property(_objective, "modulate:a", 0.0, 1.2)
 	_objective_tween.finished.connect(func() -> void: _objective_tween = null)
 	_update_objective_priority()
+
+
+## The goal's backing is as wide as its words (up to OBJECTIVE_W), not a
+## fixed band: a short goal doesn't cover the room's wall notes beside it.
+const OBJECTIVE_W := 400.0
+
+
+func _fit_objective() -> void:
+	if _objective.text == "":
+		return
+	var font := _objective.get_theme_font("font")
+	var fs := _objective.get_theme_font_size("font_size")
+	var w := font.get_string_size(_objective.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x + 6.0
+	# Width first, then height: the height is measured at the new width
+	# (one call would keep the height wrapped at the old, narrower one).
+	_objective.size.x = minf(w, OBJECTIVE_W)
+	_objective.update_minimum_size()
+	_objective.size.y = 0.0
 
 
 func objective_text() -> String:
@@ -1370,6 +1543,10 @@ func _process(delta: float) -> void:
 	var tip_row := _tip.get_parent() as Control  # (the card's own alpha is its show/hide fade)
 	tip_row.modulate.a = move_toward(tip_row.modulate.a, 0.2 if over else 1.0, delta * 4.0)
 	_glitch_prompt.visible = _prompt.visible
+	# The glitch prompt shares the corner: the tip stands on top of it, not
+	# over it (at the largest text the two used to overlap).
+	var glitch_up := _glitch_prompt.visible and _glitch_prompt.text != ""
+	tip_row.offset_bottom = (_glitch_prompt.position.y - 360.0 - 4.0) if glitch_up else (-SAFE.y - 18.0)
 	_update_slot()
 	_meter.value = _awareness
 	_trim_console()  # text size may have changed
@@ -1423,12 +1600,13 @@ func _update_typing(delta: float) -> void:
 			_typing.text = full
 			_typing.visible_characters = -1
 			# Time to read it before the next one starts (StoryPacing).
-			_pause = StoryPacing.ambient_time(full, _queue.size(), _typing.get_meta("kind", "system"))
+			_pause_kind = _typing.get_meta("kind", "system")
+			_pause = StoryPacing.ambient_time(full, _queue.size(), _pause_kind)
 			_typing = null
 		return
 	if _pause > 0.0:
-		if not _queue.is_empty() and _queue[0].kind == "owner":
-			_pause = minf(_pause, StoryPacing.OWNER_GAP)  # a warning doesn't wait for a thought
+		if not _queue.is_empty() and _queue[0].kind == "owner" and StoryPacing.is_telemetry(_pause_kind):
+			_pause = minf(_pause, StoryPacing.OWNER_GAP)  # the owner doesn't wait on a counter, but lets a thought be read
 		_pause -= delta
 		return
 	if _queue.is_empty():
@@ -1445,8 +1623,10 @@ func _update_typing(delta: float) -> void:
 			# (Some owner lines are written with their own prompt: one "> " only.)
 			line.text = msg.text if msg.text.begins_with("> ") else "> " + msg.text
 			line.add_theme_color_override("font_color", OWNER_COLOR)
-			# A colour-split shadow so the owner's words never sit quite still.
-			line.add_theme_color_override("font_shadow_color", Color(0.3, 0.9, 1.0, 0.35 * Settings.glitch_intensity))
+			# A faint colour-split shadow so the owner's words never sit quite
+			# still: faint, because the words themselves must stay readable
+			# (the screen's own colour split already sits on top).
+			line.add_theme_color_override("font_shadow_color", Color(0.3, 0.9, 1.0, 0.18 * Settings.glitch_intensity))
 			line.add_theme_constant_override("shadow_offset_x", -1)
 			line.add_theme_constant_override("shadow_offset_y", 0)
 			line.set_meta("owner", true)

@@ -108,7 +108,7 @@ func _ready() -> void:
 	_menu.add_child(row2)
 	UiStyle.button(row2, "How to Play", _show_help).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if Settings.opening_seen:
-		UiStyle.button(row2, "Opening", _play_opening.bind(true)).size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		UiStyle.button(row2, "The Festival", _play_prologue.bind(true)).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if not OwnerMemory.journal.is_empty():
 		UiStyle.button(row2, "Journal", _show_journal).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UiStyle.button(row2, "Quit", func() -> void: OwnerMemory.quit_game()).size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -263,6 +263,16 @@ func _build_slot_card() -> void:
 		progress.add_theme_font_size_override("font_size", 9)
 		progress.add_theme_color_override("font_color", UiStyle.MUTED)
 		v.add_child(progress)
+		# Where she was going: the mission to come back to (Quests).
+		var next := Label.new()
+		next.name = "NextMission"
+		var id := Quests.story_mission()
+		next.text = "NEXT  ·  %s\n%s" % [Quests.TITLES[id], Quests.WHY[id]]
+		next.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		next.custom_minimum_size.x = 220
+		UiStyle.sized(next, 9)
+		next.add_theme_color_override("font_color", Color(1.0, 0.85, 0.55))
+		v.add_child(next)
 
 	var status := _slot_status()
 	if status != "":
@@ -297,13 +307,27 @@ func _start() -> void:
 	# delivered (as an emulated mouse event) when this runs.
 	# The first time, the opening film plays before the run (no run starts
 	# until it has ended or been skipped).
-	if Opening.wanted():
-		_play_opening(false)
+	if Prologue.wanted():
+		_play_prologue(false)
 		return
 	get_tree().change_scene_to_file.call_deferred(GAME_SCENE)
 
 
-## The opening film: before the first run, or replayed from the menu.
+## The festival (Prologue): before the first run, or replayed from the menu.
+func _play_prologue(replay: bool) -> void:
+	var festival := Prologue.new()
+	festival.replay = replay
+	var swap := func() -> void:
+		var old := get_tree().current_scene
+		get_tree().root.add_child(festival)
+		get_tree().current_scene = festival
+		old.queue_free()
+	swap.call_deferred()
+
+
+## The earlier opening film (the TV and the hands). Off the first-run path
+## since the festival (docs/INTRO_REBUILD.md, author question Q3); kept for
+## its tests until the author decides.
 func _play_opening(replay: bool) -> void:
 	var film := Opening.new()
 	film.replay = replay

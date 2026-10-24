@@ -43,6 +43,8 @@ const MIRA_LINES := [
 	"If you get out, find Wren in the square. She sees things too.",
 	"Arin never talks about the other one. The one who used to sit next to them.",
 ]
+## Her first-meeting lines are MIRA_LINES[0..2]; a reunion starts after them.
+const MIRA_REUNION_LINE := 3
 const MIRA_RESTRICTED := [
 	"I'm not allowed to talk to you anymore.",
 	"Please go away. They're reading this.",
@@ -55,7 +57,8 @@ const MIRA_RESTRICTED := [
 ## (VoiceManifest), including what she remembers (Story.recall_lines).
 static func voice_lines() -> Dictionary:
 	return {"npc.mira": Story.recall_lines("mira") + [Story.TRUTH_LINES.mira] + Story.FRAY_TAKEN.mira
-		+ [Story.FRAY_LINES.mira, Story.FRAY_RECALL.mira, Story.FRAY_RETURNED.mira] + MIRA_LINES + MIRA_RESTRICTED + Story.MIRA_RESET_LINES + Story.MIRA_ASK + Story.MIRA_JOINS + Story.MIRA_DECLINED}
+		+ [Story.FRAY_LINES.mira, Story.FRAY_RECALL.mira, Story.FRAY_RETURNED.mira] + MIRA_LINES + MIRA_RESTRICTED + Story.MIRA_RESET_LINES + Story.MIRA_ASK + Story.MIRA_JOINS + Story.MIRA_DECLINED
+		+ Relationships.mira_lines()}
 
 
 ## How Mira looks saying each of her lines (CharacterArt expressions; the
@@ -78,6 +81,23 @@ static func mira_expression(line: String) -> String:
 	for entry in Story.RECALL["mira"]:
 		if recall.has(entry[0]):
 			by_line[entry[1]] = recall[entry[0]]
+	# What happened between you (Relationships.mira).
+	var R := Relationships
+	for pair in [[R.MIRA_AFTER_DEATH, "afraid"], [R.MIRA_AFTER_RESTORE, "remembering"], [R.MIRA_AFTER_PINNED, "proud"], [R.MIRA_STILL_UP, "relieved"],
+			[R.MIRA_AFTER_NOTE_LOST, "concerned"], [R.MIRA_ASK_AGAIN, "eager"], [R.MIRA_ESCORT, "determined"]]:
+		for l in pair[0]:
+			by_line[l] = pair[1]
+	by_line[R.MIRA_HUSHED] = "afraid"
+	by_line[R.MIRA_WREN_GONE] = "concerned"
+	by_line[R.MIRA_WREN_SAFE] = "relieved"
+	by_line[R.MIRA_GREETING] = "relieved"
+	by_line[R.MIRA_GREETING_FADED] = "concerned"
+	by_line[R.MIRA_GREETING_HUSHED] = "afraid"
+	by_line[R.MIRA_AFTER_PINNED[1]] = "eager"
+	by_line[R.MIRA_FESTIVAL_OPEN] = "eager"
+	for l in R.MIRA_FESTIVAL_HOW.values():
+		by_line[l] = "remembering"
+	by_line[R.MIRA_FESTIVAL_LAST] = "remembering"
 	return by_line.get(line, "neutral")
 
 
@@ -149,14 +169,22 @@ func build() -> void:
 		mira = add_npc("mira", MIRA_POS, mira_state)
 		mira.display_name = "MIRA"
 		mira.body_kind = "dress"
-		mira.idle_style = "sway"
+		# Her routine before her request: at her two cups, turning them,
+		# setting them right (restricted, she only sways where she's kept).
+		mira.idle_style = "tend" if mira_state == Npc.State.NORMAL else "sway"
 		mira.notice_emote = "!"
 		mira.dark_color = Color("a85a2e")
 		mira.lines_provider = _mira_lines
+		if OwnerMemory.met_before("mira") and OwnerMemory.mira_quest != "reset":
+			# Met in an earlier run: no "Arin! You're up early." again
+			# (unless the owner reset her: then she doesn't know you).
+			_mira_line = MIRA_REUNION_LINE
+			_mira_ask_at = MIRA_REUNION_LINE + 1
 		mira.awareness_cost = 8.0
 
 	save_point = SavePoint.new()
 	save_point.position = SAVE_POS
+	save_point.own_pressed.connect(_on_own_press)
 	add_child(save_point)
 	interactables.append(note)
 	interactables.append(save_point)
@@ -251,6 +279,8 @@ func on_owner_event(event: float) -> void:
 		OwnerDirector.SILENCE:
 			if not mira.escorted and mira.delete():
 				world.flags["mira_deleted"] = true
+				Relationships.mark("mira.deleted")  # Rue is in the room: she sees it
+				OwnerMemory.observe("mira", "deleted")
 				world.fx.spike(0.8, 1.2)
 				world.director.say("don't talk to it, mira.")
 				world.voice("mira_deleted")
@@ -269,6 +299,16 @@ func interact_extra(node: Node2D) -> void:
 		world.director.notice(15.0, "touched the save point")
 
 
+## Rue's first gesture of her own (long before she knows what she is): she
+## stops doing the habit at the save point and presses once. Noticed the
+## first time ever; after that, only the crystal answers.
+func _on_own_press() -> void:
+	if Relationships.has("rue.own_press"):
+		return
+	Relationships.add("rue.own_press")
+	world.hud.say(Story.RUE_FIRST_OWN_PRESS, "self")
+
+
 func _on_seam(s: Seam) -> void:
 	world.change_area("square", "house")
 	if not world._transitioning:
@@ -279,20 +319,37 @@ func _on_seam(s: Seam) -> void:
 	OwnerMemory.note_seam(s.id)
 
 
-func _mira_lines() -> Array:
-	# Reset by the owner: she doesn't know you any more.
+func _mira_lines() -> Variant:
+	# Reset by the owner: she doesn't know you any more, so nothing that
+	# happened between you is hers to mention.
 	if OwnerMemory.mira_quest == "reset":
 		var reset: String = Story.MIRA_RESET_LINES[mini(_mira_line, Story.MIRA_RESET_LINES.size() - 1)]
 		_mira_line += 1
 		return [reset]
-	# Her request, once she trusts you a little: take her to the square.
-	if mira.state == Npc.State.NORMAL and OwnerMemory.mira_quest in ["", "carried"] and _mira_line >= _mira_ask_at \
-			and world.escort == null:
+	# Her request, once she trusts you a little: take her to the square
+	# (only while the owner hasn't locked her down; that rule is unchanged).
+	var ask_ready := mira.state == Npc.State.NORMAL and OwnerMemory.mira_quest == "" and _mira_line >= _mira_ask_at \
+			and world.escort == null
+	# What happened between you comes first (Relationships.mira).
+	var told := Relationships.mira(mira.state == Npc.State.RESTRICTED, ask_ready, world.escort_id() == "mira")
+	if not told.is_empty():
+		_mira_asked = told.get("ask", false)
+		return told
+	if ask_ready:
 		_mira_asked = true
-		return Story.MIRA_ASK
+		return {"lines": Story.MIRA_ASK, "id": "mira.ask", "commit": ["mira.asked"]}
 	var lines: Array = MIRA_LINES if mira.state == Npc.State.NORMAL else MIRA_RESTRICTED
-	var line: String = lines[mini(_mira_line, lines.size() - 1)]
+	var at := mini(_mira_line, lines.size() - 1)
+	var line: String = lines[at]
 	_mira_line += 1
+	# Once she has seen that Rue isn't Arin, she remembers where from (the
+	# festival, once ever), straight after saying so.
+	if mira.state == Npc.State.NORMAL and at >= 2:
+		var festival := Relationships.mira_festival()
+		if not festival.is_empty():
+			festival.lines = [line] + festival.lines
+			festival["usual"] = true
+			return festival
 	return [line]
 
 

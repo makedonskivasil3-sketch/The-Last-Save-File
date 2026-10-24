@@ -1,5 +1,7 @@
 # The dark truth: design proposal
 
+> **Superseded in part (continuity milestone, proposed):** the truth about Rue is now that she is the part of the second player that stayed in the interrupted save — a real person, not a character grown from her play. See `docs/NARRATIVE_CONTRACT.md` §1 and its ledger (§7) for every changed line. This document is kept as history; where it says Rue "is not the girl" or "what she left running", the contract wins.
+
 > **Status.** The author chose the direction on 2026-10-19: all three layers (A: the truth, B: shedding,
 > C: the virus route), and **Rue stays "she"**. The author then answered the open questions (§6):
 > - shedding costs **a piece of someone** only;

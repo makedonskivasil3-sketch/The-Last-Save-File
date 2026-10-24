@@ -29,6 +29,10 @@ var notice_emote := ""
 var talking := false
 ## Never moves their mouth (the real Arin only says "...").
 var mute := false
+## In a conversation with Rue (World): they face her and pay attention.
+## Their mouth moves only while `speaking` (their line is being typed or
+## voiced), never just because the box is open, and never when mute.
+var speaking := false
 ## Their own colours, kept the first time a piece is taken from the drawing.
 var _unfrayed: Dictionary = {}
 var player: Node2D
@@ -133,6 +137,14 @@ func is_present() -> bool:
 
 
 ## A little speech bubble over their head.
+## Shows the hiding ring strongly for a moment ("stand here").
+var _offer_t := 0.0
+
+
+func offer_shelter(seconds: float) -> void:
+	_offer_t = seconds
+
+
 func emote(text: String, duration: float = 1.6) -> void:
 	_emote = text
 	_emote_t = duration
@@ -146,7 +158,7 @@ func _enter_tree() -> void:
 func sprite() -> PixelCharacter:
 	if _sprite == null:
 		_apply_fray()
-		_sprite = IllustratedCharacter.new(body_kind, {
+		_sprite = CharacterArt.figure(npc_id, body_kind, {
 			"h": hair_color, "s": skin_color, "c": dress_color, "d": dark_color,
 			"a": accent_color, "w": Color("d8d0c0"), "l": dark_color.darkened(0.3),
 		})
@@ -156,6 +168,22 @@ func sprite() -> PixelCharacter:
 
 ## Rue took this one's piece (docs/DARK_TRUTH_DESIGN.md): Wren's ribbon,
 ## Mira's colour, Tobben's voice.
+## How Rue sees them right now, for her journal (ArchivePages.condition).
+func observed_state() -> String:
+	match state:
+		State.DELETED, State.DELETING:
+			return "deleted"
+		State.RESTRICTED:
+			return "restricted"
+	if npc_id == "mira" and OwnerMemory.mira_quest == "reset":
+		return "reset"
+	if npc_id == "wren" and OwnerMemory.wren_saved:
+		return "safe"
+	if Relationships.has(npc_id + ".restored") and OwnerMemory.event_session(npc_id + ".restored") == OwnerMemory.sessions:
+		return "restored"
+	return "well"
+
+
 func is_frayed() -> bool:
 	return npc_id in OwnerMemory.frayed
 
@@ -195,33 +223,56 @@ func interact_prompt() -> String:
 	return "talk"
 
 
+## The id of the area they're in (an escort walks inside World, beside it).
+func _where() -> String:
+	var n: Node = get_parent()
+	while n != null:
+		if n is Area:
+			return (n as Area).area_id
+		var a: Variant = n.get("area")
+		if a is Area:
+			return (a as Area).area_id
+		n = n.get_parent()
+	return ""
+
+
 func interact() -> Dictionary:
-	var lines: Array = lines_provider.call()
-	# A piece Rue took (or gave back): said once a session, before anything.
+	# One selection path (Relationships): an urgent remark about how they are
+	# stands alone; otherwise the area asks the character's selector for a
+	# consequence, continuation or new topic, and falls back to their usual
+	# lines, which a familiar greeting may open (once a session).
+	# Meeting someone counts when the conversation opens; what was said
+	# counts only once it's read to the end (World).
+	var present := state != State.DELETED and not mute
+	var urgent := Relationships.urgent(self) if present else {}
+	var told: Variant = urgent if not urgent.is_empty() else lines_provider.call()
+	var conversation := ""
+	var commit: Array = []
+	var after: Array = []
+	var lines: Array = []
+	if told is Dictionary:
+		lines = told.get("lines", [])
+		conversation = told.get("id", "")
+		commit = told.get("commit", [])
+		after = told.get("after", [])
+	else:
+		lines = told
 	if state != State.DELETED:
-		if npc_id in OwnerMemory.returned_pending and Story.FRAY_RETURNED.has(npc_id):
-			OwnerMemory.returned_pending.erase(npc_id)
-			OwnerMemory.save_memory()
-			lines = [Story.FRAY_RETURNED[npc_id]] + lines
-		elif is_frayed() and "fray:" + npc_id not in OwnerMemory.session_recalled:
-			OwnerMemory.session_recalled.append("fray:" + npc_id)  # once a session, not once a visit
-			lines = [Story.FRAY_LINES[npc_id] if npc_id in OwnerMemory.session_frayed else Story.FRAY_RECALL[npc_id]] + lines
-	# What they've noticed about what Rue is, once it's time (said once ever),
-	# goes before their usual lines...
-	# (Counted when the line is actually shown: World._on_line_shown.)
-	var truth := Story.truth_line(npc_id) if state != State.DELETED else ""
-	if truth != "":
-		lines = [truth] + lines
-	# ...and the first time you talk this session, anything they remember
-	# from your last runs comes first of all.
-	if state != State.DELETED and npc_id not in OwnerMemory.session_recalled:
-		OwnerMemory.session_recalled.append(npc_id)
-		var memory := Story.recall(npc_id)
-		if memory != "":
-			lines = [memory] + lines
+		OwnerMemory.meet(npc_id, _where(), sprite().palette)
+	OwnerMemory.observe(npc_id, observed_state())
+	# Their usual lines (no conversation id, or "usual": one of their lines
+	# with a remembered topic after it): a greeting first, if they knew Rue
+	# in an earlier session. Never before something that happened: a
+	# reunion or a promise says it in its own words.
+	var usual: bool = told is Array or (told is Dictionary and told.get("usual", false))
+	if present and urgent.is_empty() and usual:
+		var hello := Relationships.greeting(self)
+		if hello != "":
+			lines = [hello] + lines
 	if on_talk.is_valid():
 		on_talk.call()
-	return {"speaker": Story.TOBBEN_WRITTEN if npc_id == "tobben" and is_frayed() else display_name, "color": name_color, "lines": lines}
+	return {"speaker": Story.TOBBEN_WRITTEN if npc_id == "tobben" and is_frayed() else display_name, "color": name_color, "lines": lines,
+		"conversation": conversation, "commit": commit, "after": after}
 
 
 func _process(delta: float) -> void:
@@ -230,10 +281,14 @@ func _process(delta: float) -> void:
 		frozen -= delta
 		queue_redraw()
 		return
-	# Conversation gaze owns facing while speaking; locomotion still owns
+	# Conversation gaze owns facing while talking; locomotion still owns
 	# gait, but cannot flip away and restart the same turn every frame.
 	s.update(delta, _walk_velocity, not talking)
-	s.talking = talking and not mute
+	# The mouth moves only while their own line is spoken (World sets
+	# speaking), never just because the box is open, and never when mute.
+	s.talking = speaking and not mute
+	# Restricted (the owner's lock on them): no greeting hop or wave, no
+	# reading; they stand and look. Talking, they stop their idle too.
 	s.idle_style = "" if state == State.RESTRICTED or talking else idle_style
 	_emote_t = maxf(0.0, _emote_t - delta)
 	if is_present() and is_instance_valid(player):
@@ -246,18 +301,22 @@ func _process(delta: float) -> void:
 		if d < 50.0 and not _noticed and notice_emote != "":
 			_noticed = true
 			emote(notice_emote)
-		s.waving = idle_style == "wave" and d < 70.0 and not talking
+		s.waving = idle_style in ["wave", "tend"] and d < 70.0 and not talking and state != State.RESTRICTED
 	if state == State.DELETING:
 		_delete_t += delta
 		if _delete_t > 1.6:
 			state = State.DELETED
 			_col.set_deferred("disabled", true)
-	queue_redraw()
+	# (Their shelter ring is drawn with them: the margin covers it.)
+	if IllustratedCharacter.near_view(self, maxf(64.0, hide_radius + 16.0)):
+		queue_redraw()
 
 
 func _draw() -> void:
 	if hide_radius > 0.0 and is_present():
-		draw_circle(Vector2(0, 4), hide_radius, Color(0.55, 0.95, 1.0, 0.05))
+		draw_circle(Vector2(0, 4), hide_radius, Color(0.55, 0.95, 1.0, 0.05 + 0.12 * clampf(_offer_t, 0.0, 1.0)))
+		if _offer_t > 0.0:
+			draw_arc(Vector2(0, 4), hide_radius, 0.0, TAU, 24, Color(0.55, 0.95, 1.0, 0.6 * clampf(_offer_t, 0.0, 1.0)), 1.0)
 	match state:
 		State.NORMAL, State.RESTRICTED:
 			if frozen > 0.0:

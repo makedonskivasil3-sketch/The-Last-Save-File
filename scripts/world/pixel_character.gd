@@ -65,8 +65,11 @@ var facing := Vector2.DOWN
 ## Seconds left of the settle after stopping, and of the squeeze through a turn.
 var settle := 0.0
 var turn := 0.0
+## Seconds left of the lean into the first step after standing.
+var start := 0.0
 const SETTLE_TIME := 0.18
 const TURN_TIME := 0.12
+const START_TIME := 0.14
 var moving := false
 var talking := false
 ## "", "sway", "hop", "wave", "read".
@@ -129,10 +132,13 @@ func update(delta: float, velocity: Vector2, face_motion := true) -> void:
 	# it through the turn instead of flipping in one frame.
 	if was_moving and not moving:
 		settle = SETTLE_TIME
+	if moving and not was_moving:
+		start = START_TIME  # the first step leans in before the body follows
 	if facing != was_facing:
 		turn = TURN_TIME
 	settle = maxf(0.0, settle - delta)
 	turn = maxf(0.0, turn - delta)
+	start = maxf(0.0, start - delta)
 	_blink_timer -= delta
 	if _blink_timer <= 0.0:
 		_blink = 0.13
@@ -145,6 +151,12 @@ func update(delta: float, velocity: Vector2, face_motion := true) -> void:
 			_hop_timer = randf_range(2.5, 6.0)
 	_hop = maxf(0.0, _hop - delta)
 	startled = maxf(0.0, startled - delta)
+
+
+## The reading book is out: only while reading in place, facing the viewer
+## or to the side (never drawn on the back), and lowered while talking.
+func shows_book() -> bool:
+	return idle_style == "read" and not moving and not talking and facing != Vector2.UP
 
 
 ## Jump a little (startle, excitement). Seconds of airtime.
@@ -254,7 +266,7 @@ func draw(ci: CanvasItem, opts: Dictionary = {}) -> void:
 	_draw_legs(ci, base + Vector2(float(slices[2]) / SCALE, rows.size() - (1.0 if crouch else 0.0)), step, solid, grey, alpha)
 	if solid == null and not back:
 		_draw_face(ci, base + Vector2(sway + float(slices[0]) / SCALE, breath), alpha, grey)
-	if idle_style == "read" and not moving and solid == null:
+	if shows_book() and solid == null:
 		_draw_book(ci, base + Vector2(0, template.arm_row), alpha)
 	ci.draw_set_transform(Vector2.ZERO)
 
