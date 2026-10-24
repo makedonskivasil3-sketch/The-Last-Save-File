@@ -146,13 +146,41 @@ func draw(ci: CanvasItem, opts: Dictionary = {}) -> void:
 	ci.draw_set_transform(Vector2.ZERO)
 
 
-func _hero_shadow(ci: CanvasItem, alpha: float) -> void:
-	var w := float(hero.sh) + 2.2
+## Unit shapes, built once and transformed natively each frame (a GDScript
+## cos/sin loop per shape per frame was most of the figure's cost).
+static var UNIT_20 := IllustratedCharacter._unit_circle(20)
+## The face: a circle narrower toward the chin (unit radius).
+static var UNIT_FACE := _unit_face()
+## The upper half of a circle, left to right (15 points), for hair caps.
+static var UNIT_CAP := _unit_arc(PI, TAU, 15)
+## The rim light's arc on the head's upper left (7 points).
+static var UNIT_RIM := _unit_arc(PI * 1.05, PI * 1.05 + 0.72, 7)
+
+
+static func _unit_face() -> PackedVector2Array:
 	var pts := PackedVector2Array()
 	for i in 20:
 		var t := TAU * i / 20.0
-		pts.append(Vector2(cos(t) * w, sin(t) * 1.9 + 0.4))
-	ci.draw_colored_polygon(pts, Color(0, 0, 0, 0.32 * alpha))
+		var y := sin(t)
+		pts.append(Vector2(cos(t) * (1.0 - maxf(0.0, y) * 0.16), y))
+	return pts
+
+
+static func _unit_arc(from: float, to: float, n: int) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for i in n:
+		var t := from + (to - from) * i / float(n - 1)
+		pts.append(Vector2(cos(t), sin(t)))
+	return pts
+
+
+static func _scaled(unit: PackedVector2Array, c: Vector2, r: Vector2) -> PackedVector2Array:
+	return Transform2D(Vector2(r.x, 0), Vector2(0, r.y), c) * unit
+
+
+func _hero_shadow(ci: CanvasItem, alpha: float) -> void:
+	var w := float(hero.sh) + 2.2
+	ci.draw_colored_polygon(_scaled(UNIT_20, Vector2(0, 0.4), Vector2(w, 1.9)), Color(0, 0, 0, 0.32 * alpha))
 
 
 ## Key heights for the rig (negative is up, the feet are at 0).
@@ -168,11 +196,9 @@ func _neck_y(r: Dictionary) -> float:
 ## draws its edges over whatever it crosses (an arm in front of a coat of
 ## the same colour still reads as an arm).
 func _limb(p: IllustratedCharacter._Parts, from: Vector2, to: Vector2, r1: float, r2: float, c: Color, ink := false) -> void:
-	var n := (to - from).normalized().orthogonal() if (to - from).length() > 0.01 else Vector2.RIGHT
-	p.poly(PackedVector2Array([from + n * r1, to + n * r2, to - n * r2, from - n * r1]), c)
-	p.circle(from, r1, c)
-	p.circle(to, r2, c)
+	p.taper(from, to, r1, r2, c)
 	if ink:
+		var n := (to - from).normalized().orthogonal() if (to - from).length() > 0.01 else Vector2.RIGHT
 		var line := Color(OUTLINE, 0.75)
 		p.line(from + n * r1, to + n * r2, line, 0.4)
 		p.line(from - n * r1, to - n * r2, line, 0.4)
@@ -395,13 +421,8 @@ func _hero_head(p: IllustratedCharacter._Parts, r: Dictionary) -> void:
 				p.ellipse(c + Vector2(-rx * 0.15, 0.6), Vector2(0.9, 1.3), skin.darkened(0.06))
 			else:
 				p.ellipse(c + Vector2(s * rx, 0.6), Vector2(0.8, 1.2), skin.darkened(0.06))
-	var face := PackedVector2Array()
-	for i in 20:
-		var t := TAU * i / 20.0
-		var y := sin(t)
-		var w := rx * (1.0 - maxf(0.0, y) * 0.16)  # narrower toward the chin
-		face.append(c + Vector2(cos(t) * w, y * ry))
-	p.poly(face, skin if not back or style == "bald" else hair)
+	var face := _scaled(UNIT_FACE, c, Vector2(rx, ry))  # narrower toward the chin
+	p.poly_grown(face, _scaled(UNIT_FACE, c, Vector2(rx + OUTLINE_W, ry + OUTLINE_W)), skin if not back or style == "bald" else hair)
 	if back:
 		if style == "bald":
 			p.ellipse(c + Vector2(-rx + 0.6, 0.8), Vector2(1.1, 2.2), hair)
@@ -412,24 +433,24 @@ func _hero_head(p: IllustratedCharacter._Parts, r: Dictionary) -> void:
 	# Hair on top: a crown with locks, shaped per character.
 	match style:
 		"messy":
-			p.poly(_hero_cap(c, rx, ry, 0.4), hair)
+			_hair_cap(p, c, rx, ry, 0.4, hair)
 			_tuft(p, c + Vector2(0.4, -ry) + ho * 1.6, hair)
 			# Fringe locks over the forehead.
 			for i in 3:
 				var fx := -rx * 0.6 + i * rx * 0.55
 				p.poly(PackedVector2Array([c + Vector2(fx - 1.2, -ry * 0.55), c + Vector2(fx + 1.4, -ry * 0.6), c + Vector2(fx + 0.3, -ry * 0.08 + (i % 2) * 0.6)]), hair, false)
 		"short":
-			p.poly(_hero_cap(c, rx, ry, 0.0), hair)
+			_hair_cap(p, c, rx, ry, 0.0, hair)
 			p.poly(PackedVector2Array([c + Vector2(rx * 0.1, -ry * 0.75), c + Vector2(rx * 0.95, -ry * 0.4), c + Vector2(rx * 0.4, -ry * 0.25)]), hair, false)
 		"long":
-			p.poly(_hero_cap(c, rx, ry, 0.8), hair)
+			_hair_cap(p, c, rx, ry, 0.8, hair)
 		"pigtails":
-			p.poly(_hero_cap(c, rx, ry, 0.5), hair)
+			_hair_cap(p, c, rx, ry, 0.5, hair)
 		"bald":
 			for s: float in [-1.0, 1.0]:
 				p.poly(PackedVector2Array([c + Vector2(s * (rx + 0.3), 0.6), c + Vector2(s * (rx - 0.6), -2.6), c + Vector2(s * (rx - 2.2), -1.8), c + Vector2(s * (rx - 1.2), 1.6)]), hair)
 		"elder":
-			p.poly(_hero_cap(c, rx, ry, -0.8), hair)
+			_hair_cap(p, c, rx, ry, -0.8, hair)
 	if hero.get("beard", false):
 		p.poly(PackedVector2Array([c + Vector2(-rx + 0.6, ry * 0.25), c + Vector2(rx - 0.6, ry * 0.25), c + Vector2(rx * 0.55, ry + 4.4), c + Vector2(0, ry + 5.6), c + Vector2(-rx * 0.55, ry + 4.4)]), hair)
 	if hero.get("moustache", false):
@@ -441,11 +462,12 @@ func _tuft(p: IllustratedCharacter._Parts, at: Vector2, hair: Color) -> void:
 	p.poly(PackedVector2Array([at + Vector2(0.4, 1.8), at + Vector2(2.4, -1.4), at + Vector2(2.2, 2.2)]), hair)
 
 
+func _hair_cap(p: IllustratedCharacter._Parts, c: Vector2, rx: float, ry: float, fringe: float, hair: Color) -> void:
+	p.poly_grown(_hero_cap(c, rx, ry, fringe), _hero_cap(c, rx + OUTLINE_W, ry + OUTLINE_W, fringe - OUTLINE_W * 0.5), hair)
+
+
 func _hero_cap(c: Vector2, rx: float, ry: float, fringe: float) -> PackedVector2Array:
-	var pts := PackedVector2Array()
-	for i in 15:
-		var t := PI + PI * i / 14.0
-		pts.append(c + Vector2(cos(t) * (rx + 0.6), sin(t) * (ry + 0.6)))
+	var pts := _scaled(UNIT_CAP, c, Vector2(rx + 0.6, ry + 0.6))
 	pts.append(c + Vector2(rx * 0.8, -ry * 0.25 + fringe))
 	pts.append(c + Vector2(0.0, -ry * 0.4 + fringe))
 	pts.append(c + Vector2(-rx * 0.8, -ry * 0.25 + fringe))
@@ -457,11 +479,7 @@ func _hero_light(ci: CanvasItem, r: Dictionary, alpha: float, grey: bool) -> voi
 	var col := _paint(RIM, null, grey, alpha)
 	var hh := float(hero.head)
 	var c := Vector2(float(r.s_head) + float(r.sway) + float(r.tilt) + (0.5 if r.side else 0.0), _head_y() + float(r.dy) + float(r.breath))
-	var pts := PackedVector2Array()
-	for i in 7:
-		var t := PI * 1.05 + i * 0.12
-		pts.append(c + Vector2(cos(t) * hh * 0.46, sin(t) * hh * 0.5))
-	ci.draw_polyline(pts, col, 0.5)
+	ci.draw_polyline(_scaled(UNIT_RIM, c, Vector2(hh * 0.46, hh * 0.5)), col, 0.5)
 	var top := _neck_y(r) + 1.6
 	var x := float(r.s_body) + float(r.tilt) * 0.5 - float(hero.sh) * (0.7 if r.side else 1.0) + 0.4
 	ci.draw_line(Vector2(x, top + 0.6), Vector2(x - 0.5, _hip_y(r)), col, 0.45)

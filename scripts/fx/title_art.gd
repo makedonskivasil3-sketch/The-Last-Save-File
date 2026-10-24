@@ -33,7 +33,9 @@ const PARALLAX := 4.0
 const DEPTH := {"wall": 0.12, "set": 0.25, "her": 0.45, "near": 1.0}
 
 var elapsed := 0.0
-var _rue := IllustratedCharacter.new("rue", Player.MISSING)
+var _rue := CharacterArt.figure("rue", "rue", Player.MISSING)
+## The title was composed around a 26 px Rue: the taller cast keeps that size.
+var _fit := 26.0 / float(_rue.height())
 var _font: Font
 
 
@@ -203,10 +205,10 @@ func _figure(light: float) -> void:
 	# character sets its own transform, in canvas units: the layer's shift
 	# goes in its offset.)
 	at += layer_offset("her")
-	_rue.draw(self, {"offset": at + Vector2(1.6, 0), "scale": FIGURE, "solid": Color(GLOW, 0.55 * light)})
-	_rue.draw(self, {"offset": at, "scale": FIGURE})
+	_rue.draw(self, {"offset": at + Vector2(1.6, 0), "scale": FIGURE * _fit, "solid": Color(GLOW, 0.55 * light)})
+	_rue.draw(self, {"offset": at, "scale": FIGURE * _fit})
 	# And the far side of her stays in the dark.
-	_rue.draw(self, {"offset": at + Vector2(-1.2, 0), "scale": FIGURE, "solid": Color(0.02, 0.03, 0.05, 0.28)})
+	_rue.draw(self, {"offset": at + Vector2(-1.2, 0), "scale": FIGURE * _fit, "solid": Color(0.02, 0.03, 0.05, 0.28)})
 	_layer("her")  # (IllustratedCharacter leaves its own transform set)
 
 

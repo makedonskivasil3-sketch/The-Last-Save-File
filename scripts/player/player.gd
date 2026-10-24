@@ -76,7 +76,7 @@ var _t := 0.0
 var _last_step := 0
 var _dissolve := ""
 var _dissolve_t := 0.0
-var _sprite := IllustratedCharacter.new("rue", MISSING)
+var _sprite := CharacterArt.figure("rue", "rue", MISSING)
 ## The palette for how much of you is restored, and the fully-missing one
 ## the restored parts flicker back to under pressure.
 var _palette: Dictionary = MISSING
@@ -152,7 +152,7 @@ func facing() -> Vector2:
 
 ## The sprite (for DECOY: a frame of exactly how you look right now).
 func sprite_snapshot() -> PixelCharacter:
-	var copy := IllustratedCharacter.new("rue", _palette)
+	var copy := CharacterArt.figure("rue", "rue", _palette)
 	copy.facing = _sprite.facing
 	copy.leg_color = _sprite.leg_color
 	copy.shoe_color = _sprite.shoe_color

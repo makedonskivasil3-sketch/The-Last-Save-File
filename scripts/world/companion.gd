@@ -136,7 +136,18 @@ func _warn_about_arin() -> void:
 		Sfx.play("pop", -2.0, 1.6)
 
 
+## Pip's size beside the taller cast (docs/ART_BIBLE.md: about 10 px tall,
+## always low to the ground).
+const DRAW_SCALE := 1.3
+
+
 func _draw() -> void:
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE * DRAW_SCALE)
+	_draw_fox()
+	draw_set_transform(Vector2.ZERO)
+
+
+func _draw_fox() -> void:
 	# A small fox, illustrated like the cast (docs/VISUAL_DIRECTION.md): soft
 	# shapes with the shared outline, drawn facing right and mirrored.
 	var f := _facing
@@ -167,10 +178,15 @@ func _draw() -> void:
 		draw_line(top, foot, Decor.INK, 2.4)
 		draw_line(top, foot, DARK, 1.4)
 	_blob(Vector2(-0.6 * f, y - 4.0 + (0.6 if sit else 0.0)), Vector2(5.4, 3.0), ORANGE, true)
+	# Painted light from the upper left, like the cast: a darker belly and a
+	# warm highlight along the back.
+	_ellipse(Vector2(-0.6 * f, y - 2.6 + (0.6 if sit else 0.0)), Vector2(4.6, 1.4), ORANGE.darkened(0.16))
+	_ellipse(Vector2(-1.4 * f, y - 5.6 + (0.6 if sit else 0.0)), Vector2(3.2, 0.8), ORANGE.lightened(0.22))
 	_blob(Vector2(1.4 * f, y - 2.8), Vector2(2.2, 1.4), WHITE, false)  # white chest
 	var head := Vector2(4.4 * f, y - 7.6 + (0.4 if sit else 0.0))
 	for ear: float in [-1.4, 1.4]:
 		_poly(PackedVector2Array([head + Vector2((ear - 1.0) * f, -1.6), head + Vector2(ear * f, -5.0), head + Vector2((ear + 1.2) * f, -1.8)]), ORANGE)
+		_poly(PackedVector2Array([head + Vector2((ear - 0.4) * f, -2.0), head + Vector2(ear * f, -4.0), head + Vector2((ear + 0.6) * f, -2.1)]), DARK, false)  # inside the ear
 	_poly(PackedVector2Array([head + Vector2(-2.6 * f, -1.8), head + Vector2(2.2 * f, -2.2), head + Vector2(4.6 * f, 0.6), head + Vector2(1.6 * f, 2.2), head + Vector2(-2.4 * f, 1.4)]), ORANGE)
 	_poly(PackedVector2Array([head + Vector2(1.4 * f, 0.2), head + Vector2(4.6 * f, 0.6), head + Vector2(1.8 * f, 2.2)]), WHITE, false)  # muzzle
 	Decor.disc(self, head + Vector2(4.6 * f, 0.5), 0.7, Decor.INK, 8)  # nose

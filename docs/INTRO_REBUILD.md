@@ -219,3 +219,36 @@ The prompt path is much shorter than §2's estimate of about 4 minutes, because 
   - when she stayed or nobody chose: "lit by SLOT 2 · controller: none". The record says what it saw, and leaves it unexplained.
 - **The fifth lantern** is drawn by the well in the present square: a post, a paper lantern, a faded ribbon, lit.
 
+### F3. The cast, redrawn (`HeroFigure`, `CharacterSheet`, `CharacterArt.figure`)
+
+- **In the world now:** Rue, Arin, Mira, Wren, Tobben, the Archivist, the husk and the title's Rue are `HeroFigure`s:
+  - 28–42 px tall instead of 21–33;
+  - adult proportions;
+  - two-segment rigged limbs and a real walk;
+  - faces with whites and highlights;
+  - painted light and secondary motion on the scarf and hair.
+- **Gameplay is unchanged:** collision boxes, speeds and sight lines are untouched. The title's Rue is drawn at her old size so the title's composition holds.
+- **Pip** is scaled to the taller cast (1.3×), with painted shading and inner ears.
+- **Pipeline:** `CharacterArt.figure()` picks a valid artist sheet (`assets/characters/<who>/`), else `HeroFigure`, else `IllustratedCharacter`. A broken sheet logs a warning and falls back (`tests/test_character_pipeline.gd`).
+- **No sheet exists**, so everything on screen is the procedural figure. `ART_BIBLE.md` says plainly that this is not commercially illustrated final art (Q4).
+- **Performance:** the brief allows at most a 10% frame-time regression.
+  - **First draft too slow.** As first wired, a `HeroFigure` cost about 940 µs a frame to draw, against about 400 µs for the old figure (six figures, xvfb + llvmpipe). Most of it was GDScript building circle points with cos/sin for every shape, twice (outline and fill).
+  - **Now:**
+    - circles and ellipses are precomputed unit shapes, transformed natively;
+    - a limb is one tapered polygon instead of a quad and two discs;
+    - the face and hair know their own outline;
+    - Npcs and Arin skip redrawing while well out of view (the margin covers Arin's view cone and a shelter ring).
+  - **Result:** drawing six new figures went from 5.65 ms to 3.21 ms a frame. The old figures share the helpers, so they also got cheaper (2.42 → 2.21 ms).
+  - **Whole-frame benchmark** (`tests/tour_benchmark.gd`; the old figures from the F2 state against this one; same machine, software renderer, so CPU-bound and pessimistic). Median frame:
+    - the square, calm: +4.3% (70.2 → 73.3 ms; three interleaved runs each; p95 +4.6%);
+    - room: +5.0%;
+    - house: +8.2%;
+    - Archive: +3.2%;
+    - Edge: +6.1% (two runs each).
+  - **All within 10%.** No hardware-GPU number is claimed.
+  - **Not measured:** the benchmark's "square, hunted" workload reports itself invalid ("the escort is gone") on the old state and the new alike. That is a pre-existing harness issue, recorded, not fixed here.
+- **Before/after**, the same states (`tests/tour_world_cast.gd`):
+  - `docs/review/intro/cast_world_room_before_after.jpg`;
+  - `cast_world_square_before_after.jpg`;
+  - and the style sheets `style_cast_before_after.jpg` and `style_rue_walk_moods.jpg`.
+

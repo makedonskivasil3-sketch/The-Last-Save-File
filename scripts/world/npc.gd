@@ -158,7 +158,7 @@ func _enter_tree() -> void:
 func sprite() -> PixelCharacter:
 	if _sprite == null:
 		_apply_fray()
-		_sprite = IllustratedCharacter.new(body_kind, {
+		_sprite = CharacterArt.figure(npc_id, body_kind, {
 			"h": hair_color, "s": skin_color, "c": dress_color, "d": dark_color,
 			"a": accent_color, "w": Color("d8d0c0"), "l": dark_color.darkened(0.3),
 		})
@@ -307,7 +307,9 @@ func _process(delta: float) -> void:
 		if _delete_t > 1.6:
 			state = State.DELETED
 			_col.set_deferred("disabled", true)
-	queue_redraw()
+	# (Their shelter ring is drawn with them: the margin covers it.)
+	if IllustratedCharacter.near_view(self, maxf(64.0, hide_radius + 16.0)):
+		queue_redraw()
 
 
 func _draw() -> void:

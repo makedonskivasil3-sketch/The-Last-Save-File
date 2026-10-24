@@ -232,6 +232,19 @@ static func has_portrait(who: String) -> bool:
 
 
 ## The body an illustrated portrait is drawn from (IllustratedCharacter).
+## How `who` is drawn in the world (docs/ART_BIBLE.md, "Pipeline"): an
+## artist's sheet if one is present and valid (CharacterSheet), else the
+## procedural HeroFigure, else the older IllustratedCharacter. The one
+## place that decides; owners (Player, Npc, OwnerAvatar, Husk) ask here.
+static func figure(who: String, body_kind: String, colours: Dictionary) -> IllustratedCharacter:
+	var sheet := CharacterSheet.load_for(who, body_kind, colours)
+	if sheet:
+		return sheet
+	if HeroFigure.HERO_BODIES.has(body_kind):
+		return HeroFigure.new(body_kind, colours)
+	return IllustratedCharacter.new(body_kind, colours)
+
+
 static func kind_for(who: String) -> String:
 	return KINDS.get(who, "adult")
 

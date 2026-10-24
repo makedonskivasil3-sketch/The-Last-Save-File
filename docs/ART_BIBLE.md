@@ -102,14 +102,24 @@ relieved; plus remembering, awed, proud, brave, and reset (blank).
 
 ## Pipeline (assets → game)
 
-- The asset path is `assets/characters/<who>/sheet.png` plus `sheet.json`
-  (frame size, the clips above, feet anchor).
-- `CharacterArt` stays the one place that picks how someone is drawn. A
-  sheet, when present and valid, is used. Otherwise `HeroFigure` (this
-  file's procedural cast). Otherwise `IllustratedCharacter`.
-- A missing or broken sheet never breaks the game.
-- **No sheet exists yet.** Nothing has been bought, generated or
-  commissioned (author question Q4).
+- The asset path is `assets/characters/<who>/sheet.png` plus `sheet.json`. `<who>` is `rue`, `arin`, `mira`, `wren`, `tobben` or `archivist`.
+- `CharacterArt.figure(who, kind, palette)` is the one place that picks how someone is drawn in the world. Player, Npc, OwnerAvatar and the husk all ask it. It returns:
+  1. `CharacterSheet`, when a sheet is present and valid;
+  2. otherwise `HeroFigure`, this file's procedural cast;
+  3. otherwise `IllustratedCharacter`, the older figures.
+- Portraits stay with `PortraitResolver`, unchanged.
+- `sheet.json` fields:
+  - `frame`: [w, h] of one frame, in sheet pixels.
+  - `feet`: [x, y], where the feet are inside a frame.
+  - `px_per_unit`: sheet pixels per logical pixel (2 for the 2× sheets the brief asks for).
+  - `rows`: the png's rows in order, each named `clip.view`, e.g. `"walk.side"`.
+  - `clips`: frame count and fps for each clip.
+- Views are `front`, `back` and `side`. Side faces right; left is mirrored. Clip names are the animation list above.
+- Walk and run frames follow the stride, so the feet don't slide; the other clips play at their own fps.
+- A missing clip falls back to the same view's idle, then to front idle.
+- Effects that cut a figure apart (the owner's tear) and anything the sheet lacks are drawn by the procedural rig underneath.
+- A missing or broken sheet never breaks the game: bad JSON, no png, rows outside the image, or no `idle.front`. Each logs a warning naming the file, and the procedural figure is drawn instead (`tests/test_character_pipeline.gd`).
+- **No sheet exists yet.** Nothing has been bought, generated or commissioned (author question Q4). Every figure on screen is `HeroFigure`.
 
 ## Commission brief (if the author wants hand-drawn final art)
 
