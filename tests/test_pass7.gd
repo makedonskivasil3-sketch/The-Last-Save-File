@@ -53,7 +53,7 @@ func test_end_cards_follow_what_rue_knows() -> void:
 	var escape := Story.ending_text("escape", Story.FRAGMENTS.size())
 	check(escape.contains("don't know yet what you are"), "an escape with every memory but not the truth says so (%s)" % escape)
 	memory().knows_truth = true
-	check(Story.ending_text("escape", Story.FRAGMENTS.size()).contains("hers once"), "with the truth, the slot was hers once")
+	check(Story.ending_text("escape", Story.FRAGMENTS.size()).contains("hers once"), "with the truth, the slot was hers once: now it's yours")
 	check(Story.ending_text("rue", Story.FRAGMENTS.size()).contains("you know what you are"), "RUE's card speaks to the truth it needed")
 
 

@@ -16,7 +16,7 @@ func test_recorded_caption_pages_share_one_player_and_one_source_event() -> void
 	var w := await start_session()
 	VoiceOver.register(Hud.voice_id("test.pages", LONG), _clip())
 	var count := [0]
-	w.hud.line_shown.connect(func(line: String) -> void:
+	w.hud.line_revealed.connect(func(line: String) -> void:
 		if line == LONG: count[0] += 1)
 	w.hud.show_dialogue("MIRA", Color.WHITE, [LONG], "test.pages", CharacterArt.for_npc(w.area.mira))
 	var player := VoiceOver.current()
@@ -24,9 +24,12 @@ func test_recorded_caption_pages_share_one_player_and_one_source_event() -> void
 	for i in range(1, w.hud._dialogue_lines.size()):
 		w.hud._next_dialogue_line()
 		check(VoiceOver.current() == player, "caption continuation never restarts/stops the recording")
-	check_eq(count[0], 1, "the original source emits one completion/journal event")
+	check_eq(count[0], 0, "the last page isn't revealed yet: no journal event")
 	check_eq(w.hud.history.filter(func(e: Dictionary) -> bool: return e.text == LONG).size(), 1, "history keeps the full source once")
 	w.hud._pacer.reveal(Engine.get_process_frames())
+	w.hud._page_revealed()
+	w.hud._page_revealed()
+	check_eq(count[0], 1, "the original source emits one completion/journal event")
 	w.hud._pacer.auto = true
 	w.hud._pacer.read_left = 0.0
 	w.hud._pacer.delay_left = 0.0

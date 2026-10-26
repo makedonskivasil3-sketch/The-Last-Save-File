@@ -89,9 +89,13 @@ func test_the_web_page_turns_sound_on_at_the_first_gesture() -> void:
 	# web/sound_unlock.js goes into the page's head (export_presets.cfg): it
 	# resumes the browser's audio on the first click, tap or key, plays a
 	# silent media loop so an iPhone's silent switch doesn't mute the game,
-	# and says on screen whether sound is on.
+	# and keeps doing so after speech; it puts nothing on screen (a badge used
+	# to cover the narration), only document.documentElement.dataset.soundState.
 	var js := FileAccess.get_file_as_string("res://web/sound_unlock.js")
 	check(js.contains("resume()") and js.contains("audioSession"), "the unlock script resumes audio")
+	check(js.contains("function recover") and js.contains("speechSynthesis"), "and recovers it after speech")
+	check(js.contains("dataset.soundState"), "it reports its state without showing it")
+	check(not js.contains("createElement") and not js.contains("textContent"), "nothing is drawn on the page")
 	var cfg := ConfigFile.new()
 	check_eq(cfg.load("res://export_presets.cfg"), OK, "export presets load")
 	var head := ""

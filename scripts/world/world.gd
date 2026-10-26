@@ -24,7 +24,7 @@ const ESCORT_LEASH := 70.0
 var area: Area
 ## Session-only facts: "pointer" (have Slot 2's pointer), "mira_deleted", ...
 var flags: Dictionary = {}
-## "", "death", "quit", "win"
+## "", "death", "quit", "win", "demo" (the demo build's end card)
 var ending := ""
 ## Development benchmark only (tests/tour_benchmark.gd): Rue can't be killed,
 ## so a pursuit sample is never a death card. Never set in play.
@@ -35,6 +35,9 @@ var purged := false
 
 var _focused: Node2D
 var _talking_to: Node2D
+## What _talking_to said (Npc.interact): its conversation id and the events
+## it commits once read to the end.
+var _talk_result: Dictionary = {}
 var _wipe_hold := 0.0
 var _light: CanvasModulate
 var _pause_menu: PauseMenu
@@ -83,6 +86,7 @@ var _win_card_shown := false
 
 func _ready() -> void:
 	Sfx.reset_scene_state()  # nothing muffled or ducked carries in from the last scene
+	ArchivePages.escort_now = ""  # escorts never carry over into a new session
 	# The Archivist's pointer to Slot 2 is kept in the save once given: the
 	# north road isn't an errand to repeat every run.
 	flags["pointer"] = OwnerMemory.met_archivist
@@ -92,10 +96,14 @@ func _ready() -> void:
 	_pause_menu.quit_requested.connect(_quit)
 	_pause_menu.debug_requested.connect(debug)
 	add_child(_pause_menu)
+	Input.joy_connection_changed.connect(_on_joy_connection_changed)
+	var takeover := _Takeover.new()
+	takeover.world = self
+	add_child(takeover)
 	_light = CanvasModulate.new()
 	add_child(_light)
 	hud.dialogue_closed.connect(_on_dialogue_closed)
-	hud.line_shown.connect(_on_line_shown)
+	hud.line_revealed.connect(_on_line_revealed)
 	touch = TouchControls.new()
 	add_child(touch)
 	_focus_marker = FocusMarker.new()
@@ -118,10 +126,15 @@ func _ready() -> void:
 	add_child(owner_moves)
 	if OwnerMemory.found_pip:
 		_spawn_pip()
-	var previous := OwnerMemory.begin_session()
-	var room := ArinsRoom.new()
-	room.previous_exit = previous
-	_load_area(room, "start")
+	var previous := OwnerMemory.begin_session(true)
+	var start := anchor_start(previous)
+	if start.is_empty():
+		var room := ArinsRoom.new()
+		room.previous_exit = previous
+		_load_area(room, "start")
+	else:
+		_load_area(_make_area(start[0]), start[1])
+		woke_at_anchor = true
 	hud.unknown_processes = 1 if OwnerMemory.purge >= 2 else 0
 	_begin_session(previous)
 
@@ -132,7 +145,8 @@ func _begin_session(previous: String) -> void:
 	PlaytestLog.mark("session %d started" % OwnerMemory.sessions, "purge %d/%d, last exit: %s" % [OwnerMemory.purge, OwnerMemory.MAX_PURGE, previous])
 	_cutscene = true
 	player.frozen = true
-	if OwnerMemory.sessions == 1 and previous == "none":
+	# The boot log, unless the festival just showed its own (in the square).
+	if OwnerMemory.sessions == 1 and previous == "none" and not Prologue.take_boot_shown():
 		await hud.cinematic("", Story.BOOT, Hud.SYSTEM_COLOR, 1.0, "boot")
 		if not is_inside_tree() or ending != "":
 			return
@@ -145,12 +159,21 @@ func _begin_session(previous: String) -> void:
 	player.frozen = false
 	_cutscene = false
 	_awake = true
+	# The first run: "you" over her (the opening's figure, the same one),
+	# whether the film was watched or skipped. Gone at the first step.
+	player.you_cue = OwnerMemory.sessions == 1
+	if pip and OwnerMemory.sessions > 1:
+		pip.greet()  # back with her
+	OwnerMemory.arm_session()  # play starts now: quits and crashes count from here
 	_area_intro()
 	director.start(self, previous)
 	_tutorial = Tutorial.new()
 	add_child(_tutorial)
 	_tutorial.start(self)
-	voice("wake_first" if OwnerMemory.sessions == 1 else "wake_again")
+	if woke_at_anchor:
+		hud.say(WellSequence.ANCHOR_NOTE, "self")
+	else:
+		voice("wake_first" if OwnerMemory.sessions == 1 else "wake_again")
 	var door: Variant = area.get("door")
 	if area.area_id == "room" and door is Door and door.state == Door.State.DELETED:
 		get_tree().create_timer(3.0).timeout.connect(func() -> void:
@@ -209,7 +232,7 @@ func recover_fragment(m: MemoryFragment) -> void:
 	# Rue's face, as much of it as is back: remembering, or afraid of the
 	# memory that isn't hers.
 	var face := CharacterArt.rue("afraid" if planted else "remembering", player.palette())
-	await hud.cinematic(f.title, f.lines, Color("ffb0a0") if planted else Hud.SELF_COLOR, 0.45, "memory." + f.id, face)
+	await hud.cinematic(f.title, f.lines, Color("ffb0a0") if planted else Hud.SELF_COLOR, 0.45, "memory." + f.id, face, f.get("replay", ""))
 	if not is_inside_tree() or ending != "":
 		return  # the run ended during the scene: nothing here is kept
 	# Kept only once it has been lived through: quitting mid-memory changes
@@ -259,11 +282,11 @@ func reveal_truth() -> void:
 	fx.memory(true)
 	Sfx.play("fragment", -2.0, 0.6, 0.0)
 	Sfx.muffle(true, 500.0, "memory")
-	await hud.cinematic("WHAT I AM", Story.TRUTH_REVEAL, Hud.SELF_COLOR, 0.6, "truth.reveal", CharacterArt.rue("remembering", player.palette()))
+	await hud.cinematic("WHO I AM", Story.TRUTH_REVEAL, Hud.SELF_COLOR, 0.6, "truth.reveal", CharacterArt.rue("remembering", player.palette()))
 	if not is_inside_tree() or ending != "":
 		return  # the run ended during the scene: nothing here is kept
 	# The page and the truth are one save, like a memory.
-	OwnerMemory.record_read("truth:reveal", "memory", "WHAT I AM", area.display_name, Story.TRUTH_REVEAL, false)
+	OwnerMemory.record_read("truth:reveal", "memory", "WHO I AM", area.display_name, Story.TRUTH_REVEAL, false)
 	OwnerMemory.learn_truth()
 	fx.memory(false)
 	Sfx.muffle(false, 700.0, "memory")
@@ -409,7 +432,21 @@ func _took_false_memory(f: Dictionary) -> void:
 var _web_tick := 0.0
 
 
+## The slowest frame since the last publish (ms), for the startup timing.
+var _web_slowest := 0.0
+
+
+## Game time (summed frame deltas) since the session began, against the
+## wall clock: if the engine clamps long frames, game time falls behind.
+var _web_game_ms := 0.0
+var _web_wall0 := -1
+
+
 func _publish_web_state(delta: float) -> void:
+	_web_slowest = maxf(_web_slowest, delta * 1000.0)
+	_web_game_ms += delta * 1000.0
+	if _web_wall0 < 0:
+		_web_wall0 = Time.get_ticks_msec()
 	_web_tick -= delta
 	if _web_tick > 0.0 or not OS.has_feature("web"):
 		return
@@ -418,11 +455,23 @@ func _publish_web_state(delta: float) -> void:
 	# "reading": text is open that a press of E moves on (the browser check
 	# presses E only then, instead of pressing into the world's interactions).
 	var reading := hud.is_cinematic() or hud.is_dialogue_open() or hud.is_choosing()
-	WebState.publish({"scene": "game", "playable": playable, "reading": reading, "area": area.area_id if area else "",
+	# What is holding play, if anything (the check logs it: a slow machine
+	# and a stuck state look the same from outside otherwise).
+	var hold := "" if playable else ("ending" if ending != "" else ("cinematic" if hud.is_cinematic() else ("cutscene" if _cutscene else "frozen")))
+	var slowest := roundi(_web_slowest)
+	_web_slowest = 0.0
+	WebState.publish({"scene": "game", "playable": playable, "reading": reading, "hold": hold, "awake": _awake, "slowest_ms": slowest,
+		"sfx_busy": Sfx.is_busy(), "game_ms": roundi(_web_game_ms), "wall_ms": Time.get_ticks_msec() - _web_wall0,
+		"area": area.area_id if area else "",
 		"x": snappedf(player.global_position.x, 0.1), "y": snappedf(player.global_position.y, 0.1)})
 
 
 func _process(delta: float) -> void:
+	update_camera(delta)
+	_observe_t -= delta
+	if _observe_t <= 0.0:
+		_observe_t = OBSERVE_EVERY
+		_observe_in_view()
 	_publish_web_state(delta)
 	_handle_wipe(delta)
 	# Before anything returns early: a scene holds the owner like a question
@@ -436,12 +485,15 @@ func _process(delta: float) -> void:
 	_update_objective()
 	for node in area.interactables:
 		if node is Npc:
-			node.talking = node == _talking_to and hud.dialogue_is_speaking()
+			node.talking = node == _talking_to and hud.is_dialogue_open()
+			node.speaking = node.talking and hud.dialogue_is_speaking()
 	player.instability = director.awareness / 100.0
 	if player.velocity.length() > 1.0:
 		PlaytestLog.mark("first movement", "", true)
+		player.you_cue = false
 	var cursor: Variant = area.get("cursor")
 	var watcher: Variant = area.get("arin")
+	_mark_offscreen([watcher, cursor])
 	player.set_targeted((cursor is OwnerCursor and cursor.is_selecting()) or (watcher is OwnerAvatar and watcher.is_seeing()))
 	# Reading or answering isn't "standing still" for the owner's save-over.
 	player.reading = hud.is_dialogue_open() or hud.is_choosing()
@@ -451,6 +503,10 @@ func _process(delta: float) -> void:
 	_update_reading_hold()
 	var helper := hiding_npc()
 	player.sheltered = is_hidden_now()
+	if player.sheltered and not Relationships.has("wren.sheltered"):
+		var hider := hiding_npc()
+		if hider and hider.npc_id == "wren":
+			Relationships.add("wren.sheltered")
 	if helper:
 		hud.set_status("HIDDEN  ·  %s covers you" % helper.display_name)
 	else:
@@ -473,11 +529,98 @@ func _process(delta: float) -> void:
 func open_pause() -> void:
 	_pause_menu.debug_available = debug_enabled()
 	_pause_menu.goal = current_goal()
-	_pause_menu.current_area = area.area_id
-	_pause_menu.visited_areas = _visited.duplicate()
-	if OwnerMemory.found_pip:
-		_pause_menu.visited_areas["oob"] = true
+	var map := map_state()
+	_pause_menu.current_area = map.current
+	_pause_menu.visited_areas = map.visited
+	_pause_menu.discovered_areas = map.discovered
+	_pause_menu.closed_areas = map.closed
 	_pause_menu.open()
+
+
+## What the map shows (MapView): where Rue is, where she has been this run,
+## everywhere she has found in any run, and which found places have no way
+## in right now (and why). Never a place she hasn't found.
+func map_state() -> Dictionary:
+	var discovered := {}
+	for id in OwnerMemory.places:
+		discovered[id] = true
+	var closed := {}
+	if area and area.area_id != "room":
+		closed["room"] = "no way back in"  # Arin's front door locks behind you
+	if not flags.get("pointer", false):
+		closed["edge"] = "not loaded"
+	if not (glitch and glitch.unlocked("unlock")) and not (area and area.area_id == "house"):
+		closed["house"] = "locked"
+	return {"current": area.area_id if area else "", "visited": _visited.duplicate(), "discovered": discovered, "closed": closed}
+
+
+# --- the camera (docs/VERTICAL_SLICE.md §3c) --------------------------------
+
+## The view's top-left in area coordinates (0,0 for a one-screen area).
+var view_offset := Vector2.ZERO
+## Rue may move this far either side of the view's centre before it follows.
+const CAMERA_DEADZONE := 60.0
+## How quickly the view catches up (per second; no overshoot).
+const CAMERA_RATE := 5.0
+## Reduce motion: the view never pans; it cuts between fixed framings when
+## Rue gets this close to its edge.
+const CAMERA_CUT_MARGIN := 96.0
+
+
+## Follows Rue across an area wider than the screen, inside its painted
+## limits (Area.view_size). Never pans while the owner holds the scene, and
+## threats outside the view are marked at the screen edge (Hud).
+func update_camera(delta: float, snap := false) -> void:
+	if area == null or not is_instance_valid(player):
+		return
+	var screen := Area.BACKDROP_SIZE
+	var limit := maxf(0.0, area.view_size.x - screen.x)
+	var x := view_offset.x
+	if limit <= 0.0:
+		x = 0.0
+	elif Settings.reduce_motion:
+		# Fixed framings, a screen apart, overlapping at the middle.
+		var framings := [0.0, limit]
+		var rel := player.global_position.x - x
+		if snap or rel < CAMERA_CUT_MARGIN or rel > screen.x - CAMERA_CUT_MARGIN or not (x in framings):
+			x = framings[0] if absf(player.global_position.x - (framings[0] + screen.x * 0.5)) <= absf(player.global_position.x - (framings[1] + screen.x * 0.5)) else framings[1]
+	else:
+		var centre := x + screen.x * 0.5
+		var want := x
+		var off := player.global_position.x - centre
+		if absf(off) > CAMERA_DEADZONE:
+			want = x + off - signf(off) * CAMERA_DEADZONE
+		want = clampf(want, 0.0, limit)
+		if snap:
+			x = clampf(player.global_position.x - screen.x * 0.5, 0.0, limit)
+		else:
+			x = lerpf(x, want, 1.0 - exp(-CAMERA_RATE * delta))
+			if absf(x - want) < 0.25:
+				x = want
+	view_offset = Vector2(x, 0.0)
+	if fx:
+		fx.view_offset = view_offset
+	if snap and fx:
+		get_viewport().canvas_transform = Transform2D(0.0, -view_offset.round())
+
+
+## The owner's hands outside the view get an arrow at that edge (Hud).
+func _mark_offscreen(threats: Array) -> void:
+	var marks := []
+	var view := view_rect()
+	for t: Variant in threats:
+		if not (t is Node2D) or not is_instance_valid(t) or not (t as Node2D).visible:
+			continue
+		var p: Vector2 = (t as Node2D).global_position
+		if p.x < view.position.x - 4.0 or p.x > view.end.x + 4.0:
+			marks.append({"side": -1 if p.x < view.position.x else 1, "y": p.y - view.position.y,
+				"label": "ARIN" if t is OwnerAvatar else "CURSOR"})
+	hud.set_offscreen(marks)
+
+
+## What the screen shows now, in area coordinates.
+func view_rect() -> Rect2:
+	return Rect2(view_offset, Area.BACKDROP_SIZE)
 
 
 ## Paused only because the window lost focus (no menu to close): resumes
@@ -504,10 +647,64 @@ func focus_lost() -> void:
 		_focus_paused = true
 
 
+## The player's controller dropped out mid-play (battery, cable): hold the
+## game like a lost focus, so nothing happens to Rue until the player is
+## back. Another pad coming or going changes nothing (one player).
+func _on_joy_connection_changed(device: int, connected: bool) -> void:
+	if not connected and Settings.is_players_pad(device):
+		_lost_pad = device
+		controller_lost()
+	elif connected and _pad_paused and device == _lost_pad:
+		_pad_paused = false
+		_release_hold()
+
+
+var _lost_pad := -1
+## An end card held for the controller (the pause menu covers play itself).
+## Kept apart from _focus_paused: each is cleared only by its own return.
+var _pad_paused := false
+
+
+func controller_lost() -> void:
+	if not is_inside_tree():
+		return
+	if ending == "" and not purged:
+		if not get_tree().paused:
+			open_pause()
+	else:
+		get_tree().paused = true
+		_pad_paused = true
+		if _lost_pad == -1:
+			_lost_pad = Settings.active_pad
+
+
 func focus_returned() -> void:
-	if _focus_paused and is_inside_tree():
+	if _focus_paused:
 		_focus_paused = false
+		_release_hold()
+
+
+func _release_hold() -> void:
+	if is_inside_tree() and not _focus_paused and not _pad_paused:
 		get_tree().paused = false
+
+
+## While an end card is held for a lost controller, the player can take
+## over with anything else (a key, a touch, another pad's press). That press
+## only takes over: it does nothing else. (Runs while the tree is paused.)
+class _Takeover extends Node:
+	var world: Node
+
+	func _ready() -> void:
+		process_mode = Node.PROCESS_MODE_ALWAYS
+
+	func _input(event: InputEvent) -> void:
+		if not world._pad_paused or not event.is_pressed() or event.is_echo():
+			return
+		if event is InputEventKey or event is InputEventScreenTouch or event is InputEventMouseButton or event is InputEventJoypadButton:
+			world._pad_paused = false
+			world._release_hold()
+			get_viewport().set_input_as_handled()
 
 
 # Menu keys go through _unhandled_input so the pause menu can consume the same
@@ -534,9 +731,28 @@ func _unhandled_input(event: InputEvent) -> void:
 				return  # the epilogue is still playing
 			if event.is_action_pressed("confirm") or event.is_action_pressed("pause"):
 				get_tree().change_scene_to_file(TITLE_SCENE)
+		"demo":
+			if event.is_action_pressed("confirm") or event.is_action_pressed("pause"):
+				get_tree().change_scene_to_file(TITLE_SCENE)
 
 
 # --- areas --------------------------------------------------------------------
+
+## The demo build (COMMERCIAL_DIRECTION.md §4, a proposal awaiting the
+## author): it ends under the Archive's arch, the first time Rue gets there,
+## before the Archivist, the CHARACTER FILE, the Edge or any ending. Off
+## unless asked for: a "demo" export feature, `-- --demo`, or ?demo=1.
+const DEMO_END_AREAS: Array[String] = ["archive", "bin", "edge"]
+static var demo_override := -1  # tests: 1 on, 0 off, -1 ask the build
+
+
+static func demo_build() -> bool:
+	if demo_override != -1:
+		return demo_override == 1
+	if OS.has_feature("demo") or "--demo" in OS.get_cmdline_user_args():
+		return true
+	return OS.has_feature("web") and str(JavaScriptBridge.eval("window.location.search", true)).contains("demo")
+
 
 func change_area(id: String, arrival: String) -> void:
 	# Mid-reload you're being dragged back, not walking: no exits (the exit
@@ -558,18 +774,43 @@ func change_area(id: String, arrival: String) -> void:
 	await hud.fade(true, 0.25).finished
 	if not is_inside_tree() or ending != "":
 		return
+	if id in DEMO_END_AREAS and demo_build():
+		_end_demo()
+		return
 	# Decided before _load_area, which marks the area visited.
 	var first := not _visited.has(id)
 	PlaytestLog.mark("entered %s" % id, "first time" if first else "")
 	if id != "room":
 		PlaytestLog.mark("FIRST TIME OUT OF ARIN'S ROOM", "into %s" % id, true)
+	# A place seen in an earlier run isn't new: no first-arrival line again,
+	# just a short "back" (once a session).
+	var new_place := id not in OwnerMemory.places
 	_load_area(_make_area(id), arrival)
 	director.on_area_entered(area, first)
 	_visited[id] = true
-	if first:
+	if new_place:
 		voice({"square": "square_first", "archive": "archive_first", "edge": "edge_first", "oob": "oob_first", "bin": "bin_first", "house": "house_first"}.get(id, ""))
+	elif first and Story.VOICE_BACK.has(id):
+		hud.say(Story.VOICE_BACK[id], "self")
 	await hud.fade(false, 0.3).finished
 	player.frozen = false
+	_transitioning = false
+
+
+## The demo's last card: nothing past the arch, nothing explained. The
+## session closes cleanly (not a quit: no purge).
+func _end_demo() -> void:
+	PlaytestLog.mark("DEMO END", "under the Archive's arch")
+	ending = "demo"
+	director.stop()
+	hud.cancel_choice()
+	hud.close_dialogue()
+	hud.clear_queue()
+	hud.set_prompt("")
+	hud.set_status("")
+	area.erasure.active = false
+	OwnerMemory.record_demo_end()
+	hud.show_overlay("", Story.DEMO_END + "\n\n[%s] title screen" % Settings.glyph("confirm"), Hud.OWNER_COLOR)
 	_transitioning = false
 
 
@@ -591,12 +832,35 @@ func _make_area(id: String) -> Area:
 	return VillageSquare.new()
 
 
+## How often Rue looks around (seconds): what she sees goes in her journal.
+const OBSERVE_EVERY := 0.25
+var _observe_t := 0.0
+
+
+## Rue sees how the people in view are (her journal says what she last
+## saw). In view: inside the screen as it is framed now, and drawn. Someone
+## off-screen keeps what she last saw of them, however they are now.
+## (No line of sight: the screen is the rule. Talking to someone also sees
+## them, Npc.)
+func _observe_in_view() -> void:
+	if area == null:
+		return
+	var view := Rect2(view_offset, Area.BACKDROP_SIZE).grow(-4.0)
+	for n in area.interactables + ([escort] if escort else []):
+		if n is Npc and is_instance_valid(n) and n.is_inside_tree() and n.is_visible_in_tree() \
+				and view.has_point(n.global_position):
+			OwnerMemory.observe(n.npc_id, n.observed_state())
+
+
 func _load_area(next: Area, arrival: String) -> void:
 	if area:
 		remove_child(area)
 		area.queue_free()
 	area = next
 	area.world = self
+	area.arrival = arrival
+	OwnerMemory.discover_place(area.area_id)
+	Quests.area_now = area.area_id
 	if owner_moves:
 		owner_moves.on_area_changed()
 	add_child(area)
@@ -608,6 +872,8 @@ func _load_area(next: Area, arrival: String) -> void:
 	_visited[area.area_id] = true
 	player.position = area.entry_point(arrival)
 	player.velocity = Vector2.ZERO
+	update_camera(0.0, true)  # arrive already framed: no pan on the way in
+	_observe_in_view()
 	if pip:
 		pip.arrive(player.position)
 	_crumbs.clear()
@@ -670,12 +936,21 @@ func _base_light() -> Color:
 
 ## True if something in the area hides this position from the owner.
 ## Whoever hides you is noted: the owner finds out if this session ends badly.
-func is_player_hidden(pos: Vector2) -> bool:
+## `witness` names a watcher whose look has already reached `pos` (range,
+## angle and walls checked: Arin binds "arin"): only then is a concealment
+## something Rue saw happen, and the journal may say so.
+func is_player_hidden(pos: Vector2, witness := "") -> bool:
 	if area and area.has_method("hides_player") and area.hides_player(pos):
+		if witness != "":
+			PlaytestLog.mark("hidden from %s by cover in %s" % [witness, area.area_id], "", true)
 		return true
 	var helper := _hider_at(pos)
 	if helper:
+		if witness != "":
+			PlaytestLog.mark("hidden from %s behind %s" % [witness, helper.npc_id], "", true)
 		OwnerMemory.note_helper(helper.npc_id)
+		if witness == "arin" and helper.npc_id == "wren" and not Relationships.has("wren.concealed"):
+			Relationships.add("wren.concealed")
 	return helper != null
 
 
@@ -725,27 +1000,13 @@ func _update_objective() -> void:
 
 
 func current_goal() -> String:
-	var goal := ""
-	match area.area_id if area else "":
-		"room":
-			goal = "Get out of Arin's room."
-		"edge":
-			goal = area.goal_text() if area.has_method("goal_text") else "Lead the cursor away, then stand in Slot 2 to write yourself in."
-		"bin":
-			goal = "Stand beside a deleted file to restore them. When the bin empties, get into a system file's cyan shadow."
-		"house":
-			goal = "Look around Arin's house. When the door chimes, get into a closet." if not OwnerMemory.found_controller else "You found what was under the couch. Get back to the square."
-		"oob":
-			goal = "Climb back up at the respawn point." if OwnerMemory.found_pip else "Cross to the far ledge. Something is waiting there."
-		_:
-			if flags.get("pointer", false):
-				goal = "Take the north road out of the village square."
-			elif _visited.has("archive"):
-				goal = "Ask the Archivist where slot 2 went."
-			else:
-				goal = "Explore the village. The road east leads somewhere old."
-			if area and area.area_id == "square" and not OwnerMemory.found_pip:
-				goal += " The well looks deeper than it should."
+	# The mission (Quests): its title, then what to do, survival first where
+	# a place can kill her.
+	var id := area.area_id if area else ""
+	var edge_goal: String = area.goal_text() if id == "edge" and area.has_method("goal_text") else ""
+	var goal := Quests.goal(id, edge_goal, flags.get("pointer", false))
+	if id == "square" and not OwnerMemory.found_pip:
+		goal += " The well looks deeper than it should."
 	if sheds_this_run >= 2:
 		goal += " " + Story.GOAL_WATCHED_HIDING
 	# The truth route, as a quiet hint; the way out above stays open.
@@ -761,7 +1022,11 @@ func current_goal() -> String:
 
 ## What someone noticed about Rue counts once she has actually read it:
 ## walking away before the line leaves it for next time.
-func _on_line_shown(line: String) -> void:
+func _on_line_revealed(line: String) -> void:
+	# What someone just told Rue, once the whole line is on screen, becomes
+	# something she knows (her journal). Once per line (Hud.line_revealed).
+	for id in ArchivePages.facts_taught_by(line):
+		OwnerMemory.learn_fact(id)
 	if OwnerMemory.knows_truth:
 		return
 	for who: String in Story.TRUTH_LINES:
@@ -773,9 +1038,17 @@ func _on_line_shown(line: String) -> void:
 
 func _on_dialogue_closed() -> void:
 	var who := _talking_to
+	var told := _talk_result
 	_talking_to = null
+	_talk_result = {}
 	# Read to its last line, not walked away from or cut off by something else.
 	if who and hud.dialogue_finished:
+		# What was said is committed now, not when the box opened.
+		OwnerMemory.complete_conversation(told.get("conversation", ""))
+		for e in told.get("commit", []):
+			Relationships.add(e)
+		for f: Callable in told.get("after", []):
+			f.call()  # a one-time remark, heard
 		conversation_completed.emit(who)
 	if area and is_instance_valid(who) and area.has_method("on_dialogue_closed"):
 		area.on_dialogue_closed(who)
@@ -797,6 +1070,9 @@ func start_escort(npc: Npc) -> void:
 	escort = npc
 	_crumbs.clear()
 	OwnerMemory.note_helper(npc.npc_id)
+	if npc.npc_id == "mira":
+		Relationships.add("mira.walked")
+	ArchivePages.escort_now = npc.npc_id
 	hud.say("%s.npc  ·  following" % npc.npc_id, "system")
 	director.say("mira? what is mira doing out of her room." if npc.npc_id == "mira" else "where are you taking her?")
 
@@ -882,7 +1158,7 @@ func mira_pins_note() -> void:
 	player.frozen = true
 	director.paused = true
 	OwnerMemory.mira_quest = "pinned"
-	OwnerMemory.save_memory()
+	Relationships.add("mira.pinned")  # saves
 	await hud.cinematic("MIRA", Story.MIRA_PIN_SCENE, Color("e0a070"), 0.6, "mira.pin", CharacterArt.for_npc(escort, "proud"))
 	if not is_inside_tree() or ending != "":
 		return  # the run ended during the scene: nothing here is kept
@@ -894,6 +1170,7 @@ func mira_pins_note() -> void:
 	# She walks home on her own.
 	var gone := escort
 	escort = null
+	ArchivePages.escort_now = ""
 	create_tween().tween_property(gone, "modulate:a", 0.0, 1.2)
 	get_tree().create_timer(1.3).timeout.connect(gone.queue_free)
 	player.frozen = false
@@ -910,9 +1187,11 @@ func lose_escort() -> void:
 		return
 	var lost := escort
 	escort = null
+	ArchivePages.escort_now = ""
 	if lost.npc_id == "mira":
 		OwnerMemory.mira_quest = "reset"
-		OwnerMemory.save_memory()
+		Relationships.add("mira.reset")  # saves
+		OwnerMemory.observe("mira", "reset")
 		hud.say(Story.MIRA_RESET_LAST, "npc", "MIRA")
 		hud.say("mira.npc  ·  reset to defaults", "system")
 		director.say("there. back where you belong.")
@@ -924,7 +1203,9 @@ func lose_escort() -> void:
 	# She trusted you. She gets half a sentence.
 	hud.say(Story.WREN_LAST_WORDS, "npc", "WREN")
 	lost.delete()
+	OwnerMemory.observe("wren", "deleted")
 	OwnerMemory.npc_fates["wren"] = "deleted"
+	Relationships.add("wren.promise_broken")
 	OwnerMemory.save_memory()
 	hud.say("wren.npc deleted", "system")
 	director.say(Story.WREN_LOST_OWNER)
@@ -939,6 +1220,8 @@ func _wren_sees_edge() -> void:
 	if escort == null or escort.npc_id != "wren" or OwnerMemory.wren_saved:
 		return
 	OwnerMemory.wren_saved = true
+	Relationships.add("wren.promise_kept")
+	OwnerMemory.observe("wren", "safe")
 	OwnerMemory.npc_fates.erase("wren")
 	OwnerMemory.save_memory()
 	for line in Story.WREN_EDGE:
@@ -1221,6 +1504,8 @@ func is_mira_deleted() -> bool:
 
 ## Someone deleted is back (RESTORE, or the Recycle Bin): for good.
 func note_restored(id: String) -> void:
+	Relationships.mark(id + ".restored")  # each time: someone can be lost and brought back again
+	OwnerMemory.observe(id, "restored")
 	OwnerMemory.npc_fates.erase(id)
 	OwnerMemory.note_restored(id)
 	if id == "mira":
@@ -1293,8 +1578,10 @@ func _interact(node: Node2D) -> void:
 	var result: Variant = node.interact()
 	if result is Dictionary:
 		var face: CharacterArt.Portrait = CharacterArt.for_npc(node) if node is Npc else null
-		hud.show_dialogue(result.speaker, result.color, result.lines, dialogue_voice_prefix(node, result), face, expressions_for(node, result.lines))
+		hud.show_dialogue(result.speaker, result.color, result.lines, dialogue_voice_prefix(node, result), face, expressions_for(node, result.lines),
+			node is Npc and (node as Npc).mute)
 		_talking_to = node
+		_talk_result = result
 		_keep_in_journal(node, result)
 	elif str(result) != "":
 		hud.say(str(result), "system")
@@ -1351,8 +1638,51 @@ func _keep_in_journal(node: Node2D, result: Dictionary) -> void:
 static func death_kept_line() -> String:
 	if OwnerMemory.is_purged():
 		return ""
-	return "kept for next run: %d/%d memories, your glitches, the journal  ·  purge %d/%d" % [
-		OwnerMemory.fragments.size(), Story.FRAGMENTS.size(), OwnerMemory.purge, OwnerMemory.MAX_PURGE]
+	var wake := "  ·  you'll wake under the well" if anchor_valid() else ""
+	return "kept for next run: %d/%d memories, your glitches, the journal, everyone you've met  ·  purge %d/%d%s" % [
+		OwnerMemory.fragments.size(), Story.FRAGMENTS.size(), OwnerMemory.purge, OwnerMemory.MAX_PURGE, wake]
+
+
+# --- the well anchor (docs/NARRATIVE_CONTRACT.md §5) ----------------------------
+
+## The one checkpoint: anchor id -> [area id, arrival]. Places are looked up
+## by id, never stored as coordinates, so a changed map can't strand you.
+const ANCHORS := {"oob:pillar": ["oob", "anchor"]}
+## Bumped when an anchor's place changes meaning: older anchors are dropped.
+const ANCHOR_VERSION := 1
+## This session began at the anchor (after a death), not in Arin's room.
+var woke_at_anchor := false
+
+
+static func anchor_valid() -> bool:
+	var a := OwnerMemory.anchor
+	return not a.is_empty() and ANCHORS.has(a.get("id", "")) and int(a.get("version", 0)) == ANCHOR_VERSION
+
+
+## Where a session starts: the anchor after a death (if one is set and
+## still valid), otherwise Arin's room. A quit or a crash always starts in
+## the room: the anchor is for failure, not for leaving. An unknown or
+## outdated anchor is dropped, and the room is used.
+static func anchor_start(previous: String) -> Array:
+	if OwnerMemory.anchor.is_empty():
+		return []
+	if not anchor_valid():
+		OwnerMemory.anchor.clear()
+		OwnerMemory.save_memory()
+		return []
+	if previous != "death":
+		return []
+	return ANCHORS[OwnerMemory.anchor.id]
+
+
+## Answering the well sets (or re-confirms) the anchor. Never during a
+## conversation, a scene, a move between areas or an escort.
+func set_anchor(id: String) -> bool:
+	if not ANCHORS.has(id) or escort != null or _transitioning or ending != "" or hud.is_dialogue_open() or hud.is_cinematic():
+		return false
+	OwnerMemory.anchor = {"id": id, "version": ANCHOR_VERSION, "session": OwnerMemory.sessions}
+	OwnerMemory.save_memory()
+	return true
 
 
 ## cause picks the death effect ("erased", "overwritten", "selected");
@@ -1362,7 +1692,9 @@ func kill(cause: String, reason := "") -> void:
 		return  # development benchmark only (tests/tour_benchmark.gd): nothing else changes
 	if ending != "" or _transitioning:
 		return
-	PlaytestLog.mark("DIED", "%s (%s) in %s, awareness %d" % [reason, cause, area.area_id, int(director.awareness)])
+	var warned := hud.warning_text()
+	PlaytestLog.mark("DIED", "%s (%s) in %s at %s, awareness %d, warning on screen: %s" % [
+		reason, cause, area.area_id, player.global_position.round(), int(director.awareness), ("\"%s\"" % warned) if warned != "" else "none"])
 	ending = "death"
 	player.frozen = true
 	director.stop()
@@ -1378,6 +1710,16 @@ func kill(cause: String, reason := "") -> void:
 	drone.tension = 1.0
 	if escort_id() == "mira":
 		OwnerMemory.mira_quest = "lost"  # the owner found her out of her room, and her note
+		Relationships.mark("mira.note_lost")
+	# Mira sees it only if it happens in her room, in front of her.
+	var mira_here: Variant = area.get("mira")
+	if area.area_id == "room" and mira_here is Npc and is_instance_valid(mira_here) and (mira_here as Npc).is_present() \
+			and OwnerMemory.mira_quest != "reset":
+		Relationships.mark("mira.saw_death")
+	# Wren remembers it only if she saw it: walking with you, or there.
+	var wren_here: Variant = area.get("wren")
+	if escort_id() == "wren" or (wren_here is Npc and is_instance_valid(wren_here) and (wren_here as Npc).is_present()):
+		Relationships.mark("wren.saw_death")
 	var forgiven := OwnerMemory.record_death(area.area_id, player.global_position, reason)
 	last_death = reason
 	var info: Array = Story.DEATHS.get(reason, ["ERASED", "the owner learned something.", "", "", ""])
@@ -1481,8 +1823,30 @@ func reach_slot2() -> void:
 		message = await hud.choose(Story.MESSAGE_QUESTION, Story.messages())
 		if not is_inside_tree() or message < 0:
 			return
+	await _slot2_press()
+	if not is_inside_tree():
+		return
 	_cutscene = false
 	win(ids[pick], message)
+
+
+## Her press at Slot 2. Until she knows what she is, it is the girl's
+## habit (two light taps, then the press: the opening, the well). Knowing,
+## it is one press, her own: the first gesture that is only hers (the
+## author's direction, CANON_DECISIONS.md §1).
+var slot2_press := ""
+
+
+func _slot2_press() -> void:
+	if OwnerMemory.knows_truth:
+		slot2_press = "own"  # (she says so as the final exchange opens: win())
+		Sfx.play("click", -6.0, 0.85, 0.0)
+		await get_tree().create_timer(0.6).timeout
+	else:
+		slot2_press = "habit"
+		for h in Opening.HABIT:
+			get_tree().create_timer(h[0]).timeout.connect(func() -> void: Sfx.play("click", h[1], 1.3 if h[0] < 0.5 else 1.0, 0.0))
+		await get_tree().create_timer(0.8).timeout
 
 
 ## An ending: "escape" (Rue takes Slot 2), "wren" (Wren gets it), or
@@ -1512,7 +1876,10 @@ func win(chosen := "escape", message := 0) -> void:
 	if not is_inside_tree():
 		return
 	# The console, live: the last thing said.
-	await hud.cinematic("", Story.FINAL_EXCHANGE.get(chosen, []), Hud.OWNER_COLOR, 0.85, "final." + chosen, CharacterArt.rue("determined", player.palette()))
+	var exchange: Array = Story.FINAL_EXCHANGE.get(chosen, []).duplicate()
+	if slot2_press == "own":
+		exchange.push_front(Story.RUE_OWN_PRESS)  # her first gesture that is only hers
+	await hud.cinematic("", exchange, Hud.OWNER_COLOR, 0.85, "final." + chosen, CharacterArt.rue("determined", player.palette()))
 	if not is_inside_tree():
 		return
 	if pip:

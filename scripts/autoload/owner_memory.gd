@@ -15,7 +15,7 @@ const MAX_REMEMBERED_DEATHS := 12
 ## The owner never finds the last seam out of Arin's room.
 const SEAM_COUNT := 5
 ## Bump when the save's shape changes, and teach _migrate the old shape.
-const SAVE_VERSION := 1
+const SAVE_VERSION := 3
 
 var sessions: int = 0
 var deaths: int = 0
@@ -50,12 +50,17 @@ var mira_quest: String = ""
 var guestbook_restored: bool = false
 ## Read the torn guest book page in the Recycle Bin.
 var found_guestbook := false
+## The Square's lane gate (behind Tobben's), lifted from the lane side: the
+## shortcut to the Archive road stays open for good (docs/VERTICAL_SLICE.md §3c).
+var square_gate_open := false
 ## The artefact journal: everything Rue has read (notes, books, files,
 ## memories), oldest first. Each entry is {id, kind, title, area, lines}.
 ## A note the owner rewrote keeps every version Rue saw.
 var journal: Array[Dictionary] = []
-const MAX_JOURNAL := 80
-const MAX_JOURNAL_LINES := 16
+## Generous sanity limits: the game has far fewer readable things than this,
+## and reaching either one warns instead of dropping a line silently.
+const MAX_JOURNAL := 400
+const MAX_JOURNAL_LINES := 64
 ## Found the second controller under the couch in Arin's house.
 var found_controller := false
 ## How the last game ended at Slot 2: "escape", "wren" or "message" ("" if
@@ -110,6 +115,40 @@ var session_frayed: Array[String] = []
 ## "active", so if the process is killed the owner finds out next launch.
 var last_exit: String = "none"
 
+## Lasting narrative state (docs/NARRATIVE_CONTRACT.md §3, layer A): kept
+## through deaths, quits and purges; only a full reset clears it.
+## Who Rue has met: id -> {"first": session, "last": session, "count": n}.
+var encounters: Dictionary = {}
+## Conversations read to their last line (ids from Relationships).
+var conversations: Array[String] = []
+## Relationship events (Relationships.EVENTS): id -> {"first": session,
+## "last": session, "count": n, "seq": order of the latest occurrence,
+## "first_seq": order of the first}. One record per id, so the save never
+## grows with play; the sequence keeps the order of events in one session
+## and of repeats (a ribbon taken again after it was given back).
+var rel_events: Dictionary = {}
+## The last sequence number handed out (rel_events, learned facts).
+var event_seq := 0
+## Facts Rue has learned, by id (ArchivePages.FACTS): id -> sequence number.
+## Learned when the line that tells her is actually shown, never on meeting.
+var facts: Dictionary = {}
+## Places Rue has been, ever (the session's own visits are World._visited).
+var places: Array[String] = []
+## The well's sequence, in order (docs/NARRATIVE_CONTRACT.md §6).
+var well_events: Array[String] = []
+## The checkpoint (layer C): {"id", "version", "session"} or empty. The place
+## is looked up from the id (World.ANCHORS), never stored as coordinates.
+var anchor: Dictionary = {}
+## The festival (Prologue): whether this profile played it, and the first
+## decision there: "lit" (the fifth lantern, alone), "stayed" (beside Arin),
+## "idle", or "skipped". Saves from before it have neither.
+var festival_seen := false
+var festival_choice := ""
+## Archive entries opened: key -> the revision that was read (ArchivePages
+## builds a revision from what an entry says, as ids, never its wording).
+## Missing: new. A different revision: updated.
+var archive_seen: Dictionary = {}
+
 ## Not saved. Resources that should survive scene reloads (e.g. synthesized audio).
 var runtime_cache: Dictionary = {}
 
@@ -124,6 +163,10 @@ var session_recalled: Array[String] = []
 var session_seam := -1
 
 var _session_closed := true
+## Whether play has started this session (arm_session).
+var _armed := false
+## How the session before a "starting" one ended (restored if it never starts).
+var start_previous := "none"
 var _path := SAVE_PATH
 
 
@@ -140,6 +183,25 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
 		record_quit()
 		quit_game()
+	elif what == NOTIFICATION_EXIT_TREE:
+		# The engine is shutting down without quit_game() (--quit-after, a
+		# signal): let go of every sound now, or Godot reports the streams
+		# and their playbacks as leaked (docs/COHERENCE_MILESTONE.md, A14).
+		_release_audio()
+
+
+## Stops every player still in the tree and drops the generated sounds.
+func _release_audio() -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	for p in tree.root.find_children("*", "AudioStreamPlayer", true, false) \
+			+ tree.root.find_children("*", "AudioStreamPlayer2D", true, false):
+		p.stop()
+		p.stream = null
+	runtime_cache.clear()
+	Sfx.release()
+	VoiceOver.clear_registered()
 
 
 ## Quitting, from anywhere (the window, the title, the pause menu): first the
@@ -155,15 +217,10 @@ func prepare_quit() -> void:
 	var tree := get_tree()
 	if tree.current_scene:
 		tree.current_scene.queue_free()
-	for p in tree.root.find_children("*", "AudioStreamPlayer", true, false) \
-			+ tree.root.find_children("*", "AudioStreamPlayer2D", true, false):
-		p.stop()
-		p.stream = null
-	runtime_cache.clear()
-	Sfx.release()
-	VoiceOver.clear_registered()
+	_release_audio()
 	for i in 3:
 		await tree.process_frame
+	await tree.create_timer(0.25, true, false, true).timeout
 
 
 static func is_test_mode() -> bool:
@@ -186,23 +243,228 @@ func deaths_in(area: String) -> Array[Vector2]:
 	return out
 
 
-## Starts a new session and returns how the previous one ended.
-func begin_session() -> String:
+## Starts a new session and returns how the previous one ended. A deferred
+## session (the World's) only counts once arm_session() is called.
+func begin_session(deferred := false) -> String:
 	var previous := last_exit
 	previous_exit = previous
 	last_run_glitches = session_glitches
 	session_glitches = 0
 	sessions += 1
-	last_exit = "active"
+	# "starting" until play begins (arm_session): closing the game, or a
+	# crash, during the boot text costs nothing (docs/VERTICAL_SLICE.md D1).
+	last_exit = "starting"
+	start_previous = previous
+	_armed = false
 	session_helpers.clear()
 	session_recalled.clear()
 	session_frayed.clear()
 	session_seam = -1
 	session_spots.clear()
 	_session_closed = false
+	if deferred:
+		save_memory()
+	else:
+		arm_session()
+	return previous
+
+
+## Play has started (Rue is under the player's control): from now on a quit
+## or a crash counts, as the pause menu says.
+func arm_session() -> void:
+	if _session_closed or _armed:
+		return
+	_armed = true
+	last_exit = "active"
 	save_memory()
 	_leave_guard(true)
-	return previous
+
+
+func session_armed() -> bool:
+	return _armed and not _session_closed
+
+
+## Closed before play began: as if the session never started.
+func _abandon_unstarted() -> void:
+	sessions = maxi(0, sessions - 1)
+	last_exit = start_previous
+	_session_closed = true
+	save_memory()
+	_leave_guard(false)
+
+
+## Rue meets someone (a conversation opened). Returns true the first time ever.
+func meet(id: String, where := "", look: Dictionary = {}) -> bool:
+	var first := not encounters.has(id)
+	var e: Dictionary = encounters.get(id, {"first": sessions, "last": sessions, "count": 0})
+	# Where and how they were last seen (the journal's portrait and place).
+	if where != "":
+		e.area = where
+	if not look.is_empty():
+		var hex := {}
+		for k in look:
+			if look[k] is Color:
+				hex[str(k)] = "#" + (look[k] as Color).to_html(false)
+		e.look = hex
+	encounters[id] = e
+	if not first and int(e.last) == sessions:
+		return false  # already counted this session
+	if not first:
+		e.prev = int(e.last)  # the meeting before this session's (Relationships.unacknowledged)
+	e.last = sessions
+	e.count = int(e.count) + 1
+	encounters[id] = e
+	if first and Relationships.EVENTS.has(id + ".met"):
+		_occur(id + ".met")
+	save_memory()
+	return first
+
+
+## What Rue saw of someone's condition ("well", "restricted", "deleted",
+## "reset", "safe", "restored"), this session. Only for someone she has met:
+## a stranger's state isn't something she knows about them.
+func observe(id: String, state: String) -> void:
+	if not encounters.has(id) or state == "":
+		return
+	var e: Dictionary = encounters[id]
+	var seen: Dictionary = e.get("seen", {})
+	if seen.get("state", "") == state and int(seen.get("session", -1)) == sessions:
+		return
+	e.seen = {"state": state, "session": sessions}
+	encounters[id] = e
+	save_memory()
+
+
+## The colours someone was last seen in, as a palette (for their portrait).
+func look_of(id: String) -> Dictionary:
+	var out := {}
+	for k in encounters.get(id, {}).get("look", {}):
+		out[k] = Color(encounters[id].look[k])
+	return out
+
+
+func mark_seen_in_archive(key: String, rev := "") -> void:
+	if archive_seen.get(key, null) != rev:
+		archive_seen[key] = rev
+		save_memory()
+
+
+## "new" (never opened), "updated" (opened, but it says more now) or "".
+## A key carried over from a v2 save ("*") adopts the current revision the
+## first time it is asked about: it was read, its old contents are unknown.
+func archive_mark(key: String, rev := "") -> String:
+	if not archive_seen.has(key):
+		return "new"
+	if archive_seen[key] == "*":
+		archive_seen[key] = rev
+		return ""
+	return "updated" if archive_seen[key] != rev else ""
+
+
+func has_met(id: String) -> bool:
+	return encounters.has(id)
+
+
+## Met in an earlier session (so this isn't a first meeting).
+func met_before(id: String) -> bool:
+	return encounters.has(id) and int(encounters[id].first) < sessions
+
+
+func complete_conversation(id: String) -> void:
+	if id != "" and id not in conversations:
+		conversations.append(id)
+		save_memory()
+
+
+func has_conversation(id: String) -> bool:
+	return id in conversations
+
+
+## Records a relationship event once: later calls change nothing. Returns
+## true the first time.
+func add_event(id: String) -> bool:
+	if rel_events.has(id):
+		return false
+	_occur(id)
+	save_memory()
+	return true
+
+
+## Records another occurrence of an event that can happen again (a death
+## witnessed, a piece taken, a restoration).
+func mark_event(id: String) -> void:
+	_occur(id)
+	save_memory()
+
+
+## One occurrence, in memory (callers save). Unknown ids still record, but
+## warn: the registry (Relationships.EVENTS) is what the journal can show.
+func _occur(id: String, at := -1) -> void:
+	if not Relationships.EVENTS.has(id) and id not in Relationships.INTERNAL_EVENTS:
+		push_warning("OwnerMemory: event %s isn't in Relationships.EVENTS" % id)
+	var s := sessions if at < 0 else at
+	event_seq += 1
+	var e: Dictionary = rel_events.get(id, {"first": s, "count": 0, "first_seq": event_seq})
+	e.last = s
+	e.count = int(e.count) + 1
+	e.seq = event_seq
+	rel_events[id] = e
+
+
+## Tests and migrations: an event that happened in `session`.
+func event_at(id: String, session: int) -> void:
+	_occur(id, session)
+
+
+func has_event(id: String) -> bool:
+	return rel_events.has(id)
+
+
+## The session an event last happened in (-1: never).
+func event_session(id: String) -> int:
+	return int(rel_events[id].last) if rel_events.has(id) else -1
+
+
+## The order of an event's latest occurrence (0: never). Compare two of
+## these to know which happened last.
+func event_order(id: String) -> int:
+	return int(rel_events[id].seq) if rel_events.has(id) else 0
+
+
+func event_count(id: String) -> int:
+	return int(rel_events[id].count) if rel_events.has(id) else 0
+
+
+## Rue learned a fact (ArchivePages.FACTS). Once; returns true the first time.
+func learn_fact(id: String) -> bool:
+	if facts.has(id):
+		return false
+	event_seq += 1
+	facts[id] = event_seq
+	save_memory()
+	return true
+
+
+func knows_fact(id: String) -> bool:
+	return facts.has(id)
+
+
+func discover_place(id: String) -> bool:
+	if id in places:
+		return false
+	places.append(id)
+	save_memory()
+	return true
+
+
+func has_well_event(id: String) -> bool:
+	return id in well_events
+
+
+func add_well_event(id: String) -> void:
+	if id not in well_events:
+		well_events.append(id)
+		save_memory()
 
 
 func has_fragment(id: String) -> bool:
@@ -270,6 +532,9 @@ func record_death(area: String, at: Vector2, reason := "") -> bool:
 func record_quit() -> void:
 	if _session_closed:
 		return
+	if not _armed:
+		_abandon_unstarted()
+		return
 	_lose_carried_note()
 	quits += 1
 	purge += 1
@@ -279,9 +544,18 @@ func record_quit() -> void:
 
 ## Reached Slot 2 and chose an ending ("escape", "rue", "wren", "message",
 ## or one of the hidden ones: "unseen", "overwrite").
+## The demo build reached its end card: the session closes cleanly. Not a
+## quit (no purge) and not an ending (nothing is won or seen).
+func record_demo_end() -> void:
+	if _session_closed:
+		return
+	_close_session("demo")
+
+
 func record_win(ending := "escape") -> void:
 	if _session_closed:
 		return
+	anchor.clear()  # an ending is a new start: no checkpoint carries past it
 	wins += 1
 	last_ending = ending
 	if ending not in endings_seen:
@@ -327,7 +601,10 @@ func record_read(id: String, kind: String, title: String, area: String, lines: A
 				save_memory()
 			return false
 	if journal.size() >= MAX_JOURNAL:
+		push_warning("OwnerMemory: journal full (%d); not keeping %s" % [MAX_JOURNAL, id])
 		return false
+	if text.size() > MAX_JOURNAL_LINES:
+		push_warning("OwnerMemory: %s has %d lines; keeping %d" % [id, text.size(), MAX_JOURNAL_LINES])
 	journal.append({"id": id, "kind": kind, "title": title, "area": area, "lines": text.slice(0, MAX_JOURNAL_LINES)})
 	if save:
 		save_memory()
@@ -354,6 +631,7 @@ func learn_truth_piece(who: String) -> void:
 func fray(who: String, area: String, at := Vector2.ZERO) -> void:
 	if _session_closed:
 		return  # the run is over: nothing more is written into it
+	_occur(who + ".ribbon_taken" if who == "wren" else who + ".piece_taken")
 	if who not in frayed:
 		frayed.append(who)
 	if who not in session_frayed:
@@ -372,6 +650,7 @@ func fray(who: String, area: String, at := Vector2.ZERO) -> void:
 ## A piece brought back from the bin: they're whole, and will say so.
 func return_piece(who: String) -> void:
 	if who in frayed and not _session_closed:
+		_occur(who + ".ribbon_returned" if who == "wren" else who + ".piece_returned")
 		frayed.erase(who)
 		session_frayed.erase(who)
 		if who not in returned_pending:
@@ -406,6 +685,8 @@ func wipe() -> void:
 
 ## Every field back to a new game's, in memory only (nothing is written).
 func clear_state() -> void:
+	_armed = false
+	start_previous = "none"
 	sessions = 0
 	deaths = 0
 	quits = 0
@@ -418,6 +699,7 @@ func clear_state() -> void:
 	found_pip = false
 	wren_saved = false
 	found_guestbook = false
+	square_gate_open = false
 	found_controller = false
 	truth_pieces.clear()
 	knows_truth = false
@@ -452,6 +734,17 @@ func clear_state() -> void:
 	acts_seen.clear()
 	fragments.clear()
 	last_exit = "none"
+	encounters.clear()
+	conversations.clear()
+	rel_events.clear()
+	event_seq = 0
+	facts.clear()
+	places.clear()
+	well_events.clear()
+	festival_seen = false
+	festival_choice = ""
+	anchor.clear()
+	archive_seen.clear()
 	session_helpers.clear()
 	session_seam = -1
 	_session_closed = true
@@ -494,6 +787,7 @@ func save_memory() -> void:
 		"found_pip": found_pip,
 		"wren_saved": wren_saved,
 		"found_guestbook": found_guestbook,
+		"square_gate_open": square_gate_open,
 		"found_controller": found_controller,
 		"journal": journal,
 		"owner_notes_seen": owner_notes_seen,
@@ -525,6 +819,18 @@ func save_memory() -> void:
 		"returned_pending": returned_pending,
 		"shed_said": shed_said,
 		"last_exit": last_exit,
+		"start_previous": start_previous,
+		"encounters": encounters,
+		"conversations": conversations,
+		"rel_events": rel_events,
+		"event_seq": event_seq,
+		"facts": facts,
+		"places": places,
+		"well_events": well_events,
+		"anchor": anchor,
+		"festival_seen": festival_seen,
+		"festival_choice": festival_choice,
+		"archive_seen": archive_seen,
 	}
 	SafeFile.write_atomic(_path, JSON.stringify(data, "\t"))
 
@@ -539,17 +845,104 @@ func _migrate(data: Dictionary) -> Dictionary:
 	if version > SAVE_VERSION:
 		push_warning("OwnerMemory: save is from a newer version (%d > %d)" % [version, SAVE_VERSION])
 	# (version 0 -> 1: nothing to convert, the reader handles both.)
+	if version < 2:
+		data = _from_v1(data)
+	if version < 3:
+		data = _from_v2(data)
+	return data
+
+
+## Version 2 added lasting encounters, relationship events and places. An
+## older save already implies some of them: carry those over, so nobody
+## greets a returning player as a stranger.
+func _from_v1(data: Dictionary) -> Dictionary:
+	var met := {}
+	var events := {}
+	var at := maxi(1, _int(data, "sessions", 1))
+	var fates: Variant = data.get("npc_fates", {})
+	var restored_ids := _strings(data, "restored")
+	if _bool(data, "wren_saved") or (fates is Dictionary and fates.has("wren")) or "wren" in restored_ids:
+		met["wren"] = true
+		events["wren.met"] = at
+	if _bool(data, "wren_saved"):
+		events["wren.promised"] = at
+		events["wren.promise_kept"] = at
+	if "wren" in restored_ids:
+		events["wren.restored"] = at
+	if _str(data, "mira_quest", "") != "":
+		met["mira"] = true  # her request was made, so you spoke
+	if _bool(data, "met_archivist"):
+		met["archivist"] = true
+	if _bool(data, "found_guestbook") or _bool(data, "guestbook_restored"):
+		met["tobben"] = true
+	var enc := {}
+	for id in met:
+		enc[id] = {"first": 1, "last": at, "count": 1}
+	data["encounters"] = enc
+	data["rel_events"] = events
+	var seen: Array = []
+	for a in _strings(data, "acts_seen"):
+		seen.append(a)
+	data["places"] = seen
+	return data
+
+
+## Version 3 turned each relationship event (id -> session) into an
+## occurrence record with an order, and archive marks (a list of keys) into
+## key -> revision. Old events are ordered by session, then in story order
+## (Relationships.EVENTS), which is how the journal already sorted them.
+func _from_v2(data: Dictionary) -> Dictionary:
+	var old: Variant = data.get("rel_events", {})
+	var ids: Array = []
+	if old is Dictionary:
+		for k in old:
+			if (old[k] is float or old[k] is int) and is_finite(float(old[k])):
+				ids.append(str(k))
+	var order: Array = Relationships.EVENTS.keys()
+	ids.sort_custom(func(a: String, b: String) -> bool:
+		var sa := int(old[a])
+		var sb := int(old[b])
+		if sa != sb:
+			return sa < sb
+		var oa := order.find(a)
+		var ob := order.find(b)
+		return (oa if oa >= 0 else 1 << 20) < (ob if ob >= 0 else 1 << 20))
+	var events := {}
+	var seq := 0
+	for id in ids:
+		seq += 1
+		var s := maxi(0, int(old[id]))
+		events[id] = {"first": s, "last": s, "count": 1, "seq": seq, "first_seq": seq}
+	data["rel_events"] = events
+	data["event_seq"] = seq
+	var marks := {}
+	for k in _strings(data, "archive_seen"):
+		marks[k] = "*"  # read once; what it said then is unknown
+	data["archive_seen"] = marks
+	# This build has no "carried" note: Mira carries her own on the walk. A
+	# v2 save left at "carried" still has it with her.
+	if _str(data, "mira_quest", "") == "carried":
+		data["mira_quest"] = ""
 	return data
 
 
 # Typed reads: a hand-edited or damaged value falls back to the default
 # instead of stopping the load half-way.
-static func _num(d: Dictionary, key: String) -> bool:
+static func _num(d: Dictionary, key: Variant) -> bool:
 	return d.get(key) is float or d.get(key) is int
 
 
+## A finite, whole number (JSON numbers are floats; 1e400 reads as inf,
+## and int() of inf or NaN is meaningless).
+static func _whole(d: Dictionary, key: Variant) -> bool:
+	if not _num(d, key):
+		return false
+	var f := float(d[key])
+	return is_finite(f) and f == floorf(f) and absf(f) < 1e15
+
+
 static func _int(d: Dictionary, key: String, fallback: int, most := 1 << 30) -> int:
-	return clampi(int(d[key]), 0, most) if _num(d, key) else fallback
+	return clampi(int(d[key]), 0, most) if _whole(d, key) else fallback
 
 
 static func _bool(d: Dictionary, key: String) -> bool:
@@ -587,10 +980,12 @@ func load_memory() -> void:
 	wins = _int(data, "wins", 0)
 	purge = _int(data, "purge", 0, MAX_PURGE)
 	last_exit = _str(data, "last_exit", "none")
+	start_previous = _str(data, "start_previous", "none")
 	met_archivist = _bool(data, "met_archivist")
 	found_pip = _bool(data, "found_pip")
 	wren_saved = _bool(data, "wren_saved")
 	found_guestbook = _bool(data, "found_guestbook")
+	square_gate_open = _bool(data, "square_gate_open")
 	found_controller = _bool(data, "found_controller")
 	journal.clear()
 	for e in _list(data, "journal"):
@@ -631,7 +1026,7 @@ func load_memory() -> void:
 	frayed.assign(_strings(data, "frayed").filter(func(id: String) -> bool: return id in Story.SHED_TARGETS))
 	sheds = _int(data, "sheds", 0)
 	husk_area = _str(data, "husk_area", "")
-	husk_session = int(data.husk_session) if _num(data, "husk_session") else -1
+	husk_session = int(data.husk_session) if _whole(data, "husk_session") and float(data.husk_session) >= -1.0 else -1
 	husk_pos = Vector2(float(data.husk_x), float(data.husk_y)) if _num(data, "husk_x") and _num(data, "husk_y") else Vector2.ZERO
 	returned_pending.assign(_strings(data, "returned_pending"))
 	shed_said.assign(_strings(data, "shed_said"))
@@ -654,6 +1049,62 @@ func load_memory() -> void:
 	if fates is Dictionary:
 		for k in fates:
 			npc_fates[str(k)] = str(fates[k])
+	encounters.clear()
+	var enc: Variant = data.get("encounters", {})
+	if enc is Dictionary:
+		for k in enc:
+			var e: Variant = enc[k]
+			if e is Dictionary and _whole(e, "first") and _whole(e, "last"):
+				var kept := {"first": int(e.first), "last": int(e.last), "count": maxi(1, _int(e, "count", 1))}
+				if e.get("area") is String:
+					kept.area = e.area
+				if _whole(e, "prev"):
+					kept.prev = _int(e, "prev", 0)
+				var sn: Variant = e.get("seen")
+				if sn is Dictionary and sn.get("state") is String and _whole(sn, "session"):
+					kept.seen = {"state": sn.state, "session": _int(sn, "session", 0)}
+				if e.get("look") is Dictionary:
+					var look := {}
+					for c in e.look:
+						if e.look[c] is String and Color.html_is_valid(e.look[c]):
+							look[str(c)] = e.look[c]
+					kept.look = look
+				encounters[str(k)] = kept
+	conversations.assign(_strings(data, "conversations"))
+	event_seq = _int(data, "event_seq", 0)
+	rel_events.clear()
+	var ev: Variant = data.get("rel_events", {})
+	if ev is Dictionary:
+		for k in ev:
+			var r: Variant = ev[k]
+			if r is Dictionary and _whole(r, "first") and _whole(r, "last") and _whole(r, "seq"):
+				var seq := _int(r, "seq", 0)
+				rel_events[str(k)] = {"first": _int(r, "first", 0), "last": _int(r, "last", 0),
+					"count": maxi(1, _int(r, "count", 1)), "seq": seq, "first_seq": _int(r, "first_seq", seq)}
+				event_seq = maxi(event_seq, seq)  # a damaged counter can't reuse an order
+	facts.clear()
+	var fs: Variant = data.get("facts", {})
+	if fs is Dictionary:
+		for k in fs:
+			if _whole(fs, k):
+				facts[str(k)] = _int(fs, k, 0)
+				event_seq = maxi(event_seq, int(facts[str(k)]))
+	places.assign(_strings(data, "places"))
+	well_events.assign(_strings(data, "well_events"))
+	archive_seen.clear()
+	var marks: Variant = data.get("archive_seen", {})
+	if marks is Dictionary:
+		for k in marks:
+			if marks[k] is String:
+				archive_seen[str(k)] = marks[k]
+	festival_seen = data.get("festival_seen", false) == true
+	festival_choice = _str(data, "festival_choice", "")
+	if festival_choice not in ["", "lit", "stayed", "idle", "skipped"]:
+		festival_choice = ""
+	anchor.clear()
+	var an: Variant = data.get("anchor", {})
+	if an is Dictionary and an.get("id") is String and _whole(an, "version"):
+		anchor = {"id": an.id, "version": int(an.version), "session": _int(an, "session", 0)}
 
 	# The last session never closed properly: the game was killed or crashed.
 	# The owner treats that as running away.
@@ -661,6 +1112,11 @@ func load_memory() -> void:
 		quits += 1
 		purge += 1
 		last_exit = "crash"
+		save_memory()
+	elif last_exit == "starting":
+		# Died before play began (the boot text): it never started.
+		sessions = maxi(0, sessions - 1)
+		last_exit = start_previous
 		save_memory()
 
 

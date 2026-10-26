@@ -81,11 +81,14 @@ func test_talking_to_mira_shows_her_face_and_mood() -> void:
 	check_eq(w.hud.dialogue_expression(), ArinsRoom.mira_expression(line), "her expression follows the line")
 	var clock_start: float = w.hud._dialogue_portrait._figure._t
 	var spoke := false
+	var mouth := {}
 	for i in 20:
 		spoke = spoke or w.hud._dialogue_portrait._figure.talking
+		mouth[w.hud._dialogue_portrait.mouth_open()] = true
 		await frames(2)
 	check((spoke and w.hud._dialogue_portrait._figure._t > clock_start) or Settings.reduce_flashing,
 		"the live renderer owns mouth motion and its clock advances; HUD need not toggle a second mouth rhythm")
+	check(mouth.size() > 1 or Settings.reduce_flashing, "the mouth opens and closes while she speaks")
 	await shot("mira_dialogue_portrait")
 	await finish_dialogue(w)
 	check(not w.hud._dialogue_portrait.visible, "and goes with the box")
@@ -94,7 +97,7 @@ func test_talking_to_mira_shows_her_face_and_mood() -> void:
 func test_mira_s_moods_cover_her_story() -> void:
 	check_eq(ArinsRoom.mira_expression(ArinsRoom.MIRA_LINES[2]), "afraid", "'Who are you?' is afraid")
 	check_eq(ArinsRoom.mira_expression(Story.MIRA_ASK[0]), "eager", "asking to go out is eager")
-	check_eq(ArinsRoom.mira_expression(Story.RECALL["mira"][0][1]), "relieved", "after pinning her note: relieved")
+	check_eq(ArinsRoom.mira_expression(Relationships.MIRA_AFTER_PINNED[0]), "proud", "after pinning her note herself: proud")
 	check_eq(ArinsRoom.mira_expression(Story.MIRA_RESET_LINES[0]), "reset", "reset by the owner: the blank smile")
 	var used := {}
 	for stem in ArinsRoom.voice_lines():

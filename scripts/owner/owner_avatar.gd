@@ -72,7 +72,7 @@ var _recovered := 0.0
 var _path_short := false
 var _skipped := 0
 ## The protagonist the owner loves: blue tunic, dark hair, a red scarf.
-var _sprite := IllustratedCharacter.new("adult", {
+var _sprite := CharacterArt.figure("arin", "adult", {
 	"h": HAIR, "s": SKIN, "c": BODY, "d": Color("2e3f5c"), "a": Color("c0392b"),
 	"l": Color("2e3f5c"), "f": Color("1a1a20"), "e": Color("101018"),
 })
@@ -466,7 +466,9 @@ func _process(delta: float) -> void:
 	_last_step = step
 	if not _sprite.moving:
 		_sprite.look_at(Vector2.ZERO, _facing)
-	queue_redraw()
+	# His view cone is drawn with him: redrawn whenever any of it could be in view.
+	if IllustratedCharacter.near_view(self, view_distance + 16.0):
+		queue_redraw()
 
 
 ## The cone's colour, brightened by 1/ambient in lit areas: the scene's

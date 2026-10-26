@@ -39,6 +39,10 @@ var _caught := false
 var _t := 0.0
 var _mature_layer: _MatureLayer
 var _protected: Dictionary = {}  # Vector2i -> true, cells the eraser can't touch
+## Where the static goes is drawn from its own generator, so the frame rate
+## (every rendered frame draws random static) can't change its path, and a
+## run can be replayed with `rng.seed`.
+var rng := RandomNumberGenerator.new()
 
 
 func setup(room_rect: Rect2, player: Node2D) -> void:
@@ -114,11 +118,11 @@ func seed_at(world_pos: Vector2) -> void:
 
 
 func seed_on_edge() -> void:
-	match randi() % 4:
-		0: _add(Vector2i(randi() % _cols, 0))
-		1: _add(Vector2i(randi() % _cols, _rows - 1))
-		2: _add(Vector2i(0, randi() % _rows))
-		_: _add(Vector2i(_cols - 1, randi() % _rows))
+	match rng.randi() % 4:
+		0: _add(Vector2i(rng.randi() % _cols, 0))
+		1: _add(Vector2i(rng.randi() % _cols, _rows - 1))
+		2: _add(Vector2i(0, rng.randi() % _rows))
+		_: _add(Vector2i(_cols - 1, rng.randi() % _rows))
 
 
 func cell_count() -> int:
@@ -159,8 +163,8 @@ func _grow() -> void:
 		return  # the whole room is gone
 	var goal := _to_cell(target.global_position) if is_instance_valid(target) else Vector2i(_cols >> 1, _rows >> 1)
 	var keys: Array = _frontier.keys()
-	var from: Vector2i = keys.pick_random()
-	if randf() < hunt_chance:
+	var from: Vector2i = keys[rng.randi() % keys.size()]
+	if rng.randf() < hunt_chance:
 		# Grow from the edge closest to you.
 		var best := INF
 		for c: Vector2i in keys:
@@ -174,7 +178,7 @@ func _grow() -> void:
 		var n := from + dir
 		if not _in_grid(n) or _cells.has(n):
 			continue
-		var score := Vector2(n - goal).length() + randf() * 3.0
+		var score := Vector2(n - goal).length() + rng.randf() * 3.0
 		if score < best_score:
 			best_score = score
 			step = n

@@ -1,5 +1,7 @@
 # THE LAST SAVE FILE — Story Script
 
+> **Superseded in part (continuity milestone, proposed):** the truth about Rue is now that she is the part of the second player that stayed in the interrupted save — a real person, not a character grown from her play. See `docs/NARRATIVE_CONTRACT.md` §1 and its ledger (§7) for every changed line. This document is kept as history; where it says Rue "is not the girl" or "what she left running", the contract wins.
+
 *A game in five acts and an epilogue. Every line below is the line the game shows: the
 narrative text lives in `scripts/story/story.gd` and the area scripts, and this document
 is the readable version of it.*
@@ -89,8 +91,8 @@ photo of a screen. A music box plays.*
 > two people on one couch. one screen. one save.
 > "you be arin," i said. "i'll make my own."
 
-**RUE:** (i was here before. not in this room. in front of it.)
-**RUE:** (a scarf. red. i picked that colour myself.)
+**RUE:** (i know this evening. not from this room. from the other side of the glass.)
+**RUE:** (a scarf. red. somebody picked that colour for me, carefully.)
 
 *Rue's scarf turns red.*
 

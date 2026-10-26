@@ -11,6 +11,8 @@ var prompt := "climb in"
 var look: Look = Look.NONE
 var target_area := ""
 var arrival := ""
+## A warm light at its foot: the well keeps Rue's answer here (the anchor).
+var lit := false
 
 var _t := 0.0
 
@@ -43,6 +45,9 @@ func _draw() -> void:
 		draw_rect(Rect2(-6, -2, 12, 4), Color("8cf2ff"), false, 1.0)
 		draw_rect(Rect2(-2, -40, 4, 38), Color(0.55, 0.95, 1.0, 0.25 + 0.2 * pulse))
 		draw_rect(Rect2(-1, -40, 2, 38), Color(0.9, 1.0, 1.0, 0.5))
+		if lit:
+			draw_circle(Vector2(0, 0), 9.0 + pulse, Color(1.0, 0.8, 0.45, 0.18))
+			draw_circle(Vector2(0, 0), 3.0, Color(1.0, 0.85, 0.55, 0.7))
 		for i in 3:
 			var y := -fmod(_t * 18.0 + i * 13.0, 40.0)
 			draw_rect(Rect2(-3, y, 1, 1), Color(0.8, 1.0, 1.0, 0.8))

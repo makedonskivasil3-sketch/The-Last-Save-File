@@ -1,5 +1,7 @@
 # THE LAST SAVE FILE — Narrative Bible
 
+> **Superseded in part (continuity milestone, proposed):** the truth about Rue is now that she is the part of the second player that stayed in the interrupted save — a real person, not a character grown from her play. See `docs/NARRATIVE_CONTRACT.md` §1 and its ledger (§7) for every changed line. This document is kept as history; where it says Rue "is not the girl" or "what she left running", the contract wins.
+
 *Canon reference derived only from the shipped game text and logic. Every claim marked
 **CONFIRMED** is backed by a `file:line` reference. **INTERPRETATION** is a reading the text
 supports but does not state outright. **PROPOSAL** is a suggestion that needs author approval. Nothing

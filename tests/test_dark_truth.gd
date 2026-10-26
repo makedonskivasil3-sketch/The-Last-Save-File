@@ -2,7 +2,7 @@ extends "res://tests/test_case.gd"
 ## The truth (docs/DARK_TRUTH_DESIGN.md, layer A): the people who watched Rue
 ## each notice one thing, her CHARACTER FILE opens with every memory and two
 ## of their pieces, and only then is the RUE ending hers. The message ending
-## tells the real girl that a part of her stayed.
+## tells the real girl about the character she left running.
 
 
 func _all_memories() -> void:
@@ -56,7 +56,10 @@ func test_tobben_notices_the_handwriting() -> void:
 	memory().guestbook_restored = true
 	var w := await start_session()
 	await go_to(w, "square", "house")
+	# One topic per conversation: the guest book itself first, then what he noticed.
 	var heard: Array = await _read(w, w.area.tobben)
+	check(heard.any(func(l: String) -> bool: return l.contains("Two names")), "the book first (%s)" % str(heard))
+	heard = await _read(w, w.area.tobben)
 	check(Story.TRUTH_LINES.tobben in heard, "once the name is back in his book (%s)" % str(heard))
 	check("tobben" in memory().truth_pieces, "kept")
 
@@ -120,6 +123,7 @@ func test_rue_needs_the_truth() -> void:
 	w.hud._chosen.emit(0)
 	await wait_until(func() -> bool: return memory().last_ending != "", 5.0, "the ending")
 	check_eq(memory().last_ending, "escape", "it's the plain escape")
+	check_eq(w.slot2_press, "habit", "not knowing: her press is still the girl's two taps")
 
 
 func test_rue_with_the_truth() -> void:
@@ -135,6 +139,8 @@ func test_rue_with_the_truth() -> void:
 	w.hud._chosen.emit(0)
 	await wait_until(func() -> bool: return memory().last_ending != "", 5.0, "the ending")
 	check_eq(memory().last_ending, "rue", "RUE")
+	check_eq(w.slot2_press, "own", "knowing what she is: one press, her own (the author's direction)")
+	check(await wait_until(func() -> bool: return w.hud.history.any(func(e: Dictionary) -> bool: return str(e.text).contains(Story.RUE_OWN_PRESS)), 8.0, "her own press, noticed"), "and she notices it")
 
 
 func test_the_message_tells_the_real_girl() -> void:
@@ -144,4 +150,4 @@ func test_the_message_tells_the_real_girl() -> void:
 	memory().knows_truth = true
 	var with_truth: Array = Story.epilogue("message", 5, false, 0)
 	check(with_truth.has(Story.MESSAGE_TRUTH[0]) and with_truth.has(Story.MESSAGE_TRUTH[1]), "with it, the owner promises to tell her")
-	check(Story.ending_text("message", 5).contains("a part of her stayed behind"), "and the end card says she's about to hear it")
+	check(Story.ending_text("message", 5).contains("the character she left running"), "and the end card says she's about to hear it")

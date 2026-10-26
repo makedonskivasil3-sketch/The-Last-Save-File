@@ -121,6 +121,15 @@ func draw(ci: CanvasItem, opts: Dictionary = {}) -> void:
 	var s_head := float(slices[0]) * flip
 	var s_body := float(slices[1]) * flip
 	var s_legs := float(slices[2]) * flip
+	# Starting off: the head and shoulders go first (sideways), or the body
+	# dips into the step (towards or away from the viewer). Drawing only:
+	# the collision box and speed don't change.
+	var lean := sin(clampf(start / START_TIME, 0.0, 1.0) * PI)
+	if side:
+		s_head += lean * 1.2
+		s_body += lean * 0.5
+	else:
+		dy += lean * 0.6
 	var parts := _Parts.new(self, ci, solid, grey, alpha)
 	_legs(parts, Vector2(s_legs, dy * 0.4), phase, side)
 	_torso(parts, Vector2(s_body, dy), phase, side, step)
@@ -128,7 +137,7 @@ func draw(ci: CanvasItem, opts: Dictionary = {}) -> void:
 	parts.flush()
 	if solid == null and not (facing == Vector2.UP):
 		_face(ci, Vector2(s_head + sway, dy + breath), side, alpha, grey)
-	if idle_style == "read" and not moving and solid == null:
+	if shows_book() and solid == null:
 		_book(ci, Vector2(s_body, dy), alpha)
 	ci.draw_set_transform(Vector2.ZERO)
 
@@ -243,6 +252,10 @@ func _arms(p: _Parts, shoulder: Vector2, sh: float, phase: float, side: bool) ->
 				hand.x = at.x + phase * 2.6
 		if hug and not moving:
 			hand = shoulder + Vector2(-s * sh * 0.4, arm_len * 0.55)
+		if idle_style == "tend" and not moving and not talking:
+			# A shopkeeper's idle: both hands forward at counter height,
+			# turning things over, one after the other.
+			hand = at + Vector2(-s * 0.6, arm_len * 0.62 + sin(_t * 2.2 + s * 1.6) * 0.7)
 		if waving and s > 0.0:
 			hand = at + Vector2(2.4, -arm_len * 0.8 + absf(sin(_t * 8.0)) * 1.5)
 		if pointing and s > 0.0:
@@ -389,12 +402,57 @@ func _book(ci: CanvasItem, o: Vector2, alpha: float) -> void:
 	ci.draw_rect(Rect2(at + Vector2(0.2, -0.9), Vector2(1.8, 2.4)), Color(Color("e8dcc4"), alpha))
 
 
-static func _ellipse(ci: CanvasItem, c: Vector2, r: Vector2, col: Color) -> void:
+## Whether `node` is on screen, or within `margin` px of it. A figure off
+## screen needn't be redrawn each frame (its drawing is script work, and the
+## square can have five of them out of view); it redraws as it comes near.
+static func near_view(node: CanvasItem, margin := 64.0) -> bool:
+	if not node.is_inside_tree():
+		return false
+	var at := node.get_global_transform_with_canvas().origin
+	return node.get_viewport_rect().grow(margin).has_point(at)
+
+
+## A unit circle (10 points), scaled and moved natively per ellipse:
+## figures draw dozens a frame, and a GDScript cos/sin loop each was most of
+## their cost.
+static var UNIT_10 := _unit_circle(10)
+
+
+static func _unit_circle(n: int) -> PackedVector2Array:
 	var pts := PackedVector2Array()
-	for i in 10:
-		var a := TAU * i / 10.0
-		pts.append(c + Vector2(cos(a) * r.x, sin(a) * r.y))
-	ci.draw_colored_polygon(pts, col)
+	for i in n:
+		var a := TAU * i / float(n)
+		pts.append(Vector2(cos(a), sin(a)))
+	return pts
+
+
+## Half circles (7 points), for the two ends of a tapered limb.
+static var HALF_7 := _half_circle(7)
+
+
+static func _half_circle(n: int) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for i in n:
+		var a := -PI * 0.5 + PI * i / float(n - 1)
+		pts.append(Vector2(cos(a), sin(a)))
+	return pts
+
+
+## The outline of a limb from a (radius r1) to b (radius r2): one convex
+## polygon, built natively (a quad and two joint discs cost three shapes).
+static func taper_points(a: Vector2, b: Vector2, r1: float, r2: float) -> PackedVector2Array:
+	var d := b - a
+	var ang := d.angle() if d.length() > 0.01 else 0.0
+	var x := Vector2.from_angle(ang)
+	var y := x.orthogonal()
+	# b's end faces forward (+x), a's end backward: rotate the half circle.
+	var pts := Transform2D(x * r2, y * r2, b) * HALF_7
+	pts.append_array(Transform2D(-x * r1, -y * r1, a) * HALF_7)
+	return pts
+
+
+static func _ellipse(ci: CanvasItem, c: Vector2, r: Vector2, col: Color) -> void:
+	ci.draw_colored_polygon(Transform2D(Vector2(r.x, 0), Vector2(0, r.y), c) * UNIT_10, col)
 
 
 ## Collects a figure's shapes so its outline is drawn once, behind all of
@@ -430,6 +488,15 @@ class _Parts:
 	func capsule(a: Vector2, b: Vector2, r: float, c: Color, outline := true) -> void:
 		_shapes.append(["capsule", a, b, r, c, outline])
 
+	## A polygon whose outline (`grown`, the same shape OUTLINE_W larger) the
+	## caller already knows: no per-point growing in script.
+	func poly_grown(pts: PackedVector2Array, grown: PackedVector2Array, c: Color) -> void:
+		_shapes.append(["polyg", pts, c, grown, true])
+
+	## A limb: a capsule from a (radius r1) to b (radius r2), as one polygon.
+	func taper(a: Vector2, b: Vector2, r1: float, r2: float, c: Color, outline := true) -> void:
+		_shapes.append(["taper", a, b, r1, r2, c, outline])
+
 	func line(a: Vector2, b: Vector2, c: Color, w: float) -> void:
 		_shapes.append(["line", a, b, c, w])
 
@@ -442,12 +509,14 @@ class _Parts:
 		for s in _shapes:
 			var c: Color
 			match s[0]:
-				"poly":
+				"poly", "polyg":
 					c = s[2]
 				"ellipse":
 					c = s[3]
 				"capsule":
 					c = s[4]
+				"taper":
+					c = s[5]
 				"line":
 					c = s[3]
 			_draw(s, _ch._paint(c, _solid, _grey, _alpha), 0.0)
@@ -471,6 +540,10 @@ class _Parts:
 				var n := (b - a).normalized().orthogonal() * r
 				if (b - a).length() > 0.01:
 					_ci.draw_colored_polygon(PackedVector2Array([a + n, b + n, b - n, a - n]), c)
+			"polyg":
+				_ci.draw_colored_polygon(s[3] if grow > 0.0 else s[1], c)
+			"taper":
+				_ci.draw_colored_polygon(IllustratedCharacter.taper_points(s[1], s[2], float(s[3]) + grow, float(s[4]) + grow), c)
 			"line":
 				_ci.draw_line(s[1], s[2], c, s[4])
 

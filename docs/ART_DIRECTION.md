@@ -75,8 +75,8 @@ Rules:
 
 ## Camera and transitions
 
-- **[in game]** A fixed camera per area. Shake only moves the world layer, never the HUD. Every distortion scales with *Glitch intensity*, and every flash with *Reduce flashing* (`screen_fx.gd` header).
-- Rules: no camera motion that hides a threat, and shake decays within 0.5 s.
+- **[in game]** A fixed camera per one-screen area. An area wider than the screen (the Square, `Area.view_size`) follows Rue horizontally inside its painted limits: a dead zone of 60 px, an ease with no overshoot, and arrival already framed (no pan on the way in). *Reduce motion* replaces the follow with cuts between two fixed framings. The camera and shake share one transform (`ScreenFx.view_offset`). Shake only moves the world layer, never the HUD. Every distortion scales with *Glitch intensity*, and every flash with *Reduce flashing* (`screen_fx.gd` header).
+- Rules: no camera motion that hides a threat, and shake decays within 0.5 s. A threat outside the view is marked at that screen edge with its name (`Hud.set_offscreen`).
 
 ## Typography and UI
 

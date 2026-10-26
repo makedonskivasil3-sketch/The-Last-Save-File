@@ -43,9 +43,12 @@ var _confirm_label: Label
 var _goal_label: Label
 ## Shown under the title: what to do next (set by World before open()).
 var goal := ""
-## For the map (set by World before open()): current area id, areas visited.
+## For the map (set by World before open(), World.map_state()): current
+## area id, places visited this run, places found in any run, closed ones.
 var current_area := ""
 var visited_areas: Dictionary = {}
+var discovered_areas: Dictionary = {}
+var closed_areas: Dictionary = {}
 
 
 func _ready() -> void:
@@ -237,6 +240,7 @@ func _scroll_history(amount: float) -> void:
 
 
 func _show_journal() -> void:
+	PlaytestLog.mark("journal opened")
 	_journal.refresh()
 	_show_only(_journal_box)
 	_journal.focus_first.call_deferred()
@@ -267,6 +271,8 @@ func _debug(action: String) -> void:
 func _show_map() -> void:
 	_map.current = current_area
 	_map.visited = visited_areas
+	_map.discovered = discovered_areas
+	_map.closed = closed_areas
 	_show_only(_map_box)
 	_map_back.grab_focus()
 
@@ -291,7 +297,9 @@ func _ask_quit(to_title: bool) -> void:
 		consequence += " One more and you're gone."
 	# Pausing is free; this ends the run. Say what is kept and what it costs.
 	_confirm_label.text = "This ends the run. Quitting counts, like dying: the owner will remember.\n" + consequence \
-		+ "\nKept: your memories, glitches and journal. Lost: anything you're carrying.\nResume instead, and nothing is counted."
+		+ "\nKept: your memories, glitches, journal and everyone you've met. Lost: anything you're carrying." \
+		+ ("\nYou'll start in Arin's room: the well only keeps you after a death." if World.anchor_valid() else "") \
+		+ "\nResume instead, and nothing is counted."
 	_show_only(_confirm)
 	(_confirm.get_child(2) as Button).grab_focus()  # "Stay"
 

@@ -2,7 +2,332 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current prompt implementation: first presentation milestone (2026-10-21)
+## Current: the first ten minutes rebuilt (2026-10-24, afternoon)
+
+**Branch:** `claude/last-save-file-prototype-ljwuq4`. PR #10 is still a
+**draft, not merged**; `main` is `09aeb3b`. The brief is
+`docs/prompts/INTRO_HOOK_REBUILD_PROMPT.md`; everything else (audit, design,
+ledger, measurements, author questions) is in `docs/INTRO_REBUILD.md`, and
+the art direction in `docs/ART_BIBLE.md`.
+
+- **The festival** (a playable prologue) replaces the opening film on a
+  first run:
+  - control at 0.1 s;
+  - first decision at 15.6 s;
+  - 3 YEARS LATER at 36.7 s on the prompt path (2:34 with no input);
+  - a skip reaches the present in 0.8 s.
+- **Missions:** one active mission in every first-hour map, read from the
+  save, so old saves open on the mission they have reached. The
+  festival's payoffs are in place: Mira, Wren, Tobben, the Archive's log,
+  the lantern by the well and at Slot 2, and the message ending.
+- **The cast is redrawn:** `HeroFigure`, with an artist-sheet pipeline and
+  fallback. Frame time is within 10% (worst measured +8.2%, the house;
+  software renderer). Procedural, not final art (Q4).
+- **Story leaks:** three lines where Rue spoke as the girl are rewritten.
+  Memories play in a "REPLAY · P2 · …" frame. The chronology has the
+  festival.
+- **Defects found and fixed (ledger D1–D4):**
+  - the goal ignored the pointer;
+  - a festival line dropped the reunion greeting;
+  - two missing glyphs;
+  - no touch controls in the festival.
+- **CI:** the web check expected the old film, so CI was red on `dfdb29e`
+  and `f4a0cae`. Fixed: it now expects the festival and skips it.
+- **Suite:** 680 of 681 in the final full run. The one failure was the voice manifest, out of date after the message-ending line was added. It was regenerated, and that test file then passed 3/3.
+- **Bots:** the same machine, baseline `0b8f0d9` against this state:
+  - baseline 4/5, failing escape purge 3 (the owner wins);
+  - this state 4/5 twice: escape purge 3 failed once and passed once; escape purge 5 failed once.
+  - purge 5 alone then passed 2/2 on both.
+  - Per route: purge 3 at 0/1 against 1/2, purge 5 at 3/3 against 3/4, every other route passing every run.
+  - That is within the variance both states show; no regression is claimed or ruled out.
+- **Exports:** Linux, Windows and Web all exit 0. The web check passes in headless Chromium: the festival plays and Esc skips it, the run is playable after 1.7 s of game time, and there are no page errors.
+- **Not done:**
+  - no unfamiliar players were available: the protocol and the
+    instrumentation are ready (`PLAYTEST_PLAN.md`, the festival round);
+  - no hand-drawn art;
+  - no hardware GPU number;
+  - nothing published or bought.
+- **Open author decisions:** Q1–Q5 in `INTRO_REBUILD.md` §4.
+
+## Previous: consistency, characters and places (2026-10-24)
+
+**Branch:** `claude/last-save-file-prototype-ljwuq4`. PR #10 is still a
+**draft, not merged**; `main` is `09aeb3b`. The review started from
+`34b6823`. Everything is in `docs/REVIEW_OCT24.md`; the chronology is in
+`docs/STORY_CHRONOLOGY.md`.
+
+- **Fixed, each with a regression that failed first:**
+  - facts were learned before their line was on screen;
+  - off-screen NPCs were recorded as seen;
+  - Tobben's reports stacked;
+  - the pagination limit was ignored;
+  - the message ending's wording was ambiguous;
+  - the tip covered the glitch prompt at the largest text.
+- **Characters:**
+  - Rue's first press of her own, at Arin's save point;
+  - Mira hears that her note is still up;
+  - Wren waves Rue over before she explains;
+  - a kept promise widens Wren's shelter;
+  - the Archivist speaks four lines, with the rest as topics;
+  - Pip stays at Rue's heel and greets her on return.
+- **Places:** what changed stays visible; the Archive has an arrival and
+  alcoves; the cast lean into their first step.
+- **Measured:**
+  - the opening's wall-clock times on four paths;
+  - the Square with Arin active (72 runs, 0 deaths);
+  - CPU frame time on a software renderer (no GPU figure claimed);
+  - the exported Linux build's start and quit.
+- **Suite:** 643 passed, 0 failed.
+- **Bots:** 4 of 5 passed in the first run. The purge-3 bot failed once,
+  passed in 2 of 3 reruns, and shows the same pattern on the baseline.
+- **Exports:** Linux, Windows and Web export; the web title loads with no
+  console errors.
+- **Not done:** no unfamiliar players were available; there is no
+  hardware GPU number; House, Out of Bounds, the Bin and the Edge were not
+  recomposed.
+- **Open author decisions:** listed at the end of `REVIEW_OCT24.md`
+  (opening auto-play waits, Suspend, the demo endpoint, the act card, and
+  the cost of Rue's press).
+
+## Previous: opening, character and world revision (2026-10-22, evening)
+
+**Branch:** `claude/last-save-file-prototype-ljwuq4`.
+- PR #10 is a **draft, not merged**. `main` is at `09aeb3b`.
+- The review started from `59d4d21`.
+
+**Canon: decided.** The author chose `main`'s premise on 2026-10-22 (Rue
+is the game character left running after her player moved away;
+`CANON_DECISIONS.md` §1). The disputed text was reverted to `main`'s. The
+other author decisions (§2–§6) are still open.
+
+**What changed:** the evidence ledger, storyboard, control map and
+character matrix are in `docs/OPENING_REVIEW.md`. In short:
+- input: separate focus and controller holds, only the player's pad
+  counts, no lost press;
+- Archivist semantics;
+- canon;
+- opening staging;
+- Rue's own gesture;
+- tips moved off the scene;
+- a first-session route test;
+- bot replanning and an independent RNG for the static and the cursor
+  (follow-up work).
+
+**Local results:**
+
+| Check | Head | Result |
+|---|---|---|
+| Strict suite | `fffaec8` | **614 passed, 0 failed** (1,448 s) |
+| Suite after the last commit (`afb3bc0`: a warning gate and test messages only) | `afb3bc0` | Affected files 22/22; no new warnings |
+| Ending bots (`--bots --speed=3`) | `fffaec8` | **5/5 exact endings, 0 deaths**; one stall (purge 5) |
+| Web, Windows, Linux exports | `afb3bc0` | Exit 0; no errors or warnings in the export logs |
+| Linux smoke (CI command) | `afb3bc0` | Exit 0 |
+| `web_check.cjs` / `audio_output_check.cjs` | `afb3bc0` | All passed; audible after a gesture; no page errors |
+
+**The purge-5 Edge has a real failure rate (bot, not players).** Across
+repeated purge-5 runs on these heads, a run with one static death in the
+Edge is common: 3 of 6 on the current code, 2 of 4 with the old shared RNG
+on the same code, and 2 of 10 on `f18d219`. Two of 17 current runs were
+purged. Code reading and the A/B both show the static's distribution is
+unchanged, and the difference from the older baseline is within sampling
+noise. Recorded, not tuned: tuning the Edge at purge 5 would be a balance
+change for the author.
+
+**Warnings in the suite log (`fffaec8`):**
+- Expected: broken-JSON save tests (`Parse JSON failed` ×3, `SafeFile`
+  ×3).
+- Fixed in `afb3bc0`: `event archivist.intro_pending isn't in
+  Relationships.EVENTS` (now an internal event) and `not all arguments
+  converted during string formatting` (test messages).
+- Still present: `ObjectDB instances leaked at exit`. The audio part was
+  fixed earlier (quit now waits for the audio thread). A death
+  sequence's pending `SceneTreeTimer` can still remain, which is Godot
+  4.3's handling of a freed node's coroutine.
+
+**CI:**
+- Runs on `2779940`, `9c33a86`, `ebe22e3`, `1db5573`, `22ff90d` and
+  `e135a27` failed one test, `test_cohesion_story.test_the_pointer_is_kept_between_runs`:
+  an older save was told the Archivist's introduction again.
+- Fixed in `fffaec8`. CI on the final head is linked from PR #10.
+
+**Playable build:** https://claude.ai/artifact/3G95pCn7jTAYr2DPmmWu5w,
+version 18, built from `afb3bc0`. It is private to its owner until shared.
+
+**Not verified:**
+- Windows execution
+- real controllers (pad loss was injected, not unplugged)
+- a real GPU
+- human listening
+- unfamiliar players. None were observed; the protocol and the playtest
+  log are ready (`PLAYTEST_PLAN.md`).
+
+## Previous: review milestone after the vertical slice (2026-10-22, morning)
+
+**Branch:** `claude/last-save-file-prototype-ljwuq4`.
+- PR #10 is a **draft, not merged**. `main` is at `09aeb3b`.
+- Runtime code changed after `537df8c`: the vertical slice, then the
+  22 October review fixes. The previous "documents only" note below is
+  history, not the current state.
+
+**Canon:** still **proposed**, and needs the author's decision
+(`docs/CANON_DECISIONS.md`). Nothing on this branch is approved canon.
+
+**Last fully green CI:** run 134 (`33145ea`),
+https://github.com/makedonskivasil3-sketch/The-Last-Save-File/actions/runs/39781409580
+- It covered the strict suite, five ending bots, Web, Windows and Linux
+  exports, browser audio and lifecycle checks, and the Linux smoke test.
+- Runs 132 (`2880d5b`) and 133 (`2785c6e`) were also green.
+- **Run 131 (`2cb42dd`) failed and stays on record.** The purge-3 bot was
+  left in the Edge's corner by the owner's reload, stalled, and was
+  erased. That death seeded the static that caught it twice more in the
+  Square. The harness now replans once per stall with the area's NavGrid
+  (`33145ea`). Stalls are still counted and printed; nothing teleports.
+- CI on the later heads is linked from PR #10.
+
+**This milestone (22 October review), local results:**
+
+| Check | Head | Result |
+|---|---|---|
+| Strict suite (`tests/run.sh`) | `0773f52` | **581 passed, 0 failed** (1,304 s) |
+| Same, one revision earlier | `2785c6e` | 580/581. `test_cursor_drags_the_crates_across_the_road` timed out; it passed alone. The cursor now enters the wider Square from ~300 px further east, so the wait was raised from 22 s to 40 s (`0773f52`). |
+| Ending bots (`--bots --speed=3`) | `0773f52` | **5/5**: escape, message, escape at purge 3, escape at purge 5, Wren. **0 deaths.** The purge-3 run logged **15 stalls** in the Edge (recovered by replanning); the others logged 0 |
+| Web, Windows, Linux exports | `0773f52` | Exit 0; no errors or warnings in the export logs |
+| Linux smoke (CI command) | `0773f52` | Exit 0 |
+| `web_check.cjs` (Chromium) | `0773f52` | All passed, including keyboard movement, save on close and no page errors |
+| `audio_output_check.cjs` | `0773f52` | Audible after a gesture; no clipping; no page errors |
+
+**Warnings in the suite log (`0773f52`), each investigated, none
+suppressed:**
+- `Parse JSON failed` (×3) and `SafeFile … unreadable / recovered` (×3):
+  the save-safety tests feed broken files on purpose.
+- `Sfx: unknown sound 'death_arin'`: a **test bug**.
+  `test_places_survive_a_retry` called `kill("arin")`; Arin's real catch
+  is `kill("overwritten", "arin")`. The test is fixed and the warning has
+  gone.
+- `ObjectDB instances leaked at exit` and `resources still in use`: the
+  known shutdown diagnostic (A14 in `CONTINUITY_MILESTONE.md`). Still
+  unresolved, and not claimed fixed.
+
+**Playable build:** https://claude.ai/artifact/3G95pCn7jTAYr2DPmmWu5w
+(version 17, built from `0773f52`). Private to its owner until shared.
+
+**Not verified:**
+- Windows execution (an export is not a playtest)
+- an iPhone
+- a real GPU or gamepad
+- human listening
+- uncoached players
+
+None of these is claimed.
+
+## Previous: coherence milestone, review branch (2026-10-21)
+
+Branch: `claude/last-save-file-prototype-ljwuq4` (PR #10, draft, **not
+merged**). `main` = `09aeb3b`. The code head is `537df8c`; later commits
+are documents only. The evidence and the remaining work are in
+`docs/COHERENCE_MILESTONE.md`. The contract is
+`docs/NARRATIVE_CONTRACT.md`, **proposed** (revision 2, §0).
+
+**Behaviour changes, each documented and tested:**
+- **Save v3, migrated from v2.** Ordered, counted relationship events.
+  Learned facts. Archive marks by revision.
+- **One selection path for conversations.** Mira and Tobben react to
+  what happened between you. A consequence is said once, when it's read
+  whole; it waits for the next meeting, however many runs later.
+- **The archive** says only what Rue saw, was told, thinks, or doesn't
+  know. It gives each object one status, marks updated entries, and keeps
+  the reader's place.
+- **The map** keeps every place found across runs.
+- **The kept place** under the well is offered earlier (after the well's
+  tune), and Rue chooses it. Answering the well no longer sets it.
+  Quit and crash rules are unchanged.
+- **The well's evidence** is honest: a recording, not live contact.
+- **The opening's last shot** matches canon.
+- **The browser check** measures startup and bounds it by game time.
+
+**Verification on `537df8c`:**
+
+| Check | Result |
+|---|---|
+| Strict full suite (one complete monolithic run) | **547/547**, 1238.3 s, exit 0; 547 unique cases across all 81 test files |
+| Ending bots `--speed=3` | **5/5** exact endings. Two Edge deaths with retries (escape at purge 0 and at purge 3); 14 recovered bot stalls in total |
+| Exports | Web, Windows Desktop, Linux: exit 0. SHA-256 prefixes: exe `a502defdd9b4`, linux `4636f527b6af`, pck `fc6243607296`, wasm `fe5cebc59075` |
+| Linux binary | 300 frames under xvfb, exit 0 (no audio device in the container) |
+| `web_check.cjs` | All passed. Playable after 6.0 s of game time (55.3 s wall on SwiftShader) |
+| `audio_output_check.cjs` | Audible after a gesture, "running", **no visible badge** |
+| Shutdown | ObjectDB warning still printed at the full suite's exit (A14). Owners identified; not filtered |
+
+**Not verified:**
+- Windows execution
+- an iPhone
+- a real GPU, a phone or a gamepad
+- human listening
+- uncoached players
+
+None of these is claimed.
+
+## Previous: continuity milestone, review branch (2026-10-21)
+
+Branch: `claude/last-save-file-prototype-ljwuq4`, not merged. `main` (now
+`09aeb3b`, with PR #9) was merged into it. Where PR #9 and this branch
+built the same thing, PR #9's version was kept: the portrait resources,
+caption paging and the speech-rate setting. The numbers below were
+measured before that merge; see "After merging main" for the re-run.
+It carries two milestones:
+- **Live-art milestone** (`cc76537`…`a38049f`): portrait art route, caption
+  pages, character states, console pacing, timed glitches, speech rate.
+- **Continuity milestone** (`8256c29`…`3fea14f`). Contract:
+  `docs/NARRATIVE_CONTRACT.md` (**proposed**). Evidence:
+  `docs/CONTINUITY_MILESTONE.md`.
+
+**New canon (proposed, needs the author's approval):** Rue is the part of
+the second player that stayed in an interrupted save.
+
+**Behaviour changes, each documented and tested:**
+- Lasting encounters, conversations and relationship events (save v2,
+  migrated from v1). Wren's reunions react to what she saw.
+- A six-section archive.
+- One checkpoint: after a death you wake under the well once the well has
+  your answer. Quit and crash still start in the room; purge rules are
+  unchanged.
+- The well's five-step sequence.
+- A 45 s opening animatic.
+- The visible iPhone sound badge is removed. Audio recovery is kept.
+
+**Verification on this branch:**
+
+| Check | Result |
+|---|---|
+| Strict full suite, live-art head `a38049f` | 496/496 (1165.8 s, exit 0) |
+| Strict full suite, continuity code `dc372e9` | **517/517** (1211.1 s, exit 0) |
+| After `dc372e9` | One code change, the history ordering in `3fea14f`; its suites (continuity, archive) pass 13/13. The full suite was not re-run after it. |
+| Ending bots, `--speed=3` | 5/5 exact endings: escape, message, escape at purge 3, escape at purge 5, Wren. One Edge death with retry; one recovered stall on the Wren route. |
+| Exports at `3fea14f` | Web, Windows Desktop, Linux: exit 0. SHA-256: exe `7539e4e5…`, linux `64807693…`, web pck `fccc6a68…`, wasm `fe5cebc5…` |
+| Linux binary run | 300 frames under xvfb, exit 0. No script errors; only the container's missing audio device is reported. |
+| Headless Chromium `web_check.cjs` | All passed: title, opening, skip, playable, keyboard, save, leave guard, quit counted, no page errors |
+| Headless Chromium `audio_output_check.cjs` | Audible after a gesture; `soundState` "running"; **no visible badge**; no clipping |
+| Captures | `docs/review/continuity/` (opening before and after, the slice, the archive) |
+| **After merging main** (`d527151`, with PR #9) | Strict full suite **523/523** (1215.2 s, exit 0), including PR #9's own tests. Ending bots 5/5: the escape at purge 3 took 4 sessions and 3 deaths this run; the other routes had no deaths. Web, Windows and Linux exports exit 0. Both headless-Chromium checks pass, with no visible badge. |
+| PR CI | Passed on `d527151` (run 109, with downloadable Windows, Linux and Web artifacts). On `1b6f053` (a docs-only change) the export job first failed `web_check`'s "run becomes playable" step: the boot scene was still open at the 90 s limit on the slow software-rendered runner. One re-run passed. It failed the same way again on `d27d106` (also docs-only), so it was treated as real. Cause: the check's 90 s budget, not the game. At 12× CPU throttling, `main` and this branch both reach a playable run at 54.6 s, and the same code has passed and failed on CI. The budget is now 240 s (`tests/web/web_check.cjs`); the check passes locally both throttled and unthrottled. |
+
+**Not verified:**
+- Windows execution
+- a real iPhone
+- real GPU, phone or gamepad
+- human listening
+- uncoached players
+
+The questions for players are in `CONTINUITY_MILESTONE.md`. No player
+results exist, and none are claimed.
+
+**A playable build is available through:**
+- the private web artifact (owner's link);
+- the PR's CI run, which uploads a Windows zip (`.github/workflows/build.yml`)
+  once it completes.
+
+A running CI job is not a finished build.
+
+## Prompt implementation on main, PR #9 (2026-10-21)
 
 Runtime `eec7e576` preserves combined main `1e371b1` and implements the supplied
 prompts' first presentation milestone: live approved portrait resources with

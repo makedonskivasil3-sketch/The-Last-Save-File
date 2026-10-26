@@ -102,7 +102,7 @@ func build() -> void:
 	cursor.position = CURSOR_START
 	cursor.speed = minf(40.0 + OwnerMemory.purge * 3.0, CURSOR_MAX_SPEED)
 	cursor.player = world.player
-	cursor.is_hidden = world.is_player_hidden
+	cursor.is_hidden = world.is_player_hidden.bind("cursor")
 	cursor.selected_player.connect(func() -> void: world.kill("selected", "cursor"))
 	cursor.lure = world.lure_point
 	cursor.z_index = 20
@@ -344,7 +344,7 @@ func _send_arin() -> void:
 	arin.position = Vector2((SOUTH_GAP.x + SOUTH_GAP.y) * 0.5, bounds.end.y - 6)
 	arin.speed = ARIN_SPEED
 	arin.player = world.player
-	arin.is_hidden = world.is_player_hidden
+	arin.is_hidden = world.is_player_hidden.bind("arin")
 	arin.touched_player.connect(func() -> void: world.kill("overwritten", "arin"))
 	arin.sees_player.connect(func(d: float) -> void:
 		world.director.add_awareness(12.0 * d)
@@ -381,6 +381,28 @@ func _draw() -> void:
 			draw_arc(s, 6.0 + 10.0 * k, 0.0, TAU, 20, c, 1.0)
 			draw_line(s + Vector2(-5, -3), s + Vector2(4, 4), c, 1.0)
 			draw_line(s + Vector2(4, -4), s + Vector2(-3, 5), c, 1.0)
+	_draw_fifth_lantern(SLOT_POS + Vector2(-30, 4))
 	# Wireframe outline of where the world should be.
 	draw_rect(r, Color(0.55, 0.95, 1.0, 0.25), false, 1.0)
 	draw_rect(Rect2(SOUTH_GAP.x, r.end.y - 2, SOUTH_GAP.y - SOUTH_GAP.x, 4), Color("3a3128"))
+
+
+## Beside Slot 2, what's left of the festival in it: the fifth lantern,
+## still lit (docs/INTRO_REBUILD.md, mission 7). The same paper lantern as
+## by the well, drawn as the slot's own unloaded geometry, with a warm
+## light inside. Steady under reduced flashing.
+func _draw_fifth_lantern(at: Vector2) -> void:
+	var still := Settings.reduce_flashing or Settings.reduce_motion
+	var glow := 0.3 if still else 0.27 + 0.05 * sin(_t * 2.3)
+	# The only warm light at the Edge: a wide halo, then a tight one.
+	draw_circle(at, 24.0, Color(1.0, 0.72, 0.35, glow * 0.45))
+	draw_circle(at, 12.0, Color(1.0, 0.8, 0.45, glow))
+	var wire := Color(0.55, 0.95, 1.0, 0.55)
+	draw_line(at + Vector2(0, 6), at + Vector2(0, 20), wire, 1.0)
+	var shape := PackedVector2Array([at + Vector2(-4, -6), at + Vector2(4, -6), at + Vector2(5.5, 0),
+		at + Vector2(4, 6), at + Vector2(-4, 6), at + Vector2(-5.5, 0)])
+	draw_colored_polygon(shape, Color("f2b860"))
+	shape.append(shape[0])
+	draw_polyline(shape, wire, 0.8)
+	draw_circle(at, 2.2, Color("fff0c0"))
+	draw_string(UiStyle.system_font(), at + Vector2(-22, 30), "lantern_05 · lit", HORIZONTAL_ALIGNMENT_LEFT, -1, 7, Color(0.55, 0.95, 1.0, 0.35))

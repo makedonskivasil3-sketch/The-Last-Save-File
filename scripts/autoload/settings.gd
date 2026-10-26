@@ -52,6 +52,9 @@ var crt_screen := false
 var screen_effects := 2
 ## Softens flashes: no strobing lights, gentler spikes, slower blinking.
 var reduce_flashing := false
+## No parallax, camera drift, pushes or follow: the picture holds still
+## (the title room, the opening's push, area cameras).
+var reduce_motion := false
 ## Short vibrations on phones (glitches, deaths, the save ring).
 var vibration := true
 ## Bigger HUD and menu text (x1.25), for small screens and tired eyes.
@@ -69,6 +72,9 @@ var using_gamepad := false
 ## Whether the last input was a touch (phones, tablets): prompts then name
 ## the on-screen buttons, and TouchControls shows them.
 var using_touch := false
+## The one controller the player is using (its device id; -1: none yet).
+## One player: only this pad's loss holds the game, and only it rumbles.
+var active_pad := -1
 
 var _path := PATH
 
@@ -89,6 +95,7 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventJoypadButton or (event is InputEventJoypadMotion and absf(event.axis_value) > 0.5):
 		using_gamepad = true
 		using_touch = false
+		active_pad = event.device
 	elif event is InputEventKey:
 		using_gamepad = false
 		using_touch = false
@@ -153,8 +160,18 @@ func buzz(ms: int) -> void:
 		return
 	# Longer buzzes are the heavier ones (a death is 160): rumble harder.
 	var strong := clampf(ms / 200.0, 0.0, 1.0)
-	for pad in Input.get_connected_joypads():
+	for pad in rumble_pads(Input.get_connected_joypads()):
 		Input.start_joy_vibration(pad, clampf(0.3 + strong, 0.0, 1.0), strong, ms / 1000.0)
+
+
+## Which of the connected pads a rumble goes to: the player's, only.
+func rumble_pads(connected: Array) -> Array:
+	return [active_pad] if using_gamepad and active_pad in connected else []
+
+
+## Does this pad dropping out take the player's controller away?
+func is_players_pad(device: int) -> bool:
+	return using_gamepad and (device == active_pad or active_pad == -1)
 
 
 func set_value(key: String, value: Variant) -> void:
@@ -219,6 +236,7 @@ func save() -> void:
 	cfg.set_value("accessibility", "glitch_intensity", glitch_intensity)
 	cfg.set_value("accessibility", "reduce_flashing", reduce_flashing)
 	cfg.set_value("accessibility", "vibration", vibration)
+	cfg.set_value("accessibility", "reduce_motion", reduce_motion)
 	cfg.set_value("video", "crt_screen", crt_screen)
 	cfg.set_value("video", "screen_effects", screen_effects)
 	cfg.set_value("accessibility", "large_text", large_text)
@@ -257,6 +275,7 @@ func _load() -> void:
 	glitch_intensity = clampf(float(cfg.get_value("accessibility", "glitch_intensity", glitch_intensity)), 0.0, 1.0)
 	reduce_flashing = bool(cfg.get_value("accessibility", "reduce_flashing", reduce_flashing))
 	vibration = bool(cfg.get_value("accessibility", "vibration", vibration))
+	reduce_motion = bool(cfg.get_value("accessibility", "reduce_motion", reduce_motion))
 	# The old "crt_curvature" key was on by default for everyone, so it isn't
 	# read as a choice: the clean screen is the new default (docs/VISUAL_DIRECTION.md).
 	crt_screen = bool(cfg.get_value("video", "crt_screen", crt_screen))

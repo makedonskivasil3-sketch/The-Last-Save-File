@@ -85,6 +85,12 @@ static func local_target(world: Node) -> Vector2:
 			for node in area.interactables:
 				if node is Npc and node.npc_id in open and node.is_present():
 					return node.global_position
+			# The ledge under the well has one of the things to notice too
+			# (Story.FIRST_SHAPE teaches the "pip" piece on its last line).
+			if "pip" not in OwnerMemory.truth_pieces:
+				for node in area.interactables:
+					if node is Readable and node.title == Story.FIRST_SHAPE_TITLE:
+						return node.global_position
 		Stage.FILE:
 			for node in area.interactables:
 				if node is Readable and node.title == Story.CHARACTER_FILE_TITLE:

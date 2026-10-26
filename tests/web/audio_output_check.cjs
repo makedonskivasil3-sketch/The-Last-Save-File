@@ -115,7 +115,9 @@ async function waitForGame(page) {
   await page.waitForTimeout(500);
   results.title = await measure(page, 6000);
   // The page's own report (web/sound_unlock.js) after that click.
-  results.sound_state = await page.evaluate(() => { const b = document.getElementById('sound-state'); return b ? b.dataset.state : 'missing'; });
+  // (It reports without anything on screen: no badge may cover the subtitles.)
+  results.sound_state = await page.evaluate(() => document.documentElement.dataset.soundState || 'missing');
+  results.visible_badge = await page.evaluate(() => !!document.getElementById('sound-state'));
   // Start: Enter on Load Slot 1, then E through the opening.
   await page.keyboard.press('Escape');
   await page.waitForTimeout(300);
@@ -144,6 +146,7 @@ async function waitForGame(page) {
   if (results.opening && !audible(results.opening)) failures.push('the opening film is silent');
   if (results.title.clipped_samples > 0 || results.first_room.clipped_samples > 0) failures.push('clipping');
   if (results.sound_state !== 'running') failures.push(`the page says sound is "${results.sound_state}" after a click`);
+  if (results.visible_badge) failures.push('a sound badge is on screen');
   if (errors.length) failures.push(`${errors.length} page error(s)`);
   // The title's music box must be among what reaches the speakers.
   const near = (hz, f) => Math.abs(hz - f) <= 12;
