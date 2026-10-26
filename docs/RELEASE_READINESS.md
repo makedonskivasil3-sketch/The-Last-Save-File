@@ -2,7 +2,48 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current: the first ten minutes rebuilt (2026-10-24, afternoon)
+## Current: verified integration and player-paced festival (2026-10-26)
+
+The author requested integrating the review branch into **main**. Source
+branch `claude/last-save-file-prototype-ljwuq4` at `095ab8c` is integrated
+through `791d9b1`. Added runtime work is `9f1c191`; subsequent verification
+and documentation changes do not alter the runtime. See
+[`IMPLEMENTATION_OCT26.md`](IMPLEMENTATION_OCT26.md) for scope, screenshots,
+commands, evidence and outstanding work.
+
+- **Integrated:** the playable festival, dimensional/shadowed title, wider
+  Square and camera, missions, character revision, persistent relationships,
+  archive and earlier recovery anchor with Wren's checkpoint scene.
+- **Added:** player-paced festival story breaks, a shared ritual, correctly
+  labelled outside speakers, persistent acknowledged transcripts, safe input
+  handoff and virtual-control cancellation. Loading flicker now respects
+  Reduce flashing independently of Reduce motion.
+- **Canon:** Rue remains the game character left running after her player
+  moved away, as decided by the author; the well keeps recordings.
+
+| Check | Result |
+| --- | --- |
+| Strict full suite | **691/691**, 1489.5 s, exit 0; 96 files, 691 unique cases, no script errors |
+| Ending bot routes | **5/5**, 244.8 s; no deaths; three recovered steering stalls on purge-3 escape |
+| Windows / Linux / Web exports | All exit 0; local hashes recorded |
+| Linux exported smoke | 240 headless frames, exit 0 |
+| Rendered tour | **1/1**, 12.9 s; large text, historical message, revelation, room handoff |
+| Browser lifecycle | Title, festival, skip, input, save, leave guard and reopen pass; no page errors |
+| Browser audio graph | Audible after gesture; no visible badge; no page errors |
+| Exported story reader | Real keyboard and Continue click acknowledge separate pages; transcript saved; no session/purge charged |
+
+Browser/rendered results use software rendering, not a hardware GPU profile.
+The existing ObjectDB shutdown warning is still printed, not suppressed.
+**Not verified:** Windows gameplay, iPhone, physical controller, human
+listening or unfamiliar-player comprehension. Final commissioned art,
+recorded acting, other map redesigns and Save and Exit remain unfinished.
+This milestone is not a claim of commercial 1.0 readiness.
+
+The Windows build is packaged locally and main's GitHub Actions workflow
+rebuilds it for artifact download. An exported executable is not evidence
+that a Windows PC has run it; a queued CI run is not a finished download.
+
+## Previous: the first ten minutes rebuilt (2026-10-24, afternoon)
 
 **Branch:** `claude/last-save-file-prototype-ljwuq4`. PR #10 is still a
 **draft, not merged**; `main` is `09aeb3b`. The brief is

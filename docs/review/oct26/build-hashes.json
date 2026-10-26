@@ -1,0 +1,25 @@
+{
+  "code_head": "9f1c191b4a072f97670ef34bfc51bc3232458f90",
+  "builds": {
+    "build/windows/TheLastSaveFile.exe": {
+      "bytes": 87406896,
+      "sha256": "6febe7e33e6f74e43183284c6a2cba977fc9465c332da21204fd62422e0918b1"
+    },
+    "build/linux/TheLastSaveFile.x86_64": {
+      "bytes": 69266704,
+      "sha256": "f8891da17cc4adf0a7cdf88af17d0e70d8b784c409f2d7b7a6d811927342599b"
+    },
+    "build/web/index.pck": {
+      "bytes": 3192128,
+      "sha256": "edc41f29d617d2ab462345dc6c74473b003f1881dc1899b888470824afb5cf6e"
+    },
+    "build/web/index.wasm": {
+      "bytes": 35376909,
+      "sha256": "fe5cebc590758c10bc4469be5a591e28edbde5ec8f458f21baeb83db50d028b9"
+    },
+    "build/dist/TheLastSaveFile-windows.zip": {
+      "bytes": 32719911,
+      "sha256": "43284f825f1d36b44f4ed1eef75fabb23cf5e58c5b52d888acc7bc1a4f712924"
+    }
+  }
+}

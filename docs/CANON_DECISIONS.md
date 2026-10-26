@@ -1,5 +1,11 @@
 # Decisions only the author can make
 
+**Integration update (26 October 2026):** the author requested merging the
+review branch into `main`. The integration/pacing milestone is recorded in
+`IMPLEMENTATION_OCT26.md`; the status below is the historical decision record.
+The decided character-left-running premise is preserved. No new live-contact,
+Save and Exit, production-art or commercial-publishing decision is implied.
+
 **Status (2026-10-22, later the same day):**
 - **§1 is decided.** The author chose `main`'s premise, and the branch now
   carries it (below).

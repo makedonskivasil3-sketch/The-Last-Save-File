@@ -1,0 +1,179 @@
+Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
+
+BOT [s1    1.3s] session 1 starts (purge 0, memories 0)
+BOT [s1    5.3s] memory: the second controller aw  12
+BOT [s1    8.2s] ... room at (487, 141) -> (220, 200)  cutscene false  dialogue false  frozen false
+BOT [s1   18.2s] ... room at (268, 200) -> (220, 200)  cutscene false  dialogue false  frozen false
+BOT [s1   28.3s] ... room at (268, 200) -> (220, 200)  cutscene false  dialogue false  frozen false
+BOT [s1   35.2s] left room unplanned (heading for (74, 181), at (100, 181))
+BOT [s1   35.8s] out of the room              aw  43
+BOT [s1   38.3s] ... square at (316, 196) -> (320, 196)  cutscene false  dialogue false  frozen false
+BOT [s1   50.8s] memory: the well             aw  54
+BOT [s1   50.8s] ... oob at (536, 113) -> (512, 114)  cutscene false  dialogue false  frozen false
+BOT [s1   51.4s] pip found: false             aw  54
+BOT [s1   62.8s] ... oob at (255, 208) -> (255, 90)  cutscene false  dialogue false  frozen false
+BOT [s1   69.2s] out of bounds done           aw  50
+BOT [s1   72.8s] ... square at (586, 258) -> (590, 182)  cutscene false  dialogue false  frozen false
+BOT [s1   77.4s] left square unplanned (heading for (940, 182), at (923, 183))
+BOT [s1   82.9s] ... archive at (451, 170) -> (525, 170)  cutscene false  dialogue false  frozen false
+BOT [s1   87.1s] memory: new_game             aw  58
+BOT [s1   92.9s] ... archive at (205, 175) -> (110, 180)  cutscene false  dialogue false  frozen false
+BOT [s1   94.2s] left archive unplanned (heading for (80, 180), at (93, 180))
+BOT [s1   94.8s] archive done                 aw  58
+BOT [s1  101.8s] the owner reloaded
+BOT [s1  102.9s] ... square at (871, 178) -> (320, 110)  cutscene false  dialogue false  frozen false
+BOT [s1  110.0s] left square unplanned (heading for (320, 20), at (321, 30))
+BOT [s1  110.6s] at the Edge                  aw  75
+BOT [s1  112.9s] ... edge at (118, 263) -> (92, 262)  cutscene false  dialogue false  frozen false
+BOT [s1  116.3s] memory: argument             aw  81
+BOT [s1  122.9s] memory: delete               aw  88
+BOT [s1  122.9s] ... edge at (464, 261) -> (320, 236)  cutscene false  dialogue false  frozen false
+BOT [s1  135.2s] cursor lured (28)            aw  99
+BOT [s1  135.2s] ... edge at (140, 217) -> (250, 236)  cutscene false  dialogue false  frozen false
+BOT [s1  147.9s] SLOT 2: choosing escape      aw 100
+BOT [s1  148.0s] SLOT 2 options ["Write yourself in", "Leave the slot to the owner, with a message"] · escort none · wren deleted false · memories 5 · truth false
+BOT SUMMARY escape purge 0: ending:escape after 1 session(s), 157 s of game time · memories 5/5 · pip true · deaths 0 [] · glitches 5 · reloads 1 · stalls 0
+  PASS  bot_playthrough.test_full_game_escape
+BOT [s1    1.5s] session 1 starts (purge 0, memories 0)
+BOT [s1    1.5s] ... room at (320, 270) -> (320, 220)  cutscene false  dialogue false  frozen false
+BOT [s1    5.6s] memory: the second controller aw  12
+BOT [s1   11.5s] ... room at (228, 199) -> (340, 200)  cutscene false  dialogue false  frozen false
+BOT [s1   21.5s] ... room at (232, 200) -> (340, 200)  cutscene false  dialogue false  frozen false
+BOT [s1   31.6s] ... room at (232, 200) -> (340, 200)  cutscene false  dialogue false  frozen false
+BOT [s1   35.4s] left room unplanned (heading for (74, 181), at (100, 181))
+BOT [s1   36.0s] out of the room              aw  43
+BOT [s1   41.6s] ... oob at (254, 94) -> (255, 208)  cutscene false  dialogue false  frozen false
+BOT [s1   51.0s] memory: the well             aw  54
+BOT [s1   51.6s] pip found: false             aw  54
+BOT [s1   51.7s] ... oob at (513, 114) -> (492, 121)  cutscene false  dialogue true  frozen false
+BOT [s1   63.0s] ... oob at (255, 208) -> (255, 90)  cutscene false  dialogue false  frozen false
+BOT [s1   69.3s] out of bounds done           aw  50
+BOT [s1   73.1s] ... square at (586, 258) -> (590, 182)  cutscene false  dialogue false  frozen false
+BOT [s1   77.6s] left square unplanned (heading for (940, 182), at (923, 183))
+BOT [s1   83.1s] ... archive at (451, 170) -> (525, 170)  cutscene false  dialogue false  frozen false
+BOT [s1   87.4s] memory: new_game             aw  58
+BOT [s1   93.1s] ... archive at (268, 172) -> (110, 180)  cutscene false  dialogue false  frozen false
+BOT [s1   95.1s] left archive unplanned (heading for (80, 180), at (93, 180))
+BOT [s1   95.7s] archive done                 aw  58
+BOT [s1  102.7s] the owner reloaded
+BOT [s1  103.1s] ... square at (561, 165) -> (320, 110)  cutscene false  dialogue false  frozen true
+BOT [s1  110.8s] left square unplanned (heading for (320, 20), at (321, 30))
+BOT [s1  111.4s] at the Edge                  aw  75
+BOT [s1  113.1s] ... edge at (176, 265) -> (92, 262)  cutscene false  dialogue false  frozen false
+BOT [s1  117.1s] memory: argument             aw  81
+BOT [s1  123.2s] ... edge at (464, 262) -> (470, 262)  cutscene true  dialogue false  frozen true
+BOT [s1  123.7s] memory: delete               aw  88
+BOT [s1  133.7s] ... edge at (140, 286) -> (140, 240)  cutscene false  dialogue false  frozen false
+BOT [s1  136.3s] cursor lured (29)            aw  99
+BOT [s1  147.6s] SLOT 2: choosing message     aw 100
+BOT [s1  147.6s] SLOT 2 options ["Write yourself in", "Leave the slot to the owner, with a message"] · escort none · wren deleted false · memories 5 · truth false
+BOT SUMMARY message purge 0: ending:message after 1 session(s), 162 s of game time · memories 5/5 · pip true · deaths 0 [] · glitches 5 · reloads 1 · stalls 0
+  PASS  bot_playthrough.test_full_game_message
+BOT [s1    0.5s] session 1 starts (purge 3, memories 0)
+BOT [s1    0.5s] ... room at (320, 270) -> (320, 220)  cutscene false  dialogue false  frozen false
+BOT [s1    4.6s] memory: the second controller aw  48
+BOT [s1   10.5s] ... room at (219, 170) -> (118, 181)  cutscene false  dialogue false  frozen false
+BOT [s1   11.9s] left room unplanned (heading for (74, 181), at (100, 181))
+BOT [s1   12.5s] out of the room              aw  57
+BOT [s1   20.5s] ... oob at (286, 222) -> (414, 225)  cutscene false  dialogue false  frozen false
+BOT [s1   27.5s] memory: the well             aw  65
+BOT [s1   28.0s] pip found: false             aw  65
+BOT [s1   31.5s] ... oob at (496, 120) -> (433, 121)  cutscene false  dialogue false  frozen false
+BOT [s1   43.5s] ... oob at (242, 79) -> (134, 77)  cutscene false  dialogue false  frozen false
+BOT [s1   45.8s] out of bounds done           aw  65
+BOT [s1   53.5s] ... square at (878, 185) -> (940, 182)  cutscene false  dialogue false  frozen false
+BOT [s1   54.1s] left square unplanned (heading for (940, 182), at (923, 183))
+BOT [s1   63.7s] ... archive at (475, 104) -> (470, 104)  cutscene false  dialogue false  frozen false
+BOT [s1   63.9s] memory: new_game             aw  76
+BOT [s1   70.9s] left archive unplanned (heading for (80, 180), at (93, 180))
+BOT [s1   71.5s] archive done                 aw  75
+BOT [s1   73.7s] ... square at (705, 180) -> (560, 180)  cutscene false  dialogue false  frozen false
+BOT [s1   80.3s] left square unplanned (heading for (320, 20), at (321, 30))
+BOT [s1   80.9s] at the Edge                  aw  89
+BOT [s1   86.6s] memory: argument             aw  95
+BOT [s1   86.6s] ... edge at (95, 262) -> (320, 262)  cutscene false  dialogue false  frozen false
+BOT [s1   93.2s] memory: delete               aw 100
+BOT [s1   96.6s] ... edge at (165, 239) -> (140, 240)  cutscene false  dialogue false  frozen false
+BOT [s1  103.0s] cursor lured (23)            aw 100
+BOT [s1  106.6s] ... edge at (28, 270) -> (250, 236)  cutscene false  dialogue false  frozen false
+BOT [s1  112.2s] the owner reloaded
+BOT [s1  116.6s] ... edge at (80, 266) -> (250, 236)  cutscene false  dialogue false  frozen false
+BOT [s1  120.5s] stall in edge going to (250, 236), at (57, 269)
+BOT [s1  120.5s] replanned round it (25 steps)
+BOT [s1  123.9s] stall in edge going to (140, 272), at (256, 267)
+BOT [s1  124.9s] stall in edge going to (580, 64), at (333, 225)
+BOT [s1  124.9s] replanned round it (40 steps)
+BOT [s1  126.7s] ... edge at (459, 150) -> (460, 144)  cutscene false  dialogue false  frozen false
+BOT [s1  133.1s] SLOT 2: choosing escape      aw 100
+BOT [s1  133.1s] SLOT 2 options ["Write yourself in", "Leave the slot to the owner, with a message"] · escort none · wren deleted false · memories 5 · truth false
+BOT SUMMARY escape purge 3: ending:escape after 1 session(s), 142 s of game time · memories 5/5 · pip true · deaths 0 [] · glitches 7 · reloads 1 · stalls 3
+  PASS  bot_playthrough.test_full_game_escape_purge_3
+BOT [s1    0.5s] session 1 starts (purge 5, memories 0)
+BOT [s1    0.5s] ... room at (320, 270) -> (320, 220)  cutscene false  dialogue false  frozen false
+BOT [s1    4.6s] memory: the second controller aw  53
+BOT [s1   10.5s] ... room at (219, 170) -> (118, 181)  cutscene false  dialogue false  frozen false
+BOT [s1   11.9s] left room unplanned (heading for (74, 181), at (100, 181))
+BOT [s1   12.5s] out of the room              aw  62
+BOT [s1   20.5s] ... oob at (286, 222) -> (414, 225)  cutscene false  dialogue false  frozen false
+BOT [s1   27.5s] memory: the well             aw  71
+BOT [s1   28.1s] pip found: false             aw  71
+BOT [s1   31.5s] ... oob at (496, 120) -> (433, 121)  cutscene false  dialogue false  frozen false
+BOT [s1   43.5s] ... oob at (242, 79) -> (134, 77)  cutscene false  dialogue false  frozen false
+BOT [s1   45.8s] out of bounds done           aw  65
+BOT [s1   53.5s] ... square at (878, 185) -> (940, 182)  cutscene false  dialogue false  frozen false
+BOT [s1   54.1s] left square unplanned (heading for (940, 182), at (923, 183))
+BOT [s1   63.7s] ... archive at (475, 104) -> (470, 104)  cutscene false  dialogue false  frozen false
+BOT [s1   63.9s] memory: new_game             aw  76
+BOT [s1   70.9s] left archive unplanned (heading for (80, 180), at (93, 180))
+BOT [s1   71.5s] archive done                 aw  75
+BOT [s1   73.7s] ... square at (700, 180) -> (560, 180)  cutscene false  dialogue false  frozen false
+BOT [s1   80.3s] left square unplanned (heading for (320, 20), at (321, 30))
+BOT [s1   80.9s] at the Edge                  aw 100
+BOT [s1   86.6s] memory: argument             aw 100
+BOT [s1   86.6s] ... edge at (95, 262) -> (320, 262)  cutscene false  dialogue false  frozen false
+BOT [s1   93.3s] memory: delete               aw 100
+BOT [s1   96.7s] ... edge at (165, 239) -> (140, 240)  cutscene false  dialogue false  frozen false
+BOT [s1  102.5s] cursor lured (21)            aw 100
+BOT [s1  106.4s] the owner reloaded
+BOT [s1  106.7s] ... edge at (129, 252) -> (250, 236)  cutscene false  dialogue false  frozen true
+BOT [s1  116.7s] ... edge at (477, 61) -> (520, 230)  cutscene false  dialogue false  frozen false
+BOT [s1  129.7s] SLOT 2: choosing escape      aw 100
+BOT [s1  129.7s] SLOT 2 options ["Write yourself in", "Leave the slot to the owner, with a message"] · escort none · wren deleted false · memories 5 · truth false
+BOT SUMMARY escape purge 5: ending:escape after 1 session(s), 139 s of game time · memories 5/5 · pip true · deaths 0 [] · glitches 7 · reloads 1 · stalls 0
+  PASS  bot_playthrough.test_full_game_escape_purge_5
+BOT [s1    1.5s] session 1 starts (purge 0, memories 0)
+BOT [s1    1.5s] ... room at (320, 270) -> (320, 220)  cutscene false  dialogue false  frozen false
+BOT [s1    5.5s] memory: the second controller aw  12
+BOT [s1   11.5s] ... room at (228, 199) -> (340, 200)  cutscene false  dialogue false  frozen false
+BOT [s1   21.5s] ... room at (223, 200) -> (340, 200)  cutscene false  dialogue false  frozen false
+BOT [s1   31.5s] ... room at (228, 200) -> (340, 200)  cutscene false  dialogue false  frozen false
+BOT [s1   35.4s] left room unplanned (heading for (74, 181), at (100, 181))
+BOT [s1   36.0s] out of the room              aw  43
+BOT [s1   37.9s] talked to Wren (0): opened true, focus @StaticBody2D@3305:<StaticBody2D#7147077241369>, asked false, choosing false
+BOT [s1   38.7s] talked to Wren (1): opened true, focus @StaticBody2D@3305:<StaticBody2D#7147077241369>, asked false, choosing false
+BOT [s1   39.1s] talked to Wren (2): opened true, focus @StaticBody2D@3305:<StaticBody2D#7147077241369>, asked false, choosing true
+BOT [s1   40.6s] Wren comes along             aw  43
+BOT [s1   41.5s] ... square at (220, 257) -> (320, 272)  cutscene false  dialogue false  frozen false
+BOT [s1   50.3s] left square unplanned (heading for (940, 182), at (923, 183))
+BOT [s1   51.5s] ... archive at (176, 179) -> (320, 172)  cutscene false  dialogue false  frozen false
+BOT [s1   60.0s] memory: new_game             aw  65
+BOT [s1   61.6s] ... archive at (522, 152) -> (525, 170)  cutscene false  dialogue false  frozen false
+BOT [s1   66.5s] left archive unplanned (heading for (80, 180), at (93, 180))
+BOT [s1   67.1s] archive done                 aw  64
+BOT [s1   70.1s] the owner reloaded
+BOT [s1   71.6s] ... square at (849, 180) -> (560, 180)  cutscene false  dialogue false  frozen false
+BOT [s1   79.0s] left square unplanned (heading for (320, 20), at (321, 33))
+BOT [s1   79.6s] at the Edge                  aw  87
+BOT [s1   81.6s] ... edge at (154, 265) -> (92, 262)  cutscene false  dialogue false  frozen false
+BOT [s1   85.3s] memory: argument             aw  93
+BOT [s1   91.6s] ... edge at (464, 262) -> (470, 262)  cutscene true  dialogue false  frozen true
+BOT [s1   91.9s] memory: delete               aw 100
+BOT [s1  103.4s] cursor lured (23)            aw 100
+BOT [s1  103.4s] ... edge at (140, 239) -> (250, 236)  cutscene false  dialogue false  frozen false
+BOT [s1  113.4s] ... edge at (196, 199) -> (250, 236)  cutscene false  dialogue false  frozen false
+BOT [s1  124.2s] SLOT 2: choosing wren        aw 100
+BOT [s1  124.2s] SLOT 2 options ["Write yourself in", "Give Slot 2 to Wren", "Leave the slot to the owner, with a message"] · escort wren (present) · wren deleted false · memories 4 · truth false
+BOT SUMMARY wren purge 0: ending:wren after 1 session(s), 135 s of game time · memories 4/5 · pip false · deaths 0 [] · glitches 6 · reloads 1 · stalls 0
+  PASS  bot_playthrough.test_wren_ending
+
+==== 5 passed, 0 failed (244.8s) ====

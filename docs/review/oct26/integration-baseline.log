@@ -1,0 +1,30 @@
+Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
+
+  PASS  test_first_session.test_played_through
+  PASS  test_first_session.test_skipped
+  PASS  test_first_session.test_left_to_play_itself
+  PASS  test_first_session.test_interrupted_first_meeting_is_not_a_reunion
+  PASS  test_opening.test_first_launch_plays_the_festival_before_any_run
+  PASS  test_prologue.test_the_whole_festival_plays_in_order
+  PASS  test_prologue.test_the_player_has_her_at_once
+  PASS  test_prologue.test_the_gate_opens_only_while_arin_holds_the_plate
+  PASS  test_prologue.test_beside_arin_tobben_doesnt_see_her
+  PASS  test_prologue.test_the_maypole_needs_both_of_them
+  PASS  test_prologue.test_the_spotlight_watches_only_the_gap
+  PASS  test_prologue.test_player_one_leaves_and_she_can_light_the_last_one_alone
+  PASS  test_prologue.test_staying_beside_him_is_a_choice_and_she_lights_it_anyway
+  PASS  test_prologue.test_doing_nothing_still_moves_on
+  PASS  test_prologue.test_skipping_reaches_the_present_fast
+  PASS  test_prologue.test_a_first_run_records_the_festival_and_the_room_skips_the_boot
+  PASS  test_prologue.test_a_replay_changes_nothing_in_the_save
+  PASS  test_prologue.test_profiles_that_already_started_dont_get_it
+  PASS  test_prologue.test_the_festival_fields_survive_a_save_and_old_saves_load
+  PASS  test_prologue.test_looking_away_holds_it
+  PASS  test_prologue.test_reduced_motion_plays_the_years_still
+  PASS  test_prologue.test_every_step_says_what_to_do_without_sound
+  PASS  test_prologue.test_a_phone_can_play_it
+  PASS  test_quests.test_mira_remembers_the_festival_once
+  PASS  test_quests.test_how_the_festival_ended_changes_what_mira_saw
+  PASS  test_quests.test_the_message_ending_remembers_the_festival
+
+==== 26 passed, 0 failed (32.1s) ====

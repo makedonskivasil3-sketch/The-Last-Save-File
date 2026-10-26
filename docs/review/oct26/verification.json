@@ -1,0 +1,42 @@
+{
+  "runtime_commit": "9f1c191b4a072f97670ef34bfc51bc3232458f90",
+  "engine": "Godot 4.3",
+  "full_suite": {
+    "passed": 691,
+    "failed": 0,
+    "seconds": 1489.5,
+    "files": 96,
+    "unique_cases": 691,
+    "exit_code": 0,
+    "shutdown_warning": "ObjectDB instances leaked at exit"
+  },
+  "ending_routes": {
+    "passed": 5,
+    "failed": 0,
+    "seconds": 244.8,
+    "deaths": 0,
+    "recovered_bot_stalls": 3
+  },
+  "exports": {
+    "Windows Desktop": 0,
+    "Linux": 0,
+    "Web": 0
+  },
+  "linux_headless_smoke_exit": 0,
+  "render_tour": {
+    "passed": 1,
+    "failed": 0,
+    "seconds": 12.9
+  },
+  "browser_lifecycle": "passed; system Chromium / SwiftShader",
+  "browser_audio": "passed; no visible badge; not human listening",
+  "browser_story_controls": "passed; keyboard and Continue click; transcript saved before session starts",
+  "not_verified": [
+    "Windows execution",
+    "real GPU performance",
+    "iPhone",
+    "physical controller",
+    "human listening",
+    "uncoached players"
+  ]
+}

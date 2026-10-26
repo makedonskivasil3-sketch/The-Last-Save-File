@@ -1,0 +1,14 @@
+PASS: the title screen loads
+PASS: a first launch plays the festival  {"fps":10,"frames":22,"paused":false,"playable":true,"scene":"prologue"}
+PASS: holding Esc skips into the run
+TIMING {"marks":{"title":4.9,"opening":7.1,"game_scene":16.1,"playable":19.5},"fps":{"title":1,"opening":10,"game_scene":15,"playable":4},"holds":{"cutscene":3},"slowest_ms":142,"presses":0,"game_ms":1726,"wall_ms":2973,"clock_ratio":1.7}
+PASS: the run becomes playable (Rue under the player's control)  {"area":"room","awake":true,"fps":4,"frames":156,"game_ms":1726,"hold":"","paused":false,"playable":true,"reading":false,"scene":"game","sfx_busy":false,"slowest_ms":142,"wall_ms":2973,"x":320,"y":270}
+PASS: startup takes under 30 s of game time, whatever the runner's speed  {"game_ms":1726,"wall_ms":2973}
+PASS: Rue moves on real keyboard input  {"before":{"area":"room","awake":true,"fps":4,"frames":160,"game_ms":2274,"hold":"","paused":false,"playable":true,"reading":false,"scene":"game","sfx_busy":false,"slowest_ms":141,"wall_ms":3935,"x":320,"y":270},"after":{"area":"room","awake":true,"fps":4,"frames":164,"game_ms":2799,"hold":"","paused":false,"playable":true,"reading":false,"scene":"game","sfx_busy":false,"slowest_ms":140,"wall_ms":4926,"x":356,"y":270},"moved":36}
+PASS: the open run is saved (session 1, last_exit active, no quits)  {"sessions":1,"deaths":0,"quits":0,"purge":0,"last_exit":"active"}
+PASS: the leave guard is armed mid-run (window.__tlsfRunning)
+PASS: closing the tab mid-run asks first (beforeunload)
+PASS: a tab closed mid-run counts as a quit (quits 1, purge 1, last_exit crash)  {"sessions":1,"deaths":0,"quits":1,"purge":1,"last_exit":"crash"}
+PASS: no page or runtime errors  []
+screenshots: /tmp/last-save-oct26/browser-shots
+ALL WEB CHECKS PASSED

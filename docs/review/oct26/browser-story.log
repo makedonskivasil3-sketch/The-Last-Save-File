@@ -1,0 +1,4 @@
+PASS: keyboard acknowledges exactly one story page
+PASS: real Continue click acknowledges the second page
+PASS: reading and journal writes cost no session or purge
+PASS: no browser page errors

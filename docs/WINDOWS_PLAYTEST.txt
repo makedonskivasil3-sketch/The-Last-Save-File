@@ -8,6 +8,10 @@ is unsigned.
 
 Move: WASD / arrows. Interact: E / Space. Hold interact: glitch. Pause: Esc.
 
+First launch starts the playable Lantern Festival. Its story breaks wait
+for Continue (E / Space or the button); release between pages. Hold Esc to
+skip the prologue. Acknowledged festival lines remain in Journal > Documents.
+
 Story text waits for you: the first press shows the whole line, the next
 press moves on. Hold E for a second to skip a whole scene (it still counts).
 Pause > History shows everything said this run. Settings > Story text has
@@ -20,6 +24,10 @@ The owner remembers deaths and quits. Use title Settings > Reset owner memory
 for a fresh start. Spoken narration (off by default) uses an English system
 voice: that is operating-system text-to-speech, not recorded voice acting.
 No recorded voices are included in this build yet.
+
+The optional place kept under the well is a death-recovery checkpoint.
+It does not restore an entire world snapshot or resume a closed session.
+Quitting during a run still raises purge, as the pause menu warns.
 
 If Windows blocks launch, record the exact message. Do not disable antivirus
 or run as administrator to work around an unexplained failure.
