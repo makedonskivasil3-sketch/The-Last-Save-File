@@ -166,6 +166,10 @@ var _diag: Label
 var _owner_line: Label
 var _years: Label
 var _chip: Label
+var story: PrologueStory
+var _touch: TouchControls
+var _story_seen := {}
+var _story_release := false
 
 
 static func wanted() -> bool:
@@ -183,6 +187,10 @@ static func calm() -> bool:
 	return Settings.reduce_motion
 
 
+static func load_flicker() -> bool:
+	return not calm() and not Settings.reduce_flashing and Settings.glitch_intensity > 0.01
+
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	Sfx.reset_scene_state()
@@ -191,7 +199,14 @@ func _ready() -> void:
 	_build_hud()
 	# Phones and tablets: the same on-screen stick and E button as the game
 	# (hidden until the screen is touched).
-	add_child(TouchControls.new())
+	_touch = TouchControls.new()
+	add_child(_touch)
+	var story_layer := CanvasLayer.new()
+	story_layer.layer = 20
+	add_child(story_layer)
+	story = PrologueStory.new()
+	story_layer.add_child(story)
+	story.page_read.connect(_remember_story)
 	rue.facing = Vector2.UP
 	arin.facing = Vector2.LEFT
 	wren.idle_style = "hop"
@@ -292,6 +307,8 @@ func _update_hold() -> void:
 	if held():
 		_skip_t = 0.0
 		_armed = false
+		if story:
+			story.rearm()
 	if _music:
 		_music.stream_paused = held()
 
@@ -316,6 +333,8 @@ func _input(event: InputEvent) -> void:
 		return
 	if held() or _done:
 		return
+	if story.visible or _story_release:
+		return  # the panel takes taps; none become walking destinations
 	# A tap or click: walk there; on a lantern, light it once there.
 	var pointer := (event is InputEventScreenTouch) or (event is InputEventMouseButton \
 		and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT and event.device != InputEvent.DEVICE_ID_EMULATION)
@@ -353,6 +372,21 @@ func _process(delta: float) -> void:
 				get_tree().change_scene_to_file.call_deferred(TITLE_SCENE if replay else GAME_SCENE)
 		return
 	if held():
+		return
+	# Reading owns the simulation clock, including assistance and decisions.
+	# Skip is still available, but never commits an unread page.
+	if story.visible:
+		_update_skip(delta)
+		if story.visible:
+			story.tick(delta, autoplay)
+		if not story.visible:
+			_story_release = true
+		return
+	if _story_release:
+		if not Input.is_action_pressed("interact") and not Input.is_action_pressed("confirm") \
+				and not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+			_story_release = false
+			_touch.buttons_enabled = true
 		return
 	# A beat of slow motion when something big happens.
 	if _hitstop > 0.0:
@@ -490,7 +524,7 @@ func _update_skip(delta: float) -> void:
 	if not _armed:
 		_armed = not holding
 		holding = false
-	if holding and beat < Beat.LOAD:
+	if holding and (beat < Beat.LOAD or story.visible):
 		_skip_t += delta
 		if _skip_t >= SKIP_HOLD:
 			acted["skipped"] = elapsed
@@ -732,6 +766,16 @@ func _light(i: int) -> void:
 			_to_beat(Beat.L4)
 		3:
 			_to_beat(Beat.P1_LEFT)
+	if i == 0:
+		_story_break("first_light", [
+			["PLAYER 2 · beside the television", "You always let me do the first one."],
+			["PLAYER 1 · beside the television", "You always check whether I will."],
+		])
+	elif i == 2:
+		_story_break("ritual", [
+			["PLAYER 2 · beside the television", "Two taps. Then together. Same as last year."],
+			["MIRA · from her window", "There. Now it looks like someone lives here."],
+		])
 
 
 func _to_beat(b: Beat) -> void:
@@ -758,6 +802,7 @@ func _to_beat(b: Beat) -> void:
 		Beat.TIMELAPSE:
 			acted["timelapse"] = elapsed
 		Beat.LOAD:
+			story.cancel()
 			acted["load"] = elapsed
 			_arin_present = true
 			_rue_free = true
@@ -842,6 +887,12 @@ func _update_beat(delta: float) -> void:
 			if beat_t > 4.5:
 				_to_beat(Beat.TIMELAPSE)
 		Beat.TIMELAPSE:
+			if beat_t >= 8.0 and not _story_seen.has("message"):
+				_story_break("message", [
+					["MONTHS AFTER THE MOVE · a message outside the game", "PLAYER 2: still have my save?"],
+					["PLAYER 1 · an unsent reply", "yes i still have your sa"],
+				])
+				return
 			# Nobody lit the fifth: she does, with nobody holding her.
 			if not lit[4] and beat_t > 11.0:
 				_rue_free = false
@@ -861,6 +912,12 @@ func _update_beat(delta: float) -> void:
 			if beat_t >= TIMELAPSE:
 				_to_beat(Beat.LOAD)
 		Beat.LOAD:
+			if beat_t > 3.0 and not acted.has("skipped") and not _story_seen.has("owner"):
+				_story_break("owner", [
+					["THE OWNER · three years later", "> ...who's in my save?"],
+					["RUE · nobody is holding her controller", "(i can still move.)"],
+				])
+				return
 			if beat_t > 1.8:
 				arin.facing = _facing_to(rue_pos - arin_pos)
 			if beat_t > 2.6 and not acted.has("seen"):
@@ -879,6 +936,24 @@ func _decide() -> void:
 	if not replay:
 		OwnerMemory.festival_choice = choice
 	PlaytestLog.mark("prologue: the first decision", choice)
+
+
+func _story_break(id: String, pages: Array) -> void:
+	if _story_seen.has(id):
+		return
+	_story_seen[id] = true
+	_walk_to = Vector2.INF
+	_act_queued = false
+	_hold_down = false
+	_touch.cancel_touches()
+	_touch.buttons_enabled = false
+	story.open(id, pages)
+	PlaytestLog.mark("prologue: story", id)
+
+
+func _remember_story(id: String, speaker: String, text: String) -> void:
+	if not replay:
+		OwnerMemory.record_read("festival:" + id, "note", "Festival · " + id.replace("_", " "), "festival", [speaker + ": " + text])
 
 
 ## When the decision was made (beat time): Player 2 leaves a moment later.
@@ -1509,7 +1584,7 @@ func _draw_load() -> void:
 		var y := 74.0 + float((i * 53) % 270)
 		if x < 120 or x > 520 or y > 320:
 			draw_rect(Rect2(x, y, 22, 14), Color(0, 0, 0, 0.85 * gone))
-	if not calm() and fmod(beat_t, 0.7) < 0.08:
+	if load_flicker() and fmod(beat_t, 0.7) < 0.08:
 		draw_rect(Rect2(0, randf() * 360.0, 640, 2), Color(SYSTEM_COLOR, 0.4))
 
 

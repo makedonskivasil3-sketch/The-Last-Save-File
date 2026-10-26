@@ -89,10 +89,22 @@ func test_left_to_play_itself() -> void:
 	var title := await _fresh_title()
 	title._start()
 	var p := await _the_festival()
-	# No input at all: each step shows what to do, then plays itself, and
-	# nobody decides at the break. (Time is advanced, not skipped.)
-	_step_until(p, func() -> bool: return p._done, 900.0)
-	check(p._done and p.acted.has("lit_4"), "nobody pressed: it played itself through (%s)" % [str(p.acted)])
+	# Movement assistance may demonstrate a step, but it must not erase a
+	# story page. A passive player stops at the first readable conversation.
+	_step_until(p, func() -> bool: return p.story.visible, 300.0)
+	check(p.story.visible, "the first conversation waits for its reader")
+	var at := p.beat_t
+	_step_until(p, func() -> bool: return p._done, 60.0)
+	check_eq(p.beat_t, at, "waiting to read never advances the festival")
+	# Read each story page deliberately; otherwise let assistance demonstrate
+	# the movement. Doing nothing at the decision still means neither option.
+	for i in 18000:
+		if p._done:
+			break
+		p._process(0.05)
+		if p.story.visible:
+			p.story.advance()
+	check(p._done and p.acted.has("lit_4"), "assisted movement plus acknowledged pages completes (%s)" % [str(p.acted)])
 	check_eq(p.choice, "idle", "the decision isn't made for them: doing nothing is recorded as such")
 	check(p.acted.has("lit_by_herself"), "and Rue lights the last one herself, with nobody holding her")
 	var w := await _into_the_room()

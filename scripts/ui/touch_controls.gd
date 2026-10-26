@@ -139,6 +139,15 @@ func _process(_delta: float) -> void:
 
 
 func _exit_tree() -> void:
+	cancel_touches()
+
+
+## A story panel takes over without leaving a virtual stick or E held.
+func cancel_touches() -> void:
+	for finger in _held.keys():
+		_touch_up(finger)
+	_stick_finger = -1
+	_stick = Vector2.ZERO
 	_set_move(Vector2.ZERO)
 
 

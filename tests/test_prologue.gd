@@ -38,6 +38,10 @@ func _until(p: Prologue, cond: Callable, seconds: float) -> bool:
 		if p._done:
 			return cond.call()
 		p._process(0.05)
+		# This helper drives a route; it also plays the reader. Manual holds
+		# and release ownership are covered separately in test_prologue_story.
+		if p.story.visible:
+			p.story.advance()
 	return cond.call()
 
 
