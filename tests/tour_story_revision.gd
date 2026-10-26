@@ -20,17 +20,13 @@ func test_title_and_player_paced_festival() -> void:
 	await frames(5)
 	check(p.story.get_rect().end.y <= 360.0, "large-text reader stays in the viewport")
 	await shot("festival_large_text_reader")
-	p.story.cancel()
-	p._story_release = false
-	p._to_beat(Prologue.Beat.TIMELAPSE)
-	p.beat_t = 8.0
+	# Advance the actual route's game clock, not just a beat variable: camera,
+	# departure toasts and emotes must belong to the same moment as the text.
+	_step_to_story(p, "message")
 	await frames(5)
 	check(p.story.visible and p.story.story_id == "message", "the historical message waits for reading")
 	await shot("festival_historical_message")
-	p.story.cancel()
-	p._story_release = false
-	p._to_beat(Prologue.Beat.LOAD)
-	p.beat_t = 3.1
+	_step_to_story(p, "owner")
 	await frames(5)
 	check(p.story.visible and p.story.story_id == "owner", "the present-day reveal waits for reading")
 	await shot("festival_owner_revelation")
@@ -41,3 +37,13 @@ func test_title_and_player_paced_festival() -> void:
 	await wait_until(func() -> bool: return scene() is World, 15.0, "playable room")
 	await wait_until(func() -> bool: return scene()._awake, 10.0, "Rue awake")
 	await shot("festival_handoff_room")
+
+
+func _step_to_story(p: Prologue, id: String) -> void:
+	p.autoplay = true
+	for i in 8000:
+		if p._done or (p.story.visible and p.story.story_id == id):
+			break
+		p._process(0.05)
+	p.autoplay = false
+	check(p.story.visible and p.story.story_id == id, "the route reaches " + id)
