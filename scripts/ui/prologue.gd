@@ -144,6 +144,16 @@ var _music: AudioStreamPlayer
 ## The camera: close on the two of them at the festival, the whole square
 ## while the years pass, close again when the owner loads.
 var zoom := 1.7
+## Motion (all of it off under reduced motion, calm()): camera trauma that
+## decays (shake), a zoom punch, a brief slow-down on big moments
+## (hit-stop), and ambient motes (pollen by day, fireflies round lit
+## lanterns, dust from her feet, sparks). Its own RNG: never the game's.
+var _shake := 0.0
+var _punch := 0.0
+var _hitstop := 0.0
+var _motes: Array = []  # [pos, vel, life, max_life, kind]
+var _fx_rng := RandomNumberGenerator.new()
+var _dust_t := 0.0
 var _cam := Vector2(320, 200)
 var _hud: CanvasLayer
 var _banner: Label
@@ -202,6 +212,24 @@ func _build_hud() -> void:
 	_hud = CanvasLayer.new()
 	_hud.layer = 15
 	add_child(_hud)
+	# A soft backing strip under the title, so the world moving behind it
+	# never runs through the words.
+	var strip := TextureRect.new()
+	var grad := Gradient.new()
+	grad.set_color(0, Color(0.05, 0.03, 0.08, 0.55))
+	grad.set_color(1, Color(0.05, 0.03, 0.08, 0.0))
+	var tex := GradientTexture2D.new()
+	tex.gradient = grad
+	tex.fill_from = Vector2(0, 0)
+	tex.fill_to = Vector2(0, 1)
+	tex.width = 4
+	tex.height = 64
+	strip.texture = tex
+	strip.stretch_mode = TextureRect.STRETCH_SCALE
+	strip.position = Vector2.ZERO
+	strip.size = Vector2(640, 70)
+	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hud.add_child(strip)
 	_banner = _label(Vector2(0, 8), 13, Color(1.0, 0.92, 0.75))
 	_banner.text = "THE LANTERN FESTIVAL"
 	_quest = _label(Vector2(0, 26), 9, Color(0.95, 0.9, 0.82))
@@ -326,6 +354,10 @@ func _process(delta: float) -> void:
 		return
 	if held():
 		return
+	# A beat of slow motion when something big happens.
+	if _hitstop > 0.0:
+		_hitstop = maxf(0.0, _hitstop - delta)
+		delta *= 0.3
 	elapsed += delta
 	beat_t += delta
 	_idle += delta
@@ -351,7 +383,73 @@ func _process(delta: float) -> void:
 		f.update(delta, Vector2.ZERO)
 	_update_hud(delta)
 	_update_camera(delta)
+	_update_motes(delta)
 	queue_redraw()
+
+
+## Camera trauma, a zoom punch and a moment of slow motion (none when calm).
+func _kick(trauma: float, punch: float, stop := 0.0) -> void:
+	if calm():
+		return
+	_shake = minf(1.0, _shake + trauma)
+	_punch = maxf(_punch, punch)
+	_hitstop = maxf(_hitstop, stop)
+
+
+func _update_motes(delta: float) -> void:
+	for m in _motes:
+		m[0] += m[1] * delta
+		m[2] -= delta
+		match m[4]:
+			"firefly":
+				m[1] = m[1].rotated(_fx_rng.randf_range(-2.0, 2.0) * delta) * 0.995
+			"spark":
+				m[1].y += 60.0 * delta
+			"dust":
+				m[1] *= 0.92
+	_motes = _motes.filter(func(m: Array) -> bool: return m[2] > 0.0)
+	if calm() or beat >= Beat.LOAD:
+		return
+	var view := Vector2(640, 360) / zoom
+	var tl := -position / zoom
+	# Pollen drifting across the afternoon; fireflies round lit lanterns.
+	if _motes.size() < 90:
+		if _sky_t() < 1.4 and _fx_rng.randf() < delta * 14.0:
+			var at := tl + Vector2(_fx_rng.randf() * view.x, _fx_rng.randf() * view.y)
+			_motes.append([at, Vector2(_fx_rng.randf_range(4, 12), _fx_rng.randf_range(-4, 2)), 4.0, 4.0, "pollen"])
+		for i in 5:
+			if lit[i] and _fx_rng.randf() < delta * 2.5:
+				var at := LANTERNS[i] + Vector2(_fx_rng.randf_range(-14, 14), _fx_rng.randf_range(-30, 0))
+				_motes.append([at, Vector2.from_angle(_fx_rng.randf() * TAU) * 8.0, 3.0, 3.0, "firefly"])
+	# Dust from her feet when she runs, or stops hard.
+	_dust_t -= delta
+	if _rue_vel.length() > 60.0 and _dust_t <= 0.0:
+		_dust_t = 0.12
+		_motes.append([rue_pos + Vector2(_fx_rng.randf_range(-3, 3), 0), Vector2(-_rue_vel.x * 0.15, -8), 0.5, 0.5, "dust"])
+
+
+func _spark_burst(at: Vector2, n: int) -> void:
+	if calm():
+		return
+	for i in n:
+		var dir := Vector2.from_angle(-PI * 0.5 + _fx_rng.randf_range(-1.2, 1.2))
+		_motes.append([at, dir * _fx_rng.randf_range(40, 110), 1.1, 1.1, "spark"])
+
+
+func _draw_motes() -> void:
+	for m in _motes:
+		var a: float = clampf(m[2] / m[3], 0.0, 1.0)
+		match m[4]:
+			"pollen":
+				draw_circle(m[0], 0.7, Color(1.0, 0.97, 0.8, 0.55 * sin(a * PI)))
+			"firefly":
+				var blink := 0.5 + 0.5 * sin(elapsed * 7.0 + m[0].x)
+				draw_circle(m[0], 3.0, Color(1.0, 0.85, 0.4, 0.12 * a * blink))
+				draw_circle(m[0], 0.9, Color(1.0, 0.95, 0.6, 0.9 * a * blink))
+			"spark":
+				draw_line(m[0], m[0] - m[1] * 0.03, Color(1.0, 0.8, 0.4, a), 1.0)
+			"dust":
+				draw_circle(m[0], 2.5 * (1.5 - a), Color(0.85, 0.78, 0.6, 0.35 * a))
 
 
 func _update_camera(delta: float) -> void:
@@ -368,12 +466,23 @@ func _update_camera(delta: float) -> void:
 			want_zoom = 1.45
 			focus = (rue_pos + arin_pos) * 0.5
 	var k := 1.0 - exp(-(2.5 if not calm() else 6.0) * delta)
+	# Alive, not locked: look ahead where she's running, breathe a little.
+	if not calm():
+		focus += _rue_vel.limit_length(90.0) * 0.35
+		focus += Vector2(sin(elapsed * 0.37) * 4.0, cos(elapsed * 0.29) * 2.5)
+	_punch = move_toward(_punch, 0.0, delta * 0.6)
 	zoom = lerpf(zoom, want_zoom, k)
 	_cam = _cam.lerp(focus + Vector2(0, -16), k)
-	var view := Vector2(640, 360) / zoom
+	var z := zoom + _punch
+	var view := Vector2(640, 360) / z
 	var tl := (_cam - view * 0.5).clamp(Vector2.ZERO, Vector2(640, 360) - view)
-	scale = Vector2(zoom, zoom)
-	position = -tl * zoom
+	# Trauma shake: squared, so small knocks stay small.
+	_shake = move_toward(_shake, 0.0, delta * 1.6)
+	if _shake > 0.0:
+		var amt := _shake * _shake * 5.0
+		tl += Vector2(_fx_rng.randf_range(-amt, amt), _fx_rng.randf_range(-amt, amt)) / z
+	scale = Vector2(z, z)
+	position = -tl * z
 
 
 func _update_skip(delta: float) -> void:
@@ -604,6 +713,8 @@ func _light(i: int) -> void:
 	lit[i] = true
 	acted["lit_%d" % (i + 1)] = elapsed
 	_bursts.append([LANTERNS[i], 0.0])
+	_kick(0.45 if i < 4 else 0.7, 0.12 if i < 4 else 0.2, 0.18)
+	_spark_burst(LANTERNS[i] + Vector2(0, -18), 18 if i < 4 else 30)
 	Sfx.play("fragment", -8.0, 1.3 + i * 0.08)
 	rue.play_habit()  # her celebration: two light taps, then the press
 	for h in Opening.HABIT:
@@ -641,6 +752,7 @@ func _to_beat(b: Beat) -> void:
 		Beat.P2_LEFT:
 			acted["p2_left"] = elapsed
 			_show_toast("PLAYER 2 HAS LEFT THE SESSION", P2_COLOR, 3.0)
+			_kick(0.5, 0.0, 0.0)
 			Sfx.play("power_off", -14.0, 1.2)
 			PlaytestLog.mark("prologue: player 2 left", choice)
 		Beat.TIMELAPSE:
@@ -708,6 +820,7 @@ func _update_beat(delta: float) -> void:
 				_arin_present = false
 				arin.waving = false
 				_show_toast("PLAYER 1 HAS LEFT THE SESSION", P1_COLOR, 3.2)
+				_kick(0.6, 0.15, 0.35)
 				Sfx.play("power_off", -10.0)
 				PlaytestLog.mark("prologue: player 1 left", "%.1f s" % elapsed)
 			if acted.has("p1_left") and choice == "":
@@ -954,7 +1067,9 @@ func _draw() -> void:
 				var t := i / 19.0
 				var at := Vector2(16, y0).lerp(Vector2(624, y0), t) + Vector2(0, sin(t * PI) * 18.0)
 				var flag: Color = [Color("d8463a"), Color("f0c050"), Color("5aa0c8"), Color("8ab05a")][i % 4]
-				draw_colored_polygon(PackedVector2Array([at, at + Vector2(6, 0), at + Vector2(3, 6)]), Color(flag, bunting))
+				# Each flag flutters in the breeze (still when calm).
+				var tip := Vector2(3, 6) if calm() else Vector2(3.0 + sin(elapsed * 4.0 + i * 1.3 + row) * 1.6, 6.0 - absf(sin(elapsed * 3.1 + i)) * 1.2)
+				draw_colored_polygon(PackedVector2Array([at, at + Vector2(6, 0), at + tip]), Color(flag, bunting))
 	_draw_board(k)
 	_draw_fence()
 	# Things in depth order.
@@ -1014,6 +1129,7 @@ func _draw() -> void:
 		_draw_timelapse()
 	if beat >= Beat.LOAD:
 		_draw_load()
+	_draw_motes()
 	_draw_vignette()
 	# The skip chip (touch).
 
@@ -1036,6 +1152,15 @@ func _draw_sky(k: float) -> void:
 	for i in bands:
 		var t := float(i) / bands
 		draw_rect(Rect2(0, t * 80.0, 640, 80.0 / bands + 1), top.lerp(low, t))
+	# Clouds drifting over the rooftops, lit by the low sun.
+	var cloud := Color(1.0, 0.96, 0.9, 0.55).lerp(Color(1.0, 0.7, 0.55, 0.5), clampf(k, 0.0, 1.0))
+	if k > 1.6:
+		cloud = Color(0.5, 0.55, 0.7, 0.25)
+	for c in 4:
+		var cx := fmod(c * 190.0 + elapsed * (5.0 + c * 1.5), 820.0) - 90.0
+		var cy := 14.0 + (c % 2) * 14.0
+		for b in 4:
+			draw_circle(Vector2(cx + b * 12.0, cy + absf(b - 1.5) * 2.0), 9.0 - absf(b - 1.5) * 2.0, cloud)
 	if k < 1.9:
 		var sun := Vector2(520, 30 + k * 40.0)
 		for r in [60.0, 36.0, 20.0]:
@@ -1087,8 +1212,9 @@ func _draw_ground(k: float) -> void:
 	for i in 220:
 		var at := Vector2(float((i * 131) % 640), 84.0 + float((i * 71) % 270))
 		var shade := grass.lightened(0.08) if i % 3 else grass.darkened(0.12)
-		draw_line(at, at + Vector2(-1, -3), shade, 0.8)
-		draw_line(at, at + Vector2(1.2, -2.6), shade, 0.8)
+		var sway := 0.0 if calm() else sin(elapsed * 1.6 + at.x * 0.045 + at.y * 0.02) * 0.9
+		draw_line(at, at + Vector2(-1 + sway, -3), shade, 0.8)
+		draw_line(at, at + Vector2(1.2 + sway, -2.6), shade, 0.8)
 		if then and i % 17 == 0:
 			draw_circle(at + Vector2(0, -3), 1.1, [Color("f8e8a0"), Color("f0a0b0"), Color("ffffff")][i % 3])
 	var cobble := Color("a8987e").lerp(Color("4a4a58"), clampf(k - 1.0, 0.0, 1.0)) if then else Color("464a56")
@@ -1212,7 +1338,18 @@ func _draw_lantern(i: int) -> void:
 		var flick := 1.0 if calm() else 0.9 + 0.1 * sin(elapsed * 9.0 + i)
 		for r in [40.0, 26.0, 14.0]:
 			draw_circle(body.get_center(), r * (1.3 if big else 1.0), Color(1.0, 0.75, 0.35, 0.07 * g * flick))
+	if g > 0.0:
+		# A warm pool of light on the ground under it.
+		var pool := 0.12 * g * (1.0 if calm() else 0.85 + 0.15 * sin(elapsed * 7.0 + i * 2.0))
+		draw_set_transform(at + Vector2(0, 8), 0.0, Vector2(1.0, 0.45))
+		draw_circle(Vector2.ZERO, 34.0 * (1.3 if big else 1.0), Color(1.0, 0.78, 0.4, pool))
+		draw_set_transform(Vector2.ZERO)
 	draw_rect(body, Color("a8443a").lerp(Color("ffd890"), g))
+	if g > 0.5 and not calm():
+		# The flame inside, dancing.
+		var c := body.get_center()
+		var fl := sin(elapsed * 13.0 + i) * 0.8
+		draw_colored_polygon(PackedVector2Array([c + Vector2(-2.2, 3), c + Vector2(fl, -4.5), c + Vector2(2.2, 3)]), Color(1.0, 0.95, 0.7, 0.9 * g))
 	draw_rect(body, Color("2a1a14"), false, 1.0)
 	draw_line(body.position + Vector2(body.size.x * 0.5, 0), body.position + Vector2(body.size.x * 0.5, body.size.y), Color("2a1a14", 0.5), 0.6)
 	# Which one is next: a soft ring, until it's lit.
@@ -1246,7 +1383,8 @@ func _draw_figure(f: HeroFigure, at: Vector2, who: String) -> void:
 		var behind := rue_pos.y < arin_pos.y if who == "rue" else arin_pos.y <= rue_pos.y
 		if behind:
 			top.y -= 11.0
-	_draw_emote(who, top + Vector2(0, -10))
+	# Arin cheers beside his head, so it never lands on her tag when they stand together.
+	_draw_emote(who, top + (Vector2(30, 6) if who == "arin" else Vector2(0, -14 - 8.0 * Settings.text_scale())))
 	# Who drives whom: a tag with a shape as well as a colour.
 	var font := UiStyle.system_font()
 	var text := ""
