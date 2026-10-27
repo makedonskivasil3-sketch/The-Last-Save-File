@@ -28,7 +28,7 @@ Each task states:
 
 | # | Task | Problem → scope | Deps | Accept when | Verify |
 |---|---|---|---|---|---|
-| E1 | One exceptional relationship | **Author**: Mira or Wren. Write and build a full arc (5–7 beats) using the festival memory | Author | Each beat is reachable, remembered across sessions, and changes an ending line | tests + script doc |
+| E1 | One exceptional relationship | **Author chose Wren (2026-10-27).** First pass built: [`WREN_ARC.md`](WREN_ARC.md) | — | Each beat reachable, kept across sessions, changes the ending text | `test_wren_arc.gd`; playtest pending |
 | E2 | Fair Owner | Audit every Owner move: telegraph ≥ 0.6 s, readable counter, never during cards | — | A matrix row per move with a passing test | suite |
 | E3 | Earned endings | Each ending's preconditions shown in the journal as leads, never as a checklist | E1 | Every ending has a lead visible before its choice | tests |
 | E4 | Console backlog [UI-1] | Long lines are cut; no history. Add scroll-back | — | The last 50 lines are readable; wrapping, not ellipsis | test |

@@ -147,6 +147,8 @@ var door: Door
 var _wren_line := 0
 ## Wren just asked to come along: the choice comes when the dialogue closes.
 var _wren_asked := false
+## Wren just offered her chalk (Relationships._wren_own): ask when her box closes.
+var _wren_offer := false
 ## As with Mira: after a "not now", two more of her own lines before she asks again.
 var _wren_ask_at := 2
 var _tobben_line := 0
@@ -395,6 +397,10 @@ func on_dialogue_closed(who: Node) -> void:
 	if who == tobben:
 		await _offer_guestbook()
 		return
+	if who == wren and _wren_offer:
+		_wren_offer = false
+		await _offer_chalk()
+		return
 	if who != wren or not _wren_asked:
 		return
 	_wren_asked = false
@@ -414,6 +420,39 @@ func on_dialogue_closed(who: Node) -> void:
 	else:
 		_wren_ask_at = _wren_line + 2  # she'll ask again, after two more of her own lines
 		world.hud.show_dialogue("WREN", wren.name_color, Story.WREN_DECLINED, "npc.wren", CharacterArt.for_npc(wren), World.expressions_for(wren, Story.WREN_DECLINED))
+
+
+## Wren's chalk: so somebody remembers her (docs/production/WREN_ARC.md).
+func _offer_chalk() -> void:
+	if not world.hud.dialogue_finished or world.ending != "" or wren == null:
+		return
+	world.player.frozen = true
+	var pick := await world.choose_safely(Relationships.WREN_CHALK_ASK, Relationships.WREN_CHALK_CHOICES)
+	if not is_inside_tree() or pick < 0 or wren == null:
+		return
+	world.player.frozen = false
+	if pick == 0:
+		Relationships.add("wren.chalk")
+		world.hud.show_dialogue("WREN", wren.name_color, Relationships.WREN_CHALK_GIVEN, "npc.wren", CharacterArt.for_npc(wren), World.expressions_for(wren, Relationships.WREN_CHALK_GIVEN))
+		world.hud.say("KEPT: WREN'S CHALK  ·  the well's rim", "system")
+	else:
+		Relationships.chalk_declined_session = OwnerMemory.sessions
+		world.hud.show_dialogue("WREN", wren.name_color, Relationships.WREN_CHALK_LATER, "npc.wren", CharacterArt.for_npc(wren), World.expressions_for(wren, Relationships.WREN_CHALK_LATER))
+
+
+## Rue has Wren's chalk and hasn't written her name yet.
+static func can_write_wren() -> bool:
+	return Relationships.has("wren.chalk") and not Relationships.has("wren.named")
+
+
+## Writing WREN on the rim, beside Wren's mark of Rue. Kept for good.
+func _write_wren() -> void:
+	Relationships.add("wren.named")
+	OwnerMemory.record_read("square:WREN, IN CHALK", "note", "THE WELL'S RIM", display_name,
+		["Chalk on the rim: two dots for eyes, an arrow up, and four letters in your hand: WREN."])
+	Sfx.play("seal", -8.0, 1.6)
+	world.hud.say(Relationships.RUE_WRITES_WREN, "self")
+	queue_redraw()
 
 
 var wren_beckoned := false
@@ -616,6 +655,7 @@ func _wren_lines() -> Variant:
 	if not told.is_empty():
 		if told.get("ask", false):
 			_wren_asked = true
+		_wren_offer = told.get("offer", "") == "chalk"
 		return told
 	if OwnerMemory.wren_saved:
 		# Saved for good, but she still wants to come: there's a slot out there.
@@ -777,6 +817,11 @@ func _draw() -> void:
 		draw_line(at + Vector2(-6, 6), at + Vector2(-6, -1), c, 0.7)  # an arrow, up
 		draw_line(at + Vector2(-6, -1), at + Vector2(-8, 1.5), c, 0.7)
 		draw_line(at + Vector2(-6, -1), at + Vector2(-4, 1.5), c, 0.7)
+	# Her name beside it, in Rue's hand (once Rue has written it).
+	if Relationships.has("wren.named"):
+		var c := Color(0.95, 0.95, 0.9, 0.85)
+		var font := ThemeDB.fallback_font
+		draw_string(font, Vector2(WELL.end.x - 30, WELL.position.y + 6), "WREN", HORIZONTAL_ALIGNMENT_LEFT, -1, 6, c)
 	# Only what moves is drawn every frame: the unloaded road north, static
 	# where the path should continue. The rest is the backdrop (_paint).
 	if not world.flags.get("pointer", false):
@@ -958,7 +1003,7 @@ func _well_process(delta: float) -> void:
 		for beat in WellSequence.CLICK_PATTERN:
 			get_tree().create_timer(beat[0]).timeout.connect(_well_click.bind(beat[1], beat[2]))
 		world.hud.say(WellSequence.CLICK_LINE, "self")
-	rim.prompt = WellSequence.ANSWER_PROMPT if WellSequence.done("compared") and not WellSequence.done("answered") else "listen"
+	rim.prompt = "write WREN in chalk" if can_write_wren() else WellSequence.ANSWER_PROMPT if WellSequence.done("compared") and not WellSequence.done("answered") else "listen"
 	if _answer_t < 0.0:
 		return
 	# Answering: stay at the rim, in the open, while Rue speaks into it
@@ -990,6 +1035,9 @@ func _well_click(volume_db: float, pitch: float) -> void:
 
 func _on_listen(_rim: WellRim) -> void:
 	if world.ending != "" or world.in_cutscene() or world.hud.is_dialogue_open():
+		return
+	if can_write_wren():
+		_write_wren()
 		return
 	if not WellSequence.done("tune"):
 		world.hud.say(WellSequence.LISTEN_NOTHING, "self")

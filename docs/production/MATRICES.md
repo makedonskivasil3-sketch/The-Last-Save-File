@@ -52,8 +52,8 @@ Threat and shelter columns are a summary; per-map detail is in `MAP_DESIGN.md`, 
 |---|---|---|---|---|---|
 | Rue | the game character, left running | the festival (P2 · RUE) | — | gestures, preference | — |
 | Arin | Slot 1's mute avatar | the festival | — (mute) | nameplate: "SLOT 1 · ARIN" at the load | his presence after the load |
-| Mira | lives in Arin's room and has never left it | the room (she watched the festival from the window) | the festival, by choice (lit / tried / stayed / idle / skipped) | festival memory, request | **the candidate for the deep arc** (author decision: Mira or Wren) |
-| Wren | a child in the square who hides you and wants to see the Edge | the square | the lantern still lit | escort, checkpoint scene, rescue | the candidate for the deep arc |
+| Mira | lives in Arin's room and has never left it | the room (she watched the festival from the window) | the festival, by choice (lit / tried / stayed / idle / skipped) | festival memory, request | — |
+| Wren | a child in the square who hides you and wants to see the Edge | the square | the lantern still lit | escort, checkpoint scene, rescue | **the deep arc** (author, 2026-10-27): she watched the festival; nothing of her is in the well; her chalk; WREN on the rim (`WREN_ARC.md`) |
 | Tobben | the shopkeeper; must report you ("It's in my script") | the festival (the look) | nobody came back to set them off | observable change | — |
 | Archivist | keeper of the records | the Archive | every session | pointer, topics | — |
 | Pip | Rue's fox, never saved back in, so never deleted | Out of Bounds | — | reunion | — |

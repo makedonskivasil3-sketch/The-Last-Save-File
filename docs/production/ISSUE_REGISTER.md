@@ -61,6 +61,7 @@
 | UI-3 | S2 | No control remapping. | No `InputMap` editing in `scripts/` | open |
 | UI-4 | S3 | No formal flash-threshold measurement (WCAG 2.3.1). | `RELEASE_READINESS.md` accessibility | open |
 | UI-5 | S4 | CharacterSheet's "solid" option tints the figure rather than drawing a silhouette. | `scripts/world/character_sheet.gd:161` | open; check every caller's intent |
+| UI-7 | S3 | At the well, two interaction prompts overlap: "[E] climb" over "into the well". | Capture at `6fb8e23` and on this branch (`tour_wren_chalk`, scratch) | open (pre-existing) |
 | UI-6 | S3 | Act numbering doesn't match the guided route (the Archive is ACT IV, Out of Bounds ACT III). | `RELEASE_READINESS.md` | **author decision** |
 
 ## Evidence the release needs (not defects; nobody may fabricate it)

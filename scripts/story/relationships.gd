@@ -42,6 +42,10 @@ const EVENTS := {
 	"wren.ribbon_returned": "You gave Wren's ribbon back.",
 	"wren.heard_well": "Wren hears the well too.",
 	"wren.marked_well": "Wren chalked a mark on the well's rim, so you'd find your way up.",
+	"wren.watched": "Wren watched the festival from the square. Nobody ever picked her to play.",
+	"wren.unplayed": "Wren asked if the well keeps a recording of her. It can't: nobody ever played her.",
+	"wren.chalk": "Wren gave you her chalk, so somebody would remember her.",
+	"wren.named": "You wrote WREN on the well's rim, beside her mark of you.",
 	"mira.met": "Met Mira in Arin's room.",
 	"mira.asked": "Mira told you she has never left the room, and asked you to take her out.",
 	"mira.walked": "You walked Mira out of her room.",
@@ -99,6 +103,40 @@ const WREN_MARKED_SAW := [
 	"It's so you'd find your way up. ...You came up.",
 	"Don't tell Arin it's chalk. He thinks chalk is how you start a fire.",
 ]
+## Wren's own story (docs/production/WREN_ARC.md): she watched the festival
+## from the square; she learns the well keeps only people who were played,
+## and she never was; she gives Rue her chalk; Rue writes her name.
+const WREN_WATCHED_OPEN := "I was there. At the festival. By the crates, like always."
+const WREN_WATCHED := {
+	"tried": "His player stopped, and you kept holding the last lantern on your own. It doesn't light for one. Then everybody went home, and it lit anyway.",
+	"stayed": "His player stopped, and you stood next to him. He didn't move. I thought you were both broken. Then everybody went home, and the last lantern lit anyway.",
+	"lit": "His player stopped, and you ran to the last lantern on your own. Everybody saw. Nobody clapped.",
+	"": "Everybody went home before the last lantern. Then it lit anyway. I saw it.",
+}
+const WREN_WATCHED_CLOSE := "Nobody ever picked me for anything. I just watched. I'm good at watching."
+const WREN_UNPLAYED := [
+	"The well hums like the people who used to play. That's what I said.",
+	"So that's them down there. Their voices. Whoever got played.",
+	"...Is there one of me?",
+	"There isn't. Is there. Nobody ever played me.",
+]
+const WREN_CHALK_ASK := "Will you remember me? You can have my chalk."
+const WREN_CHALK_CHOICES := ["I'll remember you.", "Not now."]
+const WREN_CHALK_GIVEN := [
+	"Write it where the owner doesn't look. The well's rim. That's where I put you.",
+	"W-R-E-N. Four letters. Don't do the R backwards.",
+]
+const WREN_CHALK_LATER := ["That's okay. I'll keep it. It's only chalk."]
+const WREN_CHALK_AGAIN := "I've still got the chalk. If you want it."
+const WREN_SAW_NAME := [
+	"You wrote it. On the rim, next to you.",
+	"...Now there's one of me. Even if it's only chalk.",
+]
+## Said to herself as Rue writes it.
+const RUE_WRITES_WREN := "(W-R-E-N. the R the right way round.)"
+## The session she was last told "not now" (she offers again next session).
+static var chalk_declined_session := -1
+
 ## Set by the square when this visit is that return (arrived by the well,
 ## woke under it this run): her next conversation is the scene.
 static var wren_at_well := false
@@ -128,6 +166,20 @@ const TOBBEN_FESTIVAL := [
 static func mira_festival() -> Dictionary:
 	var how: String = MIRA_FESTIVAL_HOW.get(OwnerMemory.festival_choice, MIRA_FESTIVAL_HOW[""])
 	return _once("mira.festival", [MIRA_FESTIVAL_OPEN, how, MIRA_FESTIVAL_LAST], ["mira.festival"])
+
+
+## Wren's own story, one step a conversation, in order (see WREN_WATCHED).
+static func _wren_own() -> Dictionary:
+	if has("wren.named"):
+		return _once("wren.saw_name", WREN_SAW_NAME)
+	if has("wren.lantern") and not has("wren.watched"):
+		var how: String = WREN_WATCHED.get(OwnerMemory.festival_choice, WREN_WATCHED[""])
+		return {"lines": [WREN_WATCHED_OPEN, how, WREN_WATCHED_CLOSE], "id": "wren.watched", "commit": ["wren.watched"]}
+	if has("wren.watched") and has("wren.heard_well") and not has("wren.unplayed"):
+		return {"lines": WREN_UNPLAYED, "id": "wren.unplayed", "commit": ["wren.unplayed"], "offer": "chalk"}
+	if has("wren.unplayed") and not has("wren.chalk") and chalk_declined_session != OwnerMemory.sessions:
+		return {"lines": [WREN_CHALK_AGAIN], "id": "", "commit": [], "offer": "chalk"}
+	return {}
 
 
 static func wren_festival() -> Dictionary:
@@ -181,7 +233,9 @@ const TOBBEN_GREETING_BOOK := "Two names, still. I check every morning. Welcome 
 ## Every line said from here (the voice manifest lists them).
 static func wren_lines() -> Array:
 	return WREN_ESCORT + WREN_AFTER_DEATH + [WREN_SAW_STATIC] + WREN_AFTER_RESTORE + WREN_AFTER_RESTORE_BROKEN \
-		+ [WREN_PROMISE_OPEN, WREN_PROMISE_BROKEN] + WREN_WELL + [WREN_GREETING] + WREN_MARKED + WREN_MARKED_SAW + WREN_FESTIVAL
+		+ [WREN_PROMISE_OPEN, WREN_PROMISE_BROKEN] + WREN_WELL + [WREN_GREETING] + WREN_MARKED + WREN_MARKED_SAW + WREN_FESTIVAL \
+		+ [WREN_WATCHED_OPEN, WREN_WATCHED_CLOSE] + WREN_WATCHED.values() + WREN_UNPLAYED + [WREN_CHALK_ASK] + WREN_CHALK_GIVEN \
+		+ WREN_CHALK_LATER + [WREN_CHALK_AGAIN] + WREN_SAW_NAME
 
 
 static func mira_lines() -> Array:
@@ -314,6 +368,10 @@ static func wren(_talk: int, ask_ready: bool, escorting: bool) -> Dictionary:
 	var truth := Story.truth_line("wren")
 	if truth != "":
 		return {"lines": [truth], "id": "", "commit": []}
+	# Her own story waits while her ask is due and unanswered: the Edge first.
+	var own := _wren_own() if not (ask_ready and not has("wren.promised")) else {}
+	if not own.is_empty():
+		return own
 	if OwnerMemory.has_well_event("words") and not has("wren.heard_well"):
 		return {"lines": WREN_WELL, "id": "wren.well", "commit": ["wren.heard_well"]}
 	return {}
