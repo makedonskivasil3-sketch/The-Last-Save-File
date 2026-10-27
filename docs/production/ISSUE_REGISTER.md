@@ -48,6 +48,7 @@
 | PL-3 | S3 | `ObjectDB instances leaked at exit` is printed at shutdown. | `suite_m0.log` tail, `6fb8e23` | open (not suppressed) |
 | PL-4 | S3 | Bot ending routes vary between runs: steering stalls on the purge-3 escape, seen on both baseline and branch. | Earlier bot A/B this session; `RELEASE_READINESS` "three recovered steering stalls" | open |
 | PL-5 | S3 | The benchmark scenario "square, hunted" was judged not to measure what it names in this session's run. | `tests/tour_benchmark.gd` run, this session | open; re-establish before relying on it |
+| PL-8 | S3 | `test_owner_moves.test_cursor_drags_the_crates_across_the_road` failed once in four runs (the full suite on the `08ab155` tree). It passed 3/3 on its own and in a full re-run (693/693). The test waits up to 40 s of real time while Rue stands in the open during HUNT. Likely cause, not yet confirmed: she is caught before the drag lands. | `suite_m2.log` vs `suite_m2r.log`, this session | open (not hidden; root cause to establish) |
 | PL-6 | S4 | The strict suite takes ~25 min of wall clock (1527 s), which slows every verification cycle. | `suite_m0.log` | open |
 | PL-7 | S4 | `docs/` holds 55 MB, including 185 images and videos, in the repository. | `du -sh docs` | open |
 

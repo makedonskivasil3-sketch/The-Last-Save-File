@@ -2,7 +2,30 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current: verified integration and player-paced festival (2026-10-26)
+## Current: the festival's break rebuilt (2026-10-27, branch `claude/last-save-file-prototype-ljwuq4`)
+
+**Code revision:** `08ab155`, based on `main` @ `6fb8e23`. Not merged.
+
+**What changed in the opening** ([`production/OPENING_BEATS.md`](production/OPENING_BEATS.md)):
+- **The fifth lantern needs both players.** Halfway through the shared hold, Player 1's half stops. Arin freezes, the music cuts, and about 2.5 s pass before the notification.
+- **Trying alone stalls.**
+- **The player lights it.** After Player 2 leaves, the player lights it with no controller held: the first impossible action.
+
+**Planning documents:** the M1 evidence pages are in `docs/production/`.
+
+| Check (on the `08ab155` tree) | Result |
+| --- | --- |
+| Baseline `6fb8e23` strict suite | 691/691, 1527.3 s |
+| Strict full suite | 692/693 on the first run (one intermittent failure, PL-8), then **693/693**, 1536.7 s; no script errors |
+| Windows / Linux / Web exports | All exit 0. SHA-256 prefixes: exe `8ad2a49c4c7b8749`, x86_64 `9cb01522d6f79ca0`, pck `f798744185896d0e` |
+| Linux exported smoke | 240 headless frames, exit 0 |
+| Browser lifecycle (`web_check.cjs`) | All pass; no page errors |
+| Exported story reader | All pass |
+| Festival frames and timing tours | Pass. Prompt path: Player 1 stops 17.9 s, she lights the fifth 27.7 s, in the room 88.4 s (wall, llvmpipe) |
+
+**Not verified:** Windows execution, hardware GPU, a physical controller, and unfamiliar players. This is not a release claim. The ObjectDB exit warning is still printed.
+
+## Previous: verified integration and player-paced festival (2026-10-26)
 
 The author requested integrating the review branch into **main**. Source
 branch `claude/last-save-file-prototype-ljwuq4` at `095ab8c` is integrated
