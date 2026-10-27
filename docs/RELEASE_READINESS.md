@@ -12,6 +12,8 @@
 
 **Verification:** strict full suite **705/705**, 1540.2 s, no script errors, on a tree identical to `483ac8f`.
 
+**Playable build:** https://claude.ai/artifact/3G95pCn7jTAYr2DPmmWu5w, version 19, built from code identical to `7ad88a8`. It is private to its owner until shared. Packaged build: `web_check.cjs` all pass, story reader all pass, no page errors (headless Chromium).
+
 **Not verified:** nobody has played either change.
 
 ## Previous: the festival's break rebuilt (2026-10-27, branch `claude/last-save-file-prototype-ljwuq4`)
