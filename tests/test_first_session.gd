@@ -65,7 +65,8 @@ func test_played_through() -> void:
 	p.autoplay = true  # the player acts as soon as asked (the steps are covered in test_prologue)
 	_step_until(p, func() -> bool: return p._done, 400.0)
 	check(p.acted.has("lit_4") and p.acted.has("p1_left") and p.acted.has("p2_left") and p.acted.has("load"), "every beat, in order (%s)" % [str(p.acted)])
-	check_eq(memory().festival_choice, "lit", "her first decision is kept")
+	check_eq(memory().festival_choice, "tried", "her first decision is kept")
+	check(p.acted.has("lit_by_herself"), "and the impossible action was played")
 	var w := await _into_the_room()
 	await _first_minute(w)
 

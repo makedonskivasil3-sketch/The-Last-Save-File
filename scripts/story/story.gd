@@ -733,11 +733,14 @@ const FIRST_SHAPE := [
 static func festival_log(choice: String) -> Array:
 	var fifth := "LANTERN 5 · lit by P2 · never saved off." if choice == "lit" \
 		else "LANTERN 5 · lit by SLOT 2 · controller: none · never saved off."
-	return [
+	var lines := [
 		"LAST SHARED SESSION: THE LANTERN FESTIVAL. Players: 2. Then 1. Then 0.",
 		"LANTERNS 1–4 · lit by P1 + P2.",
-		fifth,
 	]
+	if choice != "lit":
+		lines.append("LANTERN 5 · held by P1 + P2 · P1 input lost at 50%.")
+	lines.append(fifth)
+	return lines
 
 
 const CHARACTER_FILE_TITLE := "CHARACTER FILE"

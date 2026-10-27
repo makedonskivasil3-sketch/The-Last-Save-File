@@ -1099,7 +1099,9 @@ func load_memory() -> void:
 				archive_seen[str(k)] = marks[k]
 	festival_seen = data.get("festival_seen", false) == true
 	festival_choice = _str(data, "festival_choice", "")
-	if festival_choice not in ["", "lit", "stayed", "idle", "skipped"]:
+	# "lit": saves from the earlier festival, where she lit the fifth with
+	# her player still there. "tried": the current festival (it needs two).
+	if festival_choice not in ["", "lit", "tried", "stayed", "idle", "skipped"]:
 		festival_choice = ""
 	anchor.clear()
 	var an: Variant = data.get("anchor", {})

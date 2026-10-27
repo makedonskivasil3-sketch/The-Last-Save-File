@@ -110,6 +110,7 @@ static var wren_at_well := false
 const MIRA_FESTIVAL_OPEN := "Wait. I know you. From the festival. I watched it from the window, the whole afternoon."
 const MIRA_FESTIVAL_HOW := {
 	"lit": "His player stopped. You didn't. You ran to the well on your own.",
+	"tried": "His player stopped. You kept holding the lantern on your own. It needs two, that one. Everybody knows that.",
 	"stayed": "His player stopped, and you stayed beside him. Then it got dark, and you went to the well anyway.",
 	"": "Everybody went home. You didn't. You went to the well on your own.",
 }

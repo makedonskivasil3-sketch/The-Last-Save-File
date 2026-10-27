@@ -3,7 +3,8 @@ extends "res://tests/test_case.gd"
 ## room), on four paths. Injected input, real time, one machine: the game's
 ## own waits, not people's (docs/INTRO_REBUILD.md §6). The prompt path's
 ## player acts as soon as asked (autoplay, after a first real keypress); the
-## hesitant one waits for each step's words first; no input touches nothing;
+## hesitant one waits for each step's words first; "reads only" only
+## acknowledges story pages;
 ## skip holds Esc at once. Run with --tour --filter=tour_timing_intro.
 
 var _t0 := 0
@@ -32,8 +33,8 @@ func _begin() -> Prologue:
 func _report(path: String, room_s: float, decided: String) -> void:
 	var a := _acted
 	var f := func(k: String) -> String: return ("%.1f s" % (float(a[k]) + 0.0)) if a.has(k) else "—"
-	print("TIMING  %-9s  control %s · co-op success (1st lantern) %s · P1 leaves %s · decision %s (%s) · P2 leaves %s · 3 YEARS LATER %s · present %s · in the room %.1f s (wall)" % [
-		path, f.call("control"), f.call("lit_1"), f.call("p1_left"), f.call("choice"), decided, f.call("p2_left"),
+	print("TIMING  %-9s  control %s · co-op success (1st lantern) %s · P1 stops %s · P1 leaves %s · decision %s (%s) · P2 leaves %s · she lights the fifth %s · 3 YEARS LATER %s · present %s · in the room %.1f s (wall)" % [
+		path, f.call("control"), f.call("lit_1"), f.call("p1_stopped"), f.call("p1_left"), f.call("choice"), decided, f.call("p2_left"), f.call("lit_5"),
 		("%.1f s" % (float(a.timelapse) + 15.0)) if a.has("timelapse") else "—", f.call("load"), room_s])
 
 
@@ -41,7 +42,8 @@ func _to_room(path: String) -> void:
 	await wait_until(func() -> bool: return scene() is World, 400.0, "the room")
 	var room := _s()
 	var w := scene()
-	await wait_until(func() -> bool: return w._awake, 10.0, "awake")
+	if w is World:
+		await wait_until(func() -> bool: return w._awake, 10.0, "awake")
 	_report(path, room, _choice)
 
 
@@ -70,9 +72,19 @@ func test_hesitant() -> void:
 	await _to_room("hesitant")
 
 
+## Since story breaks wait for their reader (9f1c191), "no input" means
+## no input but acknowledging each page: nothing else is pressed.
 func test_no_input() -> void:
 	var p := await _begin()
-	await _to_room("no input")
+	var reading := func() -> void:
+		while is_instance_valid(p) and scene() == p and not p._done:
+			if p.story.visible and p.story.has_method("advance"):
+				await wait(1.0)
+				if is_instance_valid(p) and p.story.visible:
+					p.story.advance()
+			await frames(1)
+	reading.call()
+	await _to_room("reads only")
 
 
 func test_skip() -> void:
