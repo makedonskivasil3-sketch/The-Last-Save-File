@@ -110,8 +110,8 @@ var shed_said: Array[String] = []
 ## This session only: who was frayed this run (their "afterwards" line, not
 ## the "last time" one).
 var session_frayed: Array[String] = []
-## How the previous session ended: "none", "death", "quit", "crash", "win"
-## (or "escape" from old saves). While a session is running it is stored as
+## How the previous session ended: "none", "death", "quit", "crash", "win",
+## "suspend" (Save and Exit at a safe moment) (or "escape" from old saves). While a session is running it is stored as
 ## "active", so if the process is killed the owner finds out next launch.
 var last_exit: String = "none"
 
@@ -139,6 +139,12 @@ var well_events: Array[String] = []
 ## The checkpoint (layer C): {"id", "version", "session"} or empty. The place
 ## is looked up from the id (World.ANCHORS), never stored as coordinates.
 var anchor: Dictionary = {}
+## Save and Exit (docs/SAVE_AND_EXIT_PROPOSAL.md, option b, chosen
+## 2026-10-27): where a suspended run stopped, {"area", "x", "y", "version",
+## "session", "flags"}, or empty. Written only at a safe moment
+## (World.suspend_blocker), read by the next launch, and gone the moment
+## play starts (arm_session): one resume, never a reload.
+var suspend: Dictionary = {}
 ## The festival (Prologue): whether this profile played it, and the first
 ## decision there: "lit" (the fifth lantern, alone), "stayed" (beside Arin),
 ## "idle", or "skipped". Saves from before it have neither.
@@ -276,6 +282,7 @@ func arm_session() -> void:
 		return
 	_armed = true
 	last_exit = "active"
+	suspend.clear()  # resumed (or not): a suspend is spent once play starts
 	save_memory()
 	_leave_guard(true)
 
@@ -529,6 +536,21 @@ func record_death(area: String, at: Vector2, reason := "") -> bool:
 	return forgiven
 
 
+## Save and Exit: the run stops here at a safe moment and resumes here once.
+## No purge, no quit counted, and the owner learns nothing from it (no
+## route memory, no helpers found out). Returns false if no run is open.
+func record_suspend(area_id: String, at: Vector2, version: int, run_flags: Dictionary) -> bool:
+	if _session_closed or not _armed:
+		return false
+	var kept := {}
+	for k in run_flags:
+		if k is String and run_flags[k] is bool:
+			kept[k] = run_flags[k]
+	suspend = {"area": area_id, "x": at.x, "y": at.y, "version": version, "session": sessions, "flags": kept}
+	_close_session("suspend")
+	return true
+
+
 func record_quit() -> void:
 	if _session_closed:
 		return
@@ -744,6 +766,7 @@ func clear_state() -> void:
 	festival_seen = false
 	festival_choice = ""
 	anchor.clear()
+	suspend.clear()
 	archive_seen.clear()
 	session_helpers.clear()
 	session_seam = -1
@@ -828,6 +851,7 @@ func save_memory() -> void:
 		"places": places,
 		"well_events": well_events,
 		"anchor": anchor,
+		"suspend": suspend,
 		"festival_seen": festival_seen,
 		"festival_choice": festival_choice,
 		"archive_seen": archive_seen,
@@ -1103,6 +1127,15 @@ func load_memory() -> void:
 	# her player still there. "tried": the current festival (it needs two).
 	if festival_choice not in ["", "lit", "tried", "stayed", "idle", "skipped"]:
 		festival_choice = ""
+	suspend.clear()
+	var su: Variant = data.get("suspend", {})
+	if su is Dictionary and su.get("area") is String and _num(su, "x") and _num(su, "y") \
+			and _whole(su, "version") and _whole(su, "session") and su.get("flags", {}) is Dictionary:
+		var kept := {}
+		for k in su.get("flags", {}):
+			if k is String and su.flags[k] is bool:
+				kept[k] = su.flags[k]
+		suspend = {"area": su.area, "x": float(su.x), "y": float(su.y), "version": int(su.version), "session": int(su.session), "flags": kept}
 	anchor.clear()
 	var an: Variant = data.get("anchor", {})
 	if an is Dictionary and an.get("id") is String and _whole(an, "version"):

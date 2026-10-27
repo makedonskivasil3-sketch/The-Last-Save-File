@@ -294,6 +294,8 @@ func _slot_status() -> String:
 			parts.append("the owner is waiting.")
 		"crash":
 			parts.append("this save was not closed properly.")
+		"suspend":
+			parts.append("suspended. she's waiting where you left her.")
 		"escape", "win":
 			var after: Array = _after()
 			parts.append(after[3] if not after.is_empty() else "something was written to slot 2.")

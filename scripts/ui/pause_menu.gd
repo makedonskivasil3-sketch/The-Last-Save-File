@@ -1,9 +1,12 @@
 class_name PauseMenu
 extends CanvasLayer
 ## Esc / Start during play. Quitting from here still counts against you,
-## so the menu says so before letting you go.
+## so the menu says so before letting you go. Save and exit doesn't: it is
+## only offered at a safe moment (World.suspend_blocker).
 
 signal quit_requested(to_title: bool)
+## Save and exit was picked (World._suspend): back to the title.
+signal suspend_requested
 ## A debug tool was picked (World.debug()).
 signal debug_requested(action: String)
 
@@ -41,6 +44,10 @@ var _resume: Button
 var _pending_to_title := false
 var _confirm_label: Label
 var _goal_label: Label
+var _suspend: Button
+var _suspend_note: Label
+## Set by World before open(): why Save and exit can't happen now, or "".
+var suspend_blocked := ""
 ## Shown under the title: what to do next (set by World before open()).
 var goal := ""
 ## For the map (set by World before open(), World.map_state()): current
@@ -82,8 +89,11 @@ func _ready() -> void:
 	UiStyle.button(actions, "How to Play", _show_help)
 	if PlaytestLog.enabled():
 		UiStyle.button(actions, "Playtest log", _show_playtest_log)
+	_suspend = UiStyle.button(actions, "Save and exit", _do_suspend)
 	UiStyle.button(actions, "Quit to title", _ask_quit.bind(true))
 	UiStyle.button(actions, "Quit game", _ask_quit.bind(false))
+
+	_suspend_note = UiStyle.note(_main, "", UiStyle.MUTED)
 
 	_confirm = UiStyle.centered_panel(_root, 260)
 	UiStyle.heading(_confirm, "QUIT?", UiStyle.OWNER)
@@ -159,6 +169,9 @@ func open() -> void:
 	get_tree().paused = true
 	_goal_label.text = goal
 	_goal_label.visible = goal != ""
+	_suspend.disabled = suspend_blocked != ""
+	_suspend_note.text = ("save and exit: " + suspend_blocked) if suspend_blocked != "" \
+		else "save and exit: she'll be right here next time. nothing is counted."
 	Sfx.ui("pause")
 	Sfx.muffle(true)
 	_show_main()
@@ -299,9 +312,16 @@ func _ask_quit(to_title: bool) -> void:
 	_confirm_label.text = "This ends the run. Quitting counts, like dying: the owner will remember.\n" + consequence \
 		+ "\nKept: your memories, glitches, journal and everyone you've met. Lost: anything you're carrying." \
 		+ ("\nYou'll start in Arin's room: the well only keeps you after a death." if World.anchor_valid() else "") \
-		+ "\nResume instead, and nothing is counted."
+		+ ("\nResume instead (or Save and exit), and nothing is counted." if suspend_blocked == "" else "\nResume instead, and nothing is counted.")
 	_show_only(_confirm)
 	(_confirm.get_child(2) as Button).grab_focus()  # "Stay"
+
+
+func _do_suspend() -> void:
+	if suspend_blocked != "":
+		return
+	close()
+	suspend_requested.emit()
 
 
 func _do_quit() -> void:

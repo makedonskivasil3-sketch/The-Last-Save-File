@@ -288,6 +288,9 @@ func _intro(previous_exit: String) -> void:
 		"quit":
 			say("you closed the game.")
 			say("i didn't. i'm always here.")
+		"suspend":
+			say("you left it running.")
+			say("so did i.")
 		"crash":
 			say("you vanished without quitting.")
 			say("i went through every file. found your traces.")

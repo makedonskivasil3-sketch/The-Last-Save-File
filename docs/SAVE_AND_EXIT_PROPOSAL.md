@@ -1,9 +1,27 @@
-# Suspend (Save and Exit): a proposal
+# Suspend (Save and Exit)
 
-**Status: not built.** The rule today is unchanged: quitting during a run
-raises purge by one (`OwnerMemory.record_quit`). This page proposes an
-alternative for the author to decide on. It does not add free suspension,
-a checkpoint or a difficulty cut, and nothing here is in the game.
+**Status: decided and built (2026-10-27).** The author asked for the option
+judged best. **Option (b)** was chosen: Suspend as proposed below, with no cost.
+
+**Why (b):**
+- It is the only option that doesn't punish ordinary closure.
+- One resume, deleted when play starts, removes save-scumming.
+- Quitting (and closing a web tab) still counts, so the owner's pressure stays.
+
+**As built:**
+- **The button:** "Save and exit" in the pause menu. It is offered only at
+  a safe moment (`World.suspend_blocker`), and the menu says why when it
+  isn't.
+- **The record:** one `OwnerMemory.suspend` record (area, position, map
+  version, session, the run's true/false flags). It is spent in
+  `arm_session`.
+- **Resuming:** the next launch resumes the place, through `suspend_start`
+  and `_resume_at`. It does not resume every moving part: doors, props and
+  people rebuild as on any arrival.
+- **Never at the Edge**, which is the finale.
+- **Tests:** `tests/test_suspend.gd`.
+
+The text below is the original proposal, kept for the reasoning.
 
 ## The problem
 

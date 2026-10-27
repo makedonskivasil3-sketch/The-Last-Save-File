@@ -36,7 +36,7 @@
 
 | ID | Sev | Issue | Evidence | Status |
 |---|---|---|---|---|
-| SV-1 | S2 | Quitting during a run raises purge by one (`OwnerMemory.record_quit`), so ordinary closure costs the same as escaping a threat. | `scripts/autoload/owner_memory.gd:532`; [`SAVE_AND_EXIT_PROPOSAL.md`](../SAVE_AND_EXIT_PROPOSAL.md) | **author decision** (canon §4) |
+| SV-1 | S2 | Quitting during a run raised purge, with no way to stop at a safe moment for free. | `owner_memory.gd` `record_quit`; [`SAVE_AND_EXIT_PROPOSAL.md`](../SAVE_AND_EXIT_PROPOSAL.md) | fixed (verified): option (b), Save and exit at a safe moment, one resume, no cost. `tests/test_suspend.gd` 6/6; related suites pass. Not yet played by a person |
 | SV-2 | S3 | Mobile Safari may not show the leave prompt, so a tab close counts silently. | `RELEASE_READINESS.md`, known defects | open; blocked on a device |
 
 ## Platform, performance and builds

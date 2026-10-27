@@ -24,7 +24,7 @@ const ESCORT_LEASH := 70.0
 var area: Area
 ## Session-only facts: "pointer" (have Slot 2's pointer), "mira_deleted", ...
 var flags: Dictionary = {}
-## "", "death", "quit", "win", "demo" (the demo build's end card)
+## "", "death", "quit", "suspend" (save and exit), "win", "demo" (the demo build's end card)
 var ending := ""
 ## Development benchmark only (tests/tour_benchmark.gd): Rue can't be killed,
 ## so a pursuit sample is never a death card. Never set in play.
@@ -94,6 +94,7 @@ func _ready() -> void:
 	_pause_menu = PauseMenu.new()
 	_pause_menu.console_hud = hud
 	_pause_menu.quit_requested.connect(_quit)
+	_pause_menu.suspend_requested.connect(_suspend)
 	_pause_menu.debug_requested.connect(debug)
 	add_child(_pause_menu)
 	Input.joy_connection_changed.connect(_on_joy_connection_changed)
@@ -127,8 +128,15 @@ func _ready() -> void:
 	if OwnerMemory.found_pip:
 		_spawn_pip()
 	var previous := OwnerMemory.begin_session(true)
+	var resume := suspend_start(previous)
 	var start := anchor_start(previous)
-	if start.is_empty():
+	if not resume.is_empty():
+		var back := _make_area(resume.area)
+		if back is ArinsRoom:
+			(back as ArinsRoom).previous_exit = previous
+		_load_area(back, "start")
+		_resume_at(resume)
+	elif start.is_empty():
 		var room := ArinsRoom.new()
 		room.previous_exit = previous
 		_load_area(room, "start")
@@ -170,7 +178,9 @@ func _begin_session(previous: String) -> void:
 	_tutorial = Tutorial.new()
 	add_child(_tutorial)
 	_tutorial.start(self)
-	if woke_at_anchor:
+	if woke_from_suspend:
+		hud.say(SUSPEND_WAKE, "self")
+	elif woke_at_anchor:
 		hud.say(WellSequence.ANCHOR_NOTE, "self")
 	else:
 		voice("wake_first" if OwnerMemory.sessions == 1 else "wake_again")
@@ -528,6 +538,7 @@ func _process(delta: float) -> void:
 ## Open the pause menu with what it shows (goal, map, debug).
 func open_pause() -> void:
 	_pause_menu.debug_available = debug_enabled()
+	_pause_menu.suspend_blocked = suspend_blocker()
 	_pause_menu.goal = current_goal()
 	var map := map_state()
 	_pause_menu.current_area = map.current
@@ -1973,6 +1984,98 @@ func _quit(to_title: bool = false) -> void:
 		get_tree().change_scene_to_file(TITLE_SCENE)
 	else:
 		OwnerMemory.quit_game()
+
+
+# --- Save and exit (docs/SAVE_AND_EXIT_PROPOSAL.md, option b) ----------------
+
+## Bumped when a map changes enough that a stored position could be wrong:
+## older suspends are dropped and the run starts in Arin's room.
+const SUSPEND_VERSION := 1
+## Where a suspend can resume (the Edge is the finale: never there).
+const SUSPEND_AREAS := ["room", "square", "archive", "oob", "bin", "house"]
+const SUSPEND_WAKE := "(you came back. i stayed right here.)"
+## This session resumed a suspended run.
+var woke_from_suspend := false
+
+
+## Why Save and exit isn't possible right now, or "" when it is. The same
+## idea of a safe moment as the protection policy: nothing about to land,
+## nobody depending on her, no story open.
+func suspend_blocker() -> String:
+	if purged or ending != "" or _transitioning or _cutscene or not _awake or not OwnerMemory.session_armed():
+		return "not right now."
+	if area == null or area.area_id not in SUSPEND_AREAS:
+		return "not here. this is where it ends."
+	if story_holds() or hud.is_choosing():
+		return "not in the middle of a conversation."
+	if escort:
+		return "not while %s is following you." % escort.npc_id
+	if director.awareness >= OwnerDirector.SUSPECT or hud.warning_text() != "":
+		return "not while the owner is looking for you."
+	if owner_moves and (owner_moves.save_progress >= 0.0 or owner_moves.wren_delete >= 0.0):
+		return "not while the owner is reaching in."
+	var erasure: Variant = area.get("erasure")
+	if erasure is Node and erasure.get("active"):
+		return "not with the static spreading."
+	var p := player.global_position
+	for threat in ["arin", "cursor"]:
+		var n: Variant = area.get(threat)
+		if n is Node2D and n.global_position.distance_to(p) < 120.0:
+			return "not with the owner this close."
+	return ""
+
+
+## Save and exit: the run stops here, nothing is counted, and the next
+## launch resumes here once.
+func _suspend() -> void:
+	var blocked := suspend_blocker()
+	if blocked != "":
+		hud.say("save and exit: " + blocked, "system")
+		return
+	if not OwnerMemory.record_suspend(area.area_id, player.global_position, SUSPEND_VERSION, flags):
+		return
+	PlaytestLog.mark("SUSPENDED (save and exit)", "%s at %s" % [area.area_id, player.global_position.round()])
+	ending = "suspend"
+	player.frozen = true
+	director.stop()
+	hud.set_prompt("")
+	hud.set_status("")
+	hud.show_overlay("SAVED", "i'll be right here.")
+	fx.power_off(1.0)
+	Sfx.play("power_off", -4.0, 1.2, 0.0)
+	await get_tree().create_timer(1.2).timeout
+	if is_inside_tree():
+		get_tree().change_scene_to_file(TITLE_SCENE)
+
+
+## The suspend to resume this session, or {} (none, outdated, or the last
+## session didn't end in one). An unusable record is dropped.
+static func suspend_start(previous: String) -> Dictionary:
+	var s := OwnerMemory.suspend
+	if s.is_empty():
+		return {}
+	if previous != "suspend" or int(s.get("version", 0)) != SUSPEND_VERSION or str(s.get("area", "")) not in SUSPEND_AREAS \
+			or int(s.get("session", -1)) != OwnerMemory.sessions - 1:
+		OwnerMemory.suspend.clear()
+		OwnerMemory.save_memory()
+		return {}
+	return s
+
+
+## Puts Rue back where she was (if it is still inside the map) with the
+## run's flags.
+func _resume_at(s: Dictionary) -> void:
+	var at := Vector2(float(s.x), float(s.y))
+	if area.bounds.grow(-6.0).has_point(at) and (not area.has_method("floor_at") or area.floor_at(at)):
+		player.position = at
+		update_camera(0.0, true)
+		if pip:
+			pip.arrive(player.position)
+	var kept: Dictionary = s.get("flags", {})
+	for k in kept:
+		flags[k] = kept[k]
+	flags["pointer"] = flags.get("pointer", false) or OwnerMemory.met_archivist
+	woke_from_suspend = true
 
 
 func _build_purged() -> void:
