@@ -2,7 +2,19 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current: the festival's break rebuilt (2026-10-27, branch `claude/last-save-file-prototype-ljwuq4`)
+## Current: Save and exit, and Wren's arc (2026-10-27, `483ac8f`)
+
+**Author decisions:**
+- **Wren** is the deep relationship.
+- **Save and exit:** the choice was delegated, and option (b) was built.
+
+**Details:** [`SAVE_AND_EXIT_PROPOSAL.md`](SAVE_AND_EXIT_PROPOSAL.md) and [`production/WREN_ARC.md`](production/WREN_ARC.md).
+
+**Verification:** strict full suite **705/705**, 1540.2 s, no script errors, on a tree identical to `483ac8f`.
+
+**Not verified:** nobody has played either change.
+
+## Previous: the festival's break rebuilt (2026-10-27, branch `claude/last-save-file-prototype-ljwuq4`)
 
 **Code revision:** `08ab155`, based on `main` @ `6fb8e23`. Not merged.
 
