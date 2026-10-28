@@ -479,7 +479,7 @@ func _publish_web_state(delta: float) -> void:
 	_web_slowest = 0.0
 	WebState.publish({"scene": "game", "playable": playable, "reading": reading, "hold": hold, "awake": _awake, "slowest_ms": slowest,
 		"sfx_busy": Sfx.is_busy(), "game_ms": roundi(_web_game_ms), "wall_ms": Time.get_ticks_msec() - _web_wall0,
-		"area": area.area_id if area else "",
+		"area": area.area_id if area else "", "stop": suspend_blocker(), "persistent": OwnerMemory.storage_persistent(),
 		"x": snappedf(player.global_position.x, 0.1), "y": snappedf(player.global_position.y, 0.1)})
 
 

@@ -14,6 +14,9 @@ func _press(code: int, pressed: bool) -> void:
 	e.physical_keycode = code
 	e.pressed = pressed
 	Input.parse_input_event(e)
+	# Delivered now, not at the next frame's flush (which a test run first
+	# in a fresh engine can miss).
+	Input.flush_buffered_events()
 
 
 func test_rebinding_interact_moves_the_key_and_the_prompt() -> void:

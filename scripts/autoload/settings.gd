@@ -153,7 +153,11 @@ func key_for(action: String) -> int:
 
 func key_label(action: String) -> String:
 	var code := key_for(action)
-	var shown := DisplayServer.keyboard_get_keycode_from_physical(code) if DisplayServer.get_name() != "headless" else code
+	# The layout's own letter where the display server can tell (desktop);
+	# the web and headless servers can't, so the physical key's name is used.
+	var shown := code
+	if DisplayServer.get_name() not in ["headless", "Web"] and not OS.has_feature("web"):
+		shown = DisplayServer.keyboard_get_keycode_from_physical(code)
 	var label := OS.get_keycode_string(shown if shown != KEY_NONE else code)
 	return label.to_upper() if label != "" else "?"
 

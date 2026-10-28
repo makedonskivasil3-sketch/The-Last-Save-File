@@ -206,8 +206,17 @@ async function mark(page, name) {
   const midRun = await waitForSave(page, (d) => (d.last_exit === 'safe' || d.last_exit === 'active') && d.sessions >= 1, 15000);
   expect(midRun && midRun.sessions === 1 && midRun.quits === 0 && midRun.purge === 0,
     'the open run is saved (session 1, no quits)', pick(midRun));
+  // A player reads what is open (that isn't calm: the game says so) before
+  // stopping. E only while text is open, bounded at 60 s.
+  for (let waited = 0; waited < 60000; waited += 500) {
+    const st = await state(page);
+    if (st && st.stop === '') break;
+    if (st && st.reading) await page.keyboard.press('e');
+    await page.waitForTimeout(500);
+  }
   const calm = await waitForSave(page, (d) => d.last_exit === 'safe', 15000);
-  expect(calm && calm.last_exit === 'safe', 'a calm moment is kept on disk (last_exit safe)', pick(calm));
+  const why = await state(page);
+  expect(calm && calm.last_exit === 'safe', 'a calm moment is kept on disk (last_exit safe)', { save: pick(calm), stop: why && why.stop, persistent: why && why.persistent, area: why && why.area });
 
   // 4. Closing the tab at a calm moment: nothing to lose, so no prompt, and
   //    the next visit resumes it free (an unsafe close still counts: tested headless).
