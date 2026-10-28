@@ -237,3 +237,25 @@ The room, the first goal and the rest come from the existing marks.
 5. Would you keep playing right now? Why?
 
 Answers to 1–3 test whether the connection was felt and the premise read. Answer 4 tests the hook. Report denominators ("3 of 5"), never percentages, and quote players' words exactly, not paraphrased.
+
+## Round focus: trust and one relationship (2026-10-28)
+
+**Status:** not run. This protocol is ready, but no participants have been arranged. **Nothing here may be reported as a result until it has been run with people.**
+
+Run five **separate** sessions; one player may do more than one, on different days. Observe without explaining. Write down **behaviour** (what they did, with the time) separately from **opinion** (what they said).
+
+**Builds:**
+- Windows if available, otherwise the web build.
+- For session 1, play once with the normal camera and once with the plain camera (`-- --camera-plain`, or `?camera=plain`). Alternate the order between players.
+
+| # | Session | Setup | Watch for (behaviour) | Ask afterwards (opinion) |
+|---|---|---|---|---|
+| 1 | **Movement feel** (10 min) | A fresh profile. Festival only, then the room. Keyboard, then controller | Overshoots, wall-hugging, missed interactions, repeated taps on a target, hesitation at the gate, facing confusion | "What did you intend to do there?" "Did Rue respond as you expected?" "What made the movement uncomfortable?" "Which camera felt calmer?" |
+| 2 | **Opening comprehension** (15 min) | A fresh profile, through the festival | When they notice Player 1 has stopped (before or after the text); whether they try alone or stay; what they believe lit the fifth lantern | "What happened to Player 1?" "Who lit the last lantern?" "Who are you playing?" |
+| 3 | **Wren's arc** (30 min) | A profile at the square, Wren met | Whether they find her game; which spot they chalk; their reaction to the rubbing-out and the backwards R; whether they hide at her X when hunted; whether they write her name | "Who do you care about, and why?" "What changed between you and Wren?" "What do you believe the well can do?" |
+| 4 | **Save and exit trust** (10 min) | Mid-run, at a calm moment and during an escort | Do they find Save and exit? Their expectation before resuming; what they look for after | "What did you expect Save and exit to keep?" "Did it keep it?" "Would you trust it before dinner?" |
+| 5 | **Desire to continue** (open) | Wherever session 3 ended | Whether they keep playing unprompted; where attention drops (looking away, fidgeting, skipping text) | "What would make you continue?" |
+
+**Gate for the next investment:**
+- **Controls work but players are indifferent** to Wren: revise the interactions and scenes before buying assets.
+- **They care and want more:** proceed to the representative-section art and audio standard and a voice pilot. Spending needs the author's authorisation.
