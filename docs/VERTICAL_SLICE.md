@@ -2,8 +2,8 @@
 
 Branch: `claude/last-save-file-prototype-ljwuq4` (PR #10, draft). It is the
 designated branch for this work and is separate from `main`; nothing is
-merged. The canon here is the **proposed** contract
-(`docs/NARRATIVE_CONTRACT.md` §0).
+merged. The canon here was the **proposed** contract at the time;
+the decided canon is `CANON_DECISIONS.md` §1 (history document).
 
 The experience this slice must deliver:
 > "I entered someone else's saved world. The people inside are slowly
@@ -262,7 +262,7 @@ All three need a playtest and a listening pass (§2.5).
 
 | | |
 |---|---|
-| **Underlying truth** | Rue is the part of the second player that stayed in the interrupted save (contract §0.1). |
+| **Underlying truth** | *(Corrected 2026-10-28: this row stated the rejected draft premise.)* Rue is the game character left running after her player moved away (`CANON_DECISIONS.md` §1). |
 | **Mira believes** | Rue is "the other one, who used to sit next to them". True, though she can't know why. |
 | **Wren believes** | Rue is a ghost of someone who played; nobody plays either of them. Half true. |
 | **Tobben believes** | The name RUE is just a name that went out of his book. |

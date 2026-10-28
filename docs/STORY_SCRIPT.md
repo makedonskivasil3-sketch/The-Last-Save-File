@@ -1,6 +1,6 @@
 # THE LAST SAVE FILE — Story Script
 
-> **Superseded in part (continuity milestone, proposed):** the truth about Rue is now that she is the part of the second player that stayed in the interrupted save — a real person, not a character grown from her play. See `docs/NARRATIVE_CONTRACT.md` §1 and its ledger (§7) for every changed line. This document is kept as history; where it says Rue "is not the girl" or "what she left running", the contract wins.
+> **Canon note (corrected 2026-10-28):** an earlier banner here said Rue "is the part of the second player that stayed". That was a **draft premise the author rejected** on 2026-10-22. **Decided canon:** Rue is the game character left running after her player moved away. She is not the girl and not part of her ([`CANON_DECISIONS.md`](CANON_DECISIONS.md) §1; authoritative for writing: [`production/TRUTH_TABLE.md`](production/TRUTH_TABLE.md)). Where this document says Rue "is not the girl" or "what she left running", that **is** the canon. This document is history.
 
 *A game in five acts and an epilogue. Every line below is the line the game shows: the
 narrative text lives in `scripts/story/story.gd` and the area scripts, and this document
