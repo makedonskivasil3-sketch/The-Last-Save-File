@@ -225,3 +225,15 @@ func test_diagonals_are_no_faster_and_a_light_stick_is_slow() -> void:
 	Input.action_release("move_left")
 	check(light > 1.0 and light < p.speed * 0.8, "a light push walks slowly (%.1f)" % light)
 	check_eq(facing, Vector2.LEFT, "and turns her")
+
+
+func test_a_light_stick_walks_slowly_in_the_festival_too() -> void:
+	var p := await _festival()
+	p.rue_pos = Vector2(200, 250)
+	Input.action_press("move_right", 0.5)
+	for i in 30:
+		p._move_rue(1.0 / 60.0)
+	Input.action_release("move_right")
+	var speed := (p.rue_pos.x - 200.0) * 2.0
+	check(speed > 10.0 and speed < 60.0, "half a stick: a slow walk, as in the game (%.1f px/s)" % speed)
+	await _end(p)

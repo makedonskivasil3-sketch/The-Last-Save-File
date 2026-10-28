@@ -529,11 +529,43 @@ func _draw_motes() -> void:
 				draw_circle(m[0], 2.5 * (1.5 - a), Color(0.85, 0.78, 0.6, 0.35 * a))
 
 
+## Camera (docs/production/MOVEMENT_SPEC.md, Camera). Arin is blended into
+## the framing by distance, never switched. The look-ahead cancels the
+## follow's own lag (at full speed the smoothing alone trails her by about
+## speed / 2.5 px), so she stays near the centre and a reversal barely moves
+## the view; it reads what she actually travels (none against a wall) and
+## fades beside a lantern so that stays framed. Reduced motion: no
+## look-ahead, drift, shake or punch; the view follows her closely.
+const SHARE_NEAR := 110.0
+const SHARE_FAR := 190.0
+const LOOK_AHEAD := 0.35  # seconds of travel (about 1 / the follow rate)
+const LOOK_MAX := 31.5
+## Comparison captures only: centred on Rue, nothing else.
+var camera_fixed := false
+var _look := Vector2.ZERO
+
+
+## Where the camera wants to be (before smoothing and the look-ahead).
+func _camera_focus() -> Vector2:
+	var share := 0.0
+	if _arin_present:
+		share = smoothstep(SHARE_FAR, SHARE_NEAR, arin_pos.distance_to(rue_pos))
+	if beat in [Beat.LOAD, Beat.DONE]:
+		share = 1.0
+	return rue_pos.lerp((rue_pos + arin_pos) * 0.5, share)
+
+
+## 1 in the open, 0 beside something she can light or use (it stays framed).
+func _look_room() -> float:
+	var near := INF
+	for i in 5:
+		if not lit[i]:
+			near = minf(near, rue_pos.distance_to(LANTERNS[i]))
+	return smoothstep(18.0, 44.0, near)
+
+
 func _update_camera(delta: float) -> void:
 	var want_zoom := 1.7
-	var focus := rue_pos
-	if _arin_present and arin_pos.distance_to(rue_pos) < 150.0:
-		focus = (rue_pos + arin_pos) * 0.5
 	match beat:
 		Beat.P2_LEFT:
 			want_zoom = 1.5
@@ -541,14 +573,18 @@ func _update_camera(delta: float) -> void:
 			want_zoom = 1.0
 		Beat.LOAD, Beat.DONE:
 			want_zoom = 1.45
-			focus = (rue_pos + arin_pos) * 0.5
+	var focus := _camera_focus()
 	var k := 1.0 - exp(-(2.5 if not calm() else 6.0) * delta)
-	# Alive, not locked: look ahead where she's running, breathe a little.
 	# During his absence the camera holds its breath too.
 	var hush := _p1_stopped_at >= 0.0 and beat == Beat.P1_LEFT
-	if not calm() and not hush:
-		focus += _rue_vel.limit_length(90.0) * 0.35
-		focus += Vector2(sin(elapsed * 0.37) * 4.0, cos(elapsed * 0.29) * 2.5)
+	var lively := not calm() and not hush and not camera_fixed
+	_look = (_rue_vel * LOOK_AHEAD).limit_length(LOOK_MAX) * _look_room() if lively else Vector2.ZERO
+	focus += _look
+	if lively:
+		focus += Vector2(sin(elapsed * 0.37) * 2.0, cos(elapsed * 0.29) * 1.2)
+	if camera_fixed:
+		focus = rue_pos
+		k = 1.0
 	_punch = move_toward(_punch, 0.0, delta * 0.6)
 	zoom = lerpf(zoom, want_zoom, k)
 	_cam = _cam.lerp(focus + Vector2(0, -16), k)
@@ -557,7 +593,7 @@ func _update_camera(delta: float) -> void:
 	var tl := (_cam - view * 0.5).clamp(Vector2.ZERO, Vector2(640, 360) - view)
 	# Trauma shake: squared, so small knocks stay small.
 	_shake = move_toward(_shake, 0.0, delta * 1.6)
-	if _shake > 0.0:
+	if _shake > 0.0 and not camera_fixed:
 		var amt := _shake * _shake * 5.0
 		tl += Vector2(_fx_rng.randf_range(-amt, amt), _fx_rng.randf_range(-amt, amt)) / z
 	scale = Vector2(z, z)
@@ -584,8 +620,10 @@ func _update_skip(delta: float) -> void:
 ## The player's stick, keys, a tap's destination, or (autoplay, or a long
 ## wait) the next step played for them.
 func _input_dir() -> Vector2:
+	# The actions' own deadzone (0.3, rescaled by get_vector) is the only
+	# one, as in the game: a light stick walks slowly in both.
 	var d := Input.get_vector("move_left", "move_right", "move_up", "move_down")
-	if d.length() > 0.2:
+	if d != Vector2.ZERO:
 		_walk_to = Vector2.INF  # keys or a stick take over from a tap
 		_act_queued = false
 		_mark_input()
