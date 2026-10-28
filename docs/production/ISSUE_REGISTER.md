@@ -80,7 +80,8 @@ All reproduced at `b26aba0` by `tests/test_movement.gd` before the fix (11 check
 
 | ID | Sev | Issue | Evidence | Status |
 |---|---|---|---|---|
-| UI-1 | S3 | The console truncates long lines and has no backlog. | UX C5 | open |
+| UI-1 | S3 | The console truncates long lines and has no backlog. | UX C5 | already fixed (stale entry): console lines wrap (`hud.gd`, "nothing is cut off"), and the pause menu's History page keeps the run's lines with replay |
+| UI-8 | S4 | Rue's thoughts written with their own parentheses showed doubled: "((still up. i'll tell her.))". | `hud.gd` wrapped every "self" line | fixed (verified): a thought already in parentheses gets no second pair. `test_thoughts_have_one_pair_of_parentheses` |
 | UI-2 | S3 | Portrait orientation doesn't pause on phones. Touch controls overlap. | UX C9, C11, C12 | open (mobile not a launch target) |
 | UI-3 | S2 | No control remapping. | No `InputMap` editing in `scripts/` | fixed (verified) for the keyboard: Settings → CONTROLS rebinds move up/down/left/right, interact and pause. Bindings persist, a key already in use is refused with a reason, the prompts follow, and there is a reset. The arrow keys, Space and Esc stay as fallbacks. `tests/test_remapping.gd` 6/6. **Gamepad remapping not built** |
 | UI-4 | S3 | No formal flash-threshold measurement (WCAG 2.3.1). | `RELEASE_READINESS.md` accessibility | open |

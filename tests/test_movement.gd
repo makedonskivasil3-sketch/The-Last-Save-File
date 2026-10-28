@@ -272,3 +272,13 @@ func test_a_sign_fades_when_the_prompt_takes_over() -> void:
 	w.player.global_position = VillageSquare.WELL.get_center() + Vector2(-140, 60)
 	await wait(0.6)
 	check(sign.fade > 0.95, "from across the square it guides again")
+
+
+## A thought written with its own parentheses gets no second pair.
+func test_thoughts_have_one_pair_of_parentheses() -> void:
+	var w := await start_session()
+	w.hud.clear_queue()
+	w.hud.say("(still up. i'll tell her.)", "self")
+	w.hud.say("a plain thought", "self")
+	check(await wait_until(func() -> bool: return w.hud.console_history.has("(a plain thought)"), 20.0, "both shown"), "a plain thought gets its parentheses (%s)" % str(w.hud.console_history.slice(-4)))
+	check(w.hud.console_history.has("(still up. i'll tell her.)"), "a written-in pair isn't doubled (%s)" % str(w.hud.console_history.slice(-3)))
