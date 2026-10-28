@@ -2,9 +2,17 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current: trust and control, and Wren's game (2026-10-28, branch at `e447ff4`)
+## Current: trust and control, free save, and Wren's game (2026-10-28, `2ed3eb4`)
 
-**Code revision:** last code change `f8688ac`; the later commits are documentation only. Base `b26aba0`. Not merged.
+**Code revision:** `2ed3eb4`. Base `b26aba0`. Merged to `main` with the author's authorisation (PR #11).
+
+**Since `e447ff4`, at the author's request ("free save"):**
+- Stopping at a calm moment is free however you stop: Save and exit, quitting from the menu, closing the window or tab, or a crash. In danger it counts as before (SV-1).
+- Keyboard remapping is in Settings → CONTROLS (UI-3). Gamepad remapping is not built.
+- Smaller fixes: UI-7 (well prompt), OP-6 (ring behind nameplate), UI-8 (doubled parentheses), PL-8 (test isolation).
+- Web-only fixes found by the browser check at this revision:
+  - Key names no longer call a display-server function the browser lacks, which had raised a page error.
+  - The check now reads open text before expecting a calm moment.
 
 **Fixed.** Each was reproduced at `b26aba0` by a test that failed before the fix:
 - **Save and exit (SV-3, S1):**
@@ -26,14 +34,14 @@
 
 | Check | Result |
 | --- | --- |
-| Strict full suite | **735/735**, 1597.8 s, no script errors (code identical to `f8688ac`) |
+| Strict full suite | **747/747**, 1622.5 s, no script errors (on `f8e9313`). The `2ed3eb4` changes are re-run in focus: `test_remapping` 6/6 (twice), `test_suspend` 11/11, `test_menus` 6/6 |
 | Ending bot routes | escape, message, purge-5 and wren pass. **purge-3 escape: 2 of 3 runs pass** on this revision; **1 of 2 at `b26aba0`**, the same failure (three Arin catches in the square). An existing instability (PL-4), not a regression; not fixed |
 | Movement acceptance route | `docs/review/movement/ROUTE_RESULTS.md`: zero arrival error, penetration, foot slide and facing flips at 1/144 to 0.1 s frames; no walking while blocked in the game |
 | Camera comparison | `docs/review/movement/camera_fixed_current_proposed.jpg` (xvfb with llvmpipe, scripted input) |
-| Windows / Linux / Web exports | All exit 0. SHA-256 prefixes: exe `c34fce8787860187`, x86_64 `e71700ba6cade95c`, pck `d6f3ade379c97d82` |
+| Windows / Linux / Web exports | All exit 0 on `2ed3eb4`. SHA-256 prefixes: exe `7d98891ff7e7bbef`, x86_64 `54c053d10869fc64` (pck embedded) |
 | Linux exported smoke | 240 frames, exit 0 |
-| Browser lifecycle + story reader | All pass, no page errors (headless Chromium) |
-| Playable build | https://claude.ai/artifact/3G95pCn7jTAYr2DPmmWu5w, **version 20**, from this code. Private until shared |
+| Browser lifecycle + story reader | All pass on `2ed3eb4`, no page errors (headless Chromium). Includes a tab closed at a calm moment: no leave prompt, reopened as `suspend`, 0 quits, 0 purge |
+| Playable build | https://claude.ai/artifact/3G95pCn7jTAYr2DPmmWu5w, **version 21**, from this code. Private until shared |
 
 **Not verified:**
 - **No person has played any of it.** The playtest protocol is ready but not run (`PLAYTEST_PLAN.md`, "trust and one relationship").
