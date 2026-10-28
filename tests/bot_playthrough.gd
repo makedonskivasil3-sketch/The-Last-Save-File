@@ -169,8 +169,21 @@ func _take_wren(w: Node) -> bool:
 	var wren: Npc = w.area.wren
 	if wren == null:
 		return false
-	for i in 4:
-		await _go(w, [wren.global_position + Vector2(14, 0)], 10.0)
+	for i in 8:
+		# Her game comes before her ask (WREN_ARC.md): play it like a player,
+		# a mark under the awning, then let her go and look.
+		var sq: VillageSquare = w.area
+		if Relationships.has("wren.game") and not Relationships.has("wren.mark_ok") and VillageSquare.pending_mark() == "" \
+				and sq._wren_path.is_empty() and sq._wren_at_spot == "":
+			await _go(w, [VillageSquare.CHALK_SPOTS.recess + Vector2(-8, 0)], 12.0)
+			await press("interact")
+			await frames(3)
+			_step(w, "chalked a mark under the awning")
+		if not sq._wren_path.is_empty():
+			await wait_until(func() -> bool: return sq._wren_path.is_empty(), 20.0, "Wren reaching the mark")
+		# Across the square the way she walks it (the straight line is blocked).
+		var via: Array = [Vector2(400, 262)] if absf(w.player.global_position.x - wren.global_position.x) > 200.0 else []
+		await _go(w, via + [wren.global_position + Vector2(14, 0)], 14.0)
 		await press("interact")
 		await frames(3)
 		var opened: bool = w.hud.is_dialogue_open()

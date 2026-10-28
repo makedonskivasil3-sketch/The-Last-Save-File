@@ -108,12 +108,12 @@ func test_the_gift_is_warmer_after_the_game() -> void:
 	check_eq(Relationships.chalk_ask(), Relationships.WREN_CHALK_ASK_AGAIN, "after lending it: for keeps this time")
 
 
-func test_her_introduction_and_her_ask_come_first() -> void:
+## Revised 2026-10-28 (WREN_ARC.md, "Order rules"): her introduction and
+## her lantern line first, then her game, then her ask to see the Edge.
+func test_her_introduction_comes_first_then_her_game() -> void:
 	memory().add_event("wren.met")
-	memory().add_event("wren.sheltered")
 	var w := await start_session()
 	await go_to(w, "square", "house")
 	check(w.area._chalk_game_lines().is_empty(), "before her lantern line: no game yet")
 	memory().add_event("wren.lantern")
-	check(w.area._chalk_game_lines(true).is_empty(), "nor while her ask to see the Edge is due")
-	check(not w.area._chalk_game_lines(false).is_empty(), "then she starts it")
+	check(not w.area._chalk_game_lines().is_empty(), "then she starts it, whether or not she has hidden Rue yet")

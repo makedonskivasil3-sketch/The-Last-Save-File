@@ -502,11 +502,14 @@ func _on_chalked(spot: ChalkSpot) -> void:
 ## Her game's lines at her corner ({} when there's nothing). It starts once
 ## she has introduced herself (her lantern line) and isn't about to ask to
 ## see the Edge: her own introduction and her quest come first.
-func _chalk_game_lines(ask_due := false) -> Dictionary:
+## Her game (WREN_ARC.md). It starts the talk after her lantern line: before
+## her ask to see the Edge, so a player who takes her along has played it
+## first (when the ask came first, most players left the square with her
+## and never saw it). It doesn't need her to have hidden Rue yet.
+func _chalk_game_lines() -> Dictionary:
 	if wren == null or OwnerMemory.is_deleted("wren"):
 		return {}
-	if Relationships.has("wren.sheltered") and not Relationships.has("wren.game") \
-			and Relationships.has("wren.lantern") and not ask_due:
+	if not Relationships.has("wren.game") and Relationships.has("wren.lantern"):
 		return {"lines": Relationships.WREN_GAME_START, "id": "wren.game", "commit": ["wren.game"],
 			"after": [_update_chalk_spots]}
 	var mark := pending_mark()
@@ -566,6 +569,30 @@ func _walk_home() -> void:
 		_wren_path = [Vector2(400, 262), WREN_HOME] as Array[Vector2]
 
 
+## What Wren is up to, said over her prompt: so her game can be noticed
+## before it's explained, and a returning player is reminded of it.
+var _invited := false
+
+
+func _wren_doing() -> void:
+	if wren == null or not is_instance_valid(wren):
+		return
+	var doing := ""
+	if not _wren_path.is_empty():
+		doing = "going to look"
+	elif _wren_at_spot != "":
+		doing = "looking at your mark"
+	elif Relationships.has("wren.lantern") and not Relationships.has("wren.game"):
+		doing = "chalk out"
+	elif Relationships.has("wren.game") and not Relationships.has("wren.mark_ok"):
+		doing = "waiting for your mark" if pending_mark() == "" else "wants to see your mark"
+	wren.doing = doing
+	# The first time her game is next and Rue comes near: she holds up the chalk.
+	if doing == "chalk out" and not _invited and world.player.global_position.distance_to(wren.global_position) < 70.0:
+		_invited = true
+		wren.emote("!", 1.4)
+
+
 ## Her X, used without being told: hiding right beside her while the
 ## owner hunts. She sees it (she's right there) and answers without words.
 func _wren_nod() -> void:
@@ -599,6 +626,7 @@ var _beckon_cooldown := 0.0
 func area_process(delta: float) -> void:
 	_walk_wren(delta)
 	_wren_nod()
+	_wren_doing()
 	_well_process(delta)
 	_wren_beckon(delta)
 	_mark_process()
@@ -808,7 +836,7 @@ func _wren_lines() -> Variant:
 			_wren_asked = true
 		_wren_offer = told.get("offer", "") == "chalk"
 		return told
-	var game := _chalk_game_lines(_wren_line >= _wren_ask_at - 1 and not Relationships.has("wren.promised"))
+	var game := _chalk_game_lines()
 	if not game.is_empty():
 		return game
 	if OwnerMemory.wren_saved:

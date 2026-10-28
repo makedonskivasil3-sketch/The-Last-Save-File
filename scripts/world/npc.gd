@@ -12,6 +12,9 @@ var state: State = State.NORMAL
 ## Internal id, used for OwnerMemory fates ("mira", "wren", ...).
 var npc_id := "npc"
 var display_name := "NPC"
+## What they are doing right now, shown after the name over the prompt
+## ("waiting for your mark"); "" for nothing in particular.
+var doing := ""
 var name_color := Color("e8c48a")
 var dress_color := Color("c9733e")
 var hair_color := Color("5a3420")

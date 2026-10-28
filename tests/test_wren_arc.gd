@@ -25,11 +25,19 @@ func _ready_to_ask() -> void:
 		memory().add_event(e)
 
 
+## Her game played out (test_wren_game, test_wren_route): her chalk is back.
+func _game_played() -> void:
+	for e in ["wren.game", "wren.mark_recess", "wren.mark_ok", "wren.chalk_back"]:
+		memory().add_event(e)
+
+
 func test_her_story_comes_in_order_and_once() -> void:
 	Relationships.chalk_declined_session = -1
 	memory().add_event("wren.met")
 	check(Relationships._wren_own().is_empty(), "nothing of her own before the festival comes up")
 	memory().add_event("wren.lantern")
+	check(Relationships._wren_own().is_empty(), "nor before her game (it comes after her lantern line)")
+	_game_played()
 	memory().festival_choice = "tried"
 	var told := Relationships._wren_own()
 	check_eq(told.get("id"), "wren.watched", "first: she was there")
@@ -56,6 +64,7 @@ func test_her_story_comes_in_order_and_once() -> void:
 
 func test_her_ask_to_see_the_edge_comes_first() -> void:
 	memory().add_event("wren.lantern")
+	_game_played()
 	check(Relationships.wren(3, true, false).is_empty(), "her ask is due: her own story waits (the square asks)")
 	check_eq(Relationships.wren(1, false, false).get("id"), "wren.watched", "between asks, she tells it")
 	memory().add_event("wren.promised")
@@ -65,6 +74,7 @@ func test_her_ask_to_see_the_edge_comes_first() -> void:
 
 func test_what_she_saw_follows_the_festival() -> void:
 	memory().add_event("wren.lantern")
+	_game_played()
 	for c in ["tried", "stayed", "lit", "idle", "skipped", ""]:
 		memory().festival_choice = c
 		var how: String = Relationships._wren_own().lines[1]
@@ -162,3 +172,14 @@ func test_her_fear_is_hers_not_the_wells_rule() -> void:
 	check(not said.contains("can't keep") and not said.contains("cannot keep"), "not what the well can't do")
 	check(not str(Relationships.EVENTS["wren.unplayed"]).contains("can't"), "and the journal records her question, not a law")
 
+
+
+## A game left unfinished holds her own story only in the session it began:
+## next time she tells it (the game stays open).
+func test_an_unfinished_game_holds_her_story_one_session() -> void:
+	memory().sessions = 3
+	memory().add_event("wren.lantern")
+	memory().event_at("wren.game", memory().sessions)
+	check(Relationships._wren_own().is_empty(), "the session her game starts: it comes first")
+	memory().event_at("wren.game", memory().sessions - 1)
+	check_eq(Relationships._wren_own().get("id"), "wren.watched", "a later session: her story goes on")

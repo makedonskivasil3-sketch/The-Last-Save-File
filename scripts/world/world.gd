@@ -1602,7 +1602,7 @@ static func object_name(node: Node) -> String:
 	if node.has_method("interact_name"):
 		return node.interact_name()
 	if node is Npc:
-		return node.display_name
+		return node.display_name + (" · " + node.doing if node.doing != "" else "")
 	return ""
 
 
