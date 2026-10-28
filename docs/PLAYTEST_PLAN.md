@@ -256,6 +256,13 @@ Run five **separate** sessions; one player may do more than one, on different da
 | 4 | **Save and exit trust** (10 min) | Mid-run, at a calm moment and during an escort | Do they find Save and exit? Their expectation before resuming; what they look for after | "What did you expect Save and exit to keep?" "Did it keep it?" "Would you trust it before dinner?" |
 | 5 | **Desire to continue** (open) | Wherever session 3 ended | Whether they keep playing unprompted; where attention drops (looking away, fidgeting, skipping text) | "What would make you continue?" |
 
+**Additions (2026-10-28), same sessions:**
+- **Session 1, movement:** also play the three movement variants on the same route. Use `-- --move=a`, `--move=b` and `--move=c` (or `?move=`), in a different order per player, without saying which is which. Record per variant: overshoots at the save crystal and the gate, taps repeated on a target, and any comment on "floaty", "stiff" or "slidey". Ask: "Which of the three felt most like Rue did what you meant?" `VARIANTS.md` has the numbers to compare against. Players supply the preference.
+- **Session 1, objects:** whenever they press E, note whether they could say beforehand what the thing was. Every prompt now names it ("SAVE POINT", "THE WELL'S RIM"). Ask afterwards: "Was there anything you touched without knowing what it was?"
+- **Session 2, opening:** the memory card comes before the festival. Watch whether they read it or skip it. Ask: "Before the festival started, what did you think was going to happen?" and "Who typed the last line?"
+- **Session 3, Wren, now from a fresh profile, not "Wren met":** note the talk on which her game starts (it should be the third), and whether they notice "CHALK OUT" or the raised chalk before she explains. Note whether they read the place names before chalking. In a second session on a later day, note whether they notice her new drawings.
+- **Session 5 (new), the whole route:** time the first ending with a stopwatch and note the time spent reading. The product spec's 2–3 hours is unmeasured, and the bots reach an ending in about 2.5 minutes of travel (`production/SLICE_ROUTE.md`). This is the number that decides scope and price.
+
 **Gate for the next investment:**
 - **Controls work but players are indifferent** to Wren: revise the interactions and scenes before buying assets.
 - **They care and want more:** proceed to the representative-section art and audio standard and a voice pilot. Spending needs the author's authorisation.

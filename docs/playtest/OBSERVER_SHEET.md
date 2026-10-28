@@ -17,10 +17,12 @@ Player code: ______ · Date: ______ · Device / browser / input: ______ · Build
 | | | |
 
 **Look for these** (tick them, and note the time):
-- [ ] **Movement:** overshot a target / walked into a wall and kept pushing / repeated a key press / tried the wrong key
+- [ ] **Movement:** overshot a target / walked into a wall and kept pushing / repeated a key press / tried the wrong key · variant played (A / B / C), and the one they preferred: ___
+- [ ] **Objects:** pressed E on something without knowing what it was (what?)
+- [ ] **Memory card:** read it / skipped it / what they expected afterwards
 - [ ] **Opening:** noticed Player 1 stopped *before* the text said so (how?) / tried the last lantern alone / stayed beside Arin
 - [ ] **Danger:** understood a warning (they reacted before being caught) / was caught without seeming to know why
-- [ ] **Wren:** found her chalk game / chalked the crossing or the awning / reacted to the rub-out or the backwards R / hid at her X when hunted / wrote her name
+- [ ] **Wren:** her game started on talk no. ___ / noticed "CHALK OUT" or the raised chalk before she explained / found her chalk game / chalked the crossing or the awning / reacted to the rub-out or the backwards R / hid at her X when hunted / wrote her name
 - [ ] **Saving:** found Save and exit / what they expected before resuming / what they looked for after
 - [ ] **Attention:** looked away, skipped text, sighed, laughed (when?)
 - [ ] **Continuing:** kept playing when told they could stop
