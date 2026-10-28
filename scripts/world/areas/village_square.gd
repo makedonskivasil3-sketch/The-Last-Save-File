@@ -569,6 +569,64 @@ func _walk_home() -> void:
 		_wren_path = [Vector2(400, 262), WREN_HOME] as Array[Vector2]
 
 
+## One of Wren's chalk drawings, in a child's hand.
+func _draw_doodle(d: String, at: Vector2, c: Color) -> void:
+	match d:
+		"lantern":
+			draw_line(at + Vector2(0, 6), at + Vector2(0, -6), c, 0.7)
+			draw_line(at + Vector2(0, -6), at + Vector2(-3, -6), c, 0.7)
+			draw_rect(Rect2(at + Vector2(-5, -5), Vector2(4, 5)), c, false, 0.7)
+			for k in 3:
+				draw_line(at + Vector2(-3, -7) + Vector2.from_angle(-PI * (0.2 + 0.3 * k)) * 2.0, at + Vector2(-3, -7) + Vector2.from_angle(-PI * (0.2 + 0.3 * k)) * 4.0, c, 0.6)
+		"fox":
+			draw_arc(at, 3.0, 0.0, TAU, 10, c, 0.7)
+			draw_polyline(PackedVector2Array([at + Vector2(-3, -1.5), at + Vector2(-4.5, -8), at + Vector2(-0.5, -2.8)]), c, 0.7)
+			draw_polyline(PackedVector2Array([at + Vector2(3, -1.5), at + Vector2(4.5, -8), at + Vector2(0.5, -2.8)]), c, 0.7)
+			draw_rect(Rect2(at + Vector2(-1.4, -0.6), Vector2(0.8, 0.8)), c)
+			draw_rect(Rect2(at + Vector2(0.6, -0.6), Vector2(0.8, 0.8)), c)
+		"bird":
+			draw_arc(at, 2.4, PI, TAU, 8, c, 0.7)
+			draw_line(at + Vector2(-2.4, 0), at + Vector2(2.4, 0), c, 0.7)
+			draw_line(at + Vector2(2.4, -1), at + Vector2(4.2, -1.6), c, 0.7)
+			draw_line(at + Vector2(0, 0), at + Vector2(0, 3.5), c, 0.6)
+		"hopscotch":
+			for k in 4:
+				draw_rect(Rect2(at + Vector2(-3, -k * 6.0), Vector2(6, 6)), c, false, 0.6)
+			draw_line(at + Vector2(-2, -16), at + Vector2(2, -12), c, 0.7)
+			draw_line(at + Vector2(-2, -12), at + Vector2(2, -16), c, 0.7)
+
+
+## Wren between sessions (WREN_ARC.md, "She keeps drawing"): after her game,
+## one more chalk drawing by her corner each session, up to three. What
+## she likes and what she can see from there: the lantern by the well; a
+## fox (once she's seen Pip with Rue) or else a bird; a hopscotch with her X
+## in one square. Rue notices each once, ever. Nothing is said aloud.
+const WREN_DOODLES := {
+	"lantern": [Vector2(152, 262), "she drew the lantern by the well. from her corner she can just see it."],
+	"fox": [Vector2(114, 276), "a fox with enormous ears. she's seen pip with me."],
+	"bird": [Vector2(114, 276), "a bird on one leg. she draws what she can see from her corner."],
+	"hopscotch": [Vector2(166, 262), "a hopscotch. one square has an x in it. hers."],
+}
+
+
+static func wren_doodles() -> Array:
+	if not Relationships.has("wren.game") or OwnerMemory.is_deleted("wren"):
+		return []
+	var n := clampi(OwnerMemory.sessions - OwnerMemory.event_session("wren.game"), 0, 3)
+	return ["lantern", "fox" if OwnerMemory.found_pip else "bird", "hopscotch"].slice(0, n)
+
+
+func _notice_doodles() -> void:
+	for d in wren_doodles():
+		var id: String = "wren.doodle." + str(d)
+		if OwnerMemory.has_conversation(id) or world.is_talking() or world.in_cutscene():
+			continue
+		if world.player.global_position.distance_to(WREN_DOODLES[d][0]) < 26.0:
+			OwnerMemory.complete_conversation(id)
+			world.hud.say(WREN_DOODLES[d][1], "self")
+			PlaytestLog.mark("wren: doodle", d)
+
+
 ## What Wren is up to, said over her prompt: so her game can be noticed
 ## before it's explained, and a returning player is reminded of it.
 var _invited := false
@@ -627,6 +685,7 @@ func area_process(delta: float) -> void:
 	_walk_wren(delta)
 	_wren_nod()
 	_wren_doing()
+	_notice_doodles()
 	_well_process(delta)
 	_wren_beckon(delta)
 	_mark_process()
@@ -1006,6 +1065,8 @@ func _draw() -> void:
 		var x0 := WREN_HOME + Vector2(-16, 10)
 		draw_line(x0 + Vector2(-3, -3), x0 + Vector2(3, 3), cx, 0.8)
 		draw_line(x0 + Vector2(-3, 3), x0 + Vector2(3, -3), cx, 0.8)
+		for d in wren_doodles():
+			_draw_doodle(d, WREN_DOODLES[d][0], Color(cx, 0.7))
 		for spot_id in ["recess", "crossing"]:
 			if not Relationships.has("wren.mark_" + spot_id) or (spot_id == "crossing" and Relationships.has("wren.mark_refused")):
 				continue

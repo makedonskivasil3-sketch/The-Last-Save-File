@@ -43,6 +43,10 @@ The arc used to start sad. It now starts with a game she leads, so the player kn
 
 **Tests:** `tests/test_wren_game.gd`; `tests/test_wren_route.gd` (fresh profile, ordinary interactions only); the Wren-ending bot plays the game on its way.
 
+## She keeps drawing (2026-10-28)
+
+Something of her own, not about being remembered or rescued. After her game, each new session adds one chalk drawing by her corner, up to three: **the lantern by the well** (from her corner she can just see it), **a fox with enormous ears** once she has seen Pip with Rue (otherwise **a bird on one leg**), and **a hopscotch with her X in one square**. Rue notices each once, ever, as a thought, and nothing is said aloud. It shows that she has a life between sessions that doesn't depend on being played. Test: `test_wren_game.test_she_keeps_drawing_between_sessions`.
+
 ## Beats (★ = new in this revision)
 
 | # | Beat | When | What the player does | Kept as | Pays off |
