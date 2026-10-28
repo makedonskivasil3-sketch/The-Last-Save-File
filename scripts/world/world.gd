@@ -95,6 +95,7 @@ func _ready() -> void:
 	_pause_menu.console_hud = hud
 	_pause_menu.quit_requested.connect(_quit)
 	_pause_menu.suspend_handler = try_suspend
+	OwnerMemory.safe_close = _close_safely
 	_pause_menu.debug_requested.connect(debug)
 	add_child(_pause_menu)
 	Input.joy_connection_changed.connect(_on_joy_connection_changed)
@@ -537,6 +538,7 @@ func _process(delta: float) -> void:
 	_update_focus()
 	_update_decoy()
 	_update_escort(delta)
+	_update_safe_mark(delta)
 	owner_moves.update(delta)
 	# [E] itself is read by the GlitchController: a tap comes back as tap_interact().
 
@@ -1511,6 +1513,8 @@ func _is_tense() -> bool:
 func _exit_tree() -> void:
 	if Sfx.hold_back == Callable(_is_tense):
 		Sfx.hold_back = Callable()
+	if OwnerMemory.safe_close == Callable(_close_safely):
+		OwnerMemory.safe_close = Callable()
 
 
 ## Mira is gone this run: deleted this session, or by an advanced purge
@@ -2034,7 +2038,7 @@ func suspend_blocker() -> String:
 ## Save and exit, step one (the pause menu calls it, with the game still
 ## paused): write the record. Returns "" when it is on disk, otherwise why
 ## not, and nothing has changed: the run is still open and still paused.
-func try_suspend() -> String:
+func try_suspend(to_title := true) -> String:
 	var blocked := suspend_blocker()
 	if blocked != "":
 		return blocked
@@ -2047,12 +2051,12 @@ func try_suspend() -> String:
 		PlaytestLog.mark("SAVE AND EXIT FAILED", OwnerMemory.suspend_error)
 		return OwnerMemory.suspend_error
 	PlaytestLog.mark("SUSPENDED (save and exit)", "%s at %s" % [area.area_id, player.global_position.round()])
-	_leave_suspended()
+	_leave_suspended(to_title)
 	return ""
 
 
 ## Step two, only after the save is on disk: say so and go to the title.
-func _leave_suspended() -> void:
+func _leave_suspended(to_title := true) -> void:
 	ending = "suspend"
 	player.frozen = true
 	director.stop()
@@ -2062,8 +2066,55 @@ func _leave_suspended() -> void:
 	fx.power_off(1.0)
 	Sfx.play("power_off", -4.0, 1.2, 0.0)
 	await get_tree().create_timer(1.2).timeout
-	if is_inside_tree():
+	if not is_inside_tree():
+		return
+	if to_title:
 		get_tree().change_scene_to_file(TITLE_SCENE)
+	else:
+		OwnerMemory.quit_game()
+
+
+## Closing the window: free at a calm moment (records the Save and exit).
+func _close_safely() -> bool:
+	if not is_inside_tree() or suspend_blocker() != "":
+		return false
+	var kept := flags.duplicate()
+	if escort:
+		kept["suspended_escort_" + escort.npc_id] = true
+	return OwnerMemory.record_suspend(area.area_id, player.global_position, SUSPEND_VERSION, kept)
+
+
+## Keeps the calm moment on disk while it lasts (OwnerMemory.mark_safe), so a
+## tab closed, a crash or a power cut now costs nothing; withdrawn the moment
+## it isn't calm. Checked four times a second; written only on a change, or
+## every few seconds while she moves.
+const SAFE_CHECK := 0.25
+const SAFE_REWRITE := 5.0
+var _safe_t := 0.0
+var _safe_written := -INF
+var _safe_at := Vector2.INF
+
+
+func _update_safe_mark(delta: float) -> void:
+	_safe_t -= delta
+	if _safe_t > 0.0 or purged:
+		return
+	_safe_t = SAFE_CHECK
+	var safe := suspend_blocker() == ""
+	if not safe:
+		OwnerMemory.mark_unsafe()
+		_safe_at = Vector2.INF
+		return
+	var now := Time.get_ticks_msec() / 1000.0
+	var moved := _safe_at == Vector2.INF or player.global_position.distance_to(_safe_at) > 16.0
+	var new_place := str(OwnerMemory.suspend.get("area", "")) != area.area_id
+	if OwnerMemory.last_exit != "safe" or new_place or (moved and now - _safe_written > SAFE_REWRITE):
+		var kept := flags.duplicate()
+		if escort:
+			kept["suspended_escort_" + escort.npc_id] = true
+		OwnerMemory.mark_safe(area.area_id, player.global_position, SUSPEND_VERSION, kept)
+		_safe_written = now
+		_safe_at = player.global_position
 
 
 ## (Kept for callers and tests: the same as choosing Save and exit.)

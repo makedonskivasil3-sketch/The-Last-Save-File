@@ -174,6 +174,9 @@ var _armed := false
 ## How the session before a "starting" one ended (restored if it never starts).
 var start_previous := "none"
 var _path := SAVE_PATH
+## Set by World: records a Save and exit right now if it's a calm moment,
+## and returns whether it did (closing the window then costs nothing).
+var safe_close: Callable
 ## Whether the last save_memory() reached the disk.
 var last_save_ok := true
 ## Why the last record_suspend() failed, for the player ("" when it didn't).
@@ -191,7 +194,10 @@ func _ready() -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
-		record_quit()
+		# Closing the window at a calm moment is a free Save and exit (the
+		# author's rule, 2026-10-28); otherwise it counts as quitting.
+		if not (safe_close.is_valid() and safe_close.call()):
+			record_quit()
 		quit_game()
 	elif what == NOTIFICATION_EXIT_TREE:
 		# The engine is shutting down without quit_game() (--quit-after, a
@@ -569,6 +575,36 @@ func record_suspend(area_id: String, at: Vector2, version: int, run_flags: Dicti
 	suspend_error = ""
 	_leave_guard(false)
 	return true
+
+
+## A calm moment, kept on disk while it lasts (World keeps it current): if
+## the game closes, crashes or the tab is shut now, the next launch resumes
+## here once, free, as if Save and exit had been chosen. The run stays open.
+func mark_safe(area_id: String, at: Vector2, version: int, run_flags: Dictionary) -> void:
+	if _session_closed or not _armed or not storage_persistent():
+		return
+	var kept := {}
+	for k in run_flags:
+		if k is String and run_flags[k] is bool:
+			kept[k] = run_flags[k]
+	var was_exit := last_exit
+	suspend = {"area": area_id, "x": at.x, "y": at.y, "version": version, "session": sessions, "flags": kept}
+	last_exit = "safe"
+	if not save_memory():
+		suspend = {}
+		last_exit = was_exit
+		return
+	_leave_guard(false)  # nothing to lose by closing the tab now
+
+
+## The calm moment is over: from now on a close or crash counts again.
+func mark_unsafe() -> void:
+	if _session_closed or not _armed or last_exit != "safe":
+		return
+	suspend = {}
+	last_exit = "active"
+	save_memory()
+	_leave_guard(true)
 
 
 ## Whether what is written to user:// survives closing the game. On the web
@@ -1174,9 +1210,13 @@ func load_memory() -> void:
 	if an is Dictionary and an.get("id") is String and _whole(an, "version"):
 		anchor = {"id": an.id, "version": int(an.version), "session": _int(an, "session", 0)}
 
+	# Closed (or crashed) at a calm moment: a free Save and exit.
+	if last_exit == "safe":
+		last_exit = "suspend"
+		save_memory()
 	# The last session never closed properly: the game was killed or crashed.
 	# The owner treats that as running away.
-	if last_exit == "active":
+	elif last_exit == "active":
 		quits += 1
 		purge += 1
 		last_exit = "crash"

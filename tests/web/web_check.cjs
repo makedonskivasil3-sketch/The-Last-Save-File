@@ -4,9 +4,9 @@
 //      festival, and holding Esc skips it
 //   2. Load Slot 1 reaches actual gameplay: the game reports a playable run
 //      (window.__lsf, see scripts/web_state.gd) and Rue moves on real input
-//   3. the open run is saved to IndexedDB (session open, last_exit "active")
-//   4. closing the tab mid-run asks first, and counts as a quit on reopening
-//      (quits +1, purge +1, last_exit "crash")
+//   3. the open run is saved to IndexedDB; a calm moment as last_exit "safe"
+//   4. closing the tab at a calm moment asks nothing and resumes free
+//      (at a calm moment: free, resumed: quits 0, purge 0, last_exit "suspend")
 // Audio output is checked separately (audio_output_check.cjs).
 //
 // Usage (needs Playwright + a web export served over http):
@@ -201,29 +201,27 @@ async function mark(page, name) {
   expect(moved > 10, 'Rue moves on real keyboard input', { before, after, moved });
   await page.screenshot({ path: path.join(shotDir, 'web_2_in_game.png') });
 
-  // 3. The open run is in the save.
-  const midRun = await waitForSave(page, (d) => d.last_exit === 'active' && d.sessions >= 1, 15000);
-  expect(midRun && midRun.last_exit === 'active' && midRun.sessions === 1 && midRun.quits === 0 && midRun.purge === 0,
-    'the open run is saved (session 1, last_exit active, no quits)', pick(midRun));
+  // 3. The open run is in the save. At a calm moment it is kept as one
+  //    (the author's rule, 2026-10-28: stopping when calm is free).
+  const midRun = await waitForSave(page, (d) => (d.last_exit === 'safe' || d.last_exit === 'active') && d.sessions >= 1, 15000);
+  expect(midRun && midRun.sessions === 1 && midRun.quits === 0 && midRun.purge === 0,
+    'the open run is saved (session 1, no quits)', pick(midRun));
+  const calm = await waitForSave(page, (d) => d.last_exit === 'safe', 15000);
+  expect(calm && calm.last_exit === 'safe', 'a calm moment is kept on disk (last_exit safe)', pick(calm));
 
-  // 4. Closing the tab mid-run asks first, and counts on reopening.
-  // The game's side first: the leave guard is armed while the run is open.
+  // 4. Closing the tab at a calm moment: nothing to lose, so no prompt, and
+  //    the next visit resumes it free (an unsafe close still counts: tested headless).
   const armed = await page.evaluate(() => Boolean(window.__tlsfGuard && window.__tlsfRunning));
-  expect(armed, 'the leave guard is armed mid-run (window.__tlsfRunning)');
-  let asked = false;
-  page.on('dialog', async (d) => { asked = d.type() === 'beforeunload'; await d.accept(); });
+  expect(!armed, 'no leave prompt at a calm moment (window.__tlsfRunning false)');
   await page.close({ runBeforeUnload: true });
-  // The browser's dialog can arrive late on a slow machine: wait for it (bounded).
-  for (let waited = 0; !asked && waited < 5000; waited += 250) await new Promise((r) => setTimeout(r, 250));
-  expect(asked, 'closing the tab mid-run asks first (beforeunload)');
   page = await context.newPage();
   lastPage = page;
   watch(page);
   await page.goto(url);
   await waitForState(page, (st) => st.scene === 'title', 'the title after reopening', 120000);
-  const reopened = await waitForSave(page, (d) => d.last_exit === 'crash', 15000);
-  expect(reopened && reopened.quits === 1 && reopened.purge === 1 && reopened.last_exit === 'crash',
-    'a tab closed mid-run counts as a quit (quits 1, purge 1, last_exit crash)', pick(reopened));
+  const reopened = await waitForSave(page, (d) => d.last_exit === 'suspend', 15000);
+  expect(reopened && reopened.quits === 0 && reopened.purge === 0 && reopened.last_exit === 'suspend',
+    'a tab closed at a calm moment resumes free (quits 0, purge 0, last_exit suspend)', pick(reopened));
   await page.screenshot({ path: path.join(shotDir, 'web_3_reopened.png') });
 
   expect(errors.length === 0, 'no page or runtime errors', errors.slice(0, 10));

@@ -68,7 +68,7 @@ func test_only_at_a_safe_moment() -> void:
 	w._suspend()
 	await frames(3)
 	check_eq(w.ending, "", "refused: the run carries on")
-	check(memory().suspend.is_empty() and memory().purge == purge, "and nothing was written")
+	check(memory().last_exit != "suspend" and memory().session_armed() and memory().purge == purge, "and the run wasn't closed")
 
 
 func test_never_at_the_edge() -> void:
@@ -104,7 +104,7 @@ func test_an_outdated_or_stale_record_starts_in_the_room() -> void:
 	memory().suspend = {"area": "square", "x": 200.0, "y": 200.0, "version": World.SUSPEND_VERSION - 1, "session": 3, "flags": {}}
 	var w := await start_session()
 	check_eq(w.area.area_id, "room", "an older map's suspend isn't trusted")
-	check(memory().suspend.is_empty(), "and is dropped")
+	check(int(memory().suspend.get("version", World.SUSPEND_VERSION)) == World.SUSPEND_VERSION, "and is dropped (any record now is this run's own calm moment)")
 	memory().record_quit()
 	memory().last_exit = "death"  # not a suspend: a record left behind is never used
 	memory().suspend = {"area": "square", "x": 200.0, "y": 200.0, "version": World.SUSPEND_VERSION, "session": memory().sessions, "flags": {}}
@@ -163,3 +163,49 @@ func test_save_and_exit_during_an_escort() -> void:
 		or w2.hud._queue.any(func(m: Dictionary) -> bool: return str(m.text).contains("went home while i was gone")), 3.0, "Rue's line")
 	check(said, "and Rue says where she went (%s)" % str(w2.hud.history.map(func(e: Dictionary) -> String: return str(e.text)).slice(-6)))
 	check(memory().has_event("wren.promised") and not memory().has_event("wren.promise_broken"), "the promise is still open, not broken")
+
+
+## The author's rule (2026-10-28): stopping at a calm moment is free, however
+## the game stops: Save and exit, closing the window, the tab, or a crash.
+func test_a_crash_at_a_calm_moment_resumes_for_free() -> void:
+	var w := await _calm_square()
+	await wait(0.6)
+	check_eq(memory().last_exit, "safe", "a calm moment is kept on disk")
+	check_eq(str(memory().suspend.get("area", "")), "square", "with where she is")
+	var purge: int = memory().purge
+	var quits: int = memory().quits
+	var at: Vector2 = w.player.global_position
+	# The process dies here: nothing else runs. The next launch reads the disk.
+	memory().clear_state()
+	memory().load_memory()
+	check_eq(memory().last_exit, "suspend", "read back as a Save and exit")
+	check(memory().purge == purge and memory().quits == quits, "no purge, no quit")
+	var w2 := await start_session()
+	check(w2.woke_from_suspend and w2.area.area_id == "square", "resumed in the square")
+	check(w2.player.global_position.distance_to(at) < 20.0, "where she was")
+
+
+func test_a_crash_in_danger_still_counts() -> void:
+	var w := await _calm_square()
+	await wait(0.6)
+	w.director.awareness = OwnerDirector.HUNT + 1.0
+	await wait(0.6)
+	check_eq(memory().last_exit, "active", "the calm moment is withdrawn when the hunt starts")
+	check(memory().suspend.is_empty(), "and its record with it")
+	var purge: int = memory().purge
+	memory().clear_state()
+	memory().load_memory()
+	check_eq(memory().last_exit, "crash", "a crash now is running away, as before")
+	check_eq(memory().purge, purge + 1, "and counts")
+
+
+func test_closing_the_window_is_free_only_when_calm() -> void:
+	var w := await _calm_square()
+	check(memory().safe_close.is_valid(), "the world answers the close request")
+	var purge: int = memory().purge
+	check(memory().safe_close.call(), "calm: closing saves and exits")
+	check(memory().last_exit == "suspend" and memory().purge == purge, "free")
+	var w2 := await start_session()
+	await go_to(w2, "square", "house")
+	w2.director.awareness = OwnerDirector.HUNT + 1.0
+	check(not memory().safe_close.call(), "hunted: no free close (record_quit follows, as before)")

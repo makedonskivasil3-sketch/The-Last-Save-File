@@ -312,6 +312,12 @@ func _show_settings() -> void:
 
 func _ask_quit(to_title: bool) -> void:
 	_pending_to_title = to_title
+	if suspend_blocked == "":
+		# A calm moment: quitting keeps her place and counts nothing.
+		_confirm_label.text = "It's calm: quitting now keeps your place, like Save and exit. Nothing is counted.\nNext time you'll pick up here, though people and things may have moved on."
+		_show_only(_confirm)
+		(_confirm.get_child(2) as Button).grab_focus()  # "Stay"
+		return
 	var after := OwnerMemory.purge + 1
 	var consequence := "Purge progress will rise to %d/%d." % [after, OwnerMemory.MAX_PURGE]
 	if after >= OwnerMemory.MAX_PURGE:
@@ -330,7 +336,7 @@ func _ask_quit(to_title: bool) -> void:
 func _do_suspend() -> void:
 	if suspend_blocked != "" or not suspend_handler.is_valid():
 		return
-	var why: String = suspend_handler.call()
+	var why: String = suspend_handler.call(true)
 	if why == "":
 		close()
 		return
@@ -341,6 +347,15 @@ func _do_suspend() -> void:
 
 
 func _do_quit() -> void:
+	if suspend_blocked == "" and suspend_handler.is_valid():
+		var why: String = suspend_handler.call(_pending_to_title)
+		if why == "":
+			close()
+			return
+		_save_failed_label.text = "Your run wasn't saved: %s\nNothing was lost: your last save is as it was, and the run is still open.\nRetry, or return to the game and keep playing." % why
+		_show_only(_save_failed)
+		(_save_failed.get_child(2) as Button).grab_focus()
+		return
 	close()
 	quit_requested.emit(_pending_to_title)
 
