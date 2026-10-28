@@ -555,6 +555,7 @@ static func epilogue(ending: String, found: int, pip: bool, message := 0) -> Arr
 ## Wren's name on the well's rim (docs/production/WREN_ARC.md), after any
 ## ending but the one where Rue becomes Arin.
 const EPILOGUE_WREN_NAMED := "on the well's rim in ashvale, in chalk: two dots for eyes, an arrow up, and WREN. nobody rubs it out."
+const EPILOGUE_WREN_NAME_ONLY := "on the well's rim in ashvale, in chalk, four letters: WREN. nobody rubs it out."
 
 ## Everyone you helped (or didn't), one line each.
 static func _epilogue_people(ending: String) -> Array:
@@ -565,7 +566,7 @@ static func _epilogue_people(ending: String) -> Array:
 		elif OwnerMemory.is_deleted("wren"):
 			lines.append("(i couldn't keep wren. i'll remember her for both of us.)")
 	if OwnerMemory.has_event("wren.named") and ending != "overwrite":
-		lines.append(EPILOGUE_WREN_NAMED)
+		lines.append(EPILOGUE_WREN_NAMED if OwnerMemory.has_event("wren.marked_well") else EPILOGUE_WREN_NAME_ONLY)
 	if OwnerMemory.mira_quest == "pinned" and ending != "overwrite":
 		lines.append("the notice board in the square still says MIRA WAS HERE. nobody takes it down.")
 	elif OwnerMemory.mira_quest == "reset":

@@ -158,6 +158,10 @@ func _begin_session(previous: String) -> void:
 		await hud.cinematic("", Story.BOOT, Hud.SYSTEM_COLOR, 1.0, "boot")
 		if not is_inside_tree() or ending != "":
 			return
+	if woke_from_suspend:
+		await _settle_resume()  # before she can move: never inside something rebuilt
+		if not is_inside_tree() or ending != "":
+			return
 	fx.spike(0.6, 1.0)  # loading into a save you don't belong in
 	player.dissolve("materialize")
 	Sfx.play("fragment", -4.0, 0.5, 0.0)  # pieces of you, pulled together
@@ -180,6 +184,8 @@ func _begin_session(previous: String) -> void:
 	_tutorial.start(self)
 	if woke_from_suspend:
 		hud.say(SUSPEND_WAKE, "self")
+		if _resumed_escort != "":
+			hud.say("(%s went home while i was gone. we can still go.)" % _resumed_escort, "self")
 	elif woke_at_anchor:
 		hud.say(WellSequence.ANCHOR_NOTE, "self")
 	else:
@@ -1996,6 +2002,8 @@ const SUSPEND_AREAS := ["room", "square", "archive", "oob", "bin", "house"]
 const SUSPEND_WAKE := "(you came back. i stayed right here.)"
 ## This session resumed a suspended run.
 var woke_from_suspend := false
+## Who was walking with her when she stopped ("" if nobody): back home now.
+var _resumed_escort := ""
 
 
 ## Why Save and exit isn't possible right now, or "" when it is. The same
@@ -2008,8 +2016,6 @@ func suspend_blocker() -> String:
 		return "not here. this is where it ends."
 	if story_holds() or hud.is_choosing():
 		return "not in the middle of a conversation."
-	if escort:
-		return "not while %s is following you." % escort.npc_id
 	if director.awareness >= OwnerDirector.SUSPECT or hud.warning_text() != "":
 		return "not while the owner is looking for you."
 	if owner_moves and (owner_moves.save_progress >= 0.0 or owner_moves.wren_delete >= 0.0):
@@ -2032,7 +2038,12 @@ func try_suspend() -> String:
 	var blocked := suspend_blocker()
 	if blocked != "":
 		return blocked
-	if not OwnerMemory.record_suspend(area.area_id, player.global_position, SUSPEND_VERSION, flags):
+	# Someone walking with her goes home and asks again next time (their
+	# own "are we still going?"): stopping mid-escort costs them nothing.
+	var kept := flags.duplicate()
+	if escort:
+		kept["suspended_escort_" + escort.npc_id] = true
+	if not OwnerMemory.record_suspend(area.area_id, player.global_position, SUSPEND_VERSION, kept):
 		PlaytestLog.mark("SAVE AND EXIT FAILED", OwnerMemory.suspend_error)
 		return OwnerMemory.suspend_error
 	PlaytestLog.mark("SUSPENDED (save and exit)", "%s at %s" % [area.area_id, player.global_position.round()])
@@ -2076,8 +2087,55 @@ static func suspend_start(previous: String) -> Dictionary:
 	return s
 
 
+## Whether Rue's whole body fits at `at`: inside the map, on floor, and
+## clear of every solid as rebuilt this session (props, doors, walls).
+func body_fits(at: Vector2) -> bool:
+	if not area.bounds.grow(-6.0).has_point(at):
+		return false
+	if area.has_method("floor_at") and not area.floor_at(at):
+		return false
+	var shape_node := player.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if shape_node == null:
+		return true
+	var q := PhysicsShapeQueryParameters2D.new()
+	q.shape = shape_node.shape
+	q.transform = Transform2D(0.0, at + shape_node.position)
+	q.collision_mask = player.collision_mask
+	q.exclude = [player.get_rid()]
+	return get_world_2d().direct_space_state.intersect_shape(q, 1).is_empty()
+
+
+## A resumed spot is checked once the rebuilt map is in the physics world:
+## if anything now stands there (a crate the owner moved, a closed door),
+## the nearest clear spot, else the area's first way in.
+func _settle_resume() -> void:
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	if not is_inside_tree():
+		return
+	var at := player.global_position
+	if body_fits(at):
+		return
+	var found := Vector2.INF
+	for ring in range(1, 11):
+		for k in 16:
+			var c := at + Vector2.from_angle(TAU * k / 16.0) * ring * 6.0
+			if body_fits(c):
+				found = c
+				break
+		if found != Vector2.INF:
+			break
+	if found == Vector2.INF:
+		found = area.entry_point("start" if area.entries.has("start") else str(area.entries.keys()[0]) if not area.entries.is_empty() else "")
+	PlaytestLog.mark("resume moved", "%s: %s -> %s (blocked)" % [area.area_id, at.round(), found.round()])
+	player.global_position = found
+	update_camera(0.0, true)
+	if pip:
+		pip.arrive(player.position)
+
+
 ## Puts Rue back where she was (if it is still inside the map) with the
-## run's flags.
+## run's flags; _settle_resume then checks her whole body against the map.
 func _resume_at(s: Dictionary) -> void:
 	var at := Vector2(float(s.x), float(s.y))
 	if area.bounds.grow(-6.0).has_point(at) and (not area.has_method("floor_at") or area.floor_at(at)):
@@ -2087,6 +2145,9 @@ func _resume_at(s: Dictionary) -> void:
 			pip.arrive(player.position)
 	var kept: Dictionary = s.get("flags", {})
 	for k in kept:
+		if str(k).begins_with("suspended_escort_"):
+			_resumed_escort = str(k).trim_prefix("suspended_escort_")
+			continue
 		flags[k] = kept[k]
 	flags["pointer"] = flags.get("pointer", false) or OwnerMemory.met_archivist
 	woke_from_suspend = true

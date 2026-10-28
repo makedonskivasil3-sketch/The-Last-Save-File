@@ -45,6 +45,16 @@ All reproduced at `b26aba0` by `tests/test_movement.gd` before the fix (11 check
 | MV-5 | S3 | Near-45° input flipped facing 39 times in 40 frames. | `test_near_diagonal_input_doesnt_flicker_facing` | fixed (verified): axis hysteresis 1.3× |
 | MV-6 | S3 | The gait had a minimum cadence: slow movement shuffled (3 strides/s at 18 px/s). | `test_the_stride_follows_distance` | fixed (verified): one stride per 10 px |
 
+## Story consistency
+
+| ID | Sev | Issue | Evidence | Status |
+|---|---|---|---|---|
+| ST-1 | S2 | Wren's arc stated as fact that the well can't keep her ("It can't: nobody ever played her"), but the well keeps what's said near it, including Rue's answer. | `relationships.gd` at `b26aba0` vs `well_sequence.gd` | fixed (verified): now her fear ("I've never heard mine"); the journal records her question, not a law. `test_her_fear_is_hers_not_the_wells_rule` |
+| ST-2 | S2 | The two chalk marks didn't agree. Writing her name never required Wren's drawing, but the journal, her line and the epilogue always described both. | `b26aba0` | fixed (verified): every text follows what is on the rim, in either order, across a save/load. `test_name_first_then_her_drawing`, `test_drawing_first_then_her_name` |
+| ST-3 | S2 | A resumed position was checked only against the map's bounds and floor: she could resume inside a rebuilt crate or a closed door. | `b26aba0` `_resume_at` | fixed (verified): her whole body is checked against the rebuilt physics world, moving her to the nearest clear spot or an entry. `test_never_resumes_inside_something` |
+| ST-4 | S3 | The Save and exit note promised "she'll be right here", but props and people rebuild. | pause menu | fixed: "you'll pick up here, though people and things may have moved on" |
+| ST-5 | S2 | Save and exit was refused during escorts, so a player had to finish or abandon an escort to stop. | `suspend_blocker` | fixed (verified): the escort goes home and asks again; nothing is lost. `test_save_and_exit_during_an_escort` |
+
 ## Saves and persistence
 
 | ID | Sev | Issue | Evidence | Status |

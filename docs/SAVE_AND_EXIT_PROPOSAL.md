@@ -21,6 +21,22 @@ judged best. **Option (b)** was chosen: Suspend as proposed below, with no cost.
 - **Never at the Edge**, which is the finale.
 - **Tests:** `tests/test_suspend.gd`.
 
+## Stopping policy (2026-10-28)
+
+| Situation | What happens | Cost | Why |
+|---|---|---|---|
+| **Save and exit at a safe moment** (no hunt, warning, owner move, static, conversation; anywhere but the Edge) | Resumes once, at her position. The position is checked against her whole body in the rebuilt map | None | Ordinary stopping is not a strategy |
+| **…during an escort** (Wren, Mira) | The escort goes home. Rue says so on resume ("…went home while i was gone. we can still go."), and they ask again with their existing line. The promise stays open, not broken | None | A paying player can stop mid-escort. Allowed since 2026-10-28; the escort was blocked before |
+| **The save can't be written** | NOT SAVED, still paused: Retry or Return to game. The last save and its backup are untouched | None | A save that isn't on disk is never reported as one (SV-3) |
+| **During danger, or at the Edge** | Save and exit is offered greyed out, with the reason. Pausing is always free, and the menu says so | — | The Owner's pressure is the game. The Edge sequence is short and has its own retry pacing (`P8-3`) |
+| **Quit from the menu** | Counts as a quit: purge +1. The confirm panel says so, and offers Save and exit when it's available | Purge +1 | The story's established consequence ("the owner will remember") |
+| **Closing the window** (desktop) | `record_quit`: the same as quitting | Purge +1 | As above. **Open question:** a desktop close at a safe moment could become a Save and exit. Not changed without the author |
+| **Closing the tab** (web) | Counts as a quit next visit; the browser asks first ("Leave site?") | Purge +1 | The author's rule (2026-10-16): count it, but warn |
+| **Crash or power loss** | The next launch finds the session "active" and counts a crash | Purge +1 | The game can't tell a crash from killing it to escape. **Proposed, not built:** forgive a crash when the last autosave shows a safe moment |
+| **Before play starts** (boot text) | Nothing counts | None | — |
+
+**Proposed for the author:** at a safe moment, closing the window (desktop) or tab (web) becomes a Save and exit, and only an unsafe close counts. This would remove the last way ordinary stopping is punished. It isn't built, because it changes an established rule.
+
 The text below is the original proposal, kept for the reasoning.
 
 ## The problem

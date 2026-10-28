@@ -48,7 +48,7 @@ func test_her_story_comes_in_order_and_once() -> void:
 	check(Relationships._wren_own().is_empty(), "with the chalk: nothing to say until it's used")
 	memory().add_event("wren.named")
 	told = Relationships._wren_own()
-	check_eq(told.get("lines"), Relationships.WREN_SAW_NAME, "then she sees her name")
+	check_eq(told.get("lines"), Relationships.WREN_SAW_NAME_NO_MARK, "then she sees her name (no drawing of hers on this route)")
 	memory().complete_conversation("wren.saw_name")
 	check(Relationships._wren_own().is_empty(), "said once")
 
@@ -116,5 +116,48 @@ func test_not_now_is_a_real_answer() -> void:
 func test_every_ending_but_overwrite_remembers_her_name() -> void:
 	memory().add_event("wren.named")
 	for ending in ["escape", "wren", "message", "rue", "unseen"]:
-		check(Story.epilogue(ending, 0, false).has(Story.EPILOGUE_WREN_NAMED), "%s: the chalk is still there" % ending)
-	check(not Story.epilogue("overwrite", 0, false).has(Story.EPILOGUE_WREN_NAMED), "overwrite: Rue is Arin now; not hers to remember")
+		var lines := Story.epilogue(ending, 0, false)
+		check(lines.has(Story.EPILOGUE_WREN_NAME_ONLY), "%s: her name is still there" % ending)
+		check(not lines.has(Story.EPILOGUE_WREN_NAMED), "%s: and no drawing that was never made" % ending)
+	check(not Story.epilogue("overwrite", 0, false).has(Story.EPILOGUE_WREN_NAME_ONLY), "overwrite: Rue is Arin now; not hers to remember")
+	memory().add_event("wren.marked_well")
+	check(Story.epilogue("escape", 0, false).has(Story.EPILOGUE_WREN_NAMED), "with her drawing too: both marks")
+
+
+## G2: the two chalk marks, in either order, and what each page says.
+func test_name_first_then_her_drawing() -> void:
+	memory().add_event("wren.met")
+	memory().add_event("wren.chalk")
+	memory().add_event("wren.named")
+	check_eq(Relationships.rim_journal(), ["Four letters in your hand, on the rim: WREN."], "name only: the rim says just that")
+	check_eq(Relationships._wren_own().get("lines"), Relationships.WREN_SAW_NAME_NO_MARK, "she sees it where everybody passes, not \"next to you\"")
+	# Saved and loaded between the two.
+	memory().save_memory()
+	memory().clear_state()
+	memory().load_memory()
+	check(memory().has_event("wren.named") and not memory().has_event("wren.marked_well"), "(kept as it was)")
+	Relationships.wren_at_well = true
+	var told := Relationships.wren(0, false, false)
+	Relationships.wren_at_well = false
+	check(told.get("lines", []).has(Relationships.WREN_MARKED_BESIDE), "her drawing scene, after: she sees her name and puts Rue beside it")
+	memory().add_event("wren.marked_well")
+	check_eq(Relationships.rim_journal().size(), 2, "the rim's page now says both")
+	check(Relationships.rim_journal()[1].contains("beside it"), "in their order on the stone")
+
+
+func test_drawing_first_then_her_name() -> void:
+	memory().add_event("wren.met")
+	memory().add_event("wren.marked_well")
+	memory().add_event("wren.chalk")
+	memory().add_event("wren.named")
+	check(Relationships.rim_journal()[0].contains("Two dots"), "the drawing first")
+	check(Relationships.rim_journal()[1].contains("beside it"), "then her name beside it")
+	check_eq(Relationships._wren_own().get("lines"), Relationships.WREN_SAW_NAME, "\"next to you\"")
+
+
+func test_her_fear_is_hers_not_the_wells_rule() -> void:
+	var said := " ".join(Relationships.WREN_UNPLAYED)
+	check(said.contains("never heard mine"), "she says what she has heard")
+	check(not said.contains("can't keep") and not said.contains("cannot keep"), "not what the well can't do")
+	check(not str(Relationships.EVENTS["wren.unplayed"]).contains("can't"), "and the journal records her question, not a law")
+

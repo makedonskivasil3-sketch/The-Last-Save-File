@@ -43,7 +43,7 @@ const EVENTS := {
 	"wren.heard_well": "Wren hears the well too.",
 	"wren.marked_well": "Wren chalked a mark on the well's rim, so you'd find your way up.",
 	"wren.watched": "Wren watched the festival from the square. Nobody ever picked her to play.",
-	"wren.unplayed": "Wren asked if the well keeps a recording of her. It can't: nobody ever played her.",
+	"wren.unplayed": "Wren asked whether the well keeps anything of her. She has listened, and never heard herself in it.",
 	"wren.chalk": "Wren gave you her chalk, so somebody would remember her.",
 	"wren.named": "You wrote WREN on the well's rim, beside her mark of you.",
 	"mira.met": "Met Mira in Arin's room.",
@@ -114,16 +114,24 @@ const WREN_WATCHED := {
 	"": "Everybody went home before the last lantern. Then it lit anyway. I saw it.",
 }
 const WREN_WATCHED_CLOSE := "Nobody ever picked me for anything. I just watched. I'm good at watching."
+## Her fear, not the well's rule: the well keeps what's said near it
+## (WellSequence); nobody has heard Wren in it, and she draws her own
+## conclusion. Nothing in the game confirms or denies it.
 const WREN_UNPLAYED := [
 	"The well hums like the people who used to play. That's what I said.",
 	"So that's them down there. Their voices. Whoever got played.",
 	"...Is there one of me?",
-	"There isn't. Is there. Nobody ever played me.",
+	"I've listened. Lots. I've never heard mine. I don't think anybody ever played me long enough to leave one.",
 ]
 const WREN_CHALK_ASK := "Will you remember me? You can have my chalk."
 const WREN_CHALK_CHOICES := ["I'll remember you.", "Not now."]
+## Where to write it: beside her drawing of Rue if she made one, else the rim.
 const WREN_CHALK_GIVEN := [
 	"Write it where the owner doesn't look. The well's rim. That's where I put you.",
+	"W-R-E-N. Four letters. Don't do the R backwards.",
+]
+const WREN_CHALK_GIVEN_NO_MARK := [
+	"Write it on the well's rim. Everybody passes the well, and the owner never looks down.",
 	"W-R-E-N. Four letters. Don't do the R backwards.",
 ]
 const WREN_CHALK_LATER := ["That's okay. I'll keep it. It's only chalk."]
@@ -132,8 +140,23 @@ const WREN_SAW_NAME := [
 	"You wrote it. On the rim, next to you.",
 	"...Now there's one of me. Even if it's only chalk.",
 ]
-## Said to herself as Rue writes it.
+const WREN_SAW_NAME_NO_MARK := [
+	"You wrote it. On the rim, where everybody passes.",
+	"...Now there's one of me. Even if it's only chalk.",
+]
+## Her drawing of Rue, made after Rue had already written her name.
+const WREN_MARKED_BESIDE := "...and look. Next to my name. So now we're both on it."
+## Said to herself as Rue writes it (while Wren is gone, it waits for her).
 const RUE_WRITES_WREN := "(W-R-E-N. the R the right way round.)"
+const RUE_WRITES_WREN_GONE := "(W-R-E-N. so it's somewhere, while she isn't.)"
+## The rim, as the journal keeps it: what is actually written there.
+static func rim_journal() -> Array:
+	var lines: Array = []
+	if has("wren.marked_well"):
+		lines.append("Wren's chalk on the rim: you, as she draws you. Two dots for eyes, an arrow up.")
+	if has("wren.named"):
+		lines.append("Four letters beside it, in your hand: WREN." if has("wren.marked_well") else "Four letters in your hand, on the rim: WREN.")
+	return lines
 ## The session she was last told "not now" (she offers again next session).
 static var chalk_declined_session := -1
 
@@ -171,7 +194,7 @@ static func mira_festival() -> Dictionary:
 ## Wren's own story, one step a conversation, in order (see WREN_WATCHED).
 static func _wren_own() -> Dictionary:
 	if has("wren.named"):
-		return _once("wren.saw_name", WREN_SAW_NAME)
+		return _once("wren.saw_name", WREN_SAW_NAME if has("wren.marked_well") else WREN_SAW_NAME_NO_MARK)
 	if has("wren.lantern") and not has("wren.watched"):
 		var how: String = WREN_WATCHED.get(OwnerMemory.festival_choice, WREN_WATCHED[""])
 		return {"lines": [WREN_WATCHED_OPEN, how, WREN_WATCHED_CLOSE], "id": "wren.watched", "commit": ["wren.watched"]}
@@ -235,7 +258,7 @@ static func wren_lines() -> Array:
 	return WREN_ESCORT + WREN_AFTER_DEATH + [WREN_SAW_STATIC] + WREN_AFTER_RESTORE + WREN_AFTER_RESTORE_BROKEN \
 		+ [WREN_PROMISE_OPEN, WREN_PROMISE_BROKEN] + WREN_WELL + [WREN_GREETING] + WREN_MARKED + WREN_MARKED_SAW + WREN_FESTIVAL \
 		+ [WREN_WATCHED_OPEN, WREN_WATCHED_CLOSE] + WREN_WATCHED.values() + WREN_UNPLAYED + [WREN_CHALK_ASK] + WREN_CHALK_GIVEN \
-		+ WREN_CHALK_LATER + [WREN_CHALK_AGAIN] + WREN_SAW_NAME
+		+ WREN_CHALK_LATER + [WREN_CHALK_AGAIN] + WREN_SAW_NAME + WREN_CHALK_GIVEN_NO_MARK + WREN_SAW_NAME_NO_MARK + [WREN_MARKED_BESIDE]
 
 
 static func mira_lines() -> Array:
@@ -342,7 +365,10 @@ static func wren(_talk: int, ask_ready: bool, escorting: bool) -> Dictionary:
 	# The checkpoint scene: waiting at the well with a chalk mark. It is her
 	# reunion too, when she saw Rue taken (so that isn't said twice).
 	if wren_at_well:
-		var marked := _once("wren.marked_well", WREN_MARKED_SAW if died_at >= 0 else WREN_MARKED,
+		var scene: Array = (WREN_MARKED_SAW if died_at >= 0 else WREN_MARKED).duplicate()
+		if has("wren.named"):
+			scene.insert(scene.size() - 1, WREN_MARKED_BESIDE)
+		var marked := _once("wren.marked_well", scene,
 			["wren.marked_well", "wren.reunited"] if died_at >= 0 else ["wren.marked_well"])
 		if not marked.is_empty():
 			return marked

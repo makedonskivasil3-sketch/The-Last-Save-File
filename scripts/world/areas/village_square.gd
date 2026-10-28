@@ -433,7 +433,8 @@ func _offer_chalk() -> void:
 	world.player.frozen = false
 	if pick == 0:
 		Relationships.add("wren.chalk")
-		world.hud.show_dialogue("WREN", wren.name_color, Relationships.WREN_CHALK_GIVEN, "npc.wren", CharacterArt.for_npc(wren), World.expressions_for(wren, Relationships.WREN_CHALK_GIVEN))
+		var given: Array = Relationships.WREN_CHALK_GIVEN if Relationships.has("wren.marked_well") else Relationships.WREN_CHALK_GIVEN_NO_MARK
+		world.hud.show_dialogue("WREN", wren.name_color, given, "npc.wren", CharacterArt.for_npc(wren), World.expressions_for(wren, given))
 		world.hud.say("KEPT: WREN'S CHALK  ·  the well's rim", "system")
 	else:
 		Relationships.chalk_declined_session = OwnerMemory.sessions
@@ -448,10 +449,9 @@ static func can_write_wren() -> bool:
 ## Writing WREN on the rim, beside Wren's mark of Rue. Kept for good.
 func _write_wren() -> void:
 	Relationships.add("wren.named")
-	OwnerMemory.record_read("square:WREN, IN CHALK", "note", "THE WELL'S RIM", display_name,
-		["Chalk on the rim: two dots for eyes, an arrow up, and four letters in your hand: WREN."])
+	_journal_rim()
 	Sfx.play("seal", -8.0, 1.6)
-	world.hud.say(Relationships.RUE_WRITES_WREN, "self")
+	world.hud.say(Relationships.RUE_WRITES_WREN_GONE if OwnerMemory.is_deleted("wren") else Relationships.RUE_WRITES_WREN, "self")
 	queue_redraw()
 
 
@@ -588,6 +588,14 @@ func _mark_process() -> void:
 
 func _on_marked(_who: Node) -> void:
 	queue_redraw()  # the chalk, from now on
+	if Relationships.has("wren.named"):
+		_journal_rim()  # the two marks are together now
+
+
+## The journal's page for the rim: what's on it, in either order.
+func _journal_rim() -> void:
+	# A "file" page: rewritten to say what is on the rim now, not appended to.
+	OwnerMemory.record_read("square:WREN, IN CHALK", "file", "THE WELL'S RIM", display_name, Relationships.rim_journal())
 
 
 func _exit_tree() -> void:

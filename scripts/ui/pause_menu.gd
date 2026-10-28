@@ -181,7 +181,7 @@ func open() -> void:
 	_goal_label.visible = goal != ""
 	_suspend.disabled = suspend_blocked != ""
 	_suspend_note.text = ("save and exit: " + suspend_blocked) if suspend_blocked != "" \
-		else "save and exit: she'll be right here next time. nothing is counted."
+		else "save and exit: you'll pick up here, though people and things may have moved on. nothing is counted."
 	Sfx.ui("pause")
 	Sfx.muffle(true)
 	_show_main()

@@ -55,7 +55,7 @@ func test_only_at_a_safe_moment() -> void:
 	w.area.arin.position = Vector2(560, 280)
 	w.debug("wren")
 	await wait_until(func() -> bool: return w.escort != null, 3.0, "Wren following")
-	check(w.suspend_blocker().contains("following you"), "not while someone depends on her (%s)" % w.suspend_blocker())
+	check_eq(w.suspend_blocker(), "", "an escort doesn't block it: she goes home and asks again")
 	w.lose_escort()
 	await frames(2)
 	w.player.frozen = false
@@ -85,6 +85,7 @@ func test_the_pause_menu_says_when_and_why() -> void:
 	var menu = w._pause_menu
 	check(not menu._suspend.disabled, "offered when it's safe")
 	check(menu._suspend_note.text.contains("nothing is counted"), "and says it costs nothing (%s)" % menu._suspend_note.text)
+	check(menu._suspend_note.text.contains("may have moved on"), "without promising an exact snapshot")
 	menu.close()
 	await frames(2)
 	w.director.awareness = OwnerDirector.HUNT + 1.0
@@ -127,3 +128,38 @@ func test_the_record_survives_a_save_and_bad_data_is_ignored() -> void:
 	check(memory().suspend.is_empty(), "a damaged record is ignored")
 	check(not memory().record_suspend("square", Vector2.ZERO, 1, {}), "and no second suspend once the run is closed")
 	check_eq(w.area.area_id, "square", "(the run itself is untouched)")
+
+
+## G3: a resumed spot is checked against her whole body in the rebuilt map.
+func test_never_resumes_inside_something() -> void:
+	memory().sessions = 4
+	memory().last_exit = "suspend"
+	var crates_at: Vector2 = VillageSquare.CRATES.get_center()
+	memory().suspend = {"area": "square", "x": crates_at.x, "y": crates_at.y, "version": World.SUSPEND_VERSION, "session": 4, "flags": {}}
+	var w := await start_session()
+	check_eq(w.area.area_id, "square", "resumed in the square")
+	check(not w.area.crates.rect().grow(-1.0).has_point(w.player.global_position), "not inside the crates (%s)" % w.player.global_position)
+	check(w.body_fits(w.player.global_position), "somewhere her whole body fits")
+	check(w.player.global_position.distance_to(crates_at) < 70.0, "and near where she was")
+
+
+
+## G4: stopping mid-escort costs nobody anything.
+func test_save_and_exit_during_an_escort() -> void:
+	var w := await _calm_square()
+	w.debug("wren")
+	await wait_until(func() -> bool: return w.escort != null, 3.0, "Wren following")
+	memory().add_event("wren.promised")
+	var fates: Dictionary = memory().npc_fates.duplicate()
+	check_eq(w.try_suspend(), "", "saved mid-escort")
+	await wait_until(func() -> bool: return scene() != null and scene().get("player") == null, 5.0, "the title")
+	check_eq(memory().npc_fates, fates, "Wren isn't lost or deleted for it")
+	var w2 := await start_session()
+	check(w2.woke_from_suspend and w2.escort == null, "resumed; she isn't trailing her")
+	check_eq(w2._resumed_escort, "wren", "it knows who was walking with her")
+	check(w2.area.wren != null, "she's back at her place in the square")
+	# Shown, or waiting its turn behind the owner's lines in the console.
+	var said := await wait_until(func() -> bool: return w2.hud.history.any(func(e: Dictionary) -> bool: return str(e.text).contains("went home while i was gone")) \
+		or w2.hud._queue.any(func(m: Dictionary) -> bool: return str(m.text).contains("went home while i was gone")), 3.0, "Rue's line")
+	check(said, "and Rue says where she went (%s)" % str(w2.hud.history.map(func(e: Dictionary) -> String: return str(e.text)).slice(-6)))
+	check(memory().has_event("wren.promised") and not memory().has_event("wren.promise_broken"), "the promise is still open, not broken")
