@@ -8,6 +8,8 @@ signal taken(p: Passage)
 enum Look { NONE, PILLAR }
 
 var prompt := "climb in"
+## What it is (World.object_name): "the well", "the pillar".
+var object_name := ""
 var look: Look = Look.NONE
 var target_area := ""
 var arrival := ""
@@ -23,6 +25,11 @@ func can_interact() -> bool:
 
 func interact_prompt() -> String:
 	return prompt
+
+
+## What this is, shown small over the prompt (World.object_name).
+func interact_name() -> String:
+	return object_name
 
 
 ## World shows a returned String in the console; "" shows nothing.

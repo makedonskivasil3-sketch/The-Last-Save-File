@@ -18,6 +18,11 @@ func interact_prompt() -> String:
 	return "chalk a mark"
 
 
+## What this is, shown small over the prompt (World.object_name).
+func interact_name() -> String:
+	return {"recess": "under the awning", "crossing": "out on the crossing"}.get(id, "")
+
+
 func interact() -> String:
 	chalked.emit(self)
 	return ""

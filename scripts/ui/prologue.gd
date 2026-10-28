@@ -554,6 +554,8 @@ static func plain_camera_requested() -> bool:
 		return true
 	return OS.has_feature("web") and str(JavaScriptBridge.eval("window.location.search", true)).contains("camera=plain")
 var _look := Vector2.ZERO
+## The velocity being driven by keys or a stick (MoveFeel).
+var _rue_drive := Vector2.ZERO
 
 
 ## Where the camera wants to be (before smoothing and the look-ahead).
@@ -670,6 +672,7 @@ func _interact_held() -> bool:
 ## for -> what the solids allow -> the velocity that animates her.
 func _move_rue(delta: float) -> void:
 	var want := Vector2.ZERO
+	var d := Vector2.ZERO
 	if not _rue_free:
 		var spot := LANTERNS[4] + Vector2(0, 14)
 		if rue_pos.y > HEDGE_Y.x - 4.0:
@@ -678,13 +681,17 @@ func _move_rue(delta: float) -> void:
 		var to := spot - rue_pos
 		want = to.limit_length(SPEED * 0.6 * delta) if to.length() > 2.0 else Vector2.ZERO
 	else:
-		var d := _input_dir()
+		d = _input_dir()
 		if _walk_to != Vector2.INF:
 			# Never past it: the step is bounded by what's left.
 			want = (_walk_to - rue_pos).limit_length(SPEED * delta)
 		else:
-			want = d * SPEED * delta
-	_rue_intent = want / (SPEED * delta) if delta > 0.0 else Vector2.ZERO
+			# MoveFeel: immediate in C (the default) and A; eased in B.
+			_rue_drive = MoveFeel.drive(_rue_drive, d * SPEED, SPEED, delta)
+			want = _rue_drive * delta
+	if _walk_to != Vector2.INF or not _rue_free:
+		_rue_drive = Vector2.ZERO
+	_rue_intent = (d if _rue_free and _walk_to == Vector2.INF else want / (SPEED * delta)) if delta > 0.0 else Vector2.ZERO
 	var from := rue_pos
 	rue_pos = _slide(rue_pos, want, true)
 	var moved := rue_pos - from
@@ -1622,12 +1629,9 @@ func _draw_stall(k: float) -> void:
 
 
 func _draw_well(k: float) -> void:
+	# The same well as the square's, three years earlier (VillageSquare.draw_well).
 	var stone := Color("8a8478") if k < 3.0 else Color("4a4a56")
-	draw_rect(WELL, stone)
-	draw_rect(WELL.grow(-4), Color("1a1a22"))
-	draw_rect(Rect2(WELL.position + Vector2(0, -14), Vector2(3, 16)), Color("5a4030"))
-	draw_rect(Rect2(Vector2(WELL.end.x - 3, WELL.position.y - 14), Vector2(3, 16)), Color("5a4030"))
-	draw_rect(Rect2(WELL.position + Vector2(-2, -16), Vector2(WELL.size.x + 4, 3)), Color("6a4a30"))
+	VillageSquare.draw_well(self, WELL, stone)
 
 
 func _draw_hedge(k: float) -> void:

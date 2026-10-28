@@ -68,6 +68,11 @@ func interact_prompt() -> String:
 	return "wake" if mode == Mode.WAITING else "talk"
 
 
+## What this is, shown small over the prompt (World.object_name).
+func interact_name() -> String:
+	return "pip"
+
+
 func interact() -> Dictionary:
 	if mode == Mode.WAITING:
 		_join_after_talk = true

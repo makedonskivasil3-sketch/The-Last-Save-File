@@ -244,6 +244,7 @@ func build() -> void:
 
 	well = Passage.new()
 	well.prompt = "climb into the well"
+	well.object_name = "the well"
 	well.target_area = "oob"
 	well.arrival = "well"
 	well.position = Vector2(WELL.get_center().x, WELL.end.y + 6)
@@ -961,15 +962,15 @@ func _draw() -> void:
 	# Wren's chalk on the rim (kept for good once she's shown you).
 	if Relationships.has("wren.marked_well"):
 		var c := Color(0.95, 0.95, 0.9, 0.85)
-		var at := Vector2(WELL.end.x - 9, WELL.position.y + 2)
-		draw_circle(at, 3.2, Color(c, 0.0))
-		draw_arc(at, 3.2, 0.0, TAU, 10, c, 0.7)  # her head for you
-		draw_rect(Rect2(at + Vector2(-1.6, -0.6), Vector2(0.9, 0.9)), c)  # two dots for eyes
-		draw_rect(Rect2(at + Vector2(0.8, -0.6), Vector2(0.9, 0.9)), c)
-		draw_line(at + Vector2(0, 3.2), at + Vector2(0, 7), c, 0.7)
-		draw_line(at + Vector2(-6, 6), at + Vector2(-6, -1), c, 0.7)  # an arrow, up
-		draw_line(at + Vector2(-6, -1), at + Vector2(-8, 1.5), c, 0.7)
-		draw_line(at + Vector2(-6, -1), at + Vector2(-4, 1.5), c, 0.7)
+		# On the ring's stone face (draw_well), where chalk shows.
+		var at := Vector2(WELL.end.x - 8, WELL.position.y + 15)
+		draw_arc(at, 2.8, 0.0, TAU, 10, c, 0.7)  # her head for you
+		draw_rect(Rect2(at + Vector2(-1.4, -0.6), Vector2(0.8, 0.8)), c)  # two dots for eyes
+		draw_rect(Rect2(at + Vector2(0.6, -0.6), Vector2(0.8, 0.8)), c)
+		draw_line(at + Vector2(0, 2.8), at + Vector2(0, 6), c, 0.7)
+		draw_line(at + Vector2(5, 5), at + Vector2(5, -1), c, 0.7)  # an arrow, up
+		draw_line(at + Vector2(5, -1), at + Vector2(3.4, 1.2), c, 0.7)
+		draw_line(at + Vector2(5, -1), at + Vector2(6.6, 1.2), c, 0.7)
 	# Wren's game: her X where she stands; Rue's R where Rue chose (backwards
 	# until Wren fixes it, next session); a refused mark is rubbed out.
 	if Relationships.has("wren.game"):
@@ -989,7 +990,7 @@ func _draw() -> void:
 	if Relationships.has("wren.named"):
 		var c := Color(0.95, 0.95, 0.9, 0.85)
 		var font := ThemeDB.fallback_font
-		draw_string(font, Vector2(WELL.end.x - 30, WELL.position.y + 6), "WREN", HORIZONTAL_ALIGNMENT_LEFT, -1, 6, c)
+		draw_string(font, Vector2(WELL.position.x + 3, WELL.position.y + 20), "WREN", HORIZONTAL_ALIGNMENT_LEFT, -1, 5, c)
 	# Only what moves is drawn every frame: the unloaded road north, static
 	# where the path should continue. The rest is the backdrop (_paint).
 	if not world.flags.get("pointer", false):
@@ -1023,16 +1024,7 @@ func _paint(ci: CanvasItem) -> void:
 		fx += 14.0
 	# Arin's house: roof, front wall, the door you came out of.
 	Decor.house(ci, HOUSE, Color("7a3a30"), Color("b8a088"), HOUSE_DOOR.get_center().x)
-	# The well: a stone ring with a front face, dark water, a crossbeam.
-	ci.draw_rect(Rect2(WELL.position + Vector2(2, 4), WELL.size), Color(0, 0, 0, 0.3))
-	ci.draw_rect(Rect2(WELL.position.x, WELL.end.y - 6, WELL.size.x, 6), STONE.darkened(0.3))
-	ci.draw_rect(Rect2(WELL.position, Vector2(WELL.size.x, WELL.size.y - 6)), STONE)
-	ci.draw_rect(Rect2(WELL.position + Vector2(4, 3), Vector2(WELL.size.x - 8, WELL.size.y - 12)), Color("142230"))
-	ci.draw_line(WELL.position + Vector2(5, 5), WELL.position + Vector2(11, 7), Color(0.6, 0.8, 1.0, 0.35), 0.8)
-	for k in 4:
-		ci.draw_line(Vector2(WELL.position.x + 2 + k * 7, WELL.end.y - 6), Vector2(WELL.position.x + 2 + k * 7, WELL.end.y), STONE.darkened(0.45), 0.6)
-	ci.draw_rect(Rect2(WELL.position.x - 2, WELL.position.y + 5, WELL.size.x + 4, 2.2), Color("6b4a30"))
-	ci.draw_rect(WELL, Decor.INK, false, 0.8)
+	draw_well(ci, WELL, STONE)
 	# Tobben's stall: a counter with goods under a striped awning.
 	var counter := Decor.furniture(ci, STALL, Color("6b5040"), 6.0)
 	for k in 9:
@@ -1068,6 +1060,65 @@ func _paint(ci: CanvasItem) -> void:
 		{"side": "right", "from": EAST_GAP.x, "to": EAST_GAP.y},
 		{"side": "top", "from": NORTH_GAP.x, "to": NORTH_GAP.y},
 	])
+
+
+## The well, seen from above and in front: a round stone ring (its rim an
+## ellipse, its front a curved face of laid stones), black water with a
+## glint, a winch frame with its rope and a bucket on the rim. Chalk is
+## drawn on the rim's top (see the WREN and X marks), which stays flat.
+static func draw_well(ci: CanvasItem, r: Rect2, stone: Color) -> void:
+	var c := Vector2(r.get_center().x, r.position.y + 7.0)
+	var rx := r.size.x * 0.5
+	var ry := 6.0
+	var ring := func(cx: Vector2, ax: float, ay: float, n := 20) -> PackedVector2Array:
+		var pts := PackedVector2Array()
+		for i in n:
+			var t := TAU * i / n
+			pts.append(cx + Vector2(cos(t) * ax, sin(t) * ay))
+		return pts
+	# Shadow, then the front face: the lower half of the ring, extruded.
+	ci.draw_colored_polygon(ring.call(c + Vector2(2, r.size.y - 5), rx + 1, ry), Color(0, 0, 0, 0.3))
+	var face := PackedVector2Array()
+	for i in 11:
+		var t := PI * i / 10.0
+		face.append(c + Vector2(cos(t) * rx, sin(t) * ry))
+	for i in range(10, -1, -1):
+		var t := PI * i / 10.0
+		face.append(c + Vector2(cos(t) * rx, sin(t) * ry + r.size.y - 9))
+	ci.draw_colored_polygon(face, stone.darkened(0.2))
+	# Laid stones: two courses, joints staggered, following the curve.
+	for row in 2:
+		var y := 4.0 + row * 4.5
+		for i in 7:
+			var t := PI * (i + (0.5 if row == 1 else 0.0)) / 7.0
+			var x := cos(t) * rx * 0.97
+			var p := c + Vector2(x, sin(t) * ry + y)
+			ci.draw_line(p + Vector2(0, -2), p + Vector2(0, 2), stone.darkened(0.5), 0.6)
+		var band := PackedVector2Array()
+		for i in 11:
+			var t := PI * i / 10.0
+			band.append(c + Vector2(cos(t) * rx, sin(t) * ry + y + 2.2))
+		ci.draw_polyline(band, stone.darkened(0.45), 0.6)
+	# The rim: a ring of stone, lit on top, around the dark water.
+	ci.draw_colored_polygon(ring.call(c, rx, ry), stone.lightened(0.12))
+	ci.draw_colored_polygon(ring.call(c + Vector2(0, 0.6), rx - 3.5, ry - 2.4), Color("0e1822"))
+	ci.draw_arc(c + Vector2(0, 0.6), rx - 3.5, PI * 1.1, PI * 1.9, 10, stone.darkened(0.35), 0.8)  # the inner lip in shadow
+	ci.draw_line(c + Vector2(-5, 0.5), c + Vector2(1, 1.6), Color(0.6, 0.8, 1.0, 0.4), 0.7)  # the water's glint
+	ci.draw_polyline(ring.call(c, rx, ry) + PackedVector2Array([c + Vector2(rx, 0)]), Decor.INK, 0.7)
+	# The winch: two posts from the rim, a beam, the rope, a bucket left on the rim.
+	var wood := Color("6b4a30")
+	for side in [-1.0, 1.0]:
+		var foot := c + Vector2(side * (rx - 1.5), 1.0)
+		ci.draw_rect(Rect2(foot + Vector2(-1.2, -15), Vector2(2.4, 15)), wood.darkened(0.15))
+		ci.draw_line(foot + Vector2(-1.2, -15), foot + Vector2(-1.2, 0), wood.lightened(0.2), 0.5)
+	ci.draw_rect(Rect2(c + Vector2(-rx + 0.5, -15.5), Vector2(2 * rx - 1.0, 2.2)), wood)
+	ci.draw_line(c + Vector2(-rx + 0.5, -15.5), c + Vector2(rx - 0.5, -15.5), wood.lightened(0.25), 0.5)
+	ci.draw_rect(Rect2(c + Vector2(-3, -16.5), Vector2(6, 4)), wood.darkened(0.3))  # the drum
+	ci.draw_line(c + Vector2(0, -12.5), c + Vector2(0, -1.5), Color("c8b080"), 0.6)  # the rope, down into the dark
+	var bucket := c + Vector2(rx - 6, -2.5)
+	ci.draw_colored_polygon(PackedVector2Array([bucket + Vector2(-2.5, -2), bucket + Vector2(2.5, -2), bucket + Vector2(2, 2), bucket + Vector2(-2, 2)]), Color("7a5a3a"))
+	ci.draw_line(bucket + Vector2(-2.5, -1), bucket + Vector2(2.5, -1), Color("4a3a2a"), 0.6)
+	ci.draw_arc(bucket + Vector2(0, -2), 2.4, PI, TAU, 6, Color("3a2a20"), 0.5)
 
 
 ## The east half, under the same afternoon: the crossing's cobbles, the

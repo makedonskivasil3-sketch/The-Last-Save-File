@@ -23,6 +23,11 @@ func interact_prompt() -> String:
 	return "your place (kept)" if is_kept else "keep my place here"
 
 
+## What this is, shown small over the prompt (World.object_name).
+func interact_name() -> String:
+	return "under the well"
+
+
 func interact() -> String:
 	kept.emit(self)
 	return ""

@@ -77,6 +77,7 @@ func build() -> void:
 	pillar = Passage.new()
 	pillar.look = Passage.Look.PILLAR
 	pillar.prompt = "climb up"
+	pillar.object_name = "the way up"
 	pillar.target_area = "square"
 	pillar.arrival = "well"
 	pillar.position = PILLAR_POS

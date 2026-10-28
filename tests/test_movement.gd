@@ -282,3 +282,63 @@ func test_thoughts_have_one_pair_of_parentheses() -> void:
 	w.hud.say("a plain thought", "self")
 	check(await wait_until(func() -> bool: return w.hud.console_history.has("(a plain thought)"), 20.0, "both shown"), "a plain thought gets its parentheses (%s)" % str(w.hud.console_history.slice(-4)))
 	check(w.hud.console_history.has("(still up. i'll tell her.)"), "a written-in pair isn't doubled (%s)" % str(w.hud.console_history.slice(-3)))
+
+
+# --- Animation contact --------------------------------------------------------------
+
+## A planted foot doesn't skate: while it's down, its place on the floor
+## (body travel + its offset) stays put, for Rue at game and festival scale
+## and for the supporting cast's figures. (Before: 20-29 px for Rue, 10 px
+## for the others.)
+func test_a_planted_foot_stays_on_the_floor() -> void:
+	for scale in [1.0, 1.35]:
+		var c := HeroFigure.new("rue", Player.RUE)
+		c.facing = Vector2.RIGHT
+		var x := 0.0
+		var at := [INF, INF]
+		var worst := 0.0
+		for i in 480:
+			c.update(1.0 / 240.0, Vector2(90, 0))
+			x += 90.0 / 240.0
+			var feet: Array = c.feet_now(scale)
+			for k in 2:
+				if feet[k].planted:
+					if at[k] == INF:
+						at[k] = x + float(feet[k].foot.x) * scale
+					worst = maxf(worst, absf(x + float(feet[k].foot.x) * scale - float(at[k])))
+				else:
+					at[k] = INF
+		check(worst < 0.05, "Rue at scale %.2f: planted feet drift %.3f px" % [scale, worst])
+	var n := IllustratedCharacter.new("child", {})
+	n.facing = Vector2.RIGHT
+	var nx := 0.0
+	var nat := [INF, INF]
+	var nworst := 0.0
+	for i in 480:
+		n.update(1.0 / 240.0, Vector2(45, 0))
+		nx += 45.0 / 240.0
+		for k in 2:
+			var fp: Vector2 = n.foot_pose(-1.0 if k == 0 else 1.0, n._walk * PI, true)
+			if fp.y <= 0.001:
+				if nat[k] == INF:
+					nat[k] = nx + fp.x
+				nworst = maxf(nworst, absf(nx + fp.x - float(nat[k])))
+			else:
+				nat[k] = INF
+	check(nworst < 0.05, "a supporting character's planted feet drift %.3f px" % nworst)
+
+
+## The tuning variants are a playtest switch: C (the shipped movement) by
+## default; B eases; A answers like C but without the lean and settle.
+func test_movement_variants() -> void:
+	MoveFeel.variant = ""
+	check_eq(MoveFeel.current(), "c", "C by default")
+	check_eq(MoveFeel.drive(Vector2.ZERO, Vector2(90, 0), 90.0, 1.0 / 60.0), Vector2(90, 0), "C: full speed on the first tick")
+	MoveFeel.variant = "b"
+	var v := MoveFeel.drive(Vector2.ZERO, Vector2(90, 0), 90.0, 1.0 / 60.0)
+	check(v.x > 0.0 and v.x < 90.0, "B: eases in (%.1f)" % v.x)
+	check(MoveFeel.body_language(), "B keeps the body language")
+	MoveFeel.variant = "a"
+	check_eq(MoveFeel.drive(Vector2.ZERO, Vector2(90, 0), 90.0, 1.0 / 60.0), Vector2(90, 0), "A: immediate")
+	check(not MoveFeel.body_language(), "A: no lean, squeeze or settle")
+	MoveFeel.variant = ""

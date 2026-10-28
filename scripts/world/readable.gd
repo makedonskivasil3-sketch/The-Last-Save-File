@@ -30,6 +30,11 @@ func interact_prompt() -> String:
 	return prompt
 
 
+## What this is, shown small over the prompt (World.object_name).
+func interact_name() -> String:
+	return title
+
+
 func interact() -> Dictionary:
 	return {"speaker": title, "color": color, "lines": lines_provider.call()}
 

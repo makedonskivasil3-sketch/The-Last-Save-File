@@ -131,7 +131,7 @@ func draw(ci: CanvasItem, opts: Dictionary = {}) -> void:
 	else:
 		dy += lean * 0.6
 	var parts := _Parts.new(self, ci, solid, grey, alpha)
-	_legs(parts, Vector2(s_legs, dy * 0.4), phase, side)
+	_legs(parts, Vector2(s_legs, dy * 0.4), _walk * PI, side, k)
 	_torso(parts, Vector2(s_body, dy), phase, side, step)
 	_head(parts, Vector2(s_head + sway, dy + breath), side)
 	parts.flush()
@@ -151,29 +151,45 @@ func _shadow(ci: CanvasItem, alpha: float) -> void:
 	ci.draw_colored_polygon(pts, Color(0, 0, 0, 0.3 * alpha))
 
 
-func _legs(p: _Parts, o: Vector2, phase: float, side: bool) -> void:
+## Where one foot is (side_i: -1 near, +1 far) at gait phase `a`: x in the
+## figure's frame (forward when side-on) and how lifted it is. Half of each
+## leg's cycle is stance: the body covers one STRIDE of floor, so a planted
+## foot travels back exactly that far (scaled by the drawing) at an even
+## rate, and stays put on the floor (MOVEMENT_SPEC, "Animation contact").
+func foot_pose(side_i: float, a: float, side: bool, k := 1.0) -> Vector2:
+	if not moving:
+		return Vector2.ZERO
+	var q := fposmod(a + (0.0 if side_i < 0.0 else PI) + PI * 0.5, TAU)
+	if q < PI:
+		return Vector2(PixelCharacter.STRIDE / maxf(0.01, k) * (0.5 - q / PI) if side else 0.0, 0.0)
+	var u := (q - PI) / PI
+	return Vector2(PixelCharacter.STRIDE / maxf(0.01, k) * (-0.5 + u * u * (3.0 - 2.0 * u)) if side else 0.0, sin(u * PI))
+
+
+func _legs(p: _Parts, o: Vector2, a: float, side: bool, k := 1.0) -> void:
 	var h := float(body.h)
 	var hip := -h * 0.36 + o.y
 	var lower: String = body.lower
 	var leg := leg_color
 	var shoe := shoe_color
 	var spread := 1.6 if not side else 0.6
-	var swing := phase * (2.4 if side else 1.0)
 	if lower in ["dress", "robe"]:
 		# Feet peek out under the hem.
 		var hem := 0.0 if lower == "robe" else -2.2
-		p.ellipse(Vector2(-1.8 + swing * 0.5 + o.x, -0.4), Vector2(1.6, 1.0), shoe)
-		p.ellipse(Vector2(1.8 - swing * 0.5 + o.x, -0.4), Vector2(1.6, 1.0), shoe)
-		if lower == "dress":
-			p.capsule(Vector2(-1.5 + o.x, hem), Vector2(-1.6 + swing * 0.5 + o.x, -1.0), 0.9, _c("s", Color("f0c49c")))
-			p.capsule(Vector2(1.5 + o.x, hem), Vector2(1.6 - swing * 0.5 + o.x, -1.0), 0.9, _c("s", Color("f0c49c")))
+		for side_i: float in [-1.0, 1.0]:
+			var fp := foot_pose(side_i, a, side, k)
+			var fx := side_i * 1.8 + fp.x + o.x
+			p.ellipse(Vector2(fx, -0.4 - fp.y * 0.8), Vector2(1.6, 1.0), shoe)
+			if lower == "dress":
+				p.capsule(Vector2(side_i * 1.5 + o.x, hem), Vector2(fx, -1.0 - fp.y * 0.8), 0.9, _c("s", Color("f0c49c")))
 		return
 	if lower == "smock":
 		leg = _c("s", Color("f0c49c"))
 	for side_i: float in [-1.0, 1.0]:
-		var lift := maxf(0.0, phase * side_i) * 1.2
+		var fp := foot_pose(side_i, a, side, k)
+		var lift := fp.y * 1.2
 		var top := Vector2(side_i * spread + o.x, hip)
-		var foot := Vector2(side_i * spread + swing * side_i + o.x, -0.6 - lift)
+		var foot := Vector2(side_i * spread + fp.x + o.x, -0.6 - lift)
 		p.capsule(top, foot, 1.25 if kind != "child" else 1.0, leg)
 		p.ellipse(foot + Vector2(0.4 if side else 0.0, 0.3), Vector2(1.6 if side else 1.4, 0.9), shoe)
 

@@ -36,6 +36,11 @@ func interact_prompt() -> String:
 	return "restore %s" % file_name()
 
 
+## What this is, shown small over the prompt (World.object_name).
+func interact_name() -> String:
+	return "recycle bin"
+
+
 func interact() -> String:
 	progress = 0.0
 	Sfx.play("glitch_charge", -8.0, 0.7)

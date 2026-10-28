@@ -54,6 +54,8 @@ var sheltered := false
 ## 0..1, set by World from the owner's awareness.
 var instability := 0.0
 
+## The velocity being driven (MoveFeel), before collision resolves it.
+var _drive := Vector2.ZERO
 var _jitter := Vector2.ZERO
 var _tear_rows := PackedFloat32Array([0, 0, 0])
 var _blink := false
@@ -199,12 +201,17 @@ func _physics_process(delta: float) -> void:
 	if frozen or reading:
 		# Reading or answering: Rue stands still (and the owner holds, World._update_reading_hold).
 		velocity = Vector2.ZERO
+		_drive = Vector2.ZERO
 		_intent = Vector2.ZERO
 		return
 	var dir := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	_intent = dir
-	velocity = dir * speed
+	# MoveFeel: C (the default) and A answer at once; B eases (playtest only).
+	_drive = MoveFeel.drive(_drive, dir * speed, speed, delta)
+	velocity = _drive
 	move_and_slide()
+	if get_real_velocity().length() < 0.5 and dir == Vector2.ZERO:
+		_drive = Vector2.ZERO
 	if dir != Vector2.ZERO:
 		idle_time = 0.0
 	elif not reading and not reading_card:

@@ -138,11 +138,12 @@ func update(delta: float, velocity: Vector2, face_motion := true) -> void:
 		face(velocity)
 	# Weight (pass 8): stopping settles the body a moment; turning squeezes
 	# it through the turn instead of flipping in one frame.
-	if was_moving and not moving:
+	var body := MoveFeel.body_language()  # off in movement variant A
+	if was_moving and not moving and body:
 		settle = SETTLE_TIME
-	if moving and not was_moving:
+	if moving and not was_moving and body:
 		start = START_TIME  # the first step leans in before the body follows
-	if facing != was_facing:
+	if facing != was_facing and body:
 		turn = TURN_TIME
 	settle = maxf(0.0, settle - delta)
 	turn = maxf(0.0, turn - delta)

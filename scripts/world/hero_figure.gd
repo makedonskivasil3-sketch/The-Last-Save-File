@@ -126,7 +126,7 @@ func draw(ci: CanvasItem, opts: Dictionary = {}) -> void:
 	var dy := bob + hop_y + habit_y + (2.4 if crouch else 0.0)
 	var tilt := (lean * 1.6 + (1.0 if running else 0.4) * (1.0 if moving else 0.0)) if side else 0.0
 	var rig := {
-		"side": side, "flip": flip, "a": a, "running": running, "dy": dy, "breath": breath, "sway": sway, "tilt": tilt,
+		"side": side, "flip": flip, "a": a, "running": running, "dy": dy, "breath": breath, "sway": sway, "tilt": tilt, "k": k,
 		"s_head": float(slices[0]) * flip, "s_body": float(slices[1]) * flip, "s_legs": float(slices[2]) * flip,
 		"back": facing == Vector2.UP and spin <= 0.0,
 	}
@@ -204,36 +204,70 @@ func _limb(p: IllustratedCharacter._Parts, from: Vector2, to: Vector2, r1: float
 		p.line(from - n * r1, to - n * r2, line, 0.4)
 
 
+## One leg (s: -1 near, +1 far) at the rig's gait phase: hip, knee and foot
+## in the figure's frame (x forward when side-on), and how lifted it is.
+func _leg_pose(s: float, r: Dictionary) -> Dictionary:
+	var hip := _hip_y(r)
+	var leg_len := -hip
+	var x0 := float(r.s_legs)
+	var crouch_k := 0.35 if crouch else 0.0
+	# Contact (MOVEMENT_SPEC, "Animation contact"): half of each leg's cycle
+	# is stance, and a planted foot must stay where it landed. The body covers
+	# one STRIDE of floor per stance, so the foot travels back exactly that
+	# far, at an even rate, in the figure's frame (scaled by how big it is
+	# drawn); the other half lifts and eases it forward again. A sine swing
+	# moved the planted foot forward, so she skated 20 to 29 px a step.
+	var q := fposmod(float(r.a) + (0.0 if s < 0.0 else PI) + PI * 0.5, TAU)  # 0..PI stance, PI..TAU swing
+	var reach := PixelCharacter.STRIDE / maxf(0.01, float(r.get("k", 1.0))) if moving else 0.0
+	var fx: float
+	var lift := crouch_k
+	if q < PI:
+		fx = reach * (0.5 - q / PI)
+	else:
+		var u := (q - PI) / PI
+		fx = reach * (-0.5 + u * u * (3.0 - 2.0 * u))
+		lift += sin(u * PI) * (0.5 if r.running else 0.32) * (1.0 if moving else 0.0)
+	var swing := asin(clampf(fx / maxf(0.01, leg_len * 1.02), -0.95, 0.95))
+	var top: Vector2
+	var knee: Vector2
+	var foot: Vector2
+	if r.side:
+		top = Vector2(x0 + s * 0.4, hip)
+		var thigh := leg_len * 0.52
+		knee = top + Vector2(sin(swing) * thigh, cos(swing) * thigh) + Vector2(lift * 2.2, -lift * 1.4)
+		var shin_a := swing - lift * 1.8
+		foot = knee + Vector2(sin(shin_a) * leg_len * 0.5, cos(shin_a) * leg_len * 0.5)
+		foot.y = minf(foot.y, -0.4)
+	else:
+		var spread := float(hero.hip) * 0.55
+		top = Vector2(x0 + s * spread, hip)
+		var up := lift * leg_len * 0.22
+		knee = Vector2(x0 + s * spread * 1.05, hip * 0.5 - up * 0.6)
+		foot = Vector2(x0 + s * spread * 1.1, -0.6 - up)
+	return {"top": top, "knee": knee, "foot": foot, "lift": lift - crouch_k}
+
+
+## Both feet now, side-on, in the figure's frame (x forward), with whether
+## each is planted: what tests and the contact tour measure.
+func feet_now(scale := 1.0) -> Array:
+	var r := {"side": true, "a": _walk * PI, "running": _speed > 70.0, "dy": 0.0, "s_legs": 0.0, "k": scale}
+	var out := []
+	for s: float in [-1.0, 1.0]:
+		var pose := _leg_pose(s, r)
+		out.append({"foot": pose.foot, "planted": pose.lift <= 0.001})
+	return out
+
+
 func _hero_legs(p: IllustratedCharacter._Parts, r: Dictionary) -> void:
 	var lower: String = hero.lower
 	var skin := _c("s", Color("f0c49c"))
 	var leg := leg_color if lower != "smock" else skin
 	var shoe := shoe_color
-	var hip := _hip_y(r)
-	var leg_len := -hip
-	var x0 := float(r.s_legs)
-	var stride := (0.55 if r.running else 0.38) if moving else 0.0
-	var crouch_k := 0.35 if crouch else 0.0
 	for s: float in [-1.0, 1.0]:
-		var ph := float(r.a) + (0.0 if s < 0.0 else PI)
-		var swing := sin(ph) * stride
-		var lift := maxf(0.0, -cos(ph)) * (0.5 if r.running else 0.32) * (1.0 if moving else 0.0) + crouch_k
-		var top: Vector2
-		var knee: Vector2
-		var foot: Vector2
-		if r.side:
-			top = Vector2(x0 + s * 0.4, hip)
-			var thigh := leg_len * 0.52
-			knee = top + Vector2(sin(swing) * thigh, cos(swing) * thigh) + Vector2(lift * 2.2, -lift * 1.4)
-			var shin_a := swing - lift * 1.8
-			foot = knee + Vector2(sin(shin_a) * leg_len * 0.5, cos(shin_a) * leg_len * 0.5)
-			foot.y = minf(foot.y, -0.4)
-		else:
-			var spread := float(hero.hip) * 0.55
-			top = Vector2(x0 + s * spread, hip)
-			var up := lift * leg_len * 0.22
-			knee = Vector2(x0 + s * spread * 1.05, hip * 0.5 - up * 0.6)
-			foot = Vector2(x0 + s * spread * 1.1, -0.6 - up)
+		var pose := _leg_pose(s, r)
+		var top: Vector2 = pose.top
+		var knee: Vector2 = pose.knee
+		var foot: Vector2 = pose.foot
 		var far: bool = r.side and s > 0.0
 		var lc := leg.darkened(0.18) if far else leg
 		if lower in ["dress", "robe"]:
