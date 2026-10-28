@@ -127,6 +127,16 @@ async function mark(page, name) {
   await page.keyboard.press('Enter');
   // A fresh browser is a first launch: the festival plays first
   // (scripts/ui/prologue.gd), and holding Esc skips it to the present.
+  // A first launch opens on the memory card (scripts/ui/cold_open.gd): its
+  // lines wait for the reader, so read them with E like a player.
+  const card = await waitForState(page, (s) => ['cold_open', 'prologue', 'opening', 'game'].includes(s.scene), 'the memory card or the festival', 60000);
+  expect(card.scene === 'cold_open', 'a first launch opens on the memory card', card);
+  for (let i = 0; i < 12; i++) {
+    const st = await state(page);
+    if (!st || st.scene !== 'cold_open') break;
+    await page.waitForTimeout(1500);
+    await page.keyboard.press('e');
+  }
   const first = await waitForState(page, (s) => s.scene === 'prologue' || s.scene === 'opening' || s.scene === 'game', 'the festival or the game', 60000);
   await mark(page, 'opening');
   expect(first.scene === 'prologue', 'a first launch plays the festival', first);

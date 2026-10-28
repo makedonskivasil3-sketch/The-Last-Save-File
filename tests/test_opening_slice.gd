@@ -67,7 +67,7 @@ func test_a_genuinely_fresh_title_reaches_a_clean_room() -> void:
 	await frames(5)
 	var title := scene()
 	title._start()
-	await wait_until(func() -> bool: return scene() is Prologue, 3.0, "first-launch festival")
+	await past_cold_open()
 	await frames(2)
 	Input.action_press("ui_cancel")
 	await wait(0.9)

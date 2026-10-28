@@ -15,8 +15,8 @@ func test_first_launch_plays_the_festival_before_any_run() -> void:
 	settings().opening_seen = false
 	var title := await _title()
 	title._start()
-	await frames(5)
-	check(scene() is Prologue, "the festival plays first")
+	await past_cold_open()
+	check(scene() is Prologue, "the festival plays first (after the memory card)")
 	check_eq(memory().sessions, 0, "and no run has started")
 	await wait(2.0)
 	check_eq(memory().sessions, 0, "still none while it plays (quitting now costs nothing)")
@@ -26,7 +26,7 @@ func test_holding_skip_skips_into_the_run() -> void:
 	settings().opening_seen = false
 	var title := await _title()
 	title._start()
-	await frames(5)
+	await past_cold_open()
 	await wait(1.0)
 	Input.action_press("ui_cancel")
 	await wait(0.4)

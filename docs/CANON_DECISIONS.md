@@ -14,6 +14,8 @@ Save and Exit, production-art or commercial-publishing decision is implied.
 - Nothing here is merged to `main`, and the game has no player-facing
   canon toggle.
 
+**Open (2026-10-28):** the author asked for the story of the losing colours, Rue's independent mind and the Owner's larger goal. The proposals, checked against everything decided below, are in [`production/CANON_PROPOSAL_2026-10-28.md`](production/CANON_PROPOSAL_2026-10-28.md) (decisions A–E). Only its cold open is built.
+
 ## 1. Who Rue is (the central reveal): DECIDED, `main`'s premise
 
 **The author's decision (2026-10-22), in their words:**

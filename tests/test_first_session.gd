@@ -45,6 +45,7 @@ func _first_minute(w: Node) -> void:
 
 
 func _the_festival() -> Prologue:
+	await past_cold_open()
 	await wait_until(func() -> bool: return scene() is Prologue, 3.0, "the festival")
 	return scene()
 
