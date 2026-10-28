@@ -94,7 +94,7 @@ func _ready() -> void:
 	_pause_menu = PauseMenu.new()
 	_pause_menu.console_hud = hud
 	_pause_menu.quit_requested.connect(_quit)
-	_pause_menu.suspend_requested.connect(_suspend)
+	_pause_menu.suspend_handler = try_suspend
 	_pause_menu.debug_requested.connect(debug)
 	add_child(_pause_menu)
 	Input.joy_connection_changed.connect(_on_joy_connection_changed)
@@ -2025,16 +2025,23 @@ func suspend_blocker() -> String:
 	return ""
 
 
-## Save and exit: the run stops here, nothing is counted, and the next
-## launch resumes here once.
-func _suspend() -> void:
+## Save and exit, step one (the pause menu calls it, with the game still
+## paused): write the record. Returns "" when it is on disk, otherwise why
+## not, and nothing has changed: the run is still open and still paused.
+func try_suspend() -> String:
 	var blocked := suspend_blocker()
 	if blocked != "":
-		hud.say("save and exit: " + blocked, "system")
-		return
+		return blocked
 	if not OwnerMemory.record_suspend(area.area_id, player.global_position, SUSPEND_VERSION, flags):
-		return
+		PlaytestLog.mark("SAVE AND EXIT FAILED", OwnerMemory.suspend_error)
+		return OwnerMemory.suspend_error
 	PlaytestLog.mark("SUSPENDED (save and exit)", "%s at %s" % [area.area_id, player.global_position.round()])
+	_leave_suspended()
+	return ""
+
+
+## Step two, only after the save is on disk: say so and go to the title.
+func _leave_suspended() -> void:
 	ending = "suspend"
 	player.frozen = true
 	director.stop()
@@ -2046,6 +2053,13 @@ func _suspend() -> void:
 	await get_tree().create_timer(1.2).timeout
 	if is_inside_tree():
 		get_tree().change_scene_to_file(TITLE_SCENE)
+
+
+## (Kept for callers and tests: the same as choosing Save and exit.)
+func _suspend() -> void:
+	var why := try_suspend()
+	if why != "":
+		hud.say("save and exit: " + why, "system")
 
 
 ## The suspend to resume this session, or {} (none, outdated, or the last

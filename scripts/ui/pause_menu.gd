@@ -5,8 +5,9 @@ extends CanvasLayer
 ## only offered at a safe moment (World.suspend_blocker).
 
 signal quit_requested(to_title: bool)
-## Save and exit was picked (World._suspend): back to the title.
-signal suspend_requested
+## Save and exit (World.try_suspend): returns "" once the save is on disk,
+## otherwise why it isn't, and then the menu stays up and says so.
+var suspend_handler: Callable
 ## A debug tool was picked (World.debug()).
 signal debug_requested(action: String)
 
@@ -46,6 +47,8 @@ var _confirm_label: Label
 var _goal_label: Label
 var _suspend: Button
 var _suspend_note: Label
+var _save_failed: VBoxContainer
+var _save_failed_label: Label
 ## Set by World before open(): why Save and exit can't happen now, or "".
 var suspend_blocked := ""
 ## Shown under the title: what to do next (set by World before open()).
@@ -94,6 +97,13 @@ func _ready() -> void:
 	UiStyle.button(actions, "Quit game", _ask_quit.bind(false))
 
 	_suspend_note = UiStyle.note(_main, "", UiStyle.MUTED)
+
+	# A save that didn't reach the disk: nothing was lost, and the run waits.
+	_save_failed = UiStyle.centered_panel(_root, 300)
+	UiStyle.heading(_save_failed, "NOT SAVED", UiStyle.OWNER)
+	_save_failed_label = UiStyle.note(_save_failed, "", UiStyle.TEXT)
+	UiStyle.button(_save_failed, "Retry", _do_suspend)
+	UiStyle.button(_save_failed, "Return to game", close, "ui_back")
 
 	_confirm = UiStyle.centered_panel(_root, 260)
 	UiStyle.heading(_confirm, "QUIT?", UiStyle.OWNER)
@@ -200,7 +210,7 @@ func _show_only(box: VBoxContainer) -> void:
 	var owner_now := get_viewport().gui_get_focus_owner() if is_inside_tree() else null
 	if box != _main and _panel_of(_main).visible and owner_now is Button and _main.is_ancestor_of(owner_now):
 		_opener = owner_now
-	for b in [_main, _confirm, _settings_box, _map_box, _debug_box, _log_box, _history_box, _journal_box, _help_box]:
+	for b in [_main, _confirm, _save_failed, _settings_box, _map_box, _debug_box, _log_box, _history_box, _journal_box, _help_box]:
 		_panel_of(b).visible = b == box
 
 
@@ -318,10 +328,16 @@ func _ask_quit(to_title: bool) -> void:
 
 
 func _do_suspend() -> void:
-	if suspend_blocked != "":
+	if suspend_blocked != "" or not suspend_handler.is_valid():
 		return
-	close()
-	suspend_requested.emit()
+	var why: String = suspend_handler.call()
+	if why == "":
+		close()
+		return
+	# Still paused, still in the run: say what happened and offer the way on.
+	_save_failed_label.text = "Your run wasn't saved: %s\nNothing was lost: your last save is as it was, and the run is still open.\nRetry, or return to the game and keep playing." % why
+	_show_only(_save_failed)
+	(_save_failed.get_child(2) as Button).grab_focus()  # "Retry"
 
 
 func _do_quit() -> void:

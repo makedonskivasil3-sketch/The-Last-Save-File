@@ -37,6 +37,7 @@
 | ID | Sev | Issue | Evidence | Status |
 |---|---|---|---|---|
 | SV-1 | S2 | Quitting during a run raised purge, with no way to stop at a safe moment for free. | `owner_memory.gd` `record_quit`; [`SAVE_AND_EXIT_PROPOSAL.md`](../SAVE_AND_EXIT_PROPOSAL.md) | fixed (verified): option (b), Save and exit at a safe moment, one resume, no cost. `tests/test_suspend.gd` 6/6; related suites pass. Not yet played by a person |
+| SV-3 | **S1** | Save and exit reported success when nothing was written. With an unwritable save location, `record_suspend` returned true and closed the session. `write_atomic` also deleted the old backup before a backup rename that could fail, and could leave no file in place if the final move failed. | Reproduced at `b26aba0` by the first version of `tests/test_save_failure.gd` | fixed (verified). It is now one transaction: the run closes only if the file is on disk; otherwise everything rolls back. The pause menu shows NOT SAVED with Retry / Return to game, and no path appears in the message (paths go to `SafeFile.support_log` and the engine log). Every write step is failure-injected; crash states on disk are tested. Web: "saved" means written and `OS.is_userfs_persistent()`; IndexedDB sync completion isn't observable from the game (see `owner_memory.gd` `storage_persistent`) |
 | SV-2 | S3 | Mobile Safari may not show the leave prompt, so a tab close counts silently. | `RELEASE_READINESS.md`, known defects | open; blocked on a device |
 
 ## Platform, performance and builds

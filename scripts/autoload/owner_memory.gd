@@ -174,6 +174,10 @@ var _armed := false
 ## How the session before a "starting" one ended (restored if it never starts).
 var start_previous := "none"
 var _path := SAVE_PATH
+## Whether the last save_memory() reached the disk.
+var last_save_ok := true
+## Why the last record_suspend() failed, for the player ("" when it didn't).
+var suspend_error := ""
 
 
 func _ready() -> void:
@@ -541,14 +545,39 @@ func record_death(area: String, at: Vector2, reason := "") -> bool:
 ## route memory, no helpers found out). Returns false if no run is open.
 func record_suspend(area_id: String, at: Vector2, version: int, run_flags: Dictionary) -> bool:
 	if _session_closed or not _armed:
+		suspend_error = "no run is open."
 		return false
 	var kept := {}
 	for k in run_flags:
 		if k is String and run_flags[k] is bool:
 			kept[k] = run_flags[k]
+	if not storage_persistent():
+		suspend_error = "this browser isn't keeping saves (a private window, or storage is blocked)."
+		SafeFile._fail("storage not persistent", "OS.is_userfs_persistent() == false")
+		return false
+	# One transaction: the run closes only if the record is on disk.
+	# Otherwise everything is as it was and the run carries on.
 	suspend = {"area": area_id, "x": at.x, "y": at.y, "version": version, "session": sessions, "flags": kept}
-	_close_session("suspend")
+	last_exit = "suspend"
+	_session_closed = true
+	if not save_memory():
+		suspend = {}
+		last_exit = "active"
+		_session_closed = false
+		suspend_error = "the game couldn't write its save (%s)." % SafeFile.last_error
+		return false
+	suspend_error = ""
+	_leave_guard(false)
 	return true
+
+
+## Whether what is written to user:// survives closing the game. On the web
+## that is IndexedDB, which a private window or blocked storage can refuse:
+## then nothing "saved" would be there next visit. A write there is copied
+## to IndexedDB after the file closes; the engine does not report when that
+## finishes, so "saved" on the web means written and persistence available.
+static func storage_persistent() -> bool:
+	return not OS.has_feature("web") or OS.is_userfs_persistent()
 
 
 func record_quit() -> void:
@@ -794,7 +823,10 @@ func restore(snap: Dictionary) -> void:
 var save_count := 0
 
 
-func save_memory() -> void:
+## Writes the profile. True only when it is on disk (SafeFile.write_atomic);
+## most callers carry on either way (the next save tries again), but anything
+## that tells the player "saved" must check.
+func save_memory() -> bool:
 	save_count += 1
 	var data := {
 		"version": SAVE_VERSION,
@@ -856,7 +888,8 @@ func save_memory() -> void:
 		"festival_choice": festival_choice,
 		"archive_seen": archive_seen,
 	}
-	SafeFile.write_atomic(_path, JSON.stringify(data, "\t"))
+	last_save_ok = SafeFile.write_atomic(_path, JSON.stringify(data, "\t"))
+	return last_save_ok
 
 
 ## Brings an older save up to SAVE_VERSION. Files from before versioning are
