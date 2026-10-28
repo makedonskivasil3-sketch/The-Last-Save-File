@@ -621,12 +621,31 @@ func _near_exit(w: Node, p: Vector2) -> bool:
 
 func _avoid(w: Node, n: Vector2) -> Vector2:
 	var p: Vector2 = w.player.global_position
+	# Arin walks a visible round: a player who sees him coming steps off
+	# his line instead of walking into him (PL-4: the bot used to react only
+	# inside 44 px, about 0.3 s head-on, and was caught walking into him
+	# after a reload re-timed its crossing). Not a change to the game.
+	var arin: Variant = w.area.get("arin")
+	if arin is OwnerAvatar and arin.stunned <= 0.0:
+		var to_arin: Vector2 = arin.global_position - p
+		if to_arin.length() < 130.0 and n.dot(to_arin.normalized()) > 0.5:
+			var side := to_arin.orthogonal().normalized()
+			if side.dot(n) < 0.0:
+				side = -side
+			n = (side * 1.2 - to_arin.normalized() * 0.3).normalized()
 	for pair in [["arin", 44.0], ["cursor", 56.0]]:
 		var h: Variant = w.area.get(pair[0])
 		if h is Node2D:
 			var away: Vector2 = p - h.global_position
 			if away.length() < pair[1]:
 				n = (away.normalized() * 1.5 + n * 0.4).normalized()
+	# Static ahead (the square's eraser at high purge): step round it, as a
+	# player would, instead of walking into it.
+	var e: Variant = w.area.get("erasure")
+	if e is Erasure and e.active:
+		var c: Vector2 = e.nearest_cell(p + n * 10.0, 20.0)
+		if c != Vector2.INF:
+			n = ((p - c).normalized() * 1.4 + n * 0.5).normalized()
 	# Dodging shouldn't carry us out of an exit we didn't mean to take
 	# (the Edge's road home is right under the arrival point).
 	if w.area.area_id == "edge" and p.y > 266.0 and n.y > 0.0:
