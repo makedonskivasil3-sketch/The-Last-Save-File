@@ -2,7 +2,46 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current: Save and exit, and Wren's arc (2026-10-27, `483ac8f`)
+## Current: trust and control, and Wren's game (2026-10-28, branch at `e447ff4`)
+
+**Code revision:** last code change `f8688ac`; the later commits are documentation only. Base `b26aba0`. Not merged.
+
+**Fixed.** Each was reproduced at `b26aba0` by a test that failed before the fix:
+- **Save and exit (SV-3, S1):**
+  - It reported SAVED with nothing written. Now it is one transaction: Retry / Return to game on failure, and the last save and its backup survive every injected write failure.
+  - A resumed position is checked against the whole body in the rebuilt map (ST-3).
+  - Escorts can be suspended: they go home and ask again (ST-5).
+- **Movement (MV-1 to MV-6):**
+  - pointer oscillation; walking into the fence forever;
+  - crossing the closed gate on a long frame;
+  - walking against walls (festival and game);
+  - facing flicker; slow-movement shuffle;
+  - a second stick threshold in the festival.
+- **Camera:** shared framing is blended (280.7 → 67.8 px of camera travel while Arin hovers at the old switch). A plain mode exists for movement playtests (`--camera-plain` / `?camera=plain`).
+- **Story:**
+  - Wren's well belief is her fear, not a rule (ST-1).
+  - Both chalk-mark orders are consistent (ST-2).
+  - A truth / belief / observed table exists (`production/TRUTH_TABLE.md`).
+- **Wren:** her chalk game is playable. She leads it, judges only what she walks over to see, refuses a bad mark, fixes the R, answers Rue hiding at her X, and the ending remembers it (`production/WREN_ARC.md`).
+
+| Check | Result |
+| --- | --- |
+| Strict full suite | **735/735**, 1597.8 s, no script errors (code identical to `f8688ac`) |
+| Ending bot routes | escape, message, purge-5 and wren pass. **purge-3 escape: 2 of 3 runs pass** on this revision; **1 of 2 at `b26aba0`**, the same failure (three Arin catches in the square). An existing instability (PL-4), not a regression; not fixed |
+| Movement acceptance route | `docs/review/movement/ROUTE_RESULTS.md`: zero arrival error, penetration, foot slide and facing flips at 1/144 to 0.1 s frames; no walking while blocked in the game |
+| Camera comparison | `docs/review/movement/camera_fixed_current_proposed.jpg` (xvfb with llvmpipe, scripted input) |
+| Windows / Linux / Web exports | All exit 0. SHA-256 prefixes: exe `c34fce8787860187`, x86_64 `e71700ba6cade95c`, pck `d6f3ade379c97d82` |
+| Linux exported smoke | 240 frames, exit 0 |
+| Browser lifecycle + story reader | All pass, no page errors (headless Chromium) |
+| Playable build | https://claude.ai/artifact/3G95pCn7jTAYr2DPmmWu5w, **version 20**, from this code. Private until shared |
+
+**Not verified:**
+- **No person has played any of it.** The playtest protocol is ready but not run (`PLAYTEST_PLAN.md`, "trust and one relationship").
+- No Windows execution, no physical controller, no hardware GPU.
+- Browser storage durability is defined but not tested in a private window.
+- Nothing here shows whether players care about Wren. That is the next gate.
+
+## Previous: Save and exit, and Wren's arc (2026-10-27, `483ac8f`)
 
 **Author decisions:**
 - **Wren** is the deep relationship.
