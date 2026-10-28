@@ -1,9 +1,13 @@
 class_name PauseMenu
 extends CanvasLayer
 ## Esc / Start during play. Quitting from here still counts against you,
-## so the menu says so before letting you go.
+## so the menu says so before letting you go. Save and exit doesn't: it is
+## only offered at a safe moment (World.suspend_blocker).
 
 signal quit_requested(to_title: bool)
+## Save and exit (World.try_suspend): returns "" once the save is on disk,
+## otherwise why it isn't, and then the menu stays up and says so.
+var suspend_handler: Callable
 ## A debug tool was picked (World.debug()).
 signal debug_requested(action: String)
 
@@ -41,6 +45,12 @@ var _resume: Button
 var _pending_to_title := false
 var _confirm_label: Label
 var _goal_label: Label
+var _suspend: Button
+var _suspend_note: Label
+var _save_failed: VBoxContainer
+var _save_failed_label: Label
+## Set by World before open(): why Save and exit can't happen now, or "".
+var suspend_blocked := ""
 ## Shown under the title: what to do next (set by World before open()).
 var goal := ""
 ## For the map (set by World before open(), World.map_state()): current
@@ -82,8 +92,18 @@ func _ready() -> void:
 	UiStyle.button(actions, "How to Play", _show_help)
 	if PlaytestLog.enabled():
 		UiStyle.button(actions, "Playtest log", _show_playtest_log)
+	_suspend = UiStyle.button(actions, "Save and exit", _do_suspend)
 	UiStyle.button(actions, "Quit to title", _ask_quit.bind(true))
 	UiStyle.button(actions, "Quit game", _ask_quit.bind(false))
+
+	_suspend_note = UiStyle.note(_main, "", UiStyle.MUTED)
+
+	# A save that didn't reach the disk: nothing was lost, and the run waits.
+	_save_failed = UiStyle.centered_panel(_root, 300)
+	UiStyle.heading(_save_failed, "NOT SAVED", UiStyle.OWNER)
+	_save_failed_label = UiStyle.note(_save_failed, "", UiStyle.TEXT)
+	UiStyle.button(_save_failed, "Retry", _do_suspend)
+	UiStyle.button(_save_failed, "Return to game", close, "ui_back")
 
 	_confirm = UiStyle.centered_panel(_root, 260)
 	UiStyle.heading(_confirm, "QUIT?", UiStyle.OWNER)
@@ -159,6 +179,9 @@ func open() -> void:
 	get_tree().paused = true
 	_goal_label.text = goal
 	_goal_label.visible = goal != ""
+	_suspend.disabled = suspend_blocked != ""
+	_suspend_note.text = ("save and exit: " + suspend_blocked) if suspend_blocked != "" \
+		else "save and exit: you'll pick up here, though people and things may have moved on. nothing is counted."
 	Sfx.ui("pause")
 	Sfx.muffle(true)
 	_show_main()
@@ -187,7 +210,7 @@ func _show_only(box: VBoxContainer) -> void:
 	var owner_now := get_viewport().gui_get_focus_owner() if is_inside_tree() else null
 	if box != _main and _panel_of(_main).visible and owner_now is Button and _main.is_ancestor_of(owner_now):
 		_opener = owner_now
-	for b in [_main, _confirm, _settings_box, _map_box, _debug_box, _log_box, _history_box, _journal_box, _help_box]:
+	for b in [_main, _confirm, _save_failed, _settings_box, _map_box, _debug_box, _log_box, _history_box, _journal_box, _help_box]:
 		_panel_of(b).visible = b == box
 
 
@@ -289,6 +312,12 @@ func _show_settings() -> void:
 
 func _ask_quit(to_title: bool) -> void:
 	_pending_to_title = to_title
+	if suspend_blocked == "":
+		# A calm moment: quitting keeps her place and counts nothing.
+		_confirm_label.text = "It's calm: quitting now keeps your place, like Save and exit. Nothing is counted.\nNext time you'll pick up here, though people and things may have moved on."
+		_show_only(_confirm)
+		(_confirm.get_child(2) as Button).grab_focus()  # "Stay"
+		return
 	var after := OwnerMemory.purge + 1
 	var consequence := "Purge progress will rise to %d/%d." % [after, OwnerMemory.MAX_PURGE]
 	if after >= OwnerMemory.MAX_PURGE:
@@ -299,12 +328,34 @@ func _ask_quit(to_title: bool) -> void:
 	_confirm_label.text = "This ends the run. Quitting counts, like dying: the owner will remember.\n" + consequence \
 		+ "\nKept: your memories, glitches, journal and everyone you've met. Lost: anything you're carrying." \
 		+ ("\nYou'll start in Arin's room: the well only keeps you after a death." if World.anchor_valid() else "") \
-		+ "\nResume instead, and nothing is counted."
+		+ ("\nResume instead (or Save and exit), and nothing is counted." if suspend_blocked == "" else "\nResume instead, and nothing is counted.")
 	_show_only(_confirm)
 	(_confirm.get_child(2) as Button).grab_focus()  # "Stay"
 
 
+func _do_suspend() -> void:
+	if suspend_blocked != "" or not suspend_handler.is_valid():
+		return
+	var why: String = suspend_handler.call(true)
+	if why == "":
+		close()
+		return
+	# Still paused, still in the run: say what happened and offer the way on.
+	_save_failed_label.text = "Your run wasn't saved: %s\nNothing was lost: your last save is as it was, and the run is still open.\nRetry, or return to the game and keep playing." % why
+	_show_only(_save_failed)
+	(_save_failed.get_child(2) as Button).grab_focus()  # "Retry"
+
+
 func _do_quit() -> void:
+	if suspend_blocked == "" and suspend_handler.is_valid():
+		var why: String = suspend_handler.call(_pending_to_title)
+		if why == "":
+			close()
+			return
+		_save_failed_label.text = "Your run wasn't saved: %s\nNothing was lost: your last save is as it was, and the run is still open.\nRetry, or return to the game and keep playing." % why
+		_show_only(_save_failed)
+		(_save_failed.get_child(2) as Button).grab_focus()
+		return
 	close()
 	quit_requested.emit(_pending_to_title)
 

@@ -1,9 +1,41 @@
-# Suspend (Save and Exit): a proposal
+# Suspend (Save and Exit)
 
-**Status: not built.** The rule today is unchanged: quitting during a run
-raises purge by one (`OwnerMemory.record_quit`). This page proposes an
-alternative for the author to decide on. It does not add free suspension,
-a checkpoint or a difficulty cut, and nothing here is in the game.
+**Status: decided and built (2026-10-27).** The author asked for the option
+judged best. **Option (b)** was chosen: Suspend as proposed below, with no cost.
+
+**Why (b):**
+- It is the only option that doesn't punish ordinary closure.
+- One resume, deleted when play starts, removes save-scumming.
+- Quitting (and closing a web tab) still counts, so the owner's pressure stays.
+
+**As built:**
+- **The button:** "Save and exit" in the pause menu. It is offered only at
+  a safe moment (`World.suspend_blocker`), and the menu says why when it
+  isn't.
+- **The record:** one `OwnerMemory.suspend` record (area, position, map
+  version, session, the run's true/false flags). It is spent in
+  `arm_session`.
+- **Resuming:** the next launch resumes the place, through `suspend_start`
+  and `_resume_at`. It does not resume every moving part: doors, props and
+  people rebuild as on any arrival.
+- **Never at the Edge**, which is the finale.
+- **Tests:** `tests/test_suspend.gd`.
+
+## Stopping policy (2026-10-28)
+
+| Situation | What happens | Cost | Why |
+|---|---|---|---|
+| **Save and exit at a safe moment** (no hunt, warning, owner move, static, conversation; anywhere but the Edge) | Resumes once, at her position. The position is checked against her whole body in the rebuilt map | None | Ordinary stopping is not a strategy |
+| **…during an escort** (Wren, Mira) | The escort goes home. Rue says so on resume ("…went home while i was gone. we can still go."), and they ask again with their existing line. The promise stays open, not broken | None | A paying player can stop mid-escort. Allowed since 2026-10-28; the escort was blocked before |
+| **The save can't be written** | NOT SAVED, still paused: Retry or Return to game. The last save and its backup are untouched | None | A save that isn't on disk is never reported as one (SV-3) |
+| **During danger, or at the Edge** | Save and exit is offered greyed out, with the reason. Pausing is always free, and the menu says so | — | The Owner's pressure is the game. The Edge sequence is short and has its own retry pacing (`P8-3`) |
+| **Quit from the menu, closing the window, closing the tab, or a crash, at a calm moment** | Free: resumes there once. The calm moment is kept on disk while it lasts (`last_exit` "safe" plus a resume record, refreshed on area changes and as she moves). The tab asks nothing, because there's nothing to lose | None | **The author's decision, 2026-10-28** ("free save") |
+| **The same in danger** (hunt, warning, owner move, static, conversation, the Edge) | The calm record is withdrawn the moment a threat starts, so these count as before: purge +1. The browser asks before the tab closes | Purge +1 | The story's consequence: running away from the owner is remembered |
+| **Before play starts** (boot text) | Nothing counts | None | — |
+
+**Built (2026-10-28):** the author chose this ("free save"). Only stopping in danger counts.
+
+The text below is the original proposal, kept for the reasoning.
 
 ## The problem
 

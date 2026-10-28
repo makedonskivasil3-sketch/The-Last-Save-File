@@ -552,6 +552,12 @@ static func epilogue(ending: String, found: int, pip: bool, message := 0) -> Arr
 	return lines
 
 
+## Wren's name on the well's rim (docs/production/WREN_ARC.md), after any
+## ending but the one where Rue becomes Arin.
+const EPILOGUE_WREN_NAMED := "on the well's rim in ashvale, in chalk: two dots for eyes, an arrow up, and WREN. nobody rubs it out."
+const EPILOGUE_WREN_GAME := "under the awning in ashvale there's an R in chalk, the right way round. somebody keeps fixing it."
+const EPILOGUE_WREN_NAME_ONLY := "on the well's rim in ashvale, in chalk, four letters: WREN. nobody rubs it out."
+
 ## Everyone you helped (or didn't), one line each.
 static func _epilogue_people(ending: String) -> Array:
 	var lines: Array = []
@@ -560,6 +566,10 @@ static func _epilogue_people(ending: String) -> Array:
 			lines.append("wren waves from the edge of the map. cut content. safe for good.")
 		elif OwnerMemory.is_deleted("wren"):
 			lines.append("(i couldn't keep wren. i'll remember her for both of us.)")
+	if OwnerMemory.has_event("wren.mark_ok") and ending != "overwrite":
+		lines.append(EPILOGUE_WREN_GAME)
+	if OwnerMemory.has_event("wren.named") and ending != "overwrite":
+		lines.append(EPILOGUE_WREN_NAMED if OwnerMemory.has_event("wren.marked_well") else EPILOGUE_WREN_NAME_ONLY)
 	if OwnerMemory.mira_quest == "pinned" and ending != "overwrite":
 		lines.append("the notice board in the square still says MIRA WAS HERE. nobody takes it down.")
 	elif OwnerMemory.mira_quest == "reset":
@@ -733,11 +743,14 @@ const FIRST_SHAPE := [
 static func festival_log(choice: String) -> Array:
 	var fifth := "LANTERN 5 · lit by P2 · never saved off." if choice == "lit" \
 		else "LANTERN 5 · lit by SLOT 2 · controller: none · never saved off."
-	return [
+	var lines := [
 		"LAST SHARED SESSION: THE LANTERN FESTIVAL. Players: 2. Then 1. Then 0.",
 		"LANTERNS 1–4 · lit by P1 + P2.",
-		fifth,
 	]
+	if choice != "lit":
+		lines.append("LANTERN 5 · held by P1 + P2 · P1 input lost at 50%.")
+	lines.append(fifth)
+	return lines
 
 
 const CHARACTER_FILE_TITLE := "CHARACTER FILE"

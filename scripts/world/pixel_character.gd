@@ -90,6 +90,7 @@ var shiver := false
 var startled := 0.0
 
 var _t := randf() * 10.0
+## Gait phase, in strides (one stride per STRIDE px travelled).
 var _walk := 0.0
 var _blink := 0.0
 var _blink_timer := randf_range(1.0, 4.0)
@@ -115,19 +116,26 @@ func eye_position() -> Vector2:
 	return Vector2(0, FEET_Y - height() + (template.eye_row + 0.5) * SCALE)
 
 
-## Advance animation. `velocity` in px/s; zero means standing.
+## Pixels travelled per stride (docs/production/MOVEMENT_SPEC.md): the gait
+## advances with distance, not time, so feet don't slide at any speed.
+const STRIDE := 10.0
+## Facing changes axis only when the new axis leads by this factor: input
+## wobbling around a diagonal keeps one facing; a clear turn is immediate.
+const FACING_BIAS := 1.3
+
+
+## Advance animation. `velocity` is what the body actually travelled (px/s),
+## zero when standing or blocked: it drives the gait.
+## With face_motion it also turns her; otherwise call face() with intent.
 func update(delta: float, velocity: Vector2, face_motion := true) -> void:
 	_t += delta
 	var was_moving := moving
 	var was_facing := facing
 	moving = velocity.length() > 2.0
 	if moving:
-		_walk += delta * clampf(velocity.length() / 9.0, 3.0, 9.0)
-		if face_motion:
-			if absf(velocity.x) > absf(velocity.y):
-				facing = Vector2.RIGHT if velocity.x > 0.0 else Vector2.LEFT
-			else:
-				facing = Vector2.DOWN if velocity.y > 0.0 else Vector2.UP
+		_walk += delta * velocity.length() / STRIDE
+	if face_motion and moving:
+		face(velocity)
 	# Weight (pass 8): stopping settles the body a moment; turning squeezes
 	# it through the turn instead of flipping in one frame.
 	if was_moving and not moving:
@@ -151,6 +159,24 @@ func update(delta: float, velocity: Vector2, face_motion := true) -> void:
 			_hop_timer = randf_range(2.5, 6.0)
 	_hop = maxf(0.0, _hop - delta)
 	startled = maxf(0.0, startled - delta)
+
+
+## Turns toward `dir` (what she's trying to do, or travelling): reversing
+## is immediate; changing axis needs that axis to clearly lead.
+func face(dir: Vector2) -> void:
+	if dir.length() < 0.01:
+		return
+	var horizontal_now := facing.x != 0.0
+	var ax := absf(dir.x)
+	var ay := absf(dir.y)
+	var horizontal := ax > ay * (1.0 / FACING_BIAS if horizontal_now else FACING_BIAS)
+	var was := facing
+	if horizontal:
+		facing = Vector2.RIGHT if dir.x > 0.0 else Vector2.LEFT
+	else:
+		facing = Vector2.DOWN if dir.y > 0.0 else Vector2.UP
+	if facing != was:
+		turn = TURN_TIME
 
 
 ## The reading book is out: only while reading in place, facing the viewer

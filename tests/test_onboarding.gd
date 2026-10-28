@@ -88,6 +88,7 @@ func test_glitch_is_taught_after_awareness() -> void:
 func test_pause_is_safe_quit_says_what_it_costs() -> void:
 	var w := await start_session()
 	w._pause_menu.open()
+	w._pause_menu.suspend_blocked = "not while the owner is looking for you."  # in danger: it counts
 	await frames(2)
 	w._pause_menu._ask_quit(true)
 	var text: String = w._pause_menu._confirm_label.text

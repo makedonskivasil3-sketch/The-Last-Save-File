@@ -1632,7 +1632,10 @@ func _update_typing(delta: float) -> void:
 			line.set_meta("owner", true)
 			_owner_lines.append(line)
 		"self":
-			line.text = "(%s)" % msg.text
+			# Thoughts are in parentheses: some lines are written with their
+			# own, and get no second pair.
+			var t: String = msg.text
+			line.text = t if t.begins_with("(") and t.ends_with(")") else "(%s)" % t
 			line.add_theme_color_override("font_color", SELF_COLOR)
 		"npc":
 			line.text = "%s: %s" % [msg.speaker, msg.text] if Settings.speaker_labels else msg.text

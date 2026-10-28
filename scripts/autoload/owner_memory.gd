@@ -110,8 +110,8 @@ var shed_said: Array[String] = []
 ## This session only: who was frayed this run (their "afterwards" line, not
 ## the "last time" one).
 var session_frayed: Array[String] = []
-## How the previous session ended: "none", "death", "quit", "crash", "win"
-## (or "escape" from old saves). While a session is running it is stored as
+## How the previous session ended: "none", "death", "quit", "crash", "win",
+## "suspend" (Save and Exit at a safe moment) (or "escape" from old saves). While a session is running it is stored as
 ## "active", so if the process is killed the owner finds out next launch.
 var last_exit: String = "none"
 
@@ -139,6 +139,12 @@ var well_events: Array[String] = []
 ## The checkpoint (layer C): {"id", "version", "session"} or empty. The place
 ## is looked up from the id (World.ANCHORS), never stored as coordinates.
 var anchor: Dictionary = {}
+## Save and Exit (docs/SAVE_AND_EXIT_PROPOSAL.md, option b, chosen
+## 2026-10-27): where a suspended run stopped, {"area", "x", "y", "version",
+## "session", "flags"}, or empty. Written only at a safe moment
+## (World.suspend_blocker), read by the next launch, and gone the moment
+## play starts (arm_session): one resume, never a reload.
+var suspend: Dictionary = {}
 ## The festival (Prologue): whether this profile played it, and the first
 ## decision there: "lit" (the fifth lantern, alone), "stayed" (beside Arin),
 ## "idle", or "skipped". Saves from before it have neither.
@@ -168,6 +174,13 @@ var _armed := false
 ## How the session before a "starting" one ended (restored if it never starts).
 var start_previous := "none"
 var _path := SAVE_PATH
+## Set by World: records a Save and exit right now if it's a calm moment,
+## and returns whether it did (closing the window then costs nothing).
+var safe_close: Callable
+## Whether the last save_memory() reached the disk.
+var last_save_ok := true
+## Why the last record_suspend() failed, for the player ("" when it didn't).
+var suspend_error := ""
 
 
 func _ready() -> void:
@@ -181,7 +194,10 @@ func _ready() -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
-		record_quit()
+		# Closing the window at a calm moment is a free Save and exit (the
+		# author's rule, 2026-10-28); otherwise it counts as quitting.
+		if not (safe_close.is_valid() and safe_close.call()):
+			record_quit()
 		quit_game()
 	elif what == NOTIFICATION_EXIT_TREE:
 		# The engine is shutting down without quit_game() (--quit-after, a
@@ -276,6 +292,7 @@ func arm_session() -> void:
 		return
 	_armed = true
 	last_exit = "active"
+	suspend.clear()  # resumed (or not): a suspend is spent once play starts
 	save_memory()
 	_leave_guard(true)
 
@@ -529,6 +546,76 @@ func record_death(area: String, at: Vector2, reason := "") -> bool:
 	return forgiven
 
 
+## Save and Exit: the run stops here at a safe moment and resumes here once.
+## No purge, no quit counted, and the owner learns nothing from it (no
+## route memory, no helpers found out). Returns false if no run is open.
+func record_suspend(area_id: String, at: Vector2, version: int, run_flags: Dictionary) -> bool:
+	if _session_closed or not _armed:
+		suspend_error = "no run is open."
+		return false
+	var kept := {}
+	for k in run_flags:
+		if k is String and run_flags[k] is bool:
+			kept[k] = run_flags[k]
+	if not storage_persistent():
+		suspend_error = "this browser isn't keeping saves (a private window, or storage is blocked)."
+		SafeFile._fail("storage not persistent", "OS.is_userfs_persistent() == false")
+		return false
+	# One transaction: the run closes only if the record is on disk.
+	# Otherwise everything is as it was and the run carries on.
+	suspend = {"area": area_id, "x": at.x, "y": at.y, "version": version, "session": sessions, "flags": kept}
+	last_exit = "suspend"
+	_session_closed = true
+	if not save_memory():
+		suspend = {}
+		last_exit = "active"
+		_session_closed = false
+		suspend_error = "the game couldn't write its save (%s)." % SafeFile.last_error
+		return false
+	suspend_error = ""
+	_leave_guard(false)
+	return true
+
+
+## A calm moment, kept on disk while it lasts (World keeps it current): if
+## the game closes, crashes or the tab is shut now, the next launch resumes
+## here once, free, as if Save and exit had been chosen. The run stays open.
+func mark_safe(area_id: String, at: Vector2, version: int, run_flags: Dictionary) -> void:
+	if _session_closed or not _armed or not storage_persistent():
+		return
+	var kept := {}
+	for k in run_flags:
+		if k is String and run_flags[k] is bool:
+			kept[k] = run_flags[k]
+	var was_exit := last_exit
+	suspend = {"area": area_id, "x": at.x, "y": at.y, "version": version, "session": sessions, "flags": kept}
+	last_exit = "safe"
+	if not save_memory():
+		suspend = {}
+		last_exit = was_exit
+		return
+	_leave_guard(false)  # nothing to lose by closing the tab now
+
+
+## The calm moment is over: from now on a close or crash counts again.
+func mark_unsafe() -> void:
+	if _session_closed or not _armed or last_exit != "safe":
+		return
+	suspend = {}
+	last_exit = "active"
+	save_memory()
+	_leave_guard(true)
+
+
+## Whether what is written to user:// survives closing the game. On the web
+## that is IndexedDB, which a private window or blocked storage can refuse:
+## then nothing "saved" would be there next visit. A write there is copied
+## to IndexedDB after the file closes; the engine does not report when that
+## finishes, so "saved" on the web means written and persistence available.
+static func storage_persistent() -> bool:
+	return not OS.has_feature("web") or OS.is_userfs_persistent()
+
+
 func record_quit() -> void:
 	if _session_closed:
 		return
@@ -744,6 +831,7 @@ func clear_state() -> void:
 	festival_seen = false
 	festival_choice = ""
 	anchor.clear()
+	suspend.clear()
 	archive_seen.clear()
 	session_helpers.clear()
 	session_seam = -1
@@ -771,7 +859,10 @@ func restore(snap: Dictionary) -> void:
 var save_count := 0
 
 
-func save_memory() -> void:
+## Writes the profile. True only when it is on disk (SafeFile.write_atomic);
+## most callers carry on either way (the next save tries again), but anything
+## that tells the player "saved" must check.
+func save_memory() -> bool:
 	save_count += 1
 	var data := {
 		"version": SAVE_VERSION,
@@ -828,11 +919,13 @@ func save_memory() -> void:
 		"places": places,
 		"well_events": well_events,
 		"anchor": anchor,
+		"suspend": suspend,
 		"festival_seen": festival_seen,
 		"festival_choice": festival_choice,
 		"archive_seen": archive_seen,
 	}
-	SafeFile.write_atomic(_path, JSON.stringify(data, "\t"))
+	last_save_ok = SafeFile.write_atomic(_path, JSON.stringify(data, "\t"))
+	return last_save_ok
 
 
 ## Brings an older save up to SAVE_VERSION. Files from before versioning are
@@ -1099,16 +1192,31 @@ func load_memory() -> void:
 				archive_seen[str(k)] = marks[k]
 	festival_seen = data.get("festival_seen", false) == true
 	festival_choice = _str(data, "festival_choice", "")
-	if festival_choice not in ["", "lit", "stayed", "idle", "skipped"]:
+	# "lit": saves from the earlier festival, where she lit the fifth with
+	# her player still there. "tried": the current festival (it needs two).
+	if festival_choice not in ["", "lit", "tried", "stayed", "idle", "skipped"]:
 		festival_choice = ""
+	suspend.clear()
+	var su: Variant = data.get("suspend", {})
+	if su is Dictionary and su.get("area") is String and _num(su, "x") and _num(su, "y") \
+			and _whole(su, "version") and _whole(su, "session") and su.get("flags", {}) is Dictionary:
+		var kept := {}
+		for k in su.get("flags", {}):
+			if k is String and su.flags[k] is bool:
+				kept[k] = su.flags[k]
+		suspend = {"area": su.area, "x": float(su.x), "y": float(su.y), "version": int(su.version), "session": int(su.session), "flags": kept}
 	anchor.clear()
 	var an: Variant = data.get("anchor", {})
 	if an is Dictionary and an.get("id") is String and _whole(an, "version"):
 		anchor = {"id": an.id, "version": int(an.version), "session": _int(an, "session", 0)}
 
+	# Closed (or crashed) at a calm moment: a free Save and exit.
+	if last_exit == "safe":
+		last_exit = "suspend"
+		save_memory()
 	# The last session never closed properly: the game was killed or crashed.
 	# The owner treats that as running away.
-	if last_exit == "active":
+	elif last_exit == "active":
 		quits += 1
 		purge += 1
 		last_exit = "crash"

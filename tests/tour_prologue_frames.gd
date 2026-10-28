@@ -18,8 +18,10 @@ func test_key_frames() -> void:
 		["lit_1", "after_a_first_lantern", 0.6],
 		["lit_3", "after_b_maypole", 0.6],
 		["lit_4", "after_c_fourth", 0.6],
+		["p1_stopped", "after_d0_his_half_stops", 1.2],
 		["p1_left", "after_d_p1_left", 0.8],
 		["p2_left", "after_e_p2_left", 1.2],
+		["lit_5", "after_e2_she_lights_it", 0.6],
 		["timelapse", "after_f_years", 8.0],
 	]
 	for m in marks:

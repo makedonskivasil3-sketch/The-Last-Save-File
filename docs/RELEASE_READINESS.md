@@ -2,7 +2,91 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current: verified integration and player-paced festival (2026-10-26)
+## Current: trust and control, free save, and Wren's game (2026-10-28, `2ed3eb4`)
+
+**Code revision:** `2ed3eb4`. Base `b26aba0`. Merged to `main` with the author's authorisation (PR #11).
+
+**Since `e447ff4`, at the author's request ("free save"):**
+- Stopping at a calm moment is free however you stop: Save and exit, quitting from the menu, closing the window or tab, or a crash. In danger it counts as before (SV-1).
+- Keyboard remapping is in Settings → CONTROLS (UI-3). Gamepad remapping is not built.
+- Smaller fixes: UI-7 (well prompt), OP-6 (ring behind nameplate), UI-8 (doubled parentheses), PL-8 (test isolation).
+- Web-only fixes found by the browser check at this revision:
+  - Key names no longer call a display-server function the browser lacks, which had raised a page error.
+  - The check now reads open text before expecting a calm moment.
+
+**Fixed.** Each was reproduced at `b26aba0` by a test that failed before the fix:
+- **Save and exit (SV-3, S1):**
+  - It reported SAVED with nothing written. Now it is one transaction: Retry / Return to game on failure, and the last save and its backup survive every injected write failure.
+  - A resumed position is checked against the whole body in the rebuilt map (ST-3).
+  - Escorts can be suspended: they go home and ask again (ST-5).
+- **Movement (MV-1 to MV-6):**
+  - pointer oscillation; walking into the fence forever;
+  - crossing the closed gate on a long frame;
+  - walking against walls (festival and game);
+  - facing flicker; slow-movement shuffle;
+  - a second stick threshold in the festival.
+- **Camera:** shared framing is blended (280.7 → 67.8 px of camera travel while Arin hovers at the old switch). A plain mode exists for movement playtests (`--camera-plain` / `?camera=plain`).
+- **Story:**
+  - Wren's well belief is her fear, not a rule (ST-1).
+  - Both chalk-mark orders are consistent (ST-2).
+  - A truth / belief / observed table exists (`production/TRUTH_TABLE.md`).
+- **Wren:** her chalk game is playable. She leads it, judges only what she walks over to see, refuses a bad mark, fixes the R, answers Rue hiding at her X, and the ending remembers it (`production/WREN_ARC.md`).
+
+| Check | Result |
+| --- | --- |
+| Strict full suite | **747/747**, 1622.5 s, no script errors (on `f8e9313`). The `2ed3eb4` changes are re-run in focus: `test_remapping` 6/6 (twice), `test_suspend` 11/11, `test_menus` 6/6 |
+| Ending bot routes | escape, message, purge-5 and wren pass. **purge-3 escape: 2 of 3 runs pass** on this revision; **1 of 2 at `b26aba0`**, the same failure (three Arin catches in the square). An existing instability (PL-4), not a regression; not fixed |
+| Movement acceptance route | `docs/review/movement/ROUTE_RESULTS.md`: zero arrival error, penetration, foot slide and facing flips at 1/144 to 0.1 s frames; no walking while blocked in the game |
+| Camera comparison | `docs/review/movement/camera_fixed_current_proposed.jpg` (xvfb with llvmpipe, scripted input) |
+| Windows / Linux / Web exports | All exit 0 on `2ed3eb4`. SHA-256 prefixes: exe `7d98891ff7e7bbef`, x86_64 `54c053d10869fc64` (pck embedded) |
+| Linux exported smoke | 240 frames, exit 0 |
+| Browser lifecycle + story reader | All pass on `2ed3eb4`, no page errors (headless Chromium). Includes a tab closed at a calm moment: no leave prompt, reopened as `suspend`, 0 quits, 0 purge |
+| Playable build | https://claude.ai/artifact/3G95pCn7jTAYr2DPmmWu5w, **version 21**, from this code. Private until shared |
+
+**Not verified:**
+- **No person has played any of it.** The playtest protocol is ready but not run (`PLAYTEST_PLAN.md`, "trust and one relationship").
+- No Windows execution, no physical controller, no hardware GPU.
+- Browser storage durability is defined but not tested in a private window.
+- Nothing here shows whether players care about Wren. That is the next gate.
+
+## Previous: Save and exit, and Wren's arc (2026-10-27, `483ac8f`)
+
+**Author decisions:**
+- **Wren** is the deep relationship.
+- **Save and exit:** the choice was delegated, and option (b) was built.
+
+**Details:** [`SAVE_AND_EXIT_PROPOSAL.md`](SAVE_AND_EXIT_PROPOSAL.md) and [`production/WREN_ARC.md`](production/WREN_ARC.md).
+
+**Verification:** strict full suite **705/705**, 1540.2 s, no script errors, on a tree identical to `483ac8f`.
+
+**Playable build:** https://claude.ai/artifact/3G95pCn7jTAYr2DPmmWu5w, version 19, built from code identical to `7ad88a8`. It is private to its owner until shared. Packaged build: `web_check.cjs` all pass, story reader all pass, no page errors (headless Chromium).
+
+**Not verified:** nobody has played either change.
+
+## Previous: the festival's break rebuilt (2026-10-27, branch `claude/last-save-file-prototype-ljwuq4`)
+
+**Code revision:** `08ab155`, based on `main` @ `6fb8e23`. Not merged.
+
+**What changed in the opening** ([`production/OPENING_BEATS.md`](production/OPENING_BEATS.md)):
+- **The fifth lantern needs both players.** Halfway through the shared hold, Player 1's half stops. Arin freezes, the music cuts, and about 2.5 s pass before the notification.
+- **Trying alone stalls.**
+- **The player lights it.** After Player 2 leaves, the player lights it with no controller held: the first impossible action.
+
+**Planning documents:** the M1 evidence pages are in `docs/production/`.
+
+| Check (on the `08ab155` tree) | Result |
+| --- | --- |
+| Baseline `6fb8e23` strict suite | 691/691, 1527.3 s |
+| Strict full suite | 692/693 on the first run (one intermittent failure, PL-8), then **693/693**, 1536.7 s; no script errors |
+| Windows / Linux / Web exports | All exit 0. SHA-256 prefixes: exe `8ad2a49c4c7b8749`, x86_64 `9cb01522d6f79ca0`, pck `f798744185896d0e` |
+| Linux exported smoke | 240 headless frames, exit 0 |
+| Browser lifecycle (`web_check.cjs`) | All pass; no page errors |
+| Exported story reader | All pass |
+| Festival frames and timing tours | Pass. Prompt path: Player 1 stops 17.9 s, she lights the fifth 27.7 s, in the room 88.4 s (wall, llvmpipe) |
+
+**Not verified:** Windows execution, hardware GPU, a physical controller, and unfamiliar players. This is not a release claim. The ObjectDB exit warning is still printed.
+
+## Previous: verified integration and player-paced festival (2026-10-26)
 
 The author requested integrating the review branch into **main**. Source
 branch `claude/last-save-file-prototype-ljwuq4` at `095ab8c` is integrated

@@ -49,14 +49,15 @@ func test_the_whole_festival_plays_in_order() -> void:
 	var p := await _festival(true)
 	p.autoplay = true
 	check(await _until(p, func() -> bool: return p.beat == Prologue.Beat.LOAD, 400.0), "it reaches the present (%s, %s)" % [Prologue.Beat.keys()[p.beat], str(p.acted)])
-	var order := ["lit_1", "lit_2", "lit_3", "lit_4", "p1_left", "choice", "p2_left", "timelapse", "load"]
+	var order := ["lit_1", "lit_2", "lit_3", "lit_4", "p1_stopped", "p1_left", "choice", "p2_left", "lit_5", "timelapse", "load"]
 	var last := -1.0
 	for k in order:
 		check(p.acted.has(k), "%s happened" % k)
 		if p.acted.has(k):
 			check(float(p.acted[k]) >= last, "%s in order" % k)
 			last = float(p.acted[k])
-	check_eq(p.choice, "lit", "playing straight through, she lights the last one herself")
+	check_eq(p.choice, "tried", "playing straight through, she tries the last one alone (it needs two)")
+	check(p.acted.has("lit_by_herself"), "and lights it once nobody is holding her")
 	check(float(p.acted.get("load", 999.0)) <= 240.0, "the festival, the leaves and 3 YEARS LATER in under 4 minutes of game time (%.0f s)" % float(p.acted.get("load", 0.0)))
 	await _end(p)
 
@@ -137,51 +138,114 @@ func test_the_spotlight_watches_only_the_gap() -> void:
 	await _end(p)
 
 
+## At the fifth, holding together, the moment Player 1's half stops.
 func _at_the_break(p: Prologue) -> void:
 	for i in 4:
 		p.lit[i] = true
 	p._to_beat(Prologue.Beat.P1_LEFT)
-	p.arin_pos = Prologue.ARIN_STOPS
-	p._set_arin_goal(Prologue.ARIN_STOPS)
-	p.rue_pos = Prologue.ARIN_STOPS + Vector2(40, 0)
-	_step(p, 0.2)
+	p.arin_pos = Prologue.FIFTH_LEFT
+	p._set_arin_goal(Prologue.FIFTH_LEFT)
+	p.rue_pos = Prologue.FIFTH_RIGHT
+	p._stop_player_one()
+	_step(p, 0.1)
 
 
-func test_player_one_leaves_and_she_can_light_the_last_one_alone() -> void:
+## Reads whatever story page is up (the goodbye, the message).
+func _read_on(p: Prologue) -> void:
+	for i in 6:
+		if p.story.visible:
+			p.story.advance()
+		_step(p, 0.1)
+
+
+func test_the_fifth_needs_both_and_his_half_stops() -> void:
+	var p := await _festival(true)
+	for i in 4:
+		p.lit[i] = true
+	p._to_beat(Prologue.Beat.P1_LEFT)
+	p.arin_pos = Prologue.FIFTH_LEFT
+	p._set_arin_goal(Prologue.FIFTH_LEFT)
+	p.rue_pos = Prologue.FIFTH_RIGHT
+	Input.action_press("interact")
+	_step(p, Prologue.FIFTH_TIME * Prologue.P1_STOPS_AT + 0.2)
+	Input.action_release("interact")
+	check(p.acted.has("p1_stopped"), "holding together, halfway, Player 1's half stops")
+	check(not p.lit[4], "and the lantern doesn't light")
+	await _end(p)
+
+
+func test_the_absence_is_felt_before_it_is_named() -> void:
 	var p := await _festival(true)
 	await _at_the_break(p)
-	check(p.acted.has("p1_left") and not p._arin_present, "PLAYER 1 HAS LEFT THE SESSION")
-	check(p._toast.contains("PLAYER 1 HAS LEFT"), "said on screen (%s)" % p._toast)
-	check(p.step_hint().contains("light the last one") and p.step_hint().contains("stay beside him"), "the decision is offered (%s)" % p.step_hint())
-	p.rue_pos = Prologue.LANTERNS[4] + Vector2(0, 14)
-	p._interact()
-	check_eq(p.choice, "lit", "she lit it, alone")
+	var breath: float = p.arin._t
+	_step(p, 1.0)
+	check(not p.acted.has("p1_left"), "no words yet")
+	check(not p._toast.contains("PLAYER 1"), "no notification yet (%s)" % p._toast)
+	check_eq(p.step_hint(), "", "and no instruction: just his absence")
+	check(is_equal_approx(p.arin._t, breath), "Arin is frozen mid-breath: nobody is driving him")
+	_step(p, Prologue.ABSENCE_QUIET)
+	check(p.acted.has("p1_left") and not p._arin_present, "then: PLAYER 1 HAS LEFT THE SESSION")
+	check(p._toast.contains("PLAYER 1 HAS LEFT"), "said on screen")
+	check(p.step_hint().contains("stay beside him") and p.step_hint().contains("try alone"), "the decision is offered (%s)" % p.step_hint())
+	check(float(p.acted.p1_left) - float(p.acted.p1_stopped) >= Prologue.ABSENCE_QUIET - 0.01, "%.1f s of absence first" % (float(p.acted.p1_left) - float(p.acted.p1_stopped)))
+	await _end(p)
+
+
+func test_alone_it_needs_two_then_with_nobody_holding_her_she_lights_it() -> void:
+	var p := await _festival(true)
+	await _at_the_break(p)
+	_step(p, Prologue.ABSENCE_QUIET + 0.1)
+	Input.action_press("interact")
+	_step(p, Prologue.TRY_TIME + 0.4)
+	Input.action_release("interact")
+	check_eq(p.choice, "tried", "she tried alone")
+	check(not p.lit[4], "it needs two: it doesn't light")
+	check(p._fifth <= Prologue.ALONE_CAP + 0.01, "her half alone stalls at halfway (%.2f)" % p._fifth)
 	_step(p, 2.0)
-	check_eq(p.beat, Prologue.Beat.P2_LEFT, "then PLAYER 2 HAS LEFT THE SESSION")
+	check_eq(p.beat, Prologue.Beat.P2_LEFT, "then Player 2 leaves")
+	await _read_on(p)
+	check(p.acted.has("p2_left"), "PLAYER 2 HAS LEFT THE SESSION")
 	var at := p.rue_pos
 	Input.action_press("move_left")
 	_step(p, 0.4)
 	Input.action_release("move_left")
 	check(p.rue_pos.x < at.x - 10.0, "and she still moves")
+	p.rue_pos = Prologue.FIFTH_RIGHT
+	_step(p, Prologue.IMPOSSIBLE_PROMPT)
+	Input.action_press("interact")
+	_step(p, Prologue.FIFTH_TIME * 1.25 + 0.3)
+	Input.action_release("interact")
+	check(p.lit[4], "the player holds, and the lantern that needed two lights")
+	check(p.acted.has("lit_by_herself") and float(p.acted.lit_by_herself) > float(p.acted.p2_left), "with nobody holding her: after both players left")
 	await _end(p)
 
 
-func test_staying_beside_him_is_a_choice_and_she_lights_it_anyway() -> void:
+func test_staying_beside_him_is_a_choice_and_the_act_is_still_hers() -> void:
 	var p := await _festival(true)
 	await _at_the_break(p)
+	_step(p, Prologue.ABSENCE_QUIET + 0.1)
 	p.rue_pos = p.arin_pos + Vector2(10, 0)
 	_step(p, 3.0)
 	check_eq(p.choice, "stayed", "she stayed beside him")
-	check(await _until(p, func() -> bool: return p.lit[4], 40.0), "during the years, with nobody holding her, she lights it herself")
-	check(p.acted.has("lit_by_herself"), "(that's recorded)")
+	_step(p, 2.0)
+	await _read_on(p)
+	_step(p, Prologue.IMPOSSIBLE_HINT + 2.0)
+	check(not p.lit[4], "nothing lights it for an active player: the act is the player's")
+	check(p.step_hint().contains("hold"), "after a while it's named (%s)" % p.step_hint())
+	p.rue_pos = Prologue.FIFTH_RIGHT
+	Input.action_press("interact")
+	_step(p, Prologue.FIFTH_TIME * 1.25 + 0.3)
+	Input.action_release("interact")
+	check(p.lit[4] and p.acted.has("lit_by_herself"), "she lights it herself")
 	await _end(p)
 
 
 func test_doing_nothing_still_moves_on() -> void:
 	var p := await _festival(true)
 	await _at_the_break(p)
-	check(await _until(p, func() -> bool: return p.choice != "", Prologue.DECIDE_TIME + 6.0), "no input: it doesn't wait forever")
+	check(await _until(p, func() -> bool: return p.choice != "", Prologue.ABSENCE_QUIET + Prologue.DECIDE_TIME + 6.0), "no input: it doesn't wait forever")
 	check_eq(p.choice, "idle", "recorded as neither")
+	check(await _until(p, func() -> bool: return p.lit[4], Prologue.AUTO_AFTER + 30.0), "an absent player is still brought to the present")
 	await _end(p)
 
 

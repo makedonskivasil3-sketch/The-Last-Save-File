@@ -24,7 +24,7 @@ const ESCORT_LEASH := 70.0
 var area: Area
 ## Session-only facts: "pointer" (have Slot 2's pointer), "mira_deleted", ...
 var flags: Dictionary = {}
-## "", "death", "quit", "win", "demo" (the demo build's end card)
+## "", "death", "quit", "suspend" (save and exit), "win", "demo" (the demo build's end card)
 var ending := ""
 ## Development benchmark only (tests/tour_benchmark.gd): Rue can't be killed,
 ## so a pursuit sample is never a death card. Never set in play.
@@ -94,6 +94,8 @@ func _ready() -> void:
 	_pause_menu = PauseMenu.new()
 	_pause_menu.console_hud = hud
 	_pause_menu.quit_requested.connect(_quit)
+	_pause_menu.suspend_handler = try_suspend
+	OwnerMemory.safe_close = _close_safely
 	_pause_menu.debug_requested.connect(debug)
 	add_child(_pause_menu)
 	Input.joy_connection_changed.connect(_on_joy_connection_changed)
@@ -127,8 +129,15 @@ func _ready() -> void:
 	if OwnerMemory.found_pip:
 		_spawn_pip()
 	var previous := OwnerMemory.begin_session(true)
+	var resume := suspend_start(previous)
 	var start := anchor_start(previous)
-	if start.is_empty():
+	if not resume.is_empty():
+		var back := _make_area(resume.area)
+		if back is ArinsRoom:
+			(back as ArinsRoom).previous_exit = previous
+		_load_area(back, "start")
+		_resume_at(resume)
+	elif start.is_empty():
 		var room := ArinsRoom.new()
 		room.previous_exit = previous
 		_load_area(room, "start")
@@ -148,6 +157,10 @@ func _begin_session(previous: String) -> void:
 	# The boot log, unless the festival just showed its own (in the square).
 	if OwnerMemory.sessions == 1 and previous == "none" and not Prologue.take_boot_shown():
 		await hud.cinematic("", Story.BOOT, Hud.SYSTEM_COLOR, 1.0, "boot")
+		if not is_inside_tree() or ending != "":
+			return
+	if woke_from_suspend:
+		await _settle_resume()  # before she can move: never inside something rebuilt
 		if not is_inside_tree() or ending != "":
 			return
 	fx.spike(0.6, 1.0)  # loading into a save you don't belong in
@@ -170,7 +183,11 @@ func _begin_session(previous: String) -> void:
 	_tutorial = Tutorial.new()
 	add_child(_tutorial)
 	_tutorial.start(self)
-	if woke_at_anchor:
+	if woke_from_suspend:
+		hud.say(SUSPEND_WAKE, "self")
+		if _resumed_escort != "":
+			hud.say("(%s went home while i was gone. we can still go.)" % _resumed_escort, "self")
+	elif woke_at_anchor:
 		hud.say(WellSequence.ANCHOR_NOTE, "self")
 	else:
 		voice("wake_first" if OwnerMemory.sessions == 1 else "wake_again")
@@ -462,7 +479,7 @@ func _publish_web_state(delta: float) -> void:
 	_web_slowest = 0.0
 	WebState.publish({"scene": "game", "playable": playable, "reading": reading, "hold": hold, "awake": _awake, "slowest_ms": slowest,
 		"sfx_busy": Sfx.is_busy(), "game_ms": roundi(_web_game_ms), "wall_ms": Time.get_ticks_msec() - _web_wall0,
-		"area": area.area_id if area else "",
+		"area": area.area_id if area else "", "stop": suspend_blocker(), "persistent": OwnerMemory.storage_persistent(),
 		"x": snappedf(player.global_position.x, 0.1), "y": snappedf(player.global_position.y, 0.1)})
 
 
@@ -521,6 +538,7 @@ func _process(delta: float) -> void:
 	_update_focus()
 	_update_decoy()
 	_update_escort(delta)
+	_update_safe_mark(delta)
 	owner_moves.update(delta)
 	# [E] itself is read by the GlitchController: a tap comes back as tap_interact().
 
@@ -528,6 +546,7 @@ func _process(delta: float) -> void:
 ## Open the pause menu with what it shows (goal, map, debug).
 func open_pause() -> void:
 	_pause_menu.debug_available = debug_enabled()
+	_pause_menu.suspend_blocked = suspend_blocker()
 	_pause_menu.goal = current_goal()
 	var map := map_state()
 	_pause_menu.current_area = map.current
@@ -1494,6 +1513,8 @@ func _is_tense() -> bool:
 func _exit_tree() -> void:
 	if Sfx.hold_back == Callable(_is_tense):
 		Sfx.hold_back = Callable()
+	if OwnerMemory.safe_close == Callable(_close_safely):
+		OwnerMemory.safe_close = Callable()
 
 
 ## Mira is gone this run: deleted this session, or by an advanced purge
@@ -1973,6 +1994,214 @@ func _quit(to_title: bool = false) -> void:
 		get_tree().change_scene_to_file(TITLE_SCENE)
 	else:
 		OwnerMemory.quit_game()
+
+
+# --- Save and exit (docs/SAVE_AND_EXIT_PROPOSAL.md, option b) ----------------
+
+## Bumped when a map changes enough that a stored position could be wrong:
+## older suspends are dropped and the run starts in Arin's room.
+const SUSPEND_VERSION := 1
+## Where a suspend can resume (the Edge is the finale: never there).
+const SUSPEND_AREAS := ["room", "square", "archive", "oob", "bin", "house"]
+const SUSPEND_WAKE := "(you came back. i stayed right here.)"
+## This session resumed a suspended run.
+var woke_from_suspend := false
+## Who was walking with her when she stopped ("" if nobody): back home now.
+var _resumed_escort := ""
+
+
+## Why Save and exit isn't possible right now, or "" when it is. The same
+## idea of a safe moment as the protection policy: nothing about to land,
+## nobody depending on her, no story open.
+func suspend_blocker() -> String:
+	if purged or ending != "" or _transitioning or _cutscene or not _awake or not OwnerMemory.session_armed():
+		return "not right now."
+	if area == null or area.area_id not in SUSPEND_AREAS:
+		return "not here. this is where it ends."
+	if story_holds() or hud.is_choosing():
+		return "not in the middle of a conversation."
+	if director.awareness >= OwnerDirector.SUSPECT or hud.warning_text() != "":
+		return "not while the owner is looking for you."
+	if owner_moves and (owner_moves.save_progress >= 0.0 or owner_moves.wren_delete >= 0.0):
+		return "not while the owner is reaching in."
+	var erasure: Variant = area.get("erasure")
+	if erasure is Node and erasure.get("active"):
+		return "not with the static spreading."
+	var p := player.global_position
+	for threat in ["arin", "cursor"]:
+		var n: Variant = area.get(threat)
+		if n is Node2D and n.global_position.distance_to(p) < 120.0:
+			return "not with the owner this close."
+	return ""
+
+
+## Save and exit, step one (the pause menu calls it, with the game still
+## paused): write the record. Returns "" when it is on disk, otherwise why
+## not, and nothing has changed: the run is still open and still paused.
+func try_suspend(to_title := true) -> String:
+	var blocked := suspend_blocker()
+	if blocked != "":
+		return blocked
+	# Someone walking with her goes home and asks again next time (their
+	# own "are we still going?"): stopping mid-escort costs them nothing.
+	var kept := flags.duplicate()
+	if escort:
+		kept["suspended_escort_" + escort.npc_id] = true
+	if not OwnerMemory.record_suspend(area.area_id, player.global_position, SUSPEND_VERSION, kept):
+		PlaytestLog.mark("SAVE AND EXIT FAILED", OwnerMemory.suspend_error)
+		return OwnerMemory.suspend_error
+	PlaytestLog.mark("SUSPENDED (save and exit)", "%s at %s" % [area.area_id, player.global_position.round()])
+	_leave_suspended(to_title)
+	return ""
+
+
+## Step two, only after the save is on disk: say so and go to the title.
+func _leave_suspended(to_title := true) -> void:
+	ending = "suspend"
+	player.frozen = true
+	director.stop()
+	hud.set_prompt("")
+	hud.set_status("")
+	hud.show_overlay("SAVED", "i'll be right here.")
+	fx.power_off(1.0)
+	Sfx.play("power_off", -4.0, 1.2, 0.0)
+	await get_tree().create_timer(1.2).timeout
+	if not is_inside_tree():
+		return
+	if to_title:
+		get_tree().change_scene_to_file(TITLE_SCENE)
+	else:
+		OwnerMemory.quit_game()
+
+
+## Closing the window: free at a calm moment (records the Save and exit).
+func _close_safely() -> bool:
+	if not is_inside_tree() or suspend_blocker() != "":
+		return false
+	var kept := flags.duplicate()
+	if escort:
+		kept["suspended_escort_" + escort.npc_id] = true
+	return OwnerMemory.record_suspend(area.area_id, player.global_position, SUSPEND_VERSION, kept)
+
+
+## Keeps the calm moment on disk while it lasts (OwnerMemory.mark_safe), so a
+## tab closed, a crash or a power cut now costs nothing; withdrawn the moment
+## it isn't calm. Checked four times a second; written only on a change, or
+## every few seconds while she moves.
+const SAFE_CHECK := 0.25
+const SAFE_REWRITE := 5.0
+var _safe_t := 0.0
+var _safe_written := -INF
+var _safe_at := Vector2.INF
+
+
+func _update_safe_mark(delta: float) -> void:
+	_safe_t -= delta
+	if _safe_t > 0.0 or purged:
+		return
+	_safe_t = SAFE_CHECK
+	var safe := suspend_blocker() == ""
+	if not safe:
+		OwnerMemory.mark_unsafe()
+		_safe_at = Vector2.INF
+		return
+	var now := Time.get_ticks_msec() / 1000.0
+	var moved := _safe_at == Vector2.INF or player.global_position.distance_to(_safe_at) > 16.0
+	var new_place := str(OwnerMemory.suspend.get("area", "")) != area.area_id
+	if OwnerMemory.last_exit != "safe" or new_place or (moved and now - _safe_written > SAFE_REWRITE):
+		var kept := flags.duplicate()
+		if escort:
+			kept["suspended_escort_" + escort.npc_id] = true
+		OwnerMemory.mark_safe(area.area_id, player.global_position, SUSPEND_VERSION, kept)
+		_safe_written = now
+		_safe_at = player.global_position
+
+
+## (Kept for callers and tests: the same as choosing Save and exit.)
+func _suspend() -> void:
+	var why := try_suspend()
+	if why != "":
+		hud.say("save and exit: " + why, "system")
+
+
+## The suspend to resume this session, or {} (none, outdated, or the last
+## session didn't end in one). An unusable record is dropped.
+static func suspend_start(previous: String) -> Dictionary:
+	var s := OwnerMemory.suspend
+	if s.is_empty():
+		return {}
+	if previous != "suspend" or int(s.get("version", 0)) != SUSPEND_VERSION or str(s.get("area", "")) not in SUSPEND_AREAS \
+			or int(s.get("session", -1)) != OwnerMemory.sessions - 1:
+		OwnerMemory.suspend.clear()
+		OwnerMemory.save_memory()
+		return {}
+	return s
+
+
+## Whether Rue's whole body fits at `at`: inside the map, on floor, and
+## clear of every solid as rebuilt this session (props, doors, walls).
+func body_fits(at: Vector2) -> bool:
+	if not area.bounds.grow(-6.0).has_point(at):
+		return false
+	if area.has_method("floor_at") and not area.floor_at(at):
+		return false
+	var shape_node := player.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if shape_node == null:
+		return true
+	var q := PhysicsShapeQueryParameters2D.new()
+	q.shape = shape_node.shape
+	q.transform = Transform2D(0.0, at + shape_node.position)
+	q.collision_mask = player.collision_mask
+	q.exclude = [player.get_rid()]
+	return get_world_2d().direct_space_state.intersect_shape(q, 1).is_empty()
+
+
+## A resumed spot is checked once the rebuilt map is in the physics world:
+## if anything now stands there (a crate the owner moved, a closed door),
+## the nearest clear spot, else the area's first way in.
+func _settle_resume() -> void:
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	if not is_inside_tree():
+		return
+	var at := player.global_position
+	if body_fits(at):
+		return
+	var found := Vector2.INF
+	for ring in range(1, 11):
+		for k in 16:
+			var c := at + Vector2.from_angle(TAU * k / 16.0) * ring * 6.0
+			if body_fits(c):
+				found = c
+				break
+		if found != Vector2.INF:
+			break
+	if found == Vector2.INF:
+		found = area.entry_point("start" if area.entries.has("start") else str(area.entries.keys()[0]) if not area.entries.is_empty() else "")
+	PlaytestLog.mark("resume moved", "%s: %s -> %s (blocked)" % [area.area_id, at.round(), found.round()])
+	player.global_position = found
+	update_camera(0.0, true)
+	if pip:
+		pip.arrive(player.position)
+
+
+## Puts Rue back where she was (if it is still inside the map) with the
+## run's flags; _settle_resume then checks her whole body against the map.
+func _resume_at(s: Dictionary) -> void:
+	var at := Vector2(float(s.x), float(s.y))
+	if area.bounds.grow(-6.0).has_point(at) and (not area.has_method("floor_at") or area.floor_at(at)):
+		player.position = at
+		update_camera(0.0, true)
+		if pip:
+			pip.arrive(player.position)
+	var kept: Dictionary = s.get("flags", {})
+	for k in kept:
+		if str(k).begins_with("suspended_escort_"):
+			_resumed_escort = str(k).trim_prefix("suspended_escort_")
+			continue
+		flags[k] = kept[k]
+	flags["pointer"] = flags.get("pointer", false) or OwnerMemory.met_archivist
+	woke_from_suspend = true
 
 
 func _build_purged() -> void:

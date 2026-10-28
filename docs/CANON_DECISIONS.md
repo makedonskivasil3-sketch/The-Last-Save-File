@@ -94,7 +94,14 @@ The rest of the branch's work does not depend on which premise is chosen:
 - **Recommendation:** stay with trace only unless a real
   present-time-response mechanic is designed.
 
-## 4. Save and Exit / Continue (not implemented)
+## 4. Save and Exit / Continue: DECIDED, option (b), built 2026-10-27
+
+**Decision:** Save and exit at a safe moment costs nothing and resumes once.
+**Since 2026-10-28** (the author: "free save"), any stop at a calm moment
+(menu quit, window, tab, crash) is free too. Only stopping in danger counts. See
+`SAVE_AND_EXIT_PROPOSAL.md`. The original notes follow.
+
+### Original notes
 
 - Today, quitting mid-run raises purge. That is the owner's rule, and the
   pause menu warns about it.

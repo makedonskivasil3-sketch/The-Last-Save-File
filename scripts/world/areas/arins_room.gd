@@ -383,6 +383,8 @@ func _note_text() -> String:
 			return Story.NOTE_RECALL.get(OwnerMemory.last_death, "I REMEMBER WHERE\nYOU DIED.")
 		"quit", "crash":
 			return "CLOSING THE GAME\nWON'T SAVE YOU."
+		"suspend":
+			return "YOU LEFT IT\nRUNNING."
 		"win", "escape":
 			return Story.NOTE_RECALL.get(OwnerMemory.last_ending, "I KNOW ABOUT\nSLOT 2.")
 	if OwnerMemory.sessions > 1:

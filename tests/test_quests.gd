@@ -104,7 +104,7 @@ func test_mira_remembers_the_festival_once() -> void:
 
 
 func test_how_the_festival_ended_changes_what_mira_saw() -> void:
-	for c in ["lit", "stayed", "idle", "skipped", ""]:
+	for c in ["lit", "tried", "stayed", "idle", "skipped", ""]:
 		memory().conversations.clear()
 		memory().festival_choice = c
 		var told := Relationships.mira_festival()
@@ -128,7 +128,7 @@ func test_wren_and_tobben_remember_it_too() -> void:
 
 func test_the_archive_records_who_lit_the_fifth_lantern() -> void:
 	check(Story.festival_log("lit").has("LANTERN 5 · lit by P2 · never saved off."), "she lit it with P2 holding")
-	for c in ["stayed", "idle"]:
+	for c in ["tried", "stayed", "idle"]:
 		check(Story.festival_log(c).any(func(l: String) -> bool: return l.contains("controller: none")), "%s: lit with no controller held" % c)
 	var w := await start_session()
 	await go_to(w, "archive", "west")

@@ -18,6 +18,10 @@ var _effects: HSlider
 var _reset_button: Button
 var _reset_armed := false
 var _narration: CheckButton
+## Control remapping: one button per action; the one waiting for a key.
+var _bind_buttons := {}
+var _binding := ""
+var _bind_note: Label
 
 
 func _ready() -> void:
@@ -94,10 +98,55 @@ func _ready() -> void:
 	# is hidden right after, like the title's, is never on screen and asks nothing.)
 	visibility_changed.connect(_refresh_narration)
 	_refresh_narration.call_deferred()
+	# Controls (keyboard): press a button, then the key. Arrows and Esc stay.
+	_section(right, "CONTROLS")
+	for action: String in Settings.REBINDABLE:
+		var b := Button.new()
+		b.focus_mode = Control.FOCUS_ALL
+		b.pressed.connect(_start_binding.bind(action))
+		right.add_child(b)
+		_bind_buttons[action] = b
+	UiStyle.button(right, "Reset controls", func() -> void:
+		Settings.reset_binds()
+		_bind_note.text = "controls back to their defaults."
+		_label_binds())
+	_bind_note = UiStyle.note(right, "arrow keys and Esc always work too.", UiStyle.MUTED)
+	_label_binds()
 	if show_reset:
 		_reset_button = UiStyle.button(right, "Reset owner memory", _on_reset)
 
 	UiStyle.button(self, "Back", func() -> void: closed.emit(), "ui_back")
+
+
+func _label_binds() -> void:
+	for action: String in _bind_buttons:
+		var b: Button = _bind_buttons[action]
+		b.text = "%s: %s" % [Settings.ACTION_NAMES[action], "press a key..." if action == _binding else Settings.key_label(action)]
+
+
+func _start_binding(action: String) -> void:
+	_binding = action
+	_bind_note.text = "press the new key for %s (Backspace cancels)." % Settings.ACTION_NAMES[action].to_lower()
+	_label_binds()
+
+
+## The key that comes next is the new binding (Backspace cancels).
+func _input(event: InputEvent) -> void:
+	if _binding == "" or not (event is InputEventKey) or not event.is_pressed() or event.is_echo():
+		return
+	get_viewport().set_input_as_handled()
+	var key := event as InputEventKey
+	var code := int(key.physical_keycode) if key.physical_keycode != KEY_NONE else int(key.keycode)
+	var action := _binding
+	_binding = ""
+	if code == KEY_BACKSPACE:
+		_bind_note.text = "unchanged."
+	else:
+		var why := Settings.bind_key(action, code)
+		_bind_note.text = ("%s: %s" % [Settings.ACTION_NAMES[action], Settings.key_label(action)]) if why == "" else "not changed: " + why
+	_label_binds()
+	if _bind_buttons.has(action):
+		(_bind_buttons[action] as Button).grab_focus()
 
 
 func _refresh_narration() -> void:

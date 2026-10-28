@@ -10,9 +10,13 @@ extends Node2D
 ##   3 SPECIAL  Both hold [E] at once: the co-op special (hold to charge).
 ##   4 BEAM     The festival spotlight sweeps the gap: cross when it turns.
 ##
-## Then, running for the fifth: PLAYER 1 HAS LEFT THE SESSION. Light it
-## alone, or stay beside him (the first decision). PLAYER 2 HAS LEFT THE
-## SESSION, and she still moves. Time passes over the square (the message,
+## The fifth, by the well, needs both of them too. Halfway through the
+## hold, Arin's half stops: he freezes, the music cuts, and only then
+## PLAYER 1 HAS LEFT THE SESSION. Stay beside him, or try alone (it needs
+## two): the first decision. PLAYER 2 HAS LEFT THE SESSION. Then, with
+## nobody holding anything, the player holds [E] and Rue lights it alone:
+## the first impossible action (docs/production/OPENING_BEATS.md).
+## Time passes over the square (the message,
 ## SLOT 2 · DELETED, 3 YEARS LATER); one lantern never goes out. The owner
 ## loads slot 1, Arin sees her: "...who's in my save?" Then the game.
 ##
@@ -55,8 +59,24 @@ const BEAM_PERIOD := 4.2
 const BEAM_ON := 0.38  # share of the cycle the light is on the gap
 ## 5: the well, and the lantern beside it.
 const WELL := Rect2(444, 150, 40, 24)
-## Arin stops here when Player 1 leaves (mid-run for the fifth).
+## Arin stops here when Player 1 leaves (mid-run for the fifth). Kept for
+## older captures; the break now happens at the fifth lantern itself.
 const ARIN_STOPS := Vector2(470, 252)
+## 5: the fifth needs both, like the maypole: a place for each of them.
+const FIFTH_LEFT := Vector2(404, 150)
+const FIFTH_RIGHT := Vector2(438, 150)
+const FIFTH_TIME := 1.6
+## Arin's half stops when the shared hold gets this far.
+const P1_STOPS_AT := 0.5
+## Seconds of his absence before anything names it.
+const ABSENCE_QUIET := 2.5
+## Alone (with her player still there) the hold gets this far, then stalls.
+const ALONE_CAP := 0.5
+## Holding alone this long makes "tried" her answer.
+const TRY_TIME := 1.6
+## After Player 2 leaves: when the faint [E] appears, and when it's named.
+const IMPOSSIBLE_PROMPT := 2.0
+const IMPOSSIBLE_HINT := 8.0
 
 const SPEED := 90.0
 const ARIN_SPEED := 78.0
@@ -94,9 +114,15 @@ var elapsed := 0.0
 ## What happened, and when (seconds since the prologue began): tests,
 ## timings, the playtest log.
 var acted := {}
-## The first decision: "lit" (the fifth lantern, alone), "stayed" (beside
-## Arin) or "idle" (neither). Rue lights it herself if nobody did.
+## The first decision, when Player 1 stops: "stayed" (beside Arin),
+## "tried" (the fifth, alone: it needs two) or "idle" (neither). Saves from
+## the earlier festival may hold "lit" (she lit it with her player there).
 var choice := ""
+## The fifth's shared hold (0..1), and when Player 1's half stopped.
+var _fifth := 0.0
+var _p1_stopped_at := -1.0
+var _alone_t := 0.0
+var _arin_frozen := false
 var lit: Array[bool] = [false, false, false, false, false]
 var caught := 0
 
@@ -111,7 +137,14 @@ var tobben := HeroFigure.new("apron", {"h": Color("bbbbbb"), "s": Color("e0b48a"
 
 var rue_pos := RUE_START
 var arin_pos := ARIN_START
+## What Rue actually travelled last frame (px/s): the gait, dust and
+## camera read this, so pushing into a wall isn't walking.
 var _rue_vel := Vector2.ZERO
+## What the player is asking for (direction, 0..1): she faces it even
+## when blocked (docs/production/MOVEMENT_SPEC.md).
+var _rue_intent := Vector2.ZERO
+## Seconds a pointer destination has made no real progress.
+var _stuck_t := 0.0
 var _arin_vel := Vector2.ZERO
 var _arin_goal := ARIN_START
 var _arin_overshoot := Vector2.ZERO
@@ -196,6 +229,7 @@ func _ready() -> void:
 	Sfx.reset_scene_state()
 	WebState.publish({"scene": "prologue", "playable": true})
 	PlaytestLog.mark("prologue: the festival", "replay" if replay else "first run")
+	camera_plain = plain_camera_requested()
 	_build_hud()
 	# Phones and tablets: the same on-screen stick and E button as the game
 	# (hidden until the screen is touched).
@@ -251,6 +285,13 @@ func _build_hud() -> void:
 	_quest.text = "light the five lanterns before sundown"
 	_pips = _label(Vector2(0, 40), 10, Color(1.0, 0.8, 0.45))
 	_toast_label = _label(Vector2(0, 62), 12, SYSTEM_COLOR)
+	# A plate under the system line, so it reads over the nameplates below it.
+	var toast_bg := StyleBoxFlat.new()
+	toast_bg.bg_color = Color(0.03, 0.04, 0.07, 0.82)
+	toast_bg.set_corner_radius_all(3)
+	toast_bg.content_margin_left = 8
+	toast_bg.content_margin_right = 8
+	_toast_label.add_theme_stylebox_override("normal", toast_bg)
 	_hint = _label(Vector2(0, 334), 9, Color(0.95, 0.93, 0.88))
 	_skip_label = _label(Vector2(0, 346), 8, Color(0.75, 0.77, 0.8))
 	_diag = Label.new()
@@ -411,8 +452,11 @@ func _process(delta: float) -> void:
 	for b in _bursts:
 		b[1] += delta
 	_bursts = _bursts.filter(func(b: Array) -> bool: return b[1] < 1.2)
-	rue.update(delta, _rue_vel)
-	arin.update(delta, _arin_vel)
+	rue.update(delta, _rue_vel, false)
+	rue.face(_rue_intent)
+	# Nobody driving him: not even a breath (he resumes when the owner loads).
+	if not _arin_frozen:
+		arin.update(delta, _arin_vel)
 	for f in [mira, wren, tobben]:
 		f.update(delta, Vector2.ZERO)
 	_update_hud(delta)
@@ -486,11 +530,53 @@ func _draw_motes() -> void:
 				draw_circle(m[0], 2.5 * (1.5 - a), Color(0.85, 0.78, 0.6, 0.35 * a))
 
 
+## Camera (docs/production/MOVEMENT_SPEC.md, Camera). Arin is blended into
+## the framing by distance, never switched. The look-ahead cancels the
+## follow's own lag (at full speed the smoothing alone trails her by about
+## speed / 2.5 px), so she stays near the centre and a reversal barely moves
+## the view; it reads what she actually travels (none against a wall) and
+## fades beside a lantern so that stays framed. Reduced motion: no
+## look-ahead, drift, shake or punch; the view follows her closely.
+const SHARE_NEAR := 110.0
+const SHARE_FAR := 190.0
+const LOOK_AHEAD := 0.35  # seconds of travel (about 1 / the follow rate)
+const LOOK_MAX := 31.5
+## Comparison captures only: centred on Rue, nothing else.
+var camera_fixed := false
+## Movement playtests: the follow's smoothing only, with no look-ahead,
+## drift, shake or zoom punch, so the controller is judged on its own.
+## `-- --camera-plain`, or ?camera=plain on the web.
+var camera_plain := false
+
+
+static func plain_camera_requested() -> bool:
+	if "--camera-plain" in OS.get_cmdline_user_args():
+		return true
+	return OS.has_feature("web") and str(JavaScriptBridge.eval("window.location.search", true)).contains("camera=plain")
+var _look := Vector2.ZERO
+
+
+## Where the camera wants to be (before smoothing and the look-ahead).
+func _camera_focus() -> Vector2:
+	var share := 0.0
+	if _arin_present:
+		share = smoothstep(SHARE_FAR, SHARE_NEAR, arin_pos.distance_to(rue_pos))
+	if beat in [Beat.LOAD, Beat.DONE]:
+		share = 1.0
+	return rue_pos.lerp((rue_pos + arin_pos) * 0.5, share)
+
+
+## 1 in the open, 0 beside something she can light or use (it stays framed).
+func _look_room() -> float:
+	var near := INF
+	for i in 5:
+		if not lit[i]:
+			near = minf(near, rue_pos.distance_to(LANTERNS[i]))
+	return smoothstep(18.0, 44.0, near)
+
+
 func _update_camera(delta: float) -> void:
 	var want_zoom := 1.7
-	var focus := rue_pos
-	if _arin_present and arin_pos.distance_to(rue_pos) < 150.0:
-		focus = (rue_pos + arin_pos) * 0.5
 	match beat:
 		Beat.P2_LEFT:
 			want_zoom = 1.5
@@ -498,13 +584,19 @@ func _update_camera(delta: float) -> void:
 			want_zoom = 1.0
 		Beat.LOAD, Beat.DONE:
 			want_zoom = 1.45
-			focus = (rue_pos + arin_pos) * 0.5
+	var focus := _camera_focus()
 	var k := 1.0 - exp(-(2.5 if not calm() else 6.0) * delta)
-	# Alive, not locked: look ahead where she's running, breathe a little.
-	if not calm():
-		focus += _rue_vel.limit_length(90.0) * 0.35
-		focus += Vector2(sin(elapsed * 0.37) * 4.0, cos(elapsed * 0.29) * 2.5)
-	_punch = move_toward(_punch, 0.0, delta * 0.6)
+	# During his absence the camera holds its breath too.
+	var hush := _p1_stopped_at >= 0.0 and beat == Beat.P1_LEFT
+	var lively := not calm() and not hush and not camera_fixed and not camera_plain
+	_look = (_rue_vel * LOOK_AHEAD).limit_length(LOOK_MAX) * _look_room() if lively else Vector2.ZERO
+	focus += _look
+	if lively:
+		focus += Vector2(sin(elapsed * 0.37) * 2.0, cos(elapsed * 0.29) * 1.2)
+	if camera_fixed:
+		focus = rue_pos
+		k = 1.0
+	_punch = move_toward(_punch, 0.0, delta * 0.6) if not camera_plain else 0.0
 	zoom = lerpf(zoom, want_zoom, k)
 	_cam = _cam.lerp(focus + Vector2(0, -16), k)
 	var z := zoom + _punch
@@ -512,7 +604,7 @@ func _update_camera(delta: float) -> void:
 	var tl := (_cam - view * 0.5).clamp(Vector2.ZERO, Vector2(640, 360) - view)
 	# Trauma shake: squared, so small knocks stay small.
 	_shake = move_toward(_shake, 0.0, delta * 1.6)
-	if _shake > 0.0:
+	if _shake > 0.0 and not camera_fixed and not camera_plain:
 		var amt := _shake * _shake * 5.0
 		tl += Vector2(_fx_rng.randf_range(-amt, amt), _fx_rng.randf_range(-amt, amt)) / z
 	scale = Vector2(z, z)
@@ -539,20 +631,16 @@ func _update_skip(delta: float) -> void:
 ## The player's stick, keys, a tap's destination, or (autoplay, or a long
 ## wait) the next step played for them.
 func _input_dir() -> Vector2:
+	# The actions' own deadzone (0.3, rescaled by get_vector) is the only
+	# one, as in the game: a light stick walks slowly in both.
 	var d := Input.get_vector("move_left", "move_right", "move_up", "move_down")
-	if d.length() > 0.2:
-		_walk_to = Vector2.INF
+	if d != Vector2.ZERO:
+		_walk_to = Vector2.INF  # keys or a stick take over from a tap
+		_act_queued = false
 		_mark_input()
 		return d
 	if _walk_to != Vector2.INF:
-		var to := _walk_to - rue_pos
-		if to.length() < 3.0:
-			_walk_to = Vector2.INF
-			if _act_queued:
-				_act_queued = false
-				_interact()
-			return Vector2.ZERO
-		return to.normalized()
+		return Vector2.ZERO  # a tap's destination: _move_rue steps to it
 	if autoplay or _shown_how():
 		return _auto_dir()
 	return Vector2.ZERO
@@ -561,7 +649,7 @@ func _input_dir() -> Vector2:
 ## Waited long enough at a step: it's played for them. Never the decision
 ## at the break: that stays theirs (doing nothing is an answer too).
 func _shown_how() -> bool:
-	return _idle > AUTO_AFTER and beat != Beat.P1_LEFT
+	return _idle > AUTO_AFTER and not (beat == Beat.P1_LEFT and _p1_stopped_at >= 0.0)
 
 
 func _interact_pressed() -> bool:
@@ -578,18 +666,31 @@ func _interact_held() -> bool:
 	return _hold_down
 
 
+## Movement (docs/production/MOVEMENT_SPEC.md): intent -> the step asked
+## for -> what the solids allow -> the velocity that animates her.
 func _move_rue(delta: float) -> void:
+	var want := Vector2.ZERO
 	if not _rue_free:
 		var spot := LANTERNS[4] + Vector2(0, 14)
 		if rue_pos.y > HEDGE_Y.x - 4.0:
 			var gx := (GAP.x + GAP.y) * 0.5
 			spot = Vector2(gx, rue_pos.y - 20.0) if absf(rue_pos.x - gx) < 3.0 else Vector2(gx, rue_pos.y)
 		var to := spot - rue_pos
-		_rue_vel = to.normalized() * SPEED * 0.6 if to.length() > 2.0 else Vector2.ZERO
+		want = to.limit_length(SPEED * 0.6 * delta) if to.length() > 2.0 else Vector2.ZERO
 	else:
 		var d := _input_dir()
-		_rue_vel = d * SPEED
-	rue_pos = _slide(rue_pos, _rue_vel * delta, true)
+		if _walk_to != Vector2.INF:
+			# Never past it: the step is bounded by what's left.
+			want = (_walk_to - rue_pos).limit_length(SPEED * delta)
+		else:
+			want = d * SPEED * delta
+	_rue_intent = want / (SPEED * delta) if delta > 0.0 else Vector2.ZERO
+	var from := rue_pos
+	rue_pos = _slide(rue_pos, want, true)
+	var moved := rue_pos - from
+	_rue_vel = moved / delta if delta > 0.0 else Vector2.ZERO
+	if _walk_to != Vector2.INF:
+		_follow_tap(want, moved, delta)
 	if _rue_free and beat <= Beat.P1_LEFT and (_interact_pressed() or _auto_act()):
 		_interact()
 
@@ -614,21 +715,75 @@ func _gate_open() -> bool:
 	return lit[0] or arin_pos.distance_to(PLATE) < 8.0
 
 
-## Moves by `step`, one axis at a time, stopping at solids and the edges.
+## A tap's destination: arrived (and act, once), or stuck (say so, stop).
+const ARRIVE := 0.05
+const STUCK_TIME := 0.35
+func _follow_tap(want: Vector2, moved: Vector2, delta: float) -> void:
+	if rue_pos.distance_to(_walk_to) < ARRIVE:
+		rue_pos = _walk_to if _free(_walk_to, _solids(true)) else rue_pos
+		_walk_to = Vector2.INF
+		_stuck_t = 0.0
+		if _act_queued:
+			_act_queued = false
+			_interact()
+		return
+	# Something is in the way: a fence, a closed gate. No path-finding
+	# here: she stops and shows it, instead of walking into it forever.
+	_stuck_t = _stuck_t + delta if moved.length() < want.length() * 0.25 else 0.0
+	if _stuck_t > STUCK_TIME:
+		_walk_to = Vector2.INF
+		_act_queued = false
+		_stuck_t = 0.0
+		_emote("rue", "?", 1.2)
+
+
+## Rue's footprint (the same 8 x 6 the game's body uses at her feet).
+const FOOT := Vector2(8, 6)
+## No step longer than this is tested at once: thinner than any solid plus
+## the footprint, so a long frame can't carry her through a gate.
+const SUBSTEP := 2.0
+
+
+func _free(at: Vector2, solids: Array[Rect2]) -> bool:
+	var box := Rect2(at - FOOT * 0.5, FOOT)
+	if not BOUNDS.encloses(box):
+		return false
+	for s in solids:
+		if s.intersects(box):
+			return false
+	return true
+
+
+## Moves by `step` in short sub-steps (swept: nothing thin is skipped),
+## sliding along what blocks her. At a corner the axis with more of the
+## motion wins, whichever axis it is, so mirrored approaches slide alike.
 func _slide(from: Vector2, step: Vector2, for_rue: bool) -> Vector2:
-	var at := from
 	var solids := _solids(for_rue)
-	for axis in 2:
-		var next := at
-		next[axis] += step[axis]
-		var box := Rect2(next - Vector2(4, 3), Vector2(8, 6))
-		var blocked := not BOUNDS.encloses(box)
-		for s in solids:
-			if s.intersects(box):
-				blocked = true
+	var at := from
+	var n := maxi(1, ceili(step.length() / SUBSTEP))
+	var part := step / float(n)
+	for i in n:
+		var moved := false
+		for f in [1.0, 0.5, 0.25]:
+			var d: Vector2 = part * f
+			if _free(at + d, solids):
+				at += d
+				moved = true
 				break
-		if not blocked:
-			at = next
+			var x := Vector2(d.x, 0)
+			var y := Vector2(0, d.y)
+			var x_ok := d.x != 0.0 and _free(at + x, solids)
+			var y_ok := d.y != 0.0 and _free(at + y, solids)
+			if x_ok and (not y_ok or absf(d.x) >= absf(d.y)):
+				at += x
+				moved = true
+				break
+			if y_ok:
+				at += y
+				moved = true
+				break
+		if not moved:
+			break
 	return at
 
 
@@ -665,7 +820,7 @@ func _next_arin_point() -> void:
 	_arin_goal = goal
 	var dir := (goal - arin_pos).normalized()
 	var last := _arin_path.is_empty()
-	_arin_overshoot = goal + dir * randf_range(4.0, 9.0) if last and arin_pos.distance_to(goal) > 30.0 else goal
+	_arin_overshoot = goal + dir * _fx_rng.randf_range(4.0, 9.0) if last and arin_pos.distance_to(goal) > 30.0 else goal
 
 
 func _think_arin(delta: float) -> void:
@@ -734,13 +889,8 @@ func _interact() -> void:
 		3:
 			if beat == Beat.L4:
 				_light(3)
-		4:
-			if beat == Beat.P1_LEFT and acted.has("p1_left") and choice == "":
-				choice = "lit"
-				_light(4)
-				_decide()
 		_:
-			pass  # the maypole is held, not pressed
+			pass  # the maypole and the fifth are held, not pressed
 
 
 func _light(i: int) -> void:
@@ -756,6 +906,11 @@ func _light(i: int) -> void:
 	if _arin_present and i < 4:
 		arin.play_spin()
 		_emote("arin", "yes!", 1.6)
+	if i == 4:
+		# Nobody is holding her controller, and the lantern that needed two
+		# is lit. The music comes back as one phrase.
+		acted["lit_by_herself"] = elapsed
+		_music_to(-16.0, 1.6)
 	PlaytestLog.mark("prologue: lantern %d" % (i + 1), "%.1f s" % elapsed)
 	match i:
 		0:
@@ -792,19 +947,23 @@ func _to_beat(b: Beat) -> void:
 			_set_arin_goal(Vector2(GAP.x - 18, 284))
 		Beat.P1_LEFT:
 			var gx := (GAP.x + GAP.y) * 0.5
-			_set_arin_goal(ARIN_STOPS, [Vector2(gx, 318), Vector2(gx, 282)])
+			_set_arin_goal(FIFTH_LEFT, [Vector2(gx, 318), Vector2(gx, 282)])
 		Beat.P2_LEFT:
-			acted["p2_left"] = elapsed
-			_show_toast("PLAYER 2 HAS LEFT THE SESSION", P2_COLOR, 3.0)
-			_kick(0.5, 0.0, 0.0)
-			Sfx.play("power_off", -14.0, 1.2)
-			PlaytestLog.mark("prologue: player 2 left", choice)
+			_fifth = 0.0
+			_alone_t = 0.0
+			# Her last words beside the television, then her controller goes down.
+			_story_break("goodbye", [
+				["PLAYER 2 · beside the television", "The car's here."],
+				["PLAYER 2 · beside the television", "I'll leave it on. Say bye to her for me."],
+			])
 		Beat.TIMELAPSE:
 			acted["timelapse"] = elapsed
 		Beat.LOAD:
 			story.cancel()
 			acted["load"] = elapsed
 			_arin_present = true
+			_arin_frozen = false
+			_music_to(-16.0, 0.6)
 			_rue_free = true
 			if not lit[4]:
 				lit[4] = true  # (skipped: it was lit, whoever lit it)
@@ -860,32 +1019,9 @@ func _update_beat(delta: float) -> void:
 				Sfx.play("flicker", -12.0)
 				rue_pos = Vector2(GAP.x - 10, 276)
 		Beat.P1_LEFT:
-			if not acted.has("p1_left") and arin_pos.distance_to(ARIN_STOPS) < 4.0:
-				acted["p1_left"] = elapsed
-				_arin_present = false
-				arin.waving = false
-				_show_toast("PLAYER 1 HAS LEFT THE SESSION", P1_COLOR, 3.2)
-				_kick(0.6, 0.15, 0.35)
-				Sfx.play("power_off", -10.0)
-				PlaytestLog.mark("prologue: player 1 left", "%.1f s" % elapsed)
-			if acted.has("p1_left") and choice == "":
-				if rue_pos.distance_to(arin_pos) < HIDE_R:
-					_decided_t += delta
-					rue.crouch = true
-					if _decided_t > 2.5:
-						choice = "stayed"
-						_decide()
-				else:
-					_decided_t = 0.0
-					rue.crouch = false
-				if beat_t > DECIDE_TIME + 4.0 and choice == "":
-					choice = "idle"
-					_decide()
-			if choice != "" and _decided_at >= 0.0 and beat_t - _decided_at > 1.6:
-				_to_beat(Beat.P2_LEFT)
+			_update_fifth(delta)
 		Beat.P2_LEFT:
-			if beat_t > 4.5:
-				_to_beat(Beat.TIMELAPSE)
+			_update_impossible(delta)
 		Beat.TIMELAPSE:
 			if beat_t >= 8.0 and not _story_seen.has("message"):
 				_story_break("message", [
@@ -893,18 +1029,10 @@ func _update_beat(delta: float) -> void:
 					["PLAYER 1 · an unsent reply", "yes i still have your sa"],
 				])
 				return
-			# Nobody lit the fifth: she does, with nobody holding her.
-			if not lit[4] and beat_t > 11.0:
-				_rue_free = false
-				if beat_t > 15.0:
-					rue_pos = LANTERNS[4] + Vector2(0, 14)  # (stuck somewhere: she gets there)
-				if rue_pos.distance_to(LANTERNS[4] + Vector2(0, 14)) < 3.0:
-					lit[4] = true
-					acted["lit_5"] = elapsed
-					acted["lit_by_herself"] = elapsed
-					_bursts.append([LANTERNS[4], 0.0])
-					rue.play_habit()
-					_rue_free = true
+			# (Arrived here without it lit: a test or a capture forcing the
+			# years. It was lit, whoever lit it.)
+			if not lit[4]:
+				lit[4] = true
 			if beat_t > 4.0 and beat_t < 15.0:
 				for i in 4:
 					if beat_t > 12.0 + i * 0.6:
@@ -936,6 +1064,108 @@ func _decide() -> void:
 	if not replay:
 		OwnerMemory.festival_choice = choice
 	PlaytestLog.mark("prologue: the first decision", choice)
+
+
+## Holding at the fifth: near it, and pressing (or played for them).
+func _at_fifth() -> bool:
+	return rue_pos.distance_to(LANTERNS[4] + Vector2(0, 16)) < 26.0
+
+
+## The run for the fifth, the shared hold, Player 1's half stopping, and
+## the decision (stay beside him, or try alone).
+func _update_fifth(delta: float) -> void:
+	var at := _at_fifth()
+	if _p1_stopped_at < 0.0:
+		# Together, like the maypole. The hold is played for them only when
+		# nothing has been pressed for a while: this isn't the decision yet.
+		var arin_ready := arin_pos.distance_to(FIFTH_LEFT) < 6.0
+		var holding := at and (_interact_held() or autoplay or _idle > AUTO_AFTER)
+		if arin_ready and holding:
+			_fifth = minf(1.0, _fifth + delta / FIFTH_TIME)
+			if _fifth >= P1_STOPS_AT:
+				_stop_player_one()
+		else:
+			_fifth = maxf(0.0, _fifth - delta * 2.0)
+		return
+	# His half drains away; hers alone can't hold it past halfway.
+	var trying := at and (_interact_held() or (autoplay and choice == ""))
+	if trying and acted.has("p1_left"):
+		_fifth = move_toward(_fifth, ALONE_CAP, delta / FIFTH_TIME)
+	else:
+		_fifth = maxf(0.0, _fifth - delta * 0.8)
+	# The absence first; the words after.
+	if not acted.has("p1_left") and elapsed - _p1_stopped_at >= ABSENCE_QUIET:
+		acted["p1_left"] = elapsed
+		_arin_present = false
+		_show_toast("PLAYER 1 HAS LEFT THE SESSION", P1_COLOR, 3.2)
+		_kick(0.3, 0.0, 0.0)
+		Sfx.play("power_off", -10.0)
+		PlaytestLog.mark("prologue: player 1 left", "%.1f s" % elapsed)
+	if acted.has("p1_left") and choice == "":
+		if rue_pos.distance_to(arin_pos) < HIDE_R and not trying:
+			_decided_t += delta
+			rue.crouch = true
+			if _decided_t > 2.5:
+				choice = "stayed"
+				_decide()
+		else:
+			_decided_t = 0.0
+			rue.crouch = false
+		if trying:
+			_alone_t += delta
+			if _alone_t > TRY_TIME:
+				choice = "tried"
+				_emote("rue", "...", 1.6)
+				_decide()
+		if elapsed - float(acted.p1_left) > DECIDE_TIME and choice == "":
+			choice = "idle"
+			_decide()
+	if choice != "" and _decided_at >= 0.0 and beat_t - _decided_at > 1.6:
+		_to_beat(Beat.P2_LEFT)
+
+
+## Player 1 stops: no notification yet. Arin freezes mid-breath, the music
+## cuts, and the camera stops drifting.
+func _stop_player_one() -> void:
+	_p1_stopped_at = elapsed
+	acted["p1_stopped"] = elapsed
+	_arin_frozen = true
+	arin.waving = false
+	_arin_vel = Vector2.ZERO
+	_music_to(-60.0, 0.35)
+	_hold_down = false
+	PlaytestLog.mark("prologue: player 1 stopped", "%.1f s" % elapsed)
+
+
+## After Player 2 leaves: nobody is holding anything. The player holds [E]
+## at the fifth, and Rue lights it alone.
+func _update_impossible(delta: float) -> void:
+	if not acted.has("p2_left") and beat_t > 0.25:
+		acted["p2_left"] = elapsed
+		_show_toast("PLAYER 2 HAS LEFT THE SESSION", P2_COLOR, 3.0)
+		_kick(0.5, 0.0, 0.0)
+		Sfx.play("power_off", -14.0, 1.2)
+		PlaytestLog.mark("prologue: player 2 left", choice)
+	if lit[4]:
+		if elapsed - float(acted.get("lit_5", elapsed)) > 2.5:
+			_to_beat(Beat.TIMELAPSE)
+		return
+	if beat_t < IMPOSSIBLE_PROMPT:
+		return
+	var holding := _at_fifth() and (_interact_held() or autoplay or _shown_how())
+	if holding:
+		_fifth = minf(1.0, _fifth + delta / (FIFTH_TIME * 1.25))
+		if _fifth >= 1.0:
+			_light(4)
+	else:
+		_fifth = maxf(0.0, _fifth - delta * 0.8)
+
+
+func _music_to(db: float, seconds: float) -> void:
+	if _music == null:
+		return
+	var tw := create_tween()
+	tw.tween_property(_music, "volume_db", db, seconds)
 
 
 func _story_break(id: String, pages: Array) -> void:
@@ -1013,8 +1243,8 @@ func _auto_target() -> Vector2:
 					return Vector2(GAP.x - 10, 276)
 				return Vector2((GAP.x + GAP.y) * 0.5, 320)
 			return LANTERNS[3] + Vector2(0, -14) if LANTERNS[3].y > 320 else LANTERNS[3] + Vector2(0, 14)
-		Beat.P1_LEFT:
-			return LANTERNS[4] + Vector2(0, 14)
+		Beat.P1_LEFT, Beat.P2_LEFT:
+			return FIFTH_RIGHT
 	return rue_pos
 
 
@@ -1028,7 +1258,7 @@ func _auto_dir() -> Vector2:
 		if absf(rue_pos.x - gx) > 3.0:
 			return Vector2(signf(gx - rue_pos.x), 0.2).normalized()
 		return Vector2.DOWN
-	if beat == Beat.P1_LEFT and rue_pos.y > HEDGE_Y.y and _auto_target().y < HEDGE_Y.x:
+	if beat in [Beat.P1_LEFT, Beat.P2_LEFT] and rue_pos.y > HEDGE_Y.y and _auto_target().y < HEDGE_Y.x:
 		var gx2 := (GAP.x + GAP.y) * 0.5
 		if absf(rue_pos.x - gx2) > 3.0:
 			return Vector2(signf(gx2 - rue_pos.x), -0.2).normalized()
@@ -1042,9 +1272,7 @@ func _auto_act() -> bool:
 	var i := _near_lantern(rue_pos + Vector2(0, -8))
 	if i < 0:
 		i = _near_lantern(rue_pos)
-	if i == 4 and not acted.has("p1_left"):
-		return false
-	return i >= 0 and not lit[i] and i != 2
+	return i >= 0 and not lit[i] and i != 2 and i != 4
 
 
 # --- HUD --------------------------------------------------------------------------------
@@ -1069,9 +1297,16 @@ func step_hint() -> String:
 		Beat.L4:
 			return "cross the gap when the spotlight turns away"
 		Beat.P1_LEFT:
+			if _p1_stopped_at >= 0.0 and not acted.has("p1_left"):
+				return ""  # his absence, before any words
 			if acted.has("p1_left"):
-				return "light the last one  [%s]   ·   or stay beside him" % press
-			return "the last lantern, by the well"
+				if choice == "" and _fifth >= ALONE_CAP - 0.01:
+					return "it needs two"
+				return "stay beside him   ·   or try alone  [hold %s]" % press if choice == "" else ""
+			return "the last lantern, by the well: both of you hold [%s]" % press
+		Beat.P2_LEFT:
+			if not lit[4] and beat_t > IMPOSSIBLE_HINT:
+				return "hold [%s] at the lantern" % press
 	return ""
 
 
@@ -1085,7 +1320,12 @@ func _update_hud(delta: float) -> void:
 	for i in 5:
 		pips += ("◆" if lit[i] else "◇") + (" " if i < 4 else "")
 	_pips.text = pips
-	_toast_label.text = _toast
+	if _toast_label.text != _toast:
+		_toast_label.text = _toast
+		var w := _toast_label.get_theme_font("font").get_string_size(_toast, HORIZONTAL_ALIGNMENT_LEFT, -1, _toast_label.get_theme_font_size("font_size")).x + 16.0
+		_toast_label.size.x = w
+		_toast_label.position.x = 320.0 - w * 0.5
+	_toast_label.visible = _toast != ""
 	_toast_label.add_theme_color_override("font_color", _toast_color)
 	_toast_label.modulate.a = clampf(_toast_t * 2.0, 0.0, 1.0)
 	var hint := step_hint() if (beat_t > 1.2 or not acted.has("control")) else ""
@@ -1198,6 +1438,8 @@ func _draw() -> void:
 		_draw_beam()
 	if beat == Beat.L3:
 		_draw_special()
+	if _fifth_ring_shown():
+		_draw_fifth()
 	for b in _bursts:
 		_draw_burst(b[0], b[1])
 	if beat == Beat.TIMELAPSE:
@@ -1460,39 +1702,55 @@ func _draw_figure(f: HeroFigure, at: Vector2, who: String) -> void:
 			top.y -= 11.0
 	# Arin cheers beside his head, so it never lands on her tag when they stand together.
 	_draw_emote(who, top + (Vector2(30, 6) if who == "arin" else Vector2(0, -14 - 8.0 * Settings.text_scale())))
-	# Who drives whom: a tag with a shape as well as a colour.
+	# Who drives whom: a nameplate with a shape as well as a colour. Then, the
+	# game's own player tags; now, the loaded save's labels.
 	var font := UiStyle.system_font()
 	var text := ""
 	var col := Color.WHITE
 	var shape := ""
 	if who == "rue":
 		if beat <= Beat.P1_LEFT:
-			text = "P2 · RUE (you)"
+			# "(you)" until the first lantern: who the stick moves.
+			text = "P2 · RUE  (you)" if not lit[0] else "P2 · RUE"
 			col = P2_COLOR
 			shape = "circle"
 		elif beat == Beat.P2_LEFT:
-			text = "RUE"
+			# Her controller is down: the tag empties.
+			text = "P2 · —" if acted.has("p2_left") else "P2 · RUE"
 			col = Color(P2_COLOR, clampf(1.0 - beat_t / 2.0, 0.35, 1.0))
 		elif beat >= Beat.LOAD:
-			text = "???"
+			text = "UNKNOWN ENTITY"
 			col = SYSTEM_COLOR
 	else:
 		if beat < Beat.LOAD:
-			text = "P1 · ARIN" + ("  (disconnected)" if not _arin_present else "")
+			text = "P1 · ARIN" if _arin_present else "P1 · —"
 			col = P1_COLOR if _arin_present else Color(0.6, 0.62, 0.68)
 			shape = "triangle" if _arin_present else ""
 		else:
-			text = "ARIN  ▸ OWNER"
+			text = "SLOT 1 · ARIN"
 			col = OWNER_COLOR
 	if text == "":
 		return
 	# Larger text grows the tags too (they're drawn, not Labels).
 	var fs := roundi(8 * Settings.text_scale())
-	var w := float(text.length()) * 4.4 * fs / 8.0
-	draw_string(font, top + Vector2(-w * 0.5 + 6, 0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
-	var mark := top + Vector2(-w * 0.5, -3)
+	var size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
+	var pad := 4.0 + (8.0 if shape != "" else 0.0)
+	var plate := Rect2(top + Vector2(-(size.x + pad) * 0.5 - 2.0, -size.y + 2.0), Vector2(size.x + pad + 4.0, size.y + 2.0))
+	# The fifth lantern's hold ring is the thing to watch there: a tag that
+	# would cover it steps aside (Rue's to the right, Arin's to the left).
+	if _fifth_ring_shown():
+		var ring := Rect2(LANTERNS[4] + Vector2(-21, -51), Vector2(42, 42))
+		if plate.intersects(ring):
+			var dx := (ring.end.x + 2.0 - plate.position.x) if who == "rue" else (ring.position.x - 2.0 - plate.end.x)
+			plate.position.x += dx
+			top.x += dx
+	draw_rect(plate, Color(0.05, 0.04, 0.08, 0.55 * col.a))
+	draw_rect(Rect2(plate.position.x, plate.end.y - 1.0, plate.size.x, 1.0), Color(col, 0.8 * col.a))  # an underline in their colour
+	var text_x := plate.position.x + 2.0 + (8.0 if shape != "" else 0.0)
+	draw_string(font, Vector2(text_x, top.y), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
+	var mark := Vector2(plate.position.x + 6.0, plate.get_center().y)
 	if shape == "circle":
-		draw_circle(mark, 2.6, col)
+		draw_circle(mark, 2.4, col)
 	elif shape == "triangle":
 		draw_colored_polygon(PackedVector2Array([mark + Vector2(0, -3), mark + Vector2(3, 2.5), mark + Vector2(-3, 2.5)]), col)
 
@@ -1532,6 +1790,33 @@ func _draw_special() -> void:
 	draw_arc(c, 18.0, -PI * 0.5, -PI * 0.5 + TAU * _special, 32, Color(1.0, 0.85, 0.4, 0.9), 2.0)
 	for at in [SPECIAL_LEFT, SPECIAL_RIGHT]:
 		draw_arc(at, 9.0, 0, TAU, 20, Color(1.0, 0.9, 0.6, 0.5), 1.0)
+
+
+func _fifth_ring_shown() -> bool:
+	return beat == Beat.P1_LEFT or (beat == Beat.P2_LEFT and not lit[4] and beat_t >= IMPOSSIBLE_PROMPT)
+
+
+## The fifth's hold: two halves, his (blue, left) and hers (amber, right).
+## After he stops, his half drains; alone, hers stalls at halfway and
+## flickers. After both have left, only a faint [E] remains.
+func _draw_fifth() -> void:
+	var c := LANTERNS[4] + Vector2(0, -30)
+	if beat == Beat.P2_LEFT:
+		var pulse := 0.35 if calm() else 0.25 + 0.2 * absf(sin(elapsed * 2.0))
+		draw_arc(c, 18.0, -PI * 0.5, -PI * 0.5 + TAU * _fifth, 32, Color(1.0, 0.9, 0.7, 0.9), 2.0)
+		draw_string(UiStyle.system_font(), c + Vector2(-5, 4), "E", HORIZONTAL_ALIGNMENT_LEFT, -1, roundi(10 * Settings.text_scale()), Color(1, 1, 1, pulse))
+		return
+	draw_arc(c, 18.0, 0, TAU, 32, Color(0, 0, 0, 0.25), 2.0)
+	var stalled := _p1_stopped_at >= 0.0 and _fifth >= ALONE_CAP - 0.01 and not calm()
+	var a := 0.9 if not stalled else 0.5 + 0.4 * absf(sin(elapsed * 14.0))
+	if _p1_stopped_at < 0.0:
+		# Together: both halves grow from the top.
+		draw_arc(c, 18.0, -PI * 0.5, -PI * 0.5 - PI * _fifth * 2.0 * 0.5, 24, Color(P1_COLOR, a), 2.0)
+		draw_arc(c, 18.0, -PI * 0.5, -PI * 0.5 + PI * _fifth * 2.0 * 0.5, 24, Color(P2_COLOR, a), 2.0)
+	else:
+		draw_arc(c, 18.0, -PI * 0.5, -PI * 0.5 + TAU * _fifth, 32, Color(P2_COLOR, a), 2.0)
+	for at in [FIFTH_LEFT, FIFTH_RIGHT]:
+		draw_arc(at, 9.0, 0, TAU, 20, Color(1.0, 0.9, 0.6, 0.4), 1.0)
 
 
 func _draw_burst(at: Vector2, t: float) -> void:

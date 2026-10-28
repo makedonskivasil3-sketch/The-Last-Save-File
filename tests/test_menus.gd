@@ -13,12 +13,26 @@ func test_pause_opens_and_esc_closes() -> void:
 func test_quit_to_title_counts_against_you() -> void:
 	var w := await start_session()
 	var purge_before: int = memory().purge
-	w._pause_menu.open()
+	w.director.awareness = OwnerDirector.HUNT + 1.0  # not a calm moment
+	w.open_pause()
 	w._pause_menu._ask_quit(true)
 	w._pause_menu._do_quit()
 	await wait_until(func() -> bool: return scene() != null and scene().scene_file_path == TITLE_SCENE, 5.0, "title screen")
-	check_eq(memory().purge, purge_before + 1, "quitting raises purge")
+	check_eq(memory().purge, purge_before + 1, "quitting in danger raises purge")
 	check_eq(memory().last_exit, "quit", "session closed as a quit")
+
+
+func test_quitting_at_a_calm_moment_is_free() -> void:
+	var w := await start_session()
+	await wait(0.5)
+	var purge_before: int = memory().purge
+	w.open_pause()
+	w._pause_menu._ask_quit(true)
+	check(w._pause_menu._confirm_label.text.contains("Nothing is counted"), "the menu says it's free (%s)" % w._pause_menu._confirm_label.text)
+	w._pause_menu._do_quit()
+	await wait_until(func() -> bool: return scene() != null and scene().scene_file_path == TITLE_SCENE, 5.0, "title screen")
+	check_eq(memory().purge, purge_before, "no purge")
+	check_eq(memory().last_exit, "suspend", "kept as a Save and exit")
 
 
 func test_title_shows_slot_two_after_a_win() -> void:
