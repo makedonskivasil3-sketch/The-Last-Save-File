@@ -28,7 +28,7 @@
 | OP-3 | S3 | Player labels read as debug text: plain text floating over the sprites. | `6fb8e23` captures | fixed (verified visually) | Nameplates with plate and underline; at the load, "UNKNOWN ENTITY" / "SLOT 1 · ARIN". Frames in this session only; no human review |
 | OP-4 | S3 | Arin's overshoot used the global `randf()`, so replays weren't deterministic and other RNG users were perturbed. | `6fb8e23` prologue | fixed (verified) | Uses `_fx_rng`; prologue tests pass |
 | OP-5 | S3 | The "PLAYER 1 HAS LEFT THE SESSION" toast collided with Arin's nameplate. | Frame `after_d_p1_left`, this branch before the fix | fixed (verified visually) | Toast is drawn on a plate sized to its text; re-captured |
-| OP-6 | S4 | The fifth lantern's hold arc passes behind Rue's nameplate at the well. | Frame `after_d_p1_left` | open | — |
+| OP-6 | S4 | The fifth lantern's hold arc passes behind Rue's nameplate at the well. | Frame `after_d_p1_left` | fixed (verified visually): a nameplate that would cover the ring steps aside |
 | OP-7 | S3 | The rendered timing tour's "no input" path couldn't finish: since `9f1c191` story pages wait for the reader. The tour then read `_awake` on the Prologue, producing script errors in tour output (tours are not in the suite). | `tour_timing_intro`, this session | fixed (verified) | Path renamed "reads only": it acknowledges pages and presses nothing else. Reaches the room at 225.7 s wall |
 | OP-8 | S3 | A fully idle player waits ~24 s per step: Player 1 stops at 136 s on the reads-only path. That is long, but it is the documented assistance rule. | `timing_m2` | open (design) | Needs playtest evidence before changing `AUTO_AFTER` |
 
@@ -59,7 +59,7 @@ All reproduced at `b26aba0` by `tests/test_movement.gd` before the fix (11 check
 
 | ID | Sev | Issue | Evidence | Status |
 |---|---|---|---|---|
-| SV-1 | S2 | Quitting during a run raised purge, with no way to stop at a safe moment for free. | `owner_memory.gd` `record_quit`; [`SAVE_AND_EXIT_PROPOSAL.md`](../SAVE_AND_EXIT_PROPOSAL.md) | fixed (verified): option (b), Save and exit at a safe moment, one resume, no cost. `tests/test_suspend.gd` 6/6; related suites pass. Not yet played by a person |
+| SV-1 | S2 | Ordinary stopping cost purge. | `record_quit` | fixed (verified): Save and exit (option b). Since 2026-10-28, at the author's request, closing the window, closing the tab, quitting from the menu or a crash **at a calm moment** resumes free; in danger it counts as before. `test_suspend.gd`, `test_menus.gd`, `web_check.cjs` |
 | SV-3 | **S1** | Save and exit reported success when nothing was written. With an unwritable save location, `record_suspend` returned true and closed the session. `write_atomic` also deleted the old backup before a backup rename that could fail, and could leave no file in place if the final move failed. | Reproduced at `b26aba0` by the first version of `tests/test_save_failure.gd` | fixed (verified). It is now one transaction: the run closes only if the file is on disk; otherwise everything rolls back. The pause menu shows NOT SAVED with Retry / Return to game, and no path appears in the message (paths go to `SafeFile.support_log` and the engine log). Every write step is failure-injected; crash states on disk are tested. Web: "saved" means written and `OS.is_userfs_persistent()`; IndexedDB sync completion isn't observable from the game (see `owner_memory.gd` `storage_persistent`) |
 | SV-2 | S3 | Mobile Safari may not show the leave prompt, so a tab close counts silently. | `RELEASE_READINESS.md`, known defects | open; blocked on a device |
 
@@ -70,9 +70,9 @@ All reproduced at `b26aba0` by `tests/test_movement.gd` before the fix (11 check
 | PL-1 | **S1** | The Windows build has never been executed on Windows hardware. | `IMPLEMENTATION_OCT26.md`; `WINDOWS_PLAYTEST.txt` is instructions only | blocked (needs a person) |
 | PL-2 | **S1** | No physical controller and no hardware GPU profile. All frame timings are llvmpipe under xvfb. | `RELEASE_READINESS.md` platform table | blocked |
 | PL-3 | S3 | `ObjectDB instances leaked at exit` is printed at shutdown. | `suite_m0.log` tail, `6fb8e23` | open (not suppressed) |
-| PL-4 | S3 | Bot ending routes vary between runs. The purge-3 escape is caught by Arin in the square on the way north and purged. | 2026-10-28: 1 of 2 runs failed at `b26aba0`; 1 of 3 failed on the new code, the same way | open (not a regression; root cause not established) |
+| PL-4 | S3 | The purge-3 escape bot route is purged in about one run in three. | 2026-10-28: always after a first death at the Edge; on the next session's walk north the Owner reloads, and Arin catches the bot about 6 s later (the same at `b26aba0`) | open. Lead: the bot doesn't hide after "the owner reloaded". **Human check needed:** does a player get a fair warning there? Not a regression |
 | PL-5 | S3 | The benchmark scenario "square, hunted" was judged not to measure what it names in this session's run. | `tests/tour_benchmark.gd` run, this session | open; re-establish before relying on it |
-| PL-8 | S3 | `test_owner_moves.test_cursor_drags_the_crates_across_the_road` failed once in four runs (the full suite on the `08ab155` tree). It passed 3/3 on its own and in a full re-run (693/693). The test waits up to 40 s of real time while Rue stands in the open during HUNT. Likely cause, not yet confirmed: she is caught before the drag lands. | `suite_m2.log` vs `suite_m2r.log`, this session | open (not hidden; root cause to establish) |
+| PL-8 | S3 | `test_cursor_drags_the_crates_across_the_road` failed once in four full-suite runs. | Its loop already handled the session being freed, which happens when Rue dies and the run restarts: she stood in the open through a HUNT for up to 40 s | fixed: the test isolates the drag (`bench_immune`, as the benchmark does) and fails loudly if the session ends under it. 3/3 passes in isolation, plus the full suite |
 | PL-6 | S4 | The strict suite takes ~25 min of wall clock (1527 s), which slows every verification cycle. | `suite_m0.log` | open |
 | PL-7 | S4 | `docs/` holds 55 MB, including 185 images and videos, in the repository. | `du -sh docs` | open |
 
@@ -82,10 +82,10 @@ All reproduced at `b26aba0` by `tests/test_movement.gd` before the fix (11 check
 |---|---|---|---|---|
 | UI-1 | S3 | The console truncates long lines and has no backlog. | UX C5 | open |
 | UI-2 | S3 | Portrait orientation doesn't pause on phones. Touch controls overlap. | UX C9, C11, C12 | open (mobile not a launch target) |
-| UI-3 | S2 | No control remapping. | No `InputMap` editing in `scripts/` | open |
+| UI-3 | S2 | No control remapping. | No `InputMap` editing in `scripts/` | fixed (verified) for the keyboard: Settings → CONTROLS rebinds move up/down/left/right, interact and pause. Bindings persist, a key already in use is refused with a reason, the prompts follow, and there is a reset. The arrow keys, Space and Esc stay as fallbacks. `tests/test_remapping.gd` 6/6. **Gamepad remapping not built** |
 | UI-4 | S3 | No formal flash-threshold measurement (WCAG 2.3.1). | `RELEASE_READINESS.md` accessibility | open |
 | UI-5 | S4 | CharacterSheet's "solid" option tints the figure rather than drawing a silhouette. | `scripts/world/character_sheet.gd:161` | open; check every caller's intent |
-| UI-7 | S3 | At the well, two interaction prompts overlap: "[E] climb" over "into the well". | Capture at `6fb8e23` and on this branch (`tour_wren_chalk`, scratch) | open (pre-existing) |
+| UI-7 | S3 | At the well, two interaction prompts overlap: "[E] climb" over "into the well". | Capture at `6fb8e23` and on this branch | fixed (verified): the cause was the WELL wayfinding sign drawn under the prompt. Signs now fade within the prompt's range. `test_a_sign_fades_when_the_prompt_takes_over` |
 | UI-6 | S3 | Act numbering doesn't match the guided route (the Archive is ACT IV, Out of Bounds ACT III). | `RELEASE_READINESS.md` | **author decision** |
 
 ## Evidence the release needs (not defects; nobody may fabricate it)

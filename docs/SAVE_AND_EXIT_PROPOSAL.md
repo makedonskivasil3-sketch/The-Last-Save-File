@@ -29,13 +29,11 @@ judged best. **Option (b)** was chosen: Suspend as proposed below, with no cost.
 | **…during an escort** (Wren, Mira) | The escort goes home. Rue says so on resume ("…went home while i was gone. we can still go."), and they ask again with their existing line. The promise stays open, not broken | None | A paying player can stop mid-escort. Allowed since 2026-10-28; the escort was blocked before |
 | **The save can't be written** | NOT SAVED, still paused: Retry or Return to game. The last save and its backup are untouched | None | A save that isn't on disk is never reported as one (SV-3) |
 | **During danger, or at the Edge** | Save and exit is offered greyed out, with the reason. Pausing is always free, and the menu says so | — | The Owner's pressure is the game. The Edge sequence is short and has its own retry pacing (`P8-3`) |
-| **Quit from the menu** | Counts as a quit: purge +1. The confirm panel says so, and offers Save and exit when it's available | Purge +1 | The story's established consequence ("the owner will remember") |
-| **Closing the window** (desktop) | `record_quit`: the same as quitting | Purge +1 | As above. **Open question:** a desktop close at a safe moment could become a Save and exit. Not changed without the author |
-| **Closing the tab** (web) | Counts as a quit next visit; the browser asks first ("Leave site?") | Purge +1 | The author's rule (2026-10-16): count it, but warn |
-| **Crash or power loss** | The next launch finds the session "active" and counts a crash | Purge +1 | The game can't tell a crash from killing it to escape. **Proposed, not built:** forgive a crash when the last autosave shows a safe moment |
+| **Quit from the menu, closing the window, closing the tab, or a crash, at a calm moment** | Free: resumes there once. The calm moment is kept on disk while it lasts (`last_exit` "safe" plus a resume record, refreshed on area changes and as she moves). The tab asks nothing, because there's nothing to lose | None | **The author's decision, 2026-10-28** ("free save") |
+| **The same in danger** (hunt, warning, owner move, static, conversation, the Edge) | The calm record is withdrawn the moment a threat starts, so these count as before: purge +1. The browser asks before the tab closes | Purge +1 | The story's consequence: running away from the owner is remembered |
 | **Before play starts** (boot text) | Nothing counts | None | — |
 
-**Proposed for the author:** at a safe moment, closing the window (desktop) or tab (web) becomes a Save and exit, and only an unsafe close counts. This would remove the last way ordinary stopping is punished. It isn't built, because it changes an established rule.
+**Built (2026-10-28):** the author chose this ("free save"). Only stopping in danger counts.
 
 The text below is the original proposal, kept for the reasoning.
 

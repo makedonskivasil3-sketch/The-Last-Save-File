@@ -86,6 +86,7 @@ func _ready() -> void:
 		_path = TEST_PATH
 	_load()
 	apply()
+	apply_binds()
 
 
 func _input(event: InputEvent) -> void:
@@ -133,18 +134,93 @@ func text_scale() -> float:
 
 
 ## Glyph for an action's button, matching the last-used device.
+# --- control remapping (keyboard) --------------------------------------------
+
+## Actions the player can rebind, and their default keys (physical, so the
+## defaults sit in the same place on any layout). The arrow keys (movement)
+## and Esc (pause) stay as fixed fallbacks: nobody can lock themselves out.
+const REBINDABLE := ["move_up", "move_down", "move_left", "move_right", "interact", "pause"]
+const DEFAULT_KEYS := {"move_up": KEY_W, "move_down": KEY_S, "move_left": KEY_A, "move_right": KEY_D, "interact": KEY_E, "pause": KEY_ESCAPE}
+const FIXED_KEYS := {"move_up": KEY_UP, "move_down": KEY_DOWN, "move_left": KEY_LEFT, "move_right": KEY_RIGHT, "pause": KEY_ESCAPE}
+const ACTION_NAMES := {"move_up": "Move up", "move_down": "Move down", "move_left": "Move left", "move_right": "Move right", "interact": "Interact", "pause": "Pause"}
+## action -> physical keycode, only where the player changed it.
+var key_binds: Dictionary = {}
+
+
+func key_for(action: String) -> int:
+	return int(key_binds.get(action, DEFAULT_KEYS.get(action, KEY_NONE)))
+
+
+func key_label(action: String) -> String:
+	var code := key_for(action)
+	var shown := DisplayServer.keyboard_get_keycode_from_physical(code) if DisplayServer.get_name() != "headless" else code
+	var label := OS.get_keycode_string(shown if shown != KEY_NONE else code)
+	return label.to_upper() if label != "" else "?"
+
+
+## Binds `action` to `keycode`. Returns "" when done, or why not (the key is
+## already used: by another action, a fixed fallback or a menu key).
+func bind_key(action: String, keycode: int) -> String:
+	if action not in REBINDABLE:
+		return "that can't be changed."
+	if keycode in [KEY_NONE, KEY_ESCAPE] and action != "pause":
+		return "Esc is kept for pausing."
+	for other: String in REBINDABLE:
+		if other != action and (key_for(other) == keycode or int(FIXED_KEYS.get(other, KEY_NONE)) == keycode):
+			return "%s already uses %s." % [ACTION_NAMES[other], OS.get_keycode_string(keycode)]
+	if keycode in [KEY_ENTER, KEY_KP_ENTER] and action != "interact":
+		return "Enter is kept for confirming."
+	if keycode == int(DEFAULT_KEYS[action]):
+		key_binds.erase(action)
+	else:
+		key_binds[action] = keycode
+	apply_binds()
+	save()
+	return ""
+
+
+func reset_binds() -> void:
+	key_binds.clear()
+	apply_binds()
+	save()
+
+
+## Puts the bindings into the InputMap: each rebindable action's own key is
+## replaced; its fixed fallback (and pads, Space for interact) stay.
+func apply_binds() -> void:
+	for action: String in REBINDABLE:
+		if not InputMap.has_action(action):
+			continue
+		var own := key_for(action)
+		var keep := [int(FIXED_KEYS.get(action, KEY_NONE))]
+		if action == "interact":
+			keep.append(KEY_SPACE)
+		for e in InputMap.action_get_events(action):
+			if e is InputEventKey and int((e as InputEventKey).physical_keycode) not in keep:
+				InputMap.action_erase_event(action, e)
+		if own not in keep:
+			var ev := InputEventKey.new()
+			ev.physical_keycode = own
+			InputMap.action_add_event(action, ev)
+
+
 func glyph(action: String) -> String:
 	match action:
 		"interact":
-			return "A" if using_gamepad else "E"
+			return "A" if using_gamepad else key_label("interact")
 		"confirm":
 			return "A" if using_gamepad else "ENTER"
 		"pause":
-			return "II" if using_touch else ("START" if using_gamepad else "ESC")
+			return "II" if using_touch else ("START" if using_gamepad else ("ESC" if key_for("pause") == KEY_ESCAPE else key_label("pause") + " / ESC"))
 		"move":
 			if using_touch:
 				return "Drag on the left side of the screen"
-			return "LEFT STICK" if using_gamepad else "WASD / ARROWS"
+			if using_gamepad:
+				return "LEFT STICK"
+			var keys := ""
+			for a in ["move_up", "move_left", "move_down", "move_right"]:
+				keys += key_label(a)
+			return ("WASD" if keys == "WASD" else keys) + " / ARROWS"
 	return action.to_upper()
 
 
@@ -243,6 +319,7 @@ func save() -> void:
 	cfg.set_value("help", "tutorial_tips", tutorial_tips)
 	cfg.set_value("help", "tips_seen", tips_seen)
 	cfg.set_value("help", "opening_seen", opening_seen)
+	cfg.set_value("controls", "keys", key_binds)
 	cfg.save(_path)
 
 
@@ -285,3 +362,9 @@ func _load() -> void:
 	var seen: Variant = cfg.get_value("help", "tips_seen", [])
 	tips_seen = seen if seen is Array else []
 	opening_seen = bool(cfg.get_value("help", "opening_seen", false))
+	key_binds = {}
+	var binds: Variant = cfg.get_value("controls", "keys", {})
+	if binds is Dictionary:
+		for a in binds:
+			if a in REBINDABLE and (binds[a] is int) and int(binds[a]) > 0:
+				key_binds[a] = int(binds[a])

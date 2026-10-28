@@ -66,6 +66,10 @@ func test_cursor_drags_the_crates_across_the_road() -> void:
 	w.area.arin.position = Vector2(560, 280)
 	w.area.arin.route = [Vector2(560, 280)] as Array[Vector2]
 	w.player.global_position = Vector2(150, 150)
+	# This is about the cursor and the crates, not Rue's survival: standing in
+	# the open through a whole HUNT, she could be caught first and the session
+	# would restart under the test (PL-8, intermittent in the full suite).
+	w.bench_immune = true
 	w.debug("drag")
 	var blocked := false
 	# The cursor comes in at the corner furthest from Rue: in the wider
@@ -73,7 +77,8 @@ func test_cursor_drags_the_crates_across_the_road() -> void:
 	# so its trip to the crates and across the road takes longer.
 	for i in 400:
 		await wait(0.1)
-		if not is_instance_valid(w):
+		if not is_instance_valid(w) or w.ending != "":
+			check(false, "the session ended under the test (%s)" % (w.ending if is_instance_valid(w) else "freed"))
 			break
 		w.owner_moves.save_progress = -1.0  # not testing that here
 		var square := w.area as VillageSquare

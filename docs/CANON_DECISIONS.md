@@ -97,7 +97,8 @@ The rest of the branch's work does not depend on which premise is chosen:
 ## 4. Save and Exit / Continue: DECIDED, option (b), built 2026-10-27
 
 **Decision:** Save and exit at a safe moment costs nothing and resumes once.
-Quitting still raises purge, and so does closing a web tab. See
+**Since 2026-10-28** (the author: "free save"), any stop at a calm moment
+(menu quit, window, tab, crash) is free too. Only stopping in danger counts. See
 `SAVE_AND_EXIT_PROPOSAL.md`. The original notes follow.
 
 ### Original notes
