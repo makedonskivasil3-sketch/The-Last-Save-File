@@ -31,6 +31,36 @@ Blocked intent is never treated as travel. Pushing into a wall shows no walk cyc
 | **Modal ownership** | Story pages, choices and the pause menu stop movement input (`reading`, `frozen`, `story.visible`). A virtual stick or held E is cancelled when a panel opens | Existing tests: `test_prologue_story`, `test_onboarding` |
 | **Focus / controller loss** | Unchanged: focus loss opens the pause menu; a lost pad holds the festival (`_pad_lost`) | Existing tests in `test_opening`, `test_prologue` |
 
+## Variants for playtests (2026-10-28)
+
+`MoveFeel` (`scripts/player/move_feel.gd`), chosen with `-- --move=a|b|c` or `?move=a|b|c`. **C is the default and the shipped movement.** Collision, speed and the pointer rule are the same in all three.
+- **A:** immediate response, restrained presentation: no lean, squeeze or settle.
+- **B:** slightly weighted: 0.10 s to full speed, 0.07 s to a stop.
+- **C:** current.
+
+Measured in the game's real loop (`docs/review/movement/VARIANTS.md`):
+- **A and C:** mechanically identical. Motion shows on the first tick (17 ms), they stop in 0 px, and a one-tick tap carries 1.5 px.
+- **B:** shows motion on the second tick (33 ms), stops 2.4 px past the release point, and ends 2.4 px past the point where the prompt appeared. The prompt still stays on the target.
+
+**No preference is claimed:** that needs players (`PLAYTEST_PLAN.md`, session A).
+
+## Animation contact (2026-10-28)
+
+**Defect found by measuring the feet, not the body:** the stance swung the planted foot *forward* while the body moved forward.
+- Rue's planted feet slid 20–29 px per step (worse at the festival's 1.35× scale).
+- The supporting cast's slid 10 px.
+
+**Now:** half of each leg's cycle is stance. A planted foot travels back exactly one `STRIDE` of floor at an even rate, scaled by how big the figure is drawn; the lifted half eases it forward.
+- **Measured drift while planted:** 0.00 px for Rue at both scales and both speeds, and for the child and dress figures (`tests/tour_foot_contact.gd`; regression test in `test_movement`).
+- **The stride amplitude is unchanged** (about 0.37 rad).
+
+## Camera (game, measured 2026-10-28)
+
+The game camera only scrolls horizontally in areas wider than the screen, with a 60 px dead zone (`World.update_camera`). `tests/tour_game_camera.gd`, in the square:
+- **A 0.6 s reversal after 1.5 s of running:** the view moves 5.0 px, at most 1.57 px in a frame. The dead zone absorbs it; there is no swing.
+- **Bounds:** the view stays within the map (offset 20–141 of an allowed 0–320). Unfinished map edges are never shown.
+- **Reduced motion:** two fixed framings that cut, no scrolling (unchanged).
+
 ## Camera (festival)
 
 The game's camera is unchanged.
