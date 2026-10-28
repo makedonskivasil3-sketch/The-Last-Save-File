@@ -137,7 +137,14 @@ var tobben := HeroFigure.new("apron", {"h": Color("bbbbbb"), "s": Color("e0b48a"
 
 var rue_pos := RUE_START
 var arin_pos := ARIN_START
+## What Rue actually travelled last frame (px/s): the gait, dust and
+## camera read this, so pushing into a wall isn't walking.
 var _rue_vel := Vector2.ZERO
+## What the player is asking for (direction, 0..1): she faces it even
+## when blocked (docs/production/MOVEMENT_SPEC.md).
+var _rue_intent := Vector2.ZERO
+## Seconds a pointer destination has made no real progress.
+var _stuck_t := 0.0
 var _arin_vel := Vector2.ZERO
 var _arin_goal := ARIN_START
 var _arin_overshoot := Vector2.ZERO
@@ -444,7 +451,8 @@ func _process(delta: float) -> void:
 	for b in _bursts:
 		b[1] += delta
 	_bursts = _bursts.filter(func(b: Array) -> bool: return b[1] < 1.2)
-	rue.update(delta, _rue_vel)
+	rue.update(delta, _rue_vel, false)
+	rue.face(_rue_intent)
 	# Nobody driving him: not even a breath (he resumes when the owner loads).
 	if not _arin_frozen:
 		arin.update(delta, _arin_vel)
@@ -578,18 +586,12 @@ func _update_skip(delta: float) -> void:
 func _input_dir() -> Vector2:
 	var d := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	if d.length() > 0.2:
-		_walk_to = Vector2.INF
+		_walk_to = Vector2.INF  # keys or a stick take over from a tap
+		_act_queued = false
 		_mark_input()
 		return d
 	if _walk_to != Vector2.INF:
-		var to := _walk_to - rue_pos
-		if to.length() < 3.0:
-			_walk_to = Vector2.INF
-			if _act_queued:
-				_act_queued = false
-				_interact()
-			return Vector2.ZERO
-		return to.normalized()
+		return Vector2.ZERO  # a tap's destination: _move_rue steps to it
 	if autoplay or _shown_how():
 		return _auto_dir()
 	return Vector2.ZERO
@@ -615,18 +617,31 @@ func _interact_held() -> bool:
 	return _hold_down
 
 
+## Movement (docs/production/MOVEMENT_SPEC.md): intent -> the step asked
+## for -> what the solids allow -> the velocity that animates her.
 func _move_rue(delta: float) -> void:
+	var want := Vector2.ZERO
 	if not _rue_free:
 		var spot := LANTERNS[4] + Vector2(0, 14)
 		if rue_pos.y > HEDGE_Y.x - 4.0:
 			var gx := (GAP.x + GAP.y) * 0.5
 			spot = Vector2(gx, rue_pos.y - 20.0) if absf(rue_pos.x - gx) < 3.0 else Vector2(gx, rue_pos.y)
 		var to := spot - rue_pos
-		_rue_vel = to.normalized() * SPEED * 0.6 if to.length() > 2.0 else Vector2.ZERO
+		want = to.limit_length(SPEED * 0.6 * delta) if to.length() > 2.0 else Vector2.ZERO
 	else:
 		var d := _input_dir()
-		_rue_vel = d * SPEED
-	rue_pos = _slide(rue_pos, _rue_vel * delta, true)
+		if _walk_to != Vector2.INF:
+			# Never past it: the step is bounded by what's left.
+			want = (_walk_to - rue_pos).limit_length(SPEED * delta)
+		else:
+			want = d * SPEED * delta
+	_rue_intent = want / (SPEED * delta) if delta > 0.0 else Vector2.ZERO
+	var from := rue_pos
+	rue_pos = _slide(rue_pos, want, true)
+	var moved := rue_pos - from
+	_rue_vel = moved / delta if delta > 0.0 else Vector2.ZERO
+	if _walk_to != Vector2.INF:
+		_follow_tap(want, moved, delta)
 	if _rue_free and beat <= Beat.P1_LEFT and (_interact_pressed() or _auto_act()):
 		_interact()
 
@@ -651,21 +666,75 @@ func _gate_open() -> bool:
 	return lit[0] or arin_pos.distance_to(PLATE) < 8.0
 
 
-## Moves by `step`, one axis at a time, stopping at solids and the edges.
+## A tap's destination: arrived (and act, once), or stuck (say so, stop).
+const ARRIVE := 0.05
+const STUCK_TIME := 0.35
+func _follow_tap(want: Vector2, moved: Vector2, delta: float) -> void:
+	if rue_pos.distance_to(_walk_to) < ARRIVE:
+		rue_pos = _walk_to if _free(_walk_to, _solids(true)) else rue_pos
+		_walk_to = Vector2.INF
+		_stuck_t = 0.0
+		if _act_queued:
+			_act_queued = false
+			_interact()
+		return
+	# Something is in the way: a fence, a closed gate. No path-finding
+	# here: she stops and shows it, instead of walking into it forever.
+	_stuck_t = _stuck_t + delta if moved.length() < want.length() * 0.25 else 0.0
+	if _stuck_t > STUCK_TIME:
+		_walk_to = Vector2.INF
+		_act_queued = false
+		_stuck_t = 0.0
+		_emote("rue", "?", 1.2)
+
+
+## Rue's footprint (the same 8 x 6 the game's body uses at her feet).
+const FOOT := Vector2(8, 6)
+## No step longer than this is tested at once: thinner than any solid plus
+## the footprint, so a long frame can't carry her through a gate.
+const SUBSTEP := 2.0
+
+
+func _free(at: Vector2, solids: Array[Rect2]) -> bool:
+	var box := Rect2(at - FOOT * 0.5, FOOT)
+	if not BOUNDS.encloses(box):
+		return false
+	for s in solids:
+		if s.intersects(box):
+			return false
+	return true
+
+
+## Moves by `step` in short sub-steps (swept: nothing thin is skipped),
+## sliding along what blocks her. At a corner the axis with more of the
+## motion wins, whichever axis it is, so mirrored approaches slide alike.
 func _slide(from: Vector2, step: Vector2, for_rue: bool) -> Vector2:
-	var at := from
 	var solids := _solids(for_rue)
-	for axis in 2:
-		var next := at
-		next[axis] += step[axis]
-		var box := Rect2(next - Vector2(4, 3), Vector2(8, 6))
-		var blocked := not BOUNDS.encloses(box)
-		for s in solids:
-			if s.intersects(box):
-				blocked = true
+	var at := from
+	var n := maxi(1, ceili(step.length() / SUBSTEP))
+	var part := step / float(n)
+	for i in n:
+		var moved := false
+		for f in [1.0, 0.5, 0.25]:
+			var d: Vector2 = part * f
+			if _free(at + d, solids):
+				at += d
+				moved = true
 				break
-		if not blocked:
-			at = next
+			var x := Vector2(d.x, 0)
+			var y := Vector2(0, d.y)
+			var x_ok := d.x != 0.0 and _free(at + x, solids)
+			var y_ok := d.y != 0.0 and _free(at + y, solids)
+			if x_ok and (not y_ok or absf(d.x) >= absf(d.y)):
+				at += x
+				moved = true
+				break
+			if y_ok:
+				at += y
+				moved = true
+				break
+		if not moved:
+			break
 	return at
 
 

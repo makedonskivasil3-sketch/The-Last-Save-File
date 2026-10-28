@@ -88,6 +88,8 @@ var _glance_timer := 1.0
 var _phase_from := Vector2.ZERO
 var _phase_t := 1.0
 var _startle_mark := 0.0
+## The player's movement input this physics tick (direction, 0..1).
+var _intent := Vector2.ZERO
 
 
 ## A faint cyan glow of Rue's own (World turns it on in lit areas).
@@ -197,8 +199,10 @@ func _physics_process(delta: float) -> void:
 	if frozen or reading:
 		# Reading or answering: Rue stands still (and the owner holds, World._update_reading_hold).
 		velocity = Vector2.ZERO
+		_intent = Vector2.ZERO
 		return
 	var dir := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	_intent = dir
 	velocity = dir * speed
 	move_and_slide()
 	if dir != Vector2.ZERO:
@@ -240,7 +244,11 @@ func _process(delta: float) -> void:
 		_dissolve_t += delta * (3.2 if _dissolve == "materialize" and OwnerMemory.sessions > 1 else 1.0)
 		if _dissolve == "materialize" and _dissolve_t > 1.4:
 			_dissolve = ""
-	_sprite.update(delta, velocity if not frozen else Vector2.ZERO)
+	# What she actually travelled drives the gait (docs/production/MOVEMENT_SPEC.md);
+	# what the player asks for turns her, even against a wall.
+	_sprite.update(delta, get_real_velocity() if not frozen else Vector2.ZERO, false)
+	if not frozen:
+		_sprite.face(_intent)
 	_update_mood(delta)
 	# Footsteps on the walk cycle's contact frames.
 	var step := _sprite.step_frame()
@@ -256,7 +264,7 @@ func _update_mood(delta: float) -> void:
 	_restore_flash = maxf(0.0, _restore_flash - delta)
 	_phase_t = minf(1.0, _phase_t + delta * 2.5)
 	_startle_mark = maxf(0.0, _startle_mark - delta)
-	var still := velocity.length() < 2.0
+	var still := get_real_velocity().length() < 2.0
 	_sprite.crouch = sheltered
 	_sprite.hug = still and idle_time > 7.0 and instability > 0.3
 	_sprite.shiver = _sprite.hug and instability > 0.5

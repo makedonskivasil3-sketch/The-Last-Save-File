@@ -32,6 +32,19 @@
 | OP-7 | S3 | The rendered timing tour's "no input" path couldn't finish: since `9f1c191` story pages wait for the reader. The tour then read `_awake` on the Prologue, producing script errors in tour output (tours are not in the suite). | `tour_timing_intro`, this session | fixed (verified) | Path renamed "reads only": it acknowledges pages and presses nothing else. Reaches the room at 225.7 s wall |
 | OP-8 | S3 | A fully idle player waits ~24 s per step: Player 1 stops at 136 s on the reads-only path. That is long, but it is the documented assistance rule. | `timing_m2` | open (design) | Needs playtest evidence before changing `AUTO_AFTER` |
 
+## Movement
+
+All reproduced at `b26aba0` by `tests/test_movement.gd` before the fix (11 checks failing); all pass after.
+
+| ID | Sev | Issue | Evidence | Status |
+|---|---|---|---|---|
+| MV-1 | S2 | A festival tap 4.5 px away oscillated 209 → 200 → 209 and never settled: each step was a full 9 px, with a 3 px arrival radius. | `test_a_pointer_target_is_reached_and_held` | fixed (verified): step bounded by the remaining distance |
+| MV-2 | S2 | A tap on the far side of the fence walked into it forever. | `test_an_unreachable_target_stops_and_says_so` | fixed (verified): stops after 0.35 s and shows "?" |
+| MV-3 | S2 | The closed gate (4 px) was crossed on a 0.12 s frame: the collision test only checked the destination. | `test_the_closed_gate_holds_on_a_long_frame` | fixed (verified): swept 2 px sub-steps |
+| MV-4 | S3 | Pushing into a wall showed walking, in the festival (90 px/s reported) and in the game. | `test_pushing_into_a_wall_is_not_walking`, `test_the_game_too_animates_actual_motion` | fixed (verified): resolved motion drives the gait; intent drives facing |
+| MV-5 | S3 | Near-45° input flipped facing 39 times in 40 frames. | `test_near_diagonal_input_doesnt_flicker_facing` | fixed (verified): axis hysteresis 1.3× |
+| MV-6 | S3 | The gait had a minimum cadence: slow movement shuffled (3 strides/s at 18 px/s). | `test_the_stride_follows_distance` | fixed (verified): one stride per 10 px |
+
 ## Saves and persistence
 
 | ID | Sev | Issue | Evidence | Status |
