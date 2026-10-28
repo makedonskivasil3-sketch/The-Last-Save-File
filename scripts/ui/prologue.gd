@@ -229,6 +229,7 @@ func _ready() -> void:
 	Sfx.reset_scene_state()
 	WebState.publish({"scene": "prologue", "playable": true})
 	PlaytestLog.mark("prologue: the festival", "replay" if replay else "first run")
+	camera_plain = plain_camera_requested()
 	_build_hud()
 	# Phones and tablets: the same on-screen stick and E button as the game
 	# (hidden until the screen is touched).
@@ -542,6 +543,16 @@ const LOOK_AHEAD := 0.35  # seconds of travel (about 1 / the follow rate)
 const LOOK_MAX := 31.5
 ## Comparison captures only: centred on Rue, nothing else.
 var camera_fixed := false
+## Movement playtests: the follow's smoothing only, with no look-ahead,
+## drift, shake or zoom punch, so the controller is judged on its own.
+## `-- --camera-plain`, or ?camera=plain on the web.
+var camera_plain := false
+
+
+static func plain_camera_requested() -> bool:
+	if "--camera-plain" in OS.get_cmdline_user_args():
+		return true
+	return OS.has_feature("web") and str(JavaScriptBridge.eval("window.location.search", true)).contains("camera=plain")
 var _look := Vector2.ZERO
 
 
@@ -577,7 +588,7 @@ func _update_camera(delta: float) -> void:
 	var k := 1.0 - exp(-(2.5 if not calm() else 6.0) * delta)
 	# During his absence the camera holds its breath too.
 	var hush := _p1_stopped_at >= 0.0 and beat == Beat.P1_LEFT
-	var lively := not calm() and not hush and not camera_fixed
+	var lively := not calm() and not hush and not camera_fixed and not camera_plain
 	_look = (_rue_vel * LOOK_AHEAD).limit_length(LOOK_MAX) * _look_room() if lively else Vector2.ZERO
 	focus += _look
 	if lively:
@@ -585,7 +596,7 @@ func _update_camera(delta: float) -> void:
 	if camera_fixed:
 		focus = rue_pos
 		k = 1.0
-	_punch = move_toward(_punch, 0.0, delta * 0.6)
+	_punch = move_toward(_punch, 0.0, delta * 0.6) if not camera_plain else 0.0
 	zoom = lerpf(zoom, want_zoom, k)
 	_cam = _cam.lerp(focus + Vector2(0, -16), k)
 	var z := zoom + _punch
@@ -593,7 +604,7 @@ func _update_camera(delta: float) -> void:
 	var tl := (_cam - view * 0.5).clamp(Vector2.ZERO, Vector2(640, 360) - view)
 	# Trauma shake: squared, so small knocks stay small.
 	_shake = move_toward(_shake, 0.0, delta * 1.6)
-	if _shake > 0.0 and not camera_fixed:
+	if _shake > 0.0 and not camera_fixed and not camera_plain:
 		var amt := _shake * _shake * 5.0
 		tl += Vector2(_fx_rng.randf_range(-amt, amt), _fx_rng.randf_range(-amt, amt)) / z
 	scale = Vector2(z, z)

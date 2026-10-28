@@ -237,3 +237,19 @@ func test_a_light_stick_walks_slowly_in_the_festival_too() -> void:
 	var speed := (p.rue_pos.x - 200.0) * 2.0
 	check(speed > 10.0 and speed < 60.0, "half a stick: a slow walk, as in the game (%.1f px/s)" % speed)
 	await _end(p)
+
+
+
+func test_the_plain_camera_has_no_effects() -> void:
+	var p := await _festival()
+	p.camera_plain = true
+	p.rue_pos = Vector2(200, 250)
+	p._cam = p.rue_pos + Vector2(0, -16)
+	p._kick(1.0, 0.3)
+	Input.action_press("move_right")
+	for i in 30:
+		p._process(1.0 / 60.0)
+	Input.action_release("move_right")
+	check_eq(p._look, Vector2.ZERO, "no look-ahead")
+	check_eq(p._punch, 0.0, "no zoom punch")
+	await _end(p)
