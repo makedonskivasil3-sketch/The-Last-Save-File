@@ -20,7 +20,8 @@ func _talk(w: Node, who: Node) -> Array:
 
 func _ready_to_ask() -> void:
 	Relationships.chalk_declined_session = -1
-	for e in ["wren.met", "wren.lantern", "wren.watched", "wren.heard_well", "wren.promised"]:
+	# Her game (test_wren_game) is played out: the chalk is back with her.
+	for e in ["wren.met", "wren.lantern", "wren.watched", "wren.heard_well", "wren.promised", "wren.game", "wren.mark_recess", "wren.mark_ok", "wren.chalk_back"]:
 		memory().add_event(e)
 
 

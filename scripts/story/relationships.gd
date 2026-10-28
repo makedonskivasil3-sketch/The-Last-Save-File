@@ -42,6 +42,12 @@ const EVENTS := {
 	"wren.ribbon_returned": "You gave Wren's ribbon back.",
 	"wren.heard_well": "Wren hears the well too.",
 	"wren.marked_well": "Wren chalked a mark on the well's rim, so you'd find your way up.",
+	"wren.game": "Wren said you hide like a lamp post, chalked an X where she stands, and lent you her chalk: find a real hiding place of your own.",
+	"wren.mark_recess": "You chalked a mark under the awning.",
+	"wren.mark_crossing": "You chalked a mark on the open crossing.",
+	"wren.mark_refused": "Wren went to look at your mark on the crossing and rubbed it out: the lamp goes right over it.",
+	"wren.mark_ok": "Wren went to look at your mark under the awning. A real one, she said. Your R was backwards.",
+	"wren.chalk_back": "You gave Wren her chalk back. It's her only one.",
 	"wren.watched": "Wren watched the festival from the square. Nobody ever picked her to play.",
 	"wren.unplayed": "Wren asked whether the well keeps anything of her. She has listened, and never heard herself in it.",
 	"wren.chalk": "Wren gave you her chalk, so somebody would remember her.",
@@ -114,6 +120,32 @@ const WREN_WATCHED := {
 	"": "Everybody went home before the last lantern. Then it lit anyway. I saw it.",
 }
 const WREN_WATCHED_CLOSE := "Nobody ever picked me for anything. I just watched. I'm good at watching."
+## Her game (before anything sad): she teaches Rue to hide, the way she
+## knows how. Chalk marks for good places; her rules, her chalk.
+const WREN_GAME_START := [
+	"You hide like a lamp post. Everybody can see you.",
+	"Here. X. Where I stand: the owner can't see what I'm standing beside. That's the first good place.",
+	"Now you find one. A real one, not next to me, that's cheating. Mark it.",
+	"You can borrow my chalk. Give it back. It's my only one.",
+]
+const WREN_GAME_NUDGE := "Did you find one yet? Not next to me. That's cheating."
+const WREN_GAME_SHOW := ["You did one? Where?", "...Wait there. I'm going to look. I don't trust anybody's marks but mine."]
+const WREN_GAME_WALKING := "Wait! I'm looking!"
+const WREN_GAME_OK := [
+	"Under the awning. ...Yeah. That's a real one. Even the lamp doesn't come in here.",
+	"That's not an X, though. Is that an R? It's backwards.",
+	"...Give me my chalk back. It's my only one.",
+]
+const WREN_GAME_NO := [
+	"Here? Out here? The lamp goes right over this. Every single time.",
+	"I'm not counting it. *rub rub*",
+	"Find a real one. I'll be at my corner.",
+]
+## Next session: she fixed it, off-screen, the way she would.
+const WREN_R_FIXED := "I fixed your R. Under the awning. You're welcome."
+## Given back, the chalk is a thing she shares once more, for keeps.
+const WREN_CHALK_ASK_AGAIN := "Will you remember me? You can have my chalk. For keeps this time."
+
 ## Her fear, not the well's rule: the well keeps what's said near it
 ## (WellSequence); nobody has heard Wren in it, and she draws her own
 ## conclusion. Nothing in the game confirms or denies it.
@@ -195,6 +227,10 @@ static func mira_festival() -> Dictionary:
 static func _wren_own() -> Dictionary:
 	if has("wren.named"):
 		return _once("wren.saw_name", WREN_SAW_NAME if has("wren.marked_well") else WREN_SAW_NAME_NO_MARK)
+	# Her game comes first once she has hidden Rue (the square runs it):
+	# no sad beat until it's played out and the chalk is back with her.
+	if has("wren.sheltered") and not has("wren.chalk_back"):
+		return {}
 	if has("wren.lantern") and not has("wren.watched"):
 		var how: String = WREN_WATCHED.get(OwnerMemory.festival_choice, WREN_WATCHED[""])
 		return {"lines": [WREN_WATCHED_OPEN, how, WREN_WATCHED_CLOSE], "id": "wren.watched", "commit": ["wren.watched"]}
@@ -203,6 +239,11 @@ static func _wren_own() -> Dictionary:
 	if has("wren.unplayed") and not has("wren.chalk") and chalk_declined_session != OwnerMemory.sessions:
 		return {"lines": [WREN_CHALK_AGAIN], "id": "", "commit": [], "offer": "chalk"}
 	return {}
+
+
+## The question at the chalk offer (warmer once the chalk has been lent and returned).
+static func chalk_ask() -> String:
+	return WREN_CHALK_ASK_AGAIN if has("wren.chalk_back") else WREN_CHALK_ASK
 
 
 static func wren_festival() -> Dictionary:
@@ -258,7 +299,8 @@ static func wren_lines() -> Array:
 	return WREN_ESCORT + WREN_AFTER_DEATH + [WREN_SAW_STATIC] + WREN_AFTER_RESTORE + WREN_AFTER_RESTORE_BROKEN \
 		+ [WREN_PROMISE_OPEN, WREN_PROMISE_BROKEN] + WREN_WELL + [WREN_GREETING] + WREN_MARKED + WREN_MARKED_SAW + WREN_FESTIVAL \
 		+ [WREN_WATCHED_OPEN, WREN_WATCHED_CLOSE] + WREN_WATCHED.values() + WREN_UNPLAYED + [WREN_CHALK_ASK] + WREN_CHALK_GIVEN \
-		+ WREN_CHALK_LATER + [WREN_CHALK_AGAIN] + WREN_SAW_NAME + WREN_CHALK_GIVEN_NO_MARK + WREN_SAW_NAME_NO_MARK + [WREN_MARKED_BESIDE]
+		+ WREN_CHALK_LATER + [WREN_CHALK_AGAIN] + WREN_SAW_NAME + WREN_CHALK_GIVEN_NO_MARK + WREN_SAW_NAME_NO_MARK + [WREN_MARKED_BESIDE] \
+		+ WREN_GAME_START + [WREN_GAME_NUDGE] + WREN_GAME_SHOW + [WREN_GAME_WALKING] + WREN_GAME_OK + WREN_GAME_NO + [WREN_R_FIXED, WREN_CHALK_ASK_AGAIN]
 
 
 static func mira_lines() -> Array:

@@ -256,6 +256,16 @@ func build() -> void:
 	rim.listened.connect(_on_listen)
 	add_child(rim)
 	interactables.append(rim)
+	# Wren's game: two places Rue might chalk (one is a real hiding place).
+	for spot_id in CHALK_SPOTS:
+		var spot := ChalkSpot.new()
+		spot.id = spot_id
+		spot.position = CHALK_SPOTS[spot_id]
+		spot.chalked.connect(_on_chalked)
+		add_child(spot)
+		interactables.append(spot)
+		_chalk_spots[spot_id] = spot
+	_update_chalk_spots()
 
 	# Back up the well after waking under it: Wren is waiting at the rim.
 	_marking = arrival == "well" and world.woke_at_anchor and Relationships.has("wren.met") \
@@ -427,7 +437,7 @@ func _offer_chalk() -> void:
 	if not world.hud.dialogue_finished or world.ending != "" or wren == null:
 		return
 	world.player.frozen = true
-	var pick := await world.choose_safely(Relationships.WREN_CHALK_ASK, Relationships.WREN_CHALK_CHOICES)
+	var pick := await world.choose_safely(Relationships.chalk_ask(), Relationships.WREN_CHALK_CHOICES)
 	if not is_inside_tree() or pick < 0 or wren == null:
 		return
 	world.player.frozen = false
@@ -439,6 +449,132 @@ func _offer_chalk() -> void:
 	else:
 		Relationships.chalk_declined_session = OwnerMemory.sessions
 		world.hud.show_dialogue("WREN", wren.name_color, Relationships.WREN_CHALK_LATER, "npc.wren", CharacterArt.for_npc(wren), World.expressions_for(wren, Relationships.WREN_CHALK_LATER))
+
+
+# --- Wren's game (docs/production/WREN_ARC.md): chalk marks for good places ------
+
+## Her corner, and her X beside it (where she stands: she hides you).
+const WREN_HOME := Vector2(126, 246)
+## Where Rue might chalk: under the awning (a real hiding place) or out on
+## the crossing (the lamp sweeps it).
+const CHALK_SPOTS := {"recess": Vector2(734, 266), "crossing": Vector2(660, 196)}
+## Where Wren stands to look at each (beside it), and her way there.
+const CHALK_LOOK := {"recess": Vector2(756, 270), "crossing": Vector2(678, 200)}
+const WREN_WALK := 70.0
+var _chalk_spots := {}
+var _wren_path: Array[Vector2] = []
+var _wren_arrived: Callable
+## The mark she is standing at, waiting to give her verdict ("" if none).
+var _wren_at_spot := ""
+var _game_nudged := false
+var _nodded := false
+
+
+## Rue's mark waiting for Wren to see it ("" if none).
+static func pending_mark() -> String:
+	if Relationships.has("wren.mark_ok") or not Relationships.has("wren.game"):
+		return ""
+	if Relationships.has("wren.mark_recess"):
+		return "recess"
+	if Relationships.has("wren.mark_crossing") and not Relationships.has("wren.mark_refused"):
+		return "crossing"
+	return ""
+
+
+func _update_chalk_spots() -> void:
+	var playing := Relationships.has("wren.game") and pending_mark() == "" and not Relationships.has("wren.mark_ok")
+	for spot_id in _chalk_spots:
+		var spot: ChalkSpot = _chalk_spots[spot_id]
+		spot.active = playing and not (spot_id == "crossing" and Relationships.has("wren.mark_refused"))
+	queue_redraw()
+
+
+func _on_chalked(spot: ChalkSpot) -> void:
+	if world.ending != "" or world.is_talking():
+		return
+	Relationships.add("wren.mark_" + spot.id)
+	Sfx.play("seal", -10.0, 1.8)
+	world.hud.say("(an R. she said a mark. it's my mark.)" if spot.id == "recess" else "(there. an R. a mark's a mark.)", "self")
+	_update_chalk_spots()
+
+
+## Her game's lines at her corner ({} when there's nothing). It starts once
+## she has introduced herself (her lantern line) and isn't about to ask to
+## see the Edge: her own introduction and her quest come first.
+func _chalk_game_lines(ask_due := false) -> Dictionary:
+	if wren == null or OwnerMemory.is_deleted("wren"):
+		return {}
+	if Relationships.has("wren.sheltered") and not Relationships.has("wren.game") \
+			and Relationships.has("wren.lantern") and not ask_due:
+		return {"lines": Relationships.WREN_GAME_START, "id": "wren.game", "commit": ["wren.game"],
+			"after": [_update_chalk_spots]}
+	var mark := pending_mark()
+	if mark != "":
+		return {"lines": Relationships.WREN_GAME_SHOW, "id": "", "commit": [], "after": [_go_look.bind(mark)]}
+	if Relationships.has("wren.game") and not Relationships.has("wren.mark_ok") and not _game_nudged:
+		_game_nudged = true
+		return {"lines": [Relationships.WREN_GAME_NUDGE], "id": "", "commit": []}
+	if Relationships.has("wren.mark_ok") and OwnerMemory.event_session("wren.mark_ok") < OwnerMemory.sessions \
+			and not OwnerMemory.has_conversation("wren.r_fixed"):
+		return {"lines": [Relationships.WREN_R_FIXED], "id": "wren.r_fixed", "commit": []}
+	return {}
+
+
+## She goes to see for herself: she trusts nobody's marks but hers.
+func _go_look(mark: String) -> void:
+	if wren == null:
+		return
+	_wren_path = [Vector2(400, 262), CHALK_LOOK[mark]] as Array[Vector2]
+	_wren_arrived = func() -> void:
+		_wren_at_spot = mark
+		if wren:
+			wren.emote("hmm", 1.4)
+
+
+func _walk_wren(delta: float) -> void:
+	if _wren_path.is_empty() or wren == null or not is_instance_valid(wren):
+		return
+	var to := _wren_path[0] - wren.global_position
+	var step := to.limit_length(WREN_WALK * delta)
+	wren.global_position += step
+	wren._walk_velocity = step / maxf(delta, 0.0001)
+	if to.length() <= WREN_WALK * delta + 0.01:
+		_wren_path.pop_front()
+	if _wren_path.is_empty():
+		wren._walk_velocity = Vector2.ZERO
+		var arrived := _wren_arrived
+		_wren_arrived = Callable()
+		if arrived.is_valid():
+			arrived.call()
+
+
+## Standing at the mark: a real one, or rubbed out.
+func _chalk_verdict() -> Dictionary:
+	var spot := _wren_at_spot
+	if spot == "recess":
+		return {"lines": Relationships.WREN_GAME_OK, "id": "wren.game_ok", "commit": ["wren.mark_ok", "wren.chalk_back"],
+			"after": [_walk_home]}
+	return {"lines": Relationships.WREN_GAME_NO, "id": "", "commit": ["wren.mark_refused"],
+		"after": [_walk_home]}
+
+
+func _walk_home() -> void:
+	_wren_at_spot = ""
+	_update_chalk_spots()
+	if wren:
+		_wren_path = [Vector2(400, 262), WREN_HOME] as Array[Vector2]
+
+
+## Her X, used without being told: hiding right beside her while the
+## owner hunts. She sees it (she's right there) and answers without words.
+func _wren_nod() -> void:
+	if _nodded or wren == null or not Relationships.has("wren.game") or not _wren_path.is_empty() or _wren_at_spot != "":
+		return
+	if world.director.awareness < OwnerDirector.SUSPECT or world.hiding_npc() != wren:
+		return
+	_nodded = true
+	wren.emote("shh", 2.0)
+	PlaytestLog.mark("wren: shh", "Rue hid at her X during a hunt")
 
 
 ## Rue has Wren's chalk and hasn't written her name yet.
@@ -460,6 +596,8 @@ var _beckon_cooldown := 0.0
 
 
 func area_process(delta: float) -> void:
+	_walk_wren(delta)
+	_wren_nod()
 	_well_process(delta)
 	_wren_beckon(delta)
 	_mark_process()
@@ -658,13 +796,20 @@ static func make_wren(parent: Node, pos: Vector2) -> Npc:
 
 
 func _wren_lines() -> Variant:
-	# What happened between you comes first (Relationships.wren).
+	# Where she is right now comes first: off looking at Rue's mark.
+	if not _wren_path.is_empty():
+		return [Relationships.WREN_GAME_WALKING]
+	if _wren_at_spot != "":
+		return _chalk_verdict()
 	var told := Relationships.wren(_wren_line, _wren_line >= _wren_ask_at - 1, world.escort_id() == "wren")
 	if not told.is_empty():
 		if told.get("ask", false):
 			_wren_asked = true
 		_wren_offer = told.get("offer", "") == "chalk"
 		return told
+	var game := _chalk_game_lines(_wren_line >= _wren_ask_at - 1 and not Relationships.has("wren.promised"))
+	if not game.is_empty():
+		return game
 	if OwnerMemory.wren_saved:
 		# Saved for good, but she still wants to come: there's a slot out there.
 		if _wren_line >= _wren_ask_at - 1 and world.escort == null:  # she asks sooner: she has seen it
@@ -825,6 +970,21 @@ func _draw() -> void:
 		draw_line(at + Vector2(-6, 6), at + Vector2(-6, -1), c, 0.7)  # an arrow, up
 		draw_line(at + Vector2(-6, -1), at + Vector2(-8, 1.5), c, 0.7)
 		draw_line(at + Vector2(-6, -1), at + Vector2(-4, 1.5), c, 0.7)
+	# Wren's game: her X where she stands; Rue's R where Rue chose (backwards
+	# until Wren fixes it, next session); a refused mark is rubbed out.
+	if Relationships.has("wren.game"):
+		var cx := Color(0.95, 0.95, 0.9, 0.8)
+		var x0 := WREN_HOME + Vector2(-16, 10)
+		draw_line(x0 + Vector2(-3, -3), x0 + Vector2(3, 3), cx, 0.8)
+		draw_line(x0 + Vector2(-3, 3), x0 + Vector2(3, -3), cx, 0.8)
+		for spot_id in ["recess", "crossing"]:
+			if not Relationships.has("wren.mark_" + spot_id) or (spot_id == "crossing" and Relationships.has("wren.mark_refused")):
+				continue
+			var fixed: bool = spot_id == "recess" and Relationships.has("wren.mark_ok") and OwnerMemory.event_session("wren.mark_ok") < OwnerMemory.sessions
+			var at: Vector2 = CHALK_SPOTS[spot_id]
+			draw_set_transform(at, 0.0, Vector2(1.0 if fixed else -1.0, 1.0))
+			draw_string(ThemeDB.fallback_font, Vector2(-3, 3), "R", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, cx)
+			draw_set_transform(Vector2.ZERO)
 	# Her name beside it, in Rue's hand (once Rue has written it).
 	if Relationships.has("wren.named"):
 		var c := Color(0.95, 0.95, 0.9, 0.85)
