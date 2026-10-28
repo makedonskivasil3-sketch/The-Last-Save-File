@@ -253,3 +253,22 @@ func test_the_plain_camera_has_no_effects() -> void:
 	check_eq(p._look, Vector2.ZERO, "no look-ahead")
 	check_eq(p._punch, 0.0, "no zoom punch")
 	await _end(p)
+
+
+## UI-7: the well's sign never sits under the prompt.
+func test_a_sign_fades_when_the_prompt_takes_over() -> void:
+	var w := await start_session()
+	await go_to(w, "square", "house")
+	w.director.paused = true
+	w.area.arin.paused = true
+	var sign: ExitSign = null
+	for c in w.area.get_children():
+		if c is ExitSign and c.text == "WELL":
+			sign = c
+	check(sign != null, "(the well's sign)")
+	w.player.global_position = VillageSquare.WELL.get_center() + Vector2(-10, 30)
+	await wait(0.6)
+	check(sign.fade < 0.05, "beside the well, the prompt speaks and the sign is gone (%.2f)" % sign.fade)
+	w.player.global_position = VillageSquare.WELL.get_center() + Vector2(-140, 60)
+	await wait(0.6)
+	check(sign.fade > 0.95, "from across the square it guides again")

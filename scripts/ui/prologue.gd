@@ -1438,7 +1438,7 @@ func _draw() -> void:
 		_draw_beam()
 	if beat == Beat.L3:
 		_draw_special()
-	if beat == Beat.P1_LEFT or (beat == Beat.P2_LEFT and not lit[4] and beat_t >= IMPOSSIBLE_PROMPT):
+	if _fifth_ring_shown():
 		_draw_fifth()
 	for b in _bursts:
 		_draw_burst(b[0], b[1])
@@ -1736,6 +1736,14 @@ func _draw_figure(f: HeroFigure, at: Vector2, who: String) -> void:
 	var size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
 	var pad := 4.0 + (8.0 if shape != "" else 0.0)
 	var plate := Rect2(top + Vector2(-(size.x + pad) * 0.5 - 2.0, -size.y + 2.0), Vector2(size.x + pad + 4.0, size.y + 2.0))
+	# The fifth lantern's hold ring is the thing to watch there: a tag that
+	# would cover it steps aside (Rue's to the right, Arin's to the left).
+	if _fifth_ring_shown():
+		var ring := Rect2(LANTERNS[4] + Vector2(-21, -51), Vector2(42, 42))
+		if plate.intersects(ring):
+			var dx := (ring.end.x + 2.0 - plate.position.x) if who == "rue" else (ring.position.x - 2.0 - plate.end.x)
+			plate.position.x += dx
+			top.x += dx
 	draw_rect(plate, Color(0.05, 0.04, 0.08, 0.55 * col.a))
 	draw_rect(Rect2(plate.position.x, plate.end.y - 1.0, plate.size.x, 1.0), Color(col, 0.8 * col.a))  # an underline in their colour
 	var text_x := plate.position.x + 2.0 + (8.0 if shape != "" else 0.0)
@@ -1782,6 +1790,10 @@ func _draw_special() -> void:
 	draw_arc(c, 18.0, -PI * 0.5, -PI * 0.5 + TAU * _special, 32, Color(1.0, 0.85, 0.4, 0.9), 2.0)
 	for at in [SPECIAL_LEFT, SPECIAL_RIGHT]:
 		draw_arc(at, 9.0, 0, TAU, 20, Color(1.0, 0.9, 0.6, 0.5), 1.0)
+
+
+func _fifth_ring_shown() -> bool:
+	return beat == Beat.P1_LEFT or (beat == Beat.P2_LEFT and not lit[4] and beat_t >= IMPOSSIBLE_PROMPT)
 
 
 ## The fifth's hold: two halves, his (blue, left) and hers (amber, right).

@@ -11,13 +11,25 @@ var is_open: Callable
 
 const COL := Color("c8b8a0")
 const CLOSED := Color("8a8f98")
+## Signs guide from a distance: up close the interaction prompt says the
+## same thing, so the sign fades and never sits under it.
+const NEAR_FADE := Vector2(60.0, 90.0)  # the prompt shows within ~22 px of a target, drawn ~44 px above it
+var fade := 1.0
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	var player := get_tree().get_first_node_in_group("player") as Node2D
+	var near := 1.0
+	if player:
+		near = smoothstep(NEAR_FADE.x, NEAR_FADE.y, player.global_position.distance_to(global_position))
+	fade = move_toward(fade, near, delta * 4.0)
 	queue_redraw()
 
 
 func _draw() -> void:
+	if fade <= 0.01:
+		return
+	modulate.a = fade
 	var open: bool = not is_open.is_valid() or is_open.call()
 	var c := COL if open else CLOSED
 	var font := ThemeDB.fallback_font
