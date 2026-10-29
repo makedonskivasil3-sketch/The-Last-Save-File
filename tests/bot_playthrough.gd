@@ -49,13 +49,24 @@ func test_full_game_escape_purge_5() -> void:
 	await _playthrough("escape", 5)
 
 
+## A probe, not part of the bot suite (run with `-- --probe-scarred`): the
+## late purge with two earlier deaths already on the square's road west. The
+## square seeds its static where Rue died there before (Area.start_erasure),
+## so this is the state the one failing purge-3 run reached in its last
+## sessions (ISSUE_REGISTER PL-4).
+func test_probe_purge_5_scarred_square() -> void:
+	if "--probe-scarred" not in OS.get_cmdline_user_args():
+		return
+	await _playthrough("escape", 5, [Vector2(470, 108), Vector2(720, 96)])
+
+
 func test_wren_ending() -> void:
 	await _playthrough("wren", 0)
 
 
 # --- the run ---------------------------------------------------------------------
 
-func _playthrough(ending: String, purge: int) -> void:
+func _playthrough(ending: String, purge: int, square_deaths: Array = []) -> void:
 	_edge_returns = 0
 	memory().wipe()
 	memory().last_exit = "death"  # skip the boot cinematic
@@ -63,6 +74,8 @@ func _playthrough(ending: String, purge: int) -> void:
 		memory().sessions = purge
 		memory().purge = purge
 		memory().deaths = purge
+	for at: Vector2 in square_deaths:
+		memory().deaths_log.append({"area": "square", "x": at.x, "y": at.y, "session": purge})
 	_t0 = _now()
 	var w := await start_session(true, purge == 0)
 	var result := ""
