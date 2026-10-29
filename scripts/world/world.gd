@@ -174,7 +174,7 @@ func _begin_session(previous: String) -> void:
 	fx.spike(0.6, 1.0)  # loading into a save you don't belong in
 	player.dissolve("materialize")
 	Sfx.play("fragment", -4.0, 0.5, 0.0)  # pieces of you, pulled together
-	await _wait(1.4 if OwnerMemory.sessions == 1 else 0.45)
+	await get_tree().create_timer(1.4 if OwnerMemory.sessions == 1 else 0.45).timeout
 	if not is_inside_tree() or ending != "":
 		return
 	player.frozen = false
@@ -1364,7 +1364,7 @@ func debug(action: String) -> void:
 		"drag":
 			if area.area_id != "square":
 				change_area("square", "well")
-				await _wait(0.8)
+				await get_tree().create_timer(0.8).timeout
 			if director.awareness < OwnerDirector.HUNT:
 				director.add_awareness(OwnerDirector.HUNT + 1.0 - director.awareness)
 			await get_tree().process_frame
@@ -1850,14 +1850,14 @@ func kill(cause: String, reason := "") -> void:
 	if area.area_id == "edge" and reason == "eraser":
 		tip = "Next time the static waits %d s before it starts. Its cracks show where." % int(TheEdge.grace_time())
 	# Let the death play out on screen before the text slams in.
-	await _wait(0.6)
+	await get_tree().create_timer(0.6).timeout
 	if not is_inside_tree():
 		return
 	hud.show_death(title, body, cause, tip, death_kept_line())
 	# The card waits for the player: the advice is read, then a press retries.
 	# A moment first, so a press still held from play doesn't skip it; less
 	# for a death the player has had before (the repeat player's fast path).
-	await _wait(RETRY_LOCK_REPEAT if times > 1 else RETRY_LOCK)
+	await get_tree().create_timer(RETRY_LOCK_REPEAT if times > 1 else RETRY_LOCK).timeout
 	if not is_inside_tree():
 		return  # F9 may have reloaded the scene in the meantime
 	hud.show_retry()
@@ -1952,12 +1952,12 @@ func _slot2_press() -> void:
 	if OwnerMemory.knows_truth:
 		slot2_press = "own"  # (she says so as the final exchange opens: win())
 		Sfx.play("click", -6.0, 0.85, 0.0)
-		await _wait(0.6)
+		await get_tree().create_timer(0.6).timeout
 	else:
 		slot2_press = "habit"
 		for h in Opening.HABIT:
 			get_tree().create_timer(h[0]).timeout.connect(func() -> void: Sfx.play("click", h[1], 1.3 if h[0] < 0.5 else 1.0, 0.0))
-		await _wait(0.8)
+		await get_tree().create_timer(0.8).timeout
 
 
 ## An ending: "escape" (Rue takes Slot 2), "wren" (Wren gets it), or
@@ -1983,7 +1983,7 @@ func win(chosen := "escape", message := 0) -> void:
 	var found := OwnerMemory.fragments.size()
 	var epilogue := Story.epilogue(chosen, found, OwnerMemory.found_pip, message)
 	OwnerMemory.record_win(chosen)
-	await _wait(1.5)
+	await get_tree().create_timer(1.5).timeout
 	if not is_inside_tree():
 		return
 	# The console, live: the last thing said.
@@ -2077,7 +2077,7 @@ func _quit(to_title: bool = false) -> void:
 	hud.show_overlay("QUITTING", "leaving? i'll still be here.")
 	fx.power_off(1.4)
 	Sfx.play("power_off", 0.0, 1.0, 0.0)
-	await _wait(1.6)
+	await get_tree().create_timer(1.6).timeout
 	if not is_inside_tree():
 		return
 	if to_title:
@@ -2155,7 +2155,7 @@ func _leave_suspended(to_title := true) -> void:
 	hud.show_overlay("SAVED", "i'll be right here.")
 	fx.power_off(1.0)
 	Sfx.play("power_off", -4.0, 1.2, 0.0)
-	await _wait(1.2)
+	await get_tree().create_timer(1.2).timeout
 	if not is_inside_tree():
 		return
 	if to_title:
@@ -2350,14 +2350,3 @@ func _handle_wipe(delta: float) -> void:
 	elif _wipe_hold > 0.0:
 		_wipe_hold = 0.0
 		hud.set_hint("")
-
-
-## Waits `s` seconds of game time on frames, not a SceneTreeTimer: a timer
-## awaited by a node freed before it fires stays referenced and is reported
-## leaked at exit (ISSUE_REGISTER PL-3). Counts while the tree is paused,
-## as create_timer does by default.
-func _wait(s: float) -> void:
-	var t := 0.0
-	while t < s and is_inside_tree():
-		await get_tree().process_frame
-		t += get_process_delta_time()

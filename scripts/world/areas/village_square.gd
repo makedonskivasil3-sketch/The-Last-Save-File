@@ -805,7 +805,7 @@ func _mark_process() -> void:
 	if world.player.global_position.distance_to(wren.global_position) > World.TALK_BREAK_DISTANCE - 6.0:
 		return  # (only where a conversation holds: closer than it breaks)
 	_mark_started = true
-	await _wait(0.5)
+	await get_tree().create_timer(0.5).timeout
 	if not is_inside_tree() or wren == null or world.ending != "" or world.is_talking():
 		_mark_started = false
 		return
@@ -1084,7 +1084,7 @@ func _tobben_at_board() -> void:
 		board.set_text_now(board.text + "\n" + TOBBEN_SEEN)
 	_report_pending = false
 	_tobben_report_lands()
-	await _wait(1.2)
+	await get_tree().create_timer(1.2).timeout
 	if not is_inside_tree():
 		return
 	_tobben_path = [Vector2(430, 104), TOBBEN_HOME] as Array[Vector2]

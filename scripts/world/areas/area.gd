@@ -485,14 +485,3 @@ func add_readable(title: String, pos: Vector2, look: Readable.Look, provider: Ca
 func draw_walls(gaps: Array = []) -> void:
 	Decor.wall_shadow(self, bounds, 12.0, 0.3)
 	Decor.walls(self, bounds, WALL, wall_face, wall_cap, gaps)
-
-
-## Waits `s` seconds of game time on frames, not a SceneTreeTimer: a timer
-## awaited by a node freed before it fires stays referenced and is reported
-## leaked at exit (ISSUE_REGISTER PL-3). Counts while the tree is paused,
-## as create_timer does by default.
-func _wait(s: float) -> void:
-	var t := 0.0
-	while t < s and is_inside_tree():
-		await get_tree().process_frame
-		t += get_process_delta_time()
