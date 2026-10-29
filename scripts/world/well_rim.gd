@@ -18,6 +18,11 @@ func interact_prompt() -> String:
 	return prompt
 
 
+## What this is, shown small over the prompt (World.object_name).
+func interact_name() -> String:
+	return "the well's rim"
+
+
 func interact() -> String:
 	listened.emit(self)
 	return ""

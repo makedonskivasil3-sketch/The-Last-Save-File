@@ -72,6 +72,11 @@ func interact_prompt() -> String:
 	return "read note"
 
 
+## What this is, shown small over the prompt (World.object_name).
+func interact_name() -> String:
+	return title
+
+
 func interact() -> Dictionary:
 	return {"speaker": title, "color": INK, "lines": [text.replace("\n", " ")]}
 
@@ -89,8 +94,17 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
-	draw_rect(Rect2(-7, -5, 14, 9), PAPER)
+	# A sheet pinned to the wall: its shadow, the page with a curled corner,
+	# a few lines of handwriting, the pin.
+	draw_rect(Rect2(-6, -4, 14, 10), Color(0, 0, 0, 0.28))
+	draw_colored_polygon(PackedVector2Array([Vector2(-7, -5), Vector2(7, -5), Vector2(7, 2), Vector2(4, 5), Vector2(-7, 5)]), PAPER)
+	draw_colored_polygon(PackedVector2Array([Vector2(7, 2), Vector2(4, 5), Vector2(4, 2)]), PAPER.darkened(0.25))
+	draw_line(Vector2(-7, -5), Vector2(7, -5), PAPER.lightened(0.3), 0.5)
 	for i in 3:
-		draw_line(Vector2(-5, -3 + i * 2.5), Vector2(4 - i, -3 + i * 2.5), Color(0.3, 0.2, 0.15, 0.7))
+		var y := -2.5 + i * 2.3
+		draw_line(Vector2(-5, y), Vector2(-1 + 2 * ((i + 1) % 2), y + 0.4), Color(0.3, 0.2, 0.15, 0.75), 0.6)
+		draw_line(Vector2(0 + 2 * ((i + 1) % 2), y + 0.4), Vector2(4 - i * 1.5, y), Color(0.3, 0.2, 0.15, 0.75), 0.6)
+	draw_circle(Vector2(0, -4.5), 1.1, Color("b8423a"))
+	draw_circle(Vector2(-0.3, -4.8), 0.4, Color(1, 1, 1, 0.6))
 	if _smudge > 0.0:
 		draw_rect(Rect2(-7, -5, 14, 9), Color(0.88, 0.44, 0.31, _smudge * 0.5))

@@ -108,12 +108,35 @@ func test_the_gift_is_warmer_after_the_game() -> void:
 	check_eq(Relationships.chalk_ask(), Relationships.WREN_CHALK_ASK_AGAIN, "after lending it: for keeps this time")
 
 
-func test_her_introduction_and_her_ask_come_first() -> void:
+## Revised 2026-10-28 (WREN_ARC.md, "Order rules"): her introduction and
+## her lantern line first, then her game, then her ask to see the Edge.
+func test_her_introduction_comes_first_then_her_game() -> void:
 	memory().add_event("wren.met")
-	memory().add_event("wren.sheltered")
 	var w := await start_session()
 	await go_to(w, "square", "house")
 	check(w.area._chalk_game_lines().is_empty(), "before her lantern line: no game yet")
 	memory().add_event("wren.lantern")
-	check(w.area._chalk_game_lines(true).is_empty(), "nor while her ask to see the Edge is due")
-	check(not w.area._chalk_game_lines(false).is_empty(), "then she starts it")
+	check(not w.area._chalk_game_lines().is_empty(), "then she starts it, whether or not she has hidden Rue yet")
+
+
+## Between sessions she keeps drawing by her corner (her own life, not a
+## quest): one more each session after the game, up to three, and Rue
+## notices each once, without anything said aloud.
+func test_she_keeps_drawing_between_sessions() -> void:
+	memory().sessions = 4
+	memory().event_at("wren.game", 4)
+	check(VillageSquare.wren_doodles().is_empty(), "the session of her game: nothing new yet")
+	memory().event_at("wren.game", 2)
+	check_eq(VillageSquare.wren_doodles(), ["lantern", "bird"], "two sessions on: two drawings")
+	memory().found_pip = true
+	check_eq(VillageSquare.wren_doodles(), ["lantern", "fox"], "a fox once she's seen Pip with Rue")
+	var w := await start_session()
+	await go_to(w, "square", "house")
+	w.director.paused = true
+	w.area.arin.paused = true
+	w.hud.clear_queue()
+	w.player.global_position = VillageSquare.WREN_DOODLES.lantern[0] + Vector2(0, 8)
+	await wait(0.4)
+	check(memory().has_conversation("wren.doodle.lantern"), "Rue notices the lantern")
+	var said := func() -> bool: return w.hud.console_history.any(func(l: String) -> bool: return l.contains("from her corner she can just see it"))
+	check(await wait_until(said, 20.0, "the thought"), "and thinks it once (%s)" % str(w.hud.console_history.slice(-3)))

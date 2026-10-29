@@ -70,6 +70,8 @@ const EVENTS := {
 	"tobben.met": "Met Tobben at his stall.",
 	"tobben.fireworks": "Tobben still keeps the festival's fireworks under his counter.",
 	"tobben.guestbook": "You wrote RUE back in Tobben's guest book.",
+	"tobben.caught": "You caught Tobben on his way to the notice board. He went back to his stall.",
+	"tobben.crossed_out": "Tobben scratched his own name off the notice board.",
 	"tobben.restored": "You brought Tobben back from the Recycle Bin.",
 	"tobben.piece_taken": "You took Tobben's voice.",
 	"tobben.piece_returned": "You gave Tobben his voice back.",
@@ -124,7 +126,7 @@ const WREN_WATCHED_CLOSE := "Nobody ever picked me for anything. I just watched.
 ## knows how. Chalk marks for good places; her rules, her chalk.
 const WREN_GAME_START := [
 	"You hide like a lamp post. Everybody can see you.",
-	"Here. X. Where I stand: the owner can't see what I'm standing beside. That's the first good place.",
+	"Here. X. Where I stand. That's the first good place.",
 	"Now you find one. A real one, not next to me, that's cheating. Mark it.",
 	"You can borrow my chalk. Give it back. It's my only one.",
 ]
@@ -227,9 +229,12 @@ static func mira_festival() -> Dictionary:
 static func _wren_own() -> Dictionary:
 	if has("wren.named"):
 		return _once("wren.saw_name", WREN_SAW_NAME if has("wren.marked_well") else WREN_SAW_NAME_NO_MARK)
-	# Her game comes first once she has hidden Rue (the square runs it):
-	# no sad beat until it's played out and the chalk is back with her.
-	if has("wren.sheltered") and not has("wren.chalk_back"):
+	# Her game comes first, after her lantern line (the square runs it): no
+	# sad beat until it's played out and the chalk is back with her. Only for
+	# the session it starts in: a player who leaves it unfinished still
+	# hears her story next time (the game stays open).
+	if has("wren.lantern") and not has("wren.chalk_back") \
+			and (not has("wren.game") or OwnerMemory.event_session("wren.game") == OwnerMemory.sessions):
 		return {}
 	if has("wren.lantern") and not has("wren.watched"):
 		var how: String = WREN_WATCHED.get(OwnerMemory.festival_choice, WREN_WATCHED[""])

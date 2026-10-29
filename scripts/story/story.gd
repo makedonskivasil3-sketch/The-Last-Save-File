@@ -204,11 +204,13 @@ const FINAL_FIGHT := {
 const OWNER_NOTES := [
 	"there's something in arin's room again. i'm not imagining it.",
 	"we used to play this on the couch at mum's. two controllers. i don't know why i'm writing that down.",
+	"mum's house is sold. everything in the loft goes in the van on friday. the console too, once i've cleaned it up.",
 	"she moved in the summer. said she'd visit every weekend. she came twice.",
 	"i kept her save for months. i'd walk arin past the spot where her character used to stand.",
 	"the night i deleted slot 2 i told myself it was for space. the card wasn't even half full.",
 	"she sent a message once. 'still have my save?' i started typing yes. that same night i deleted it instead, and never sent anything.",
 	"i didn't delete her because i hated her. i deleted her because the empty slot was easier than the waiting.",
+	"when i play arin i'm nine again. when i stop, i'm in an empty house full of boxes.",
 	"if that's you in there, i don't know what i want. i want you gone. i want you to stay.",
 ]
 
@@ -336,6 +338,12 @@ const MIRA_NOTE_GIVE := [
 	"Pin it up. Maybe they'll remember I can talk. That I'm not just a line.",
 ]
 const MIRA_NOTE_TEXT := "MIRA WAS HERE.\nI TALK. I REMEMBER.\n— M"
+## Her note on her table, before she asks Rue to take her to the board: Rue
+## only sees the outside.
+const MIRA_NOTE_FOLDED := [
+	"Folded in four, very neatly. On the outside, in careful capitals: FOR THE BOARD.",
+	"(it isn't mine to open.)",
+]
 const MIRA_NOTE_LOST := [
 	"mira_note.txt · confiscated · never pinned",
 	"\"MIRA WAS HERE. I TALK. I REMEM\"",
@@ -399,6 +407,9 @@ const EPILOGUE_TRUE := [
 	"> i kept your controller. it's still under the couch.",
 	"it presses LOAD anyway.",
 ]
+## Canon decision B: in the `rue` ending she picks a colour nobody chose for
+## her (Player.OWN), and keeps it.
+const RUE_OWN_COLOUR := "before it loads, she picks one more thing for herself: a colour. nobody chose it for her. she wears it in her hair."
 const EPILOGUE_PIP := "a small orange fox curls up at the bottom of the screen. nobody saved it. it came anyway."
 
 
@@ -529,6 +540,7 @@ static func epilogue(ending: String, found: int, pip: bool, message := 0) -> Arr
 			lines.append("the eraser stops. the cursor goes still. for the first time, the save is quiet.")
 		"rue":
 			lines = EPILOGUE_TRUE.duplicate()
+			lines.insert(1, RUE_OWN_COLOUR)
 		"unseen":
 			lines = [
 				"past the last drawn tile there's a grey that isn't anything.",

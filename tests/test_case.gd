@@ -182,6 +182,16 @@ func interact_with(w: Node, node: Node2D, offset := Vector2(0, 14)) -> void:
 	await frames(2)
 
 
+## A first run's title -> festival goes through the memory card (ColdOpen):
+## reads it through, the way a player does, and waits for the festival.
+func past_cold_open() -> void:
+	await wait_until(func() -> bool: return scene() is ColdOpen or scene() is Prologue, 3.0, "the memory card")
+	if scene() is ColdOpen:
+		scene().autoplay = true
+		await wait_until(func() -> bool: return scene() is Prologue, 20.0, "the festival after the memory card")
+	await frames(2)
+
+
 ## Advances the dialogue box until it closes.
 func finish_dialogue(w: Node) -> void:
 	for i in 40:

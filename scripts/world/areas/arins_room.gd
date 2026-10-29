@@ -7,6 +7,10 @@ extends Area
 const DOOR_RECT := Rect2(304, 28, 32, 8)
 const NOTE_POS := Vector2(150, 32)
 const MIRA_POS := Vector2(440, 130)
+## Her corner's table (MiraCorner), and where she keeps watch once her note
+## is pinned in the square: at the window, looking out towards the board.
+const MIRA_TABLE := Vector2(460, 136)
+const MIRA_WINDOW := Vector2(228, 60)
 const SAVE_POS := Vector2(420, 236)
 const BED := Rect2(470, 44, 58, 32)
 const TABLE := Rect2(116, 216, 36, 22)
@@ -127,6 +131,7 @@ func _init() -> void:
 
 
 var sun: SunBeam
+var corner: MiraCorner
 
 
 func build() -> void:
@@ -163,10 +168,25 @@ func build() -> void:
 			mira_state = Npc.State.DELETED
 		elif OwnerMemory.purge >= 1:
 			mira_state = Npc.State.RESTRICTED
+	corner = null
+	if not world.is_mira_deleted():
+		# Only made when it goes in the room: a deleted Mira leaves no table.
+		corner = MiraCorner.new()
+		corner.position = MIRA_TABLE
+		corner.quest = OwnerMemory.mira_quest
+		corner.kept = mira_state == Npc.State.RESTRICTED
+		corner.kept_at = MIRA_POS
+		corner.sill = Vector2(WINDOW.end.x - 8, WINDOW.end.y + 3)
+		add_child(corner)
+		if corner.note_on_table() and not (world.escort and world.escort.npc_id == "mira"):
+			var folded := add_readable("MIRA'S NOTE", MIRA_TABLE + Vector2(0, 3), Readable.Look.NONE, func() -> Array: return Story.MIRA_NOTE_FOLDED.duplicate())
+			folded.prompt = "look"
 	if world.escort and world.escort.npc_id == "mira":
 		mira = world.escort  # she's out walking with you
 	else:
-		mira = add_npc("mira", MIRA_POS, mira_state)
+		# Her note is up in the square: she keeps watch at the window now.
+		var at := MIRA_WINDOW if OwnerMemory.mira_quest == "pinned" and mira_state == Npc.State.NORMAL else MIRA_POS
+		mira = add_npc("mira", at, mira_state)
 		mira.display_name = "MIRA"
 		mira.body_kind = "dress"
 		# Her routine before her request: at her two cups, turning them,

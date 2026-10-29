@@ -4,7 +4,8 @@ extends Node2D
 
 ## RECORD: one of the Archive's readable records, an open book on a small
 ## stand, so it never looks like the shelf's decorative spines.
-enum Look { BOOK, SIGN, TERMINAL, RECORD }
+## NONE: drawn by something else (a note on Mira's table is part of her corner).
+enum Look { BOOK, SIGN, TERMINAL, RECORD, NONE }
 
 var title := "BOOK"
 var prompt := "read"
@@ -28,6 +29,11 @@ func can_interact() -> bool:
 
 func interact_prompt() -> String:
 	return prompt
+
+
+## What this is, shown small over the prompt (World.object_name).
+func interact_name() -> String:
+	return title
 
 
 func interact() -> Dictionary:

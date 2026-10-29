@@ -116,7 +116,7 @@ static func voice_lines() -> Dictionary:
 			+ Relationships.wren_lines(),
 		# (Frayed, he writes: only the line when his voice comes back is said.)
 		"npc.tobben": Story.recall_lines("tobben") + [Story.TRUTH_LINES.tobben, Story.FRAY_RETURNED.tobben] + TOBBEN_LINES
-			+ Relationships.tobben_lines(),
+			+ TOBBEN_CAUGHT + Relationships.tobben_lines(),
 	}
 
 
@@ -215,6 +215,8 @@ func build() -> void:
 	board.position = BOARD_POS
 	board.player = world.player
 	board.text = "ASHVALE NOTICES\nHarvest fair on Sunday." if OwnerMemory.sessions <= 1 else "MISSING: ONE (1) INTRUDER.\nIF SEEN, TELL TOBBEN."
+	if Relationships.has("tobben.crossed_out"):
+		board.text = board.text.replace("TELL TOBBEN", "TELL xxxxxx")  # he scratched it out, and it stayed
 	board.lie = "INTRUDER CAUGHT.\nALL CLEAR."
 	if OwnerMemory.mira_quest == "pinned":
 		board.text = Story.MIRA_NOTE_TEXT  # it stays up, every run
@@ -244,6 +246,7 @@ func build() -> void:
 
 	well = Passage.new()
 	well.prompt = "climb into the well"
+	well.object_name = "the well"
 	well.target_area = "oob"
 	well.arrival = "well"
 	well.position = Vector2(WELL.get_center().x, WELL.end.y + 6)
@@ -501,11 +504,14 @@ func _on_chalked(spot: ChalkSpot) -> void:
 ## Her game's lines at her corner ({} when there's nothing). It starts once
 ## she has introduced herself (her lantern line) and isn't about to ask to
 ## see the Edge: her own introduction and her quest come first.
-func _chalk_game_lines(ask_due := false) -> Dictionary:
+## Her game (WREN_ARC.md). It starts the talk after her lantern line: before
+## her ask to see the Edge, so a player who takes her along has played it
+## first (when the ask came first, most players left the square with her
+## and never saw it). It doesn't need her to have hidden Rue yet.
+func _chalk_game_lines() -> Dictionary:
 	if wren == null or OwnerMemory.is_deleted("wren"):
 		return {}
-	if Relationships.has("wren.sheltered") and not Relationships.has("wren.game") \
-			and Relationships.has("wren.lantern") and not ask_due:
+	if not Relationships.has("wren.game") and Relationships.has("wren.lantern"):
 		return {"lines": Relationships.WREN_GAME_START, "id": "wren.game", "commit": ["wren.game"],
 			"after": [_update_chalk_spots]}
 	var mark := pending_mark()
@@ -565,6 +571,88 @@ func _walk_home() -> void:
 		_wren_path = [Vector2(400, 262), WREN_HOME] as Array[Vector2]
 
 
+## One of Wren's chalk drawings, in a child's hand.
+func _draw_doodle(d: String, at: Vector2, c: Color) -> void:
+	match d:
+		"lantern":
+			draw_line(at + Vector2(0, 6), at + Vector2(0, -6), c, 0.7)
+			draw_line(at + Vector2(0, -6), at + Vector2(-3, -6), c, 0.7)
+			draw_rect(Rect2(at + Vector2(-5, -5), Vector2(4, 5)), c, false, 0.7)
+			for k in 3:
+				draw_line(at + Vector2(-3, -7) + Vector2.from_angle(-PI * (0.2 + 0.3 * k)) * 2.0, at + Vector2(-3, -7) + Vector2.from_angle(-PI * (0.2 + 0.3 * k)) * 4.0, c, 0.6)
+		"fox":
+			draw_arc(at, 3.0, 0.0, TAU, 10, c, 0.7)
+			draw_polyline(PackedVector2Array([at + Vector2(-3, -1.5), at + Vector2(-4.5, -8), at + Vector2(-0.5, -2.8)]), c, 0.7)
+			draw_polyline(PackedVector2Array([at + Vector2(3, -1.5), at + Vector2(4.5, -8), at + Vector2(0.5, -2.8)]), c, 0.7)
+			draw_rect(Rect2(at + Vector2(-1.4, -0.6), Vector2(0.8, 0.8)), c)
+			draw_rect(Rect2(at + Vector2(0.6, -0.6), Vector2(0.8, 0.8)), c)
+		"bird":
+			draw_arc(at, 2.4, PI, TAU, 8, c, 0.7)
+			draw_line(at + Vector2(-2.4, 0), at + Vector2(2.4, 0), c, 0.7)
+			draw_line(at + Vector2(2.4, -1), at + Vector2(4.2, -1.6), c, 0.7)
+			draw_line(at + Vector2(0, 0), at + Vector2(0, 3.5), c, 0.6)
+		"hopscotch":
+			for k in 4:
+				draw_rect(Rect2(at + Vector2(-3, -k * 6.0), Vector2(6, 6)), c, false, 0.6)
+			draw_line(at + Vector2(-2, -16), at + Vector2(2, -12), c, 0.7)
+			draw_line(at + Vector2(-2, -12), at + Vector2(2, -16), c, 0.7)
+
+
+## Wren between sessions (WREN_ARC.md, "She keeps drawing"): after her game,
+## one more chalk drawing by her corner each session, up to three. What
+## she likes and what she can see from there: the lantern by the well; a
+## fox (once she's seen Pip with Rue) or else a bird; a hopscotch with her X
+## in one square. Rue notices each once, ever. Nothing is said aloud.
+const WREN_DOODLES := {
+	"lantern": [Vector2(152, 262), "she drew the lantern by the well. from her corner she can just see it."],
+	"fox": [Vector2(114, 276), "a fox with enormous ears. she's seen pip with me."],
+	"bird": [Vector2(114, 276), "a bird on one leg. she draws what she can see from her corner."],
+	"hopscotch": [Vector2(166, 262), "a hopscotch. one square has an x in it. hers."],
+}
+
+
+static func wren_doodles() -> Array:
+	if not Relationships.has("wren.game") or OwnerMemory.is_deleted("wren"):
+		return []
+	var n := clampi(OwnerMemory.sessions - OwnerMemory.event_session("wren.game"), 0, 3)
+	return ["lantern", "fox" if OwnerMemory.found_pip else "bird", "hopscotch"].slice(0, n)
+
+
+func _notice_doodles() -> void:
+	for d in wren_doodles():
+		var id: String = "wren.doodle." + str(d)
+		if OwnerMemory.has_conversation(id) or world.is_talking() or world.in_cutscene():
+			continue
+		if world.player.global_position.distance_to(WREN_DOODLES[d][0]) < 26.0:
+			OwnerMemory.complete_conversation(id)
+			world.hud.say(WREN_DOODLES[d][1], "self")
+			PlaytestLog.mark("wren: doodle", d)
+
+
+## What Wren is up to, said over her prompt: so her game can be noticed
+## before it's explained, and a returning player is reminded of it.
+var _invited := false
+
+
+func _wren_doing() -> void:
+	if wren == null or not is_instance_valid(wren):
+		return
+	var doing := ""
+	if not _wren_path.is_empty():
+		doing = "going to look"
+	elif _wren_at_spot != "":
+		doing = "looking at your mark"
+	elif Relationships.has("wren.lantern") and not Relationships.has("wren.game"):
+		doing = "chalk out"
+	elif Relationships.has("wren.game") and not Relationships.has("wren.mark_ok"):
+		doing = "waiting for your mark" if pending_mark() == "" else "wants to see your mark"
+	wren.doing = doing
+	# The first time her game is next and Rue comes near: she holds up the chalk.
+	if doing == "chalk out" and not _invited and world.player.global_position.distance_to(wren.global_position) < 70.0:
+		_invited = true
+		wren.emote("!", 1.4)
+
+
 ## Her X, used without being told: hiding right beside her while the
 ## owner hunts. She sees it (she's right there) and answers without words.
 func _wren_nod() -> void:
@@ -598,6 +686,9 @@ var _beckon_cooldown := 0.0
 func area_process(delta: float) -> void:
 	_walk_wren(delta)
 	_wren_nod()
+	_wren_doing()
+	_notice_doodles()
+	_walk_tobben(delta)
 	_well_process(delta)
 	_wren_beckon(delta)
 	_mark_process()
@@ -807,7 +898,7 @@ func _wren_lines() -> Variant:
 			_wren_asked = true
 		_wren_offer = told.get("offer", "") == "chalk"
 		return told
-	var game := _chalk_game_lines(_wren_line >= _wren_ask_at - 1 and not Relationships.has("wren.promised"))
+	var game := _chalk_game_lines()
 	if not game.is_empty():
 		return game
 	if OwnerMemory.wren_saved:
@@ -828,6 +919,8 @@ func _wren_lines() -> Variant:
 
 
 func _tobben_lines() -> Variant:
+	if _tobben_errand == "report":
+		return _tobben_caught()
 	# What happened between you comes first (Relationships.tobben).
 	var told := Relationships.tobben()
 	if not told.is_empty():
@@ -882,35 +975,118 @@ func _offer_guestbook() -> void:
 	world.director.say("...who wrote her name in the book.")
 
 
-## Seconds after a conversation before Tobben's report reaches the owner.
-const REPORT_DELAY := 4.0
+## Tobben's report is something you can watch (docs/production/CHARACTERS.md):
+## after Rue talks to him he hesitates, pen in hand, then walks to the notice
+## board that says IF SEEN, TELL TOBBEN, writes on it, and walks back. The
+## owner reads the board. Talking to him on the way catches him out: he
+## gives that report up (it's still his script: he'll go again after the
+## next conversation). After the guest book he goes all the same, and
+## scratches his own name off the board instead.
+## Seconds from the end of a conversation until his note is up (the
+## hesitation, then the walk at TOBBEN_WALK).
+const REPORT_DELAY := 7.0
+const TOBBEN_HESITATE := 1.6
+const TOBBEN_WALK := 60.0
+const TOBBEN_HOME := Vector2(488, 92)
+## Out from behind the stall, across, and up to the board's foot.
+const TOBBEN_TO_BOARD: Array[Vector2] = [Vector2(430, 104), Vector2(262, 66)]
 const TOBBEN_REPORT := "tobben says you were asking questions."
 ## After the guest book: he still reports (it's his script), and leaves out
 ## what she asked.
 const TOBBEN_REPORT_BOOK := "tobben says you came by. he didn't say what for."
+const TOBBEN_SEEN := "SEEN NEAR THE STALL. —T."
+const TOBBEN_CAUGHT := [
+	"Oh! I was just... going for a walk. Towards the board. Not to write anything on it.",
+	"...It's in my script. It isn't in me. Welcome to Tobben's.",
+]
 
 
 ## After a report, he doesn't tell again for this long (he already did).
 const REPORT_COOLDOWN := 60.0
 var _report_pending := false
+## His walk, and what he's doing it for: "report", "home" or "".
+var _tobben_path: Array[Vector2] = []
+var _tobben_errand := ""
 
 
-## Tobben tells the owner about Rue after she talks to him: once, a few
-## seconds after the conversation (and after any scene that follows), not
-## once per conversation. He can't while his voice is Rue's (written). After
-## the guest book he still does, but leaves out what she asked.
+## Tobben tells the owner about Rue after she talks to him: once, after the
+## conversation (and after any scene that follows), not once per
+## conversation. He can't while his voice is Rue's (written). After the
+## guest book he still does, but leaves out what she asked.
 func _tobben_reports() -> void:
-	if _report_pending or tobben.mute or not _report_cooled():
+	if _report_pending or tobben.mute or not _report_cooled() or _tobben_errand != "":
 		return
 	_report_pending = true
 	await _story_clear()
 	if not is_inside_tree():
 		return
-	await get_tree().create_timer(REPORT_DELAY).timeout
+	# Pen in hand, looking at her, then at the board.
+	tobben.doing = "pen in hand"
+	tobben.emote("...", TOBBEN_HESITATE)
+	await get_tree().create_timer(TOBBEN_HESITATE).timeout
 	await _story_clear()  # a scene that started meanwhile goes first
-	if is_inside_tree():
-		_tobben_report_lands()
+	if not is_inside_tree() or not _report_pending:
+		return
+	_tobben_path = TOBBEN_TO_BOARD.duplicate()
+	_tobben_errand = "report"
+	tobben.doing = "going to the notice board"
+
+
+## Moves Tobben along his path; at the board, the report; then home.
+func _walk_tobben(delta: float) -> void:
+	if _tobben_path.is_empty() or tobben == null or not is_instance_valid(tobben):
+		return
+	if world.is_talking() and world._focused == tobben:
+		tobben._walk_velocity = Vector2.ZERO
+		return
+	var to := _tobben_path[0] - tobben.global_position
+	var step := to.limit_length(TOBBEN_WALK * delta)
+	tobben.global_position += step
+	tobben._walk_velocity = step / maxf(delta, 0.0001)
+	if to.length() <= TOBBEN_WALK * delta + 0.01:
+		_tobben_path.pop_front()
+	if not _tobben_path.is_empty():
+		return
+	tobben._walk_velocity = Vector2.ZERO
+	if _tobben_errand == "report":
+		_tobben_at_board()
+	else:
+		_tobben_errand = ""
+		tobben.doing = ""
+		tobben.idle_style = "tend"
+
+
+func _tobben_at_board() -> void:
+	tobben.emote("scritch", 1.2)
+	Sfx.play("scribble")
+	if OwnerMemory.guestbook_restored:
+		# He goes all the same (his script), and scratches his own name off.
+		if board.text.contains("TELL TOBBEN"):
+			board.set_text_now(board.text.replace("TELL TOBBEN", "TELL xxxxxx"))
+		if Relationships.add("tobben.crossed_out"):
+			PlaytestLog.mark("tobben: crossed his name off the board")
+	elif not board.falsified and not board.text.contains(TOBBEN_SEEN):
+		board.set_text_now(board.text + "\n" + TOBBEN_SEEN)
 	_report_pending = false
+	_tobben_report_lands()
+	await get_tree().create_timer(1.2).timeout
+	if not is_inside_tree():
+		return
+	_tobben_path = [Vector2(430, 104), TOBBEN_HOME] as Array[Vector2]
+	_tobben_errand = "home"
+	tobben.doing = "going back to his stall"
+
+
+## Rue talks to him on his way to the board: caught. He gives this report up.
+func _tobben_caught() -> Array:
+	_report_pending = false
+	world.set_meta("tobben_reported_at", Time.get_ticks_msec() / 1000.0)  # he doesn't set off again at once
+	_tobben_path = [Vector2(430, 104), TOBBEN_HOME] as Array[Vector2]
+	_tobben_errand = "home"
+	tobben.doing = "going back to his stall"
+	Relationships.add("tobben.caught")
+	PlaytestLog.mark("tobben: caught on the way to the board")
+	return TOBBEN_CAUGHT
 
 
 func _report_cooled() -> bool:
@@ -952,7 +1128,7 @@ func _draw() -> void:
 			draw_circle(Vector2(px, n.position.y + 1.2), 0.9, Color("c84a3a"))
 	# Tobben's guest book, open on the counter once RUE is back in it.
 	if OwnerMemory.guestbook_restored:
-		var b := Rect2(STALL.position + Vector2(STALL.size.x * 0.5 - 7, 6), Vector2(14, 7))
+		var b := Rect2(STALL.position + Vector2(STALL.size.x * 0.5 - 7, 11), Vector2(14, 7))
 		draw_rect(b, Color("efe4cc"))
 		draw_line(Vector2(b.get_center().x, b.position.y), Vector2(b.get_center().x, b.end.y), Color("8a7a68"), 0.6)
 		draw_line(b.position + Vector2(1.5, 2.5), b.position + Vector2(5.5, 2.5), Color("3a2a20"), 0.6)  # ARIN
@@ -961,15 +1137,15 @@ func _draw() -> void:
 	# Wren's chalk on the rim (kept for good once she's shown you).
 	if Relationships.has("wren.marked_well"):
 		var c := Color(0.95, 0.95, 0.9, 0.85)
-		var at := Vector2(WELL.end.x - 9, WELL.position.y + 2)
-		draw_circle(at, 3.2, Color(c, 0.0))
-		draw_arc(at, 3.2, 0.0, TAU, 10, c, 0.7)  # her head for you
-		draw_rect(Rect2(at + Vector2(-1.6, -0.6), Vector2(0.9, 0.9)), c)  # two dots for eyes
-		draw_rect(Rect2(at + Vector2(0.8, -0.6), Vector2(0.9, 0.9)), c)
-		draw_line(at + Vector2(0, 3.2), at + Vector2(0, 7), c, 0.7)
-		draw_line(at + Vector2(-6, 6), at + Vector2(-6, -1), c, 0.7)  # an arrow, up
-		draw_line(at + Vector2(-6, -1), at + Vector2(-8, 1.5), c, 0.7)
-		draw_line(at + Vector2(-6, -1), at + Vector2(-4, 1.5), c, 0.7)
+		# On the ring's stone face (draw_well), where chalk shows.
+		var at := Vector2(WELL.end.x - 8, WELL.position.y + 15)
+		draw_arc(at, 2.8, 0.0, TAU, 10, c, 0.7)  # her head for you
+		draw_rect(Rect2(at + Vector2(-1.4, -0.6), Vector2(0.8, 0.8)), c)  # two dots for eyes
+		draw_rect(Rect2(at + Vector2(0.6, -0.6), Vector2(0.8, 0.8)), c)
+		draw_line(at + Vector2(0, 2.8), at + Vector2(0, 6), c, 0.7)
+		draw_line(at + Vector2(5, 5), at + Vector2(5, -1), c, 0.7)  # an arrow, up
+		draw_line(at + Vector2(5, -1), at + Vector2(3.4, 1.2), c, 0.7)
+		draw_line(at + Vector2(5, -1), at + Vector2(6.6, 1.2), c, 0.7)
 	# Wren's game: her X where she stands; Rue's R where Rue chose (backwards
 	# until Wren fixes it, next session); a refused mark is rubbed out.
 	if Relationships.has("wren.game"):
@@ -977,6 +1153,8 @@ func _draw() -> void:
 		var x0 := WREN_HOME + Vector2(-16, 10)
 		draw_line(x0 + Vector2(-3, -3), x0 + Vector2(3, 3), cx, 0.8)
 		draw_line(x0 + Vector2(-3, 3), x0 + Vector2(3, -3), cx, 0.8)
+		for d in wren_doodles():
+			_draw_doodle(d, WREN_DOODLES[d][0], Color(cx, 0.7))
 		for spot_id in ["recess", "crossing"]:
 			if not Relationships.has("wren.mark_" + spot_id) or (spot_id == "crossing" and Relationships.has("wren.mark_refused")):
 				continue
@@ -989,7 +1167,7 @@ func _draw() -> void:
 	if Relationships.has("wren.named"):
 		var c := Color(0.95, 0.95, 0.9, 0.85)
 		var font := ThemeDB.fallback_font
-		draw_string(font, Vector2(WELL.end.x - 30, WELL.position.y + 6), "WREN", HORIZONTAL_ALIGNMENT_LEFT, -1, 6, c)
+		draw_string(font, Vector2(WELL.position.x + 3, WELL.position.y + 20), "WREN", HORIZONTAL_ALIGNMENT_LEFT, -1, 5, c)
 	# Only what moves is drawn every frame: the unloaded road north, static
 	# where the path should continue. The rest is the backdrop (_paint).
 	if not world.flags.get("pointer", false):
@@ -1023,28 +1201,8 @@ func _paint(ci: CanvasItem) -> void:
 		fx += 14.0
 	# Arin's house: roof, front wall, the door you came out of.
 	Decor.house(ci, HOUSE, Color("7a3a30"), Color("b8a088"), HOUSE_DOOR.get_center().x)
-	# The well: a stone ring with a front face, dark water, a crossbeam.
-	ci.draw_rect(Rect2(WELL.position + Vector2(2, 4), WELL.size), Color(0, 0, 0, 0.3))
-	ci.draw_rect(Rect2(WELL.position.x, WELL.end.y - 6, WELL.size.x, 6), STONE.darkened(0.3))
-	ci.draw_rect(Rect2(WELL.position, Vector2(WELL.size.x, WELL.size.y - 6)), STONE)
-	ci.draw_rect(Rect2(WELL.position + Vector2(4, 3), Vector2(WELL.size.x - 8, WELL.size.y - 12)), Color("142230"))
-	ci.draw_line(WELL.position + Vector2(5, 5), WELL.position + Vector2(11, 7), Color(0.6, 0.8, 1.0, 0.35), 0.8)
-	for k in 4:
-		ci.draw_line(Vector2(WELL.position.x + 2 + k * 7, WELL.end.y - 6), Vector2(WELL.position.x + 2 + k * 7, WELL.end.y), STONE.darkened(0.45), 0.6)
-	ci.draw_rect(Rect2(WELL.position.x - 2, WELL.position.y + 5, WELL.size.x + 4, 2.2), Color("6b4a30"))
-	ci.draw_rect(WELL, Decor.INK, false, 0.8)
-	# Tobben's stall: a counter with goods under a striped awning.
-	var counter := Decor.furniture(ci, STALL, Color("6b5040"), 6.0)
-	for k in 9:
-		var g := Vector2(counter.position.x + 6 + k * 10, counter.end.y - 6)
-		ci.draw_circle(g, 2.2, Color("c84a3a") if k % 3 == 0 else (Color("e8b84a") if k % 3 == 1 else Color("8ab05a")))
-	for k in 6:
-		var a := Rect2(STALL.position + Vector2(k * 16, -7), Vector2(16, 10))
-		ci.draw_rect(a, Color("a8443a") if k % 2 == 0 else Color("e8dcc4"))
-	ci.draw_rect(Rect2(STALL.position + Vector2(0, -7), Vector2(STALL.size.x, 10)), Decor.INK, false, 0.8)
-	for k in 6:
-		ci.draw_colored_polygon(PackedVector2Array([STALL.position + Vector2(k * 16, 3), STALL.position + Vector2(k * 16 + 16, 3), STALL.position + Vector2(k * 16 + 8, 6)]),
-			Color("a8443a") if k % 2 == 0 else Color("e8dcc4"))
+	draw_well(ci, WELL, STONE)
+	draw_stall(ci, STALL)
 	# The fifth lantern (the festival, docs/INTRO_REBUILD.md): still lit by
 	# the well, three years on, the only one that is. A post with a crook,
 	# a paper lantern on it, and a faded festival ribbon. Its light is one
@@ -1068,6 +1226,139 @@ func _paint(ci: CanvasItem) -> void:
 		{"side": "right", "from": EAST_GAP.x, "to": EAST_GAP.y},
 		{"side": "top", "from": NORTH_GAP.x, "to": NORTH_GAP.y},
 	])
+
+
+## Tobben's stall (docs/production/CHARACTERS.md): a market counter that is
+## somebody's whole life. Two posts and a striped, scalloped awning with
+## its shadow on the boards; baskets of apples, pears and greens on the
+## counter; a hanging brass scale; a chalked price slate he still updates;
+## his till; and, under the counter, the festival's fireworks in their box
+## (he never set them off: he keeps them for the next one).
+static func draw_stall(ci: CanvasItem, r: Rect2) -> void:
+	var wood := Color("6b5040")
+	var dark := Color("3e2c22")
+	# Shadow, then the counter: top boards with grain, a front with planks.
+	ci.draw_rect(Rect2(r.position + Vector2(2, 8), r.size), Color(0, 0, 0, 0.3))
+	var top := Rect2(r.position + Vector2(0, 8), Vector2(r.size.x, r.size.y - 16))
+	ci.draw_rect(top, wood)
+	for k in 4:
+		var y := top.position.y + 2.0 + k * (top.size.y - 3.0) / 4.0
+		ci.draw_line(Vector2(top.position.x + 1, y), Vector2(top.end.x - 1, y), wood.darkened(0.18), 0.5)
+	var front := Rect2(top.position.x, top.end.y, r.size.x, 8)
+	ci.draw_rect(front, wood.darkened(0.32))
+	for k in range(1, 8):
+		var x := front.position.x + k * front.size.x / 8.0
+		ci.draw_line(Vector2(x, front.position.y), Vector2(x, front.end.y), dark, 0.6)
+	ci.draw_line(top.position, Vector2(top.end.x, top.position.y), wood.lightened(0.2), 0.8)
+	ci.draw_rect(Rect2(top.position, Vector2(r.size.x, top.size.y + 8)), Decor.INK, false, 0.8)
+	# The fireworks box, poking out under the counter's left end.
+	var box := Rect2(front.position + Vector2(4, 3), Vector2(16, 7))
+	ci.draw_rect(box, Color("8a2f2a"))
+	ci.draw_rect(box, Decor.INK, false, 0.5)
+	for k in 3:
+		var tip := box.position + Vector2(3 + k * 5, -1)
+		ci.draw_line(tip, tip + Vector2(0, -4), Color("e8dcc4"), 1.2)
+		ci.draw_colored_polygon(PackedVector2Array([tip + Vector2(-1.2, -4), tip + Vector2(1.2, -4), tip + Vector2(0, -6.5)]), [Color("e8b84a"), Color("5aa0c8"), Color("d8463a")][k])
+	# Baskets of produce: a woven rim, the fruit heaped inside.
+	var fruit := [[Color("c84a3a"), Color("e06a5a")], [Color("c8b44a"), Color("e8d47a")], [Color("6a9a4a"), Color("8ab05a")]]
+	for b in 3:
+		var c := Vector2(top.position.x + 12 + b * 17, top.position.y + top.size.y * 0.55)
+		ci.draw_rect(Rect2(c + Vector2(-7, -1), Vector2(14, 6)), Color("9a7a4a"))
+		for w in 3:
+			ci.draw_line(c + Vector2(-7, w * 2.0), c + Vector2(7, w * 2.0), Color("6a5030"), 0.4)
+		for f in 5:
+			var fp := c + Vector2(-5 + f * 2.5, -1.5 - float(f % 2) * 1.6)
+			ci.draw_circle(fp, 1.9, fruit[b][0])
+			ci.draw_circle(fp + Vector2(-0.5, -0.6), 0.6, fruit[b][1])
+	# The till and the brass scale on the right.
+	var till := Rect2(top.end.x - 22, top.position.y + 2, 9, 6)
+	ci.draw_rect(till, Color("4a3a2a"))
+	ci.draw_rect(Rect2(till.position + Vector2(1, 1), Vector2(7, 2)), Color("c8b07a"))
+	var hook := Vector2(top.end.x - 8, r.position.y - 2)
+	ci.draw_line(hook, hook + Vector2(0, 7), Color("8a7040"), 0.6)
+	ci.draw_line(hook + Vector2(-4, 7), hook + Vector2(4, 7), Color("c8a050"), 0.8)
+	for side in [-1.0, 1.0]:
+		ci.draw_line(hook + Vector2(side * 4, 7), hook + Vector2(side * 4, 10), Color("8a7040"), 0.4)
+		ci.draw_arc(hook + Vector2(side * 4, 10.5), 1.8, 0.0, PI, 6, Color("c8a050"), 0.8)
+	# Posts and the awning: alternating stripes, a scalloped hem, a shadow.
+	for x in [r.position.x + 1.5, r.end.x - 1.5]:
+		ci.draw_rect(Rect2(x - 1.2, r.position.y - 6, 2.4, 16), dark)
+	ci.draw_rect(Rect2(r.position + Vector2(0, 8), Vector2(r.size.x, 4)), Color(0, 0, 0, 0.18))
+	var n := 6
+	var w := r.size.x / n
+	for k in n:
+		var a := Rect2(r.position + Vector2(k * w, -9), Vector2(w, 11))
+		var col := Color("a8443a") if k % 2 == 0 else Color("e8dcc4")
+		ci.draw_rect(a, col)
+		ci.draw_line(a.position + Vector2(1, 1), a.position + Vector2(w - 1, 1), col.lightened(0.15), 0.6)
+		ci.draw_colored_polygon(PackedVector2Array([a.position + Vector2(0, 11), a.position + Vector2(w, 11), a.position + Vector2(w * 0.5, 14)]), col.darkened(0.06))
+	ci.draw_rect(Rect2(r.position + Vector2(0, -9), Vector2(r.size.x, 11)), Decor.INK, false, 0.8)
+	# The price slate hanging from the left post, in his round hand.
+	var slate := Rect2(r.position + Vector2(-14, 2), Vector2(12, 9))
+	ci.draw_rect(slate, Color("2a2a2e"))
+	ci.draw_rect(slate, Color("6b5040"), false, 0.8)
+	ci.draw_line(slate.position + Vector2(2, 3), slate.position + Vector2(8, 3), Color(0.95, 0.95, 0.9, 0.7), 0.5)
+	ci.draw_line(slate.position + Vector2(2, 6), slate.position + Vector2(6, 6), Color(0.95, 0.95, 0.9, 0.7), 0.5)
+	ci.draw_line(slate.position + Vector2(-1, 0), slate.position + Vector2(-1, -4), dark, 0.5)
+
+
+## The well, seen from above and in front: a round stone ring (its rim an
+## ellipse, its front a curved face of laid stones), black water with a
+## glint, a winch frame with its rope and a bucket on the rim. Chalk is
+## drawn on the rim's top (see the WREN and X marks), which stays flat.
+static func draw_well(ci: CanvasItem, r: Rect2, stone: Color) -> void:
+	var c := Vector2(r.get_center().x, r.position.y + 7.0)
+	var rx := r.size.x * 0.5
+	var ry := 6.0
+	var ring := func(cx: Vector2, ax: float, ay: float, n := 20) -> PackedVector2Array:
+		var pts := PackedVector2Array()
+		for i in n:
+			var t := TAU * i / n
+			pts.append(cx + Vector2(cos(t) * ax, sin(t) * ay))
+		return pts
+	# Shadow, then the front face: the lower half of the ring, extruded.
+	ci.draw_colored_polygon(ring.call(c + Vector2(2, r.size.y - 5), rx + 1, ry), Color(0, 0, 0, 0.3))
+	var face := PackedVector2Array()
+	for i in 11:
+		var t := PI * i / 10.0
+		face.append(c + Vector2(cos(t) * rx, sin(t) * ry))
+	for i in range(10, -1, -1):
+		var t := PI * i / 10.0
+		face.append(c + Vector2(cos(t) * rx, sin(t) * ry + r.size.y - 9))
+	ci.draw_colored_polygon(face, stone.darkened(0.2))
+	# Laid stones: two courses, joints staggered, following the curve.
+	for row in 2:
+		var y := 4.0 + row * 4.5
+		for i in 7:
+			var t := PI * (i + (0.5 if row == 1 else 0.0)) / 7.0
+			var x := cos(t) * rx * 0.97
+			var p := c + Vector2(x, sin(t) * ry + y)
+			ci.draw_line(p + Vector2(0, -2), p + Vector2(0, 2), stone.darkened(0.5), 0.6)
+		var band := PackedVector2Array()
+		for i in 11:
+			var t := PI * i / 10.0
+			band.append(c + Vector2(cos(t) * rx, sin(t) * ry + y + 2.2))
+		ci.draw_polyline(band, stone.darkened(0.45), 0.6)
+	# The rim: a ring of stone, lit on top, around the dark water.
+	ci.draw_colored_polygon(ring.call(c, rx, ry), stone.lightened(0.12))
+	ci.draw_colored_polygon(ring.call(c + Vector2(0, 0.6), rx - 3.5, ry - 2.4), Color("0e1822"))
+	ci.draw_arc(c + Vector2(0, 0.6), rx - 3.5, PI * 1.1, PI * 1.9, 10, stone.darkened(0.35), 0.8)  # the inner lip in shadow
+	ci.draw_line(c + Vector2(-5, 0.5), c + Vector2(1, 1.6), Color(0.6, 0.8, 1.0, 0.4), 0.7)  # the water's glint
+	ci.draw_polyline(ring.call(c, rx, ry) + PackedVector2Array([c + Vector2(rx, 0)]), Decor.INK, 0.7)
+	# The winch: two posts from the rim, a beam, the rope, a bucket left on the rim.
+	var wood := Color("6b4a30")
+	for side in [-1.0, 1.0]:
+		var foot := c + Vector2(side * (rx - 1.5), 1.0)
+		ci.draw_rect(Rect2(foot + Vector2(-1.2, -15), Vector2(2.4, 15)), wood.darkened(0.15))
+		ci.draw_line(foot + Vector2(-1.2, -15), foot + Vector2(-1.2, 0), wood.lightened(0.2), 0.5)
+	ci.draw_rect(Rect2(c + Vector2(-rx + 0.5, -15.5), Vector2(2 * rx - 1.0, 2.2)), wood)
+	ci.draw_line(c + Vector2(-rx + 0.5, -15.5), c + Vector2(rx - 0.5, -15.5), wood.lightened(0.25), 0.5)
+	ci.draw_rect(Rect2(c + Vector2(-3, -16.5), Vector2(6, 4)), wood.darkened(0.3))  # the drum
+	ci.draw_line(c + Vector2(0, -12.5), c + Vector2(0, -1.5), Color("c8b080"), 0.6)  # the rope, down into the dark
+	var bucket := c + Vector2(rx - 6, -2.5)
+	ci.draw_colored_polygon(PackedVector2Array([bucket + Vector2(-2.5, -2), bucket + Vector2(2.5, -2), bucket + Vector2(2, 2), bucket + Vector2(-2, 2)]), Color("7a5a3a"))
+	ci.draw_line(bucket + Vector2(-2.5, -1), bucket + Vector2(2.5, -1), Color("4a3a2a"), 0.6)
+	ci.draw_arc(bucket + Vector2(0, -2), 2.4, PI, TAU, 6, Color("3a2a20"), 0.5)
 
 
 ## The east half, under the same afternoon: the crossing's cobbles, the

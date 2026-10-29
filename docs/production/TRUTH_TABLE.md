@@ -1,11 +1,12 @@
 # What is true, what people believe, what the player has seen
 
-Authoritative for writing. Revision 2026-10-28. When a line, a journal page or an ending contradicts this table, the line is the defect.
+Authoritative for writing. Revision 2026-10-29 (adds the colours and the Owner's goal, `CANON_DECISIONS.md` §7). When a line, a journal page or an ending contradicts this table, the line is the defect.
 
 | Subject | True (the game's rule) | Believed (by whom) | Observed by the player (where) |
 |---|---|---|---|
 | **Rue** | The game character, left running after her player moved away. Not the girl, and not part of her. Inherited habits (two taps, then the press) don't decide who she becomes | The Owner: something is in the save that shouldn't be. Wren: she "still looks like someone" | The festival: she lights the fifth lantern after both players have left. The CHARACTER FILE: "character: still running" |
-| **Player 1 / the Owner** | Arin's player. Left first, during the shared hold. Back three years later | Thinks the save is his, and that what moves in it is a glitch | Festival B: his half stops before anything is said |
+| **Player 1 / the Owner** | Arin's player, the girl's sibling. Left first, during the shared hold. Deleted slot 2 the night her message came. Back three years later because mum's house is being cleared and the console goes with it: **he means to play once more, then clean the save up** to a version with only Arin in it. Grief handled by deletion; it excuses nothing he does to the natives | Thinks the save is his, and that what moves in it is a glitch | The cold open ("one more go. then i'm cleaning it up."); his notes in the Archive (the van on Friday; "when i play arin i'm nine again") |
+| **The colours** | **Colour is choice.** Slot 2 held what the girl chose (name, colours, face); deleting it took them. The backup kept what she did. Each memory puts one chosen colour back. The natives' colours are their own, so taking one is theft. Under the Owner's attention Rue flickers back to what his save says she is. In the `rue` ending she picks one colour herself, nobody's choice but hers | The Archivist: "Colours are what someone chose for you" | Rue's sprite and portrait as memories return; the flicker; the Archivist's remark (once); the clip in her hair after the `rue` ending |
 | **Arin** | Slot 1's avatar. Mute. Moves only when the Owner plays him | — | Frozen mid-breath when Player 1 stops |
 | **Player 2** | The girl who played Rue. Moved away. Outside the game | — | "The car's here." Her message, kept by the well |
 | **The well** | **Keeps what is said near it**: her message, Rue's answer. It sends nothing; there is no live contact | Wren **fears** it keeps only people who were played, because she has never heard herself in it. **Unconfirmed, and never asserted by the narrator or the journal** | Listening at the rim; Rue's answer played back |

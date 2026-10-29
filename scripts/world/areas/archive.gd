@@ -78,6 +78,13 @@ func build() -> void:
 	# nothing about what's inside.
 	_file = add_readable(Story.CHARACTER_FILE_TITLE, Vector2(DESK.end.x + 10, DESK.get_center().y), Readable.Look.TERMINAL, _character_file)
 	_file.emphasis = func() -> bool: return Progression.stage() == Progression.Stage.FILE
+	# After she has read it: he started a new one, on the desk's left end,
+	# filed under people (docs/production/CHARACTERS.md). What he does
+	# says what he thinks; he doesn't make a speech of it.
+	if OwnerMemory.knows_truth:
+		var started := add_readable(NEW_FILE_TITLE, Vector2(DESK.position.x + 26, DESK.position.y + 6), Readable.Look.NONE,
+			func() -> Array: return NEW_FILE_LINES.duplicate())
+		started.prompt = "look"
 	world.conversation_completed.connect(_on_completed)
 
 
@@ -119,6 +126,15 @@ const ARCHIVIST_RESUMED_OPEN := "You came back. I hadn't finished."
 const ARCHIVIST_RESUMED_POINTER := "The pointer I gave you opens the north road. The world isn't loaded up there, so the owner reaches in by hand."
 const ARCHIVIST_BACK := "Back again. I remember you. Properly, I mean. The others only half do."
 const ARCHIVIST_AGAIN := "You kept the pointer. Good. North road, when you're ready."
+## Canon proposal A/E (CANON_PROPOSAL_2026-10-28.md, adopted 2026-10-29):
+## colour is choice. Said once, the first time he sees her partly coloured.
+const ARCHIVIST_COLOURS := "Colours are what someone chose for you. You're getting yours back one at a time. Interesting that they're hers."
+const NEW_FILE_TITLE := "A NEW FILE"
+const NEW_FILE_LINES := [
+	"Started since you read the other one, in his small, careful hand.",
+	"NAME: RUE.   FILED UNDER: PEOPLE.   (Not under CHARACTERS. That drawer is the other side of the room.)",
+	"The rest of the page is blank. He has left it for you.",
+]
 const ARCHIVIST_NO_PIECES := "Things like you leave pieces behind when they're deleted. Look for anything your colour."
 
 
@@ -129,7 +145,7 @@ static func _archivist_remembers() -> String:
 ## Every line the Archivist can say that is the same in every run, by voice
 ## id stem (VoiceManifest). Lines with run counts in them stay text only.
 static func voice_lines() -> Dictionary:
-	return {"npc.archivist": ARCHIVIST_POINTER + ARCHIVIST_FIRST + ARCHIVIST_TOPICS + [ARCHIVIST_RESUMED_OPEN, ARCHIVIST_RESUMED_POINTER, ARCHIVIST_BACK, ARCHIVIST_AGAIN, ARCHIVIST_NO_PIECES, _archivist_remembers(),
+	return {"npc.archivist": ARCHIVIST_POINTER + ARCHIVIST_FIRST + ARCHIVIST_TOPICS + [ARCHIVIST_RESUMED_OPEN, ARCHIVIST_RESUMED_POINTER, ARCHIVIST_BACK, ARCHIVIST_AGAIN, ARCHIVIST_NO_PIECES, ARCHIVIST_COLOURS, _archivist_remembers(),
 		Story.ARCHIVIST_FILE_HINT, Story.ARCHIVIST_KNOWS, Story.ARCHIVIST_PIECE_BACK, Story.ARCHIVIST_NOTHING_TO_TAKE] + Story.ARCHIVIST_SHED_FIRST}
 
 
@@ -148,6 +164,10 @@ func _archivist_lines() -> Dictionary:
 		# A topic is its own short exchange.
 		return {"lines": lines, "id": "", "commit": [], "after": [_heard_topic.bind(_topic_after)]}
 	lines.append(_fragment_comment())
+	var n := OwnerMemory.fragments.size()
+	if n > 0 and n < Story.FRAGMENTS.size() and "archivist.colours" not in OwnerMemory.shed_said:
+		after.append(_said.bind("archivist.colours"))
+		lines.append(ARCHIVIST_COLOURS)
 	if OwnerMemory.fragments.size() >= Story.FRAGMENTS.size():
 		lines.append(Story.ARCHIVIST_KNOWS if OwnerMemory.knows_truth else Story.ARCHIVIST_FILE_HINT)
 	# What he thinks of her leaving bodies behind (each said once, heard).
@@ -398,6 +418,16 @@ func _paint(ci: CanvasItem) -> void:
 	ci.draw_line(desk.position + Vector2(8, 4), desk.position + Vector2(16, 4), Color("8a7a68"), 0.5)
 	ci.draw_line(desk.position + Vector2(8, 6), desk.position + Vector2(14, 6), Color("8a7a68"), 0.5)
 	Decor.lamp(ci, desk.position + Vector2(desk.size.x - 8, desk.size.y * 0.5), Color("f0d090"))
+	if OwnerMemory.knows_truth:
+		# The new file: a manila folder, its tab lettered, a clip, a fresh page.
+		var f := Rect2(DESK.position.x + 20, DESK.position.y + 2, 12, 8)
+		ci.draw_rect(Rect2(f.position + Vector2(1, 1), f.size), Color(0, 0, 0, 0.3))
+		ci.draw_rect(f, Color("d8b878"))
+		ci.draw_rect(Rect2(f.position + Vector2(1, -2), Vector2(5, 2.5)), Color("d8b878"))  # the tab
+		ci.draw_line(f.position + Vector2(1.6, -1), f.position + Vector2(4.6, -1), Color("4a3020"), 0.5)  # RUE, on the tab
+		ci.draw_rect(Rect2(f.position + Vector2(2, 1.5), Vector2(8, 5.5)), Color("f4ecd8"))
+		ci.draw_line(f.position + Vector2(3, 3), f.position + Vector2(8, 3), Color("6a5a48"), 0.4)
+		ci.draw_rect(Rect2(f.position + Vector2(9, 0.5), Vector2(1.2, 2.5)), Color("a0a0a8"))  # the clip
 	# Once he has given Rue the pointer, a map of the north road stays
 	# pinned to the desk's front: what happened here shows next time.
 	if Relationships.has("archivist.pointer"):

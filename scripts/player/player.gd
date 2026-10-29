@@ -37,6 +37,10 @@ const BORROWED := {
 }
 ## Which keys each recovered fragment restores, in order.
 const RESTORE_ORDER := [["a"], ["h"], ["c", "d"], ["l", "f"], ["s", "e"]]
+## The first colour nobody chose for her (canon decision B, docs/CANON_DECISIONS.md):
+## she picks it herself in the `rue` ending, and wears it from then on, a clip
+## in her hair. Nobody in the cast has it.
+const OWN := Color("b89cf0")
 const TRAIL_LENGTH := 6
 const TRAIL_INTERVAL := 0.05
 
@@ -54,6 +58,8 @@ var sheltered := false
 ## 0..1, set by World from the owner's awareness.
 var instability := 0.0
 
+## The velocity being driven (MoveFeel), before collision resolves it.
+var _drive := Vector2.ZERO
 var _jitter := Vector2.ZERO
 var _tear_rows := PackedFloat32Array([0, 0, 0])
 var _blink := false
@@ -117,7 +123,7 @@ func _ready() -> void:
 ## `animate`, the restored colours flash in.
 func refresh_look(animate := true) -> void:
 	var count := mini(OwnerMemory.fragments.size(), RESTORE_ORDER.size())
-	_palette = palette_for(count, OwnerMemory.frayed)
+	_palette = palette_for(count, OwnerMemory.frayed, chose_own())
 	_sprite.palette = _palette
 	_sprite.leg_color = _palette["l"]
 	_sprite.shoe_color = _palette["f"]
@@ -127,10 +133,17 @@ func refresh_look(animate := true) -> void:
 	_restored = count
 
 
+## She has picked her own colour: she has reached the `rue` ending.
+static func chose_own() -> bool:
+	return "rue" in OwnerMemory.endings_seen
+
+
 ## Rue's colours with `count` memories restored, wearing what she took from
 ## `frayed` (the sprite, and the title's key art, use the same rule).
-static func palette_for(count: int, frayed: Array) -> Dictionary:
+static func palette_for(count: int, frayed: Array, own := false) -> Dictionary:
 	var out: Dictionary = MISSING.duplicate()
+	if own:
+		out["o"] = OWN
 	for i in mini(count, RESTORE_ORDER.size()):
 		for key in RESTORE_ORDER[i]:
 			out[key] = RUE[key]
@@ -199,12 +212,17 @@ func _physics_process(delta: float) -> void:
 	if frozen or reading:
 		# Reading or answering: Rue stands still (and the owner holds, World._update_reading_hold).
 		velocity = Vector2.ZERO
+		_drive = Vector2.ZERO
 		_intent = Vector2.ZERO
 		return
 	var dir := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	_intent = dir
-	velocity = dir * speed
+	# MoveFeel: C (the default) and A answer at once; B eases (playtest only).
+	_drive = MoveFeel.drive(_drive, dir * speed, speed, delta)
+	velocity = _drive
 	move_and_slide()
+	if get_real_velocity().length() < 0.5 and dir == Vector2.ZERO:
+		_drive = Vector2.ZERO
 	if dir != Vector2.ZERO:
 		idle_time = 0.0
 	elif not reading and not reading_card:

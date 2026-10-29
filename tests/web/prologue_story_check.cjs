@@ -40,6 +40,8 @@ async function save(page) {
  await page.keyboard.press('Escape');
  await page.waitForTimeout(200);
  await page.keyboard.press('Enter');
+ // The memory card first (cold_open.gd): read through it with E.
+ for(let i=0;i<14;i++){const sc=await page.evaluate(()=>window.__lsf?.scene||'');if(sc==='prologue')break;await page.waitForTimeout(1500);if(sc==='cold_open')await page.keyboard.press('e');}
  await page.waitForFunction(()=>window.__lsf?.scene==='prologue',null,{timeout:60000});
  await page.waitForTimeout(waitMs);
  await page.screenshot({path:path.join(output, 'story_before_input.png')});

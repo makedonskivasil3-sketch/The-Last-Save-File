@@ -42,6 +42,11 @@ func interact_prompt() -> String:
 	return "lift the latch" if _on_latch_side() else "gate"
 
 
+## What this is, shown small over the prompt (World.object_name).
+func interact_name() -> String:
+	return "the lane gate"
+
+
 func interact() -> Variant:
 	if not _on_latch_side():
 		return "Latched on the far side. The lane behind Tobben's runs to it."

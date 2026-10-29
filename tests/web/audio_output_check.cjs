@@ -132,7 +132,27 @@ async function waitForGame(page) {
     await page.waitForTimeout(1200);
     await page.keyboard.up('e');
   }
-  for (let i = 0; i < 10; i++) { await page.waitForTimeout(600); await page.keyboard.press('e'); }
+  // Through the memory card (cold_open: read with E), skip the festival
+  // (held Esc), then read the boot text until the room is playable, and
+  // measure the room itself.
+  const st = () => page.evaluate(() => window.__lsf || {});
+  let skipped = false;
+  for (let i = 0; i < 160; i++) {
+    const s = await st();
+    if (s.scene === 'game' && s.playable) break;
+    if (s.scene === 'cold_open') { await page.waitForTimeout(1500); await page.keyboard.press('e'); continue; }
+    // One held Esc skips the festival; after that, read on with E like a
+    // player. (Holding Esc again as the room appears opens the pause menu,
+    // correctly: a paused game is silent, which this check would misread.)
+    if (s.scene === 'prologue') {
+      if (!skipped) { skipped = true; await page.keyboard.down('Escape'); await page.waitForTimeout(3000); await page.keyboard.up('Escape'); }
+      else { await page.waitForTimeout(1200); await page.keyboard.press('e'); }
+      continue;
+    }
+    if (s.scene === 'game' && s.reading) await page.keyboard.press('e');
+    await page.waitForTimeout(600);
+  }
+  results.first_room_scene = (await st()).scene;
   results.first_room = await measure(page, 8000);
 
   for (const [k, v] of Object.entries(results)) console.log(`AUDIO ${k}: ${JSON.stringify(v)}`);

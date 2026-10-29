@@ -1591,8 +1591,19 @@ func _update_focus() -> void:
 			and player.global_position.distance_to(pip.global_position) < INTERACT_DISTANCE:
 		_focused = pip
 	# Said beside the thing itself, where the eye already is.
-	hud.set_prompt(_focused.interact_prompt() if _focused else "", _focused.global_position if _focused else Vector2.INF)
+	hud.set_prompt(_focused.interact_prompt() if _focused else "", _focused.global_position if _focused else Vector2.INF,
+		World.object_name(_focused) if _focused else "")
 	_focus_marker.target = _focused
+
+
+## What an interactable is, in a few words ("SAVE POINT", "WREN"): its own
+## interact_name() if it has one, else a character's name, else nothing.
+static func object_name(node: Node) -> String:
+	if node.has_method("interact_name"):
+		return node.interact_name()
+	if node is Npc:
+		return node.display_name + (" · " + node.doing if node.doing != "" else "")
+	return ""
 
 
 func _interact(node: Node2D) -> void:

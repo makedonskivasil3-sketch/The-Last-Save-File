@@ -310,9 +310,21 @@ func _start() -> void:
 	# The first time, the opening film plays before the run (no run starts
 	# until it has ended or been skipped).
 	if Prologue.wanted():
-		_play_prologue(false)
+		_play_cold_open()
 		return
 	get_tree().change_scene_to_file.call_deferred(GAME_SCENE)
+
+
+## The first run: the memory card, three years later (ColdOpen), then the
+## festival. A replay from the menu goes straight to the festival.
+func _play_cold_open() -> void:
+	var card := ColdOpen.new()
+	var swap := func() -> void:
+		var old := get_tree().current_scene
+		get_tree().root.add_child(card)
+		get_tree().current_scene = card
+		old.queue_free()
+	swap.call_deferred()
 
 
 ## The festival (Prologue): before the first run, or replayed from the menu.

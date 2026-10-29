@@ -12,6 +12,7 @@
 
 | # | Beat | The player does | Learns | Feels | What changes | Pays off later |
 |---|---|---|---|---|---|---|
+| 0 | **The memory card** (2026-10-28, first run only; `cold_open.gd`, proposal in [`CANON_PROPOSAL_2026-10-28.md`](CANON_PROPOSAL_2026-10-28.md) §4) | Reads four console lines on black, at their own pace | One file; Arin last played 3 years ago; the last 2-player session never closed; "one more go. then i'm cleaning it up." | Dread under what comes next | Kept in the journal even if skipped | Why Rue is still running; the owner's intent, met in every escalation |
 | A | **Joined** | Moves Rue at once; Arin waits, waves her over | Who they are (P2 · Rue) and who the other is (P1 · Arin) | Welcome | — | The tags (P1/P2) set up the leaves |
 | A2 | **Lantern 1, the plate** | Walks through the gate Arin holds open; lights it | Move, interact; Arin helps by standing still | A small shared win | Story break: "You always let me do the first one." / "You always check whether I will." | Their habit of checking on each other |
 | A3 | **Lantern 2, the watch** | Hides beside Arin as Tobben's look sweeps | Hide beside someone | Mischief | — | Wren's shelter, Arin's look in the present |
@@ -26,7 +27,7 @@
 
 ## Rules this revision keeps
 
-- **Control and skipping:** control within 1 s. Hold Esc (or the touch chip) to skip from any beat; the present is reached in ≤ 15 s.
+- **Control and skipping:** control within 1 s of the festival (the memory card before it waits for the reader; a held Esc skips it). Hold Esc (or the touch chip) to skip from any beat; the present is reached in ≤ 15 s.
 - **Reading and replay:** story breaks wait for the reader; a replay changes nothing in the save.
 - **Assistance only takes over when nothing is pressed.** It is shown step by step after a delay, and drives only after 24 s without input. At the decision, the impossible action and the reading it never drives: an active player is never overridden.
   - The decision times out to "idle" (unchanged).

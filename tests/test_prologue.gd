@@ -268,7 +268,7 @@ func test_a_first_run_records_the_festival_and_the_room_skips_the_boot() -> void
 	tree.change_scene_to_file(title)
 	await frames(5)
 	scene()._start()
-	await wait_until(func() -> bool: return scene() is Prologue, 3.0, "the festival")
+	await past_cold_open()
 	var p: Prologue = scene()
 	_step(p, 0.2)
 	Input.action_press("ui_cancel")

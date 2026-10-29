@@ -49,13 +49,24 @@ func test_full_game_escape_purge_5() -> void:
 	await _playthrough("escape", 5)
 
 
+## A probe, not part of the bot suite (run with `-- --probe-scarred`): the
+## late purge with two earlier deaths already on the square's road west. The
+## square seeds its static where Rue died there before (Area.start_erasure),
+## so this is the state the one failing purge-3 run reached in its last
+## sessions (ISSUE_REGISTER PL-4).
+func test_probe_purge_5_scarred_square() -> void:
+	if "--probe-scarred" not in OS.get_cmdline_user_args():
+		return
+	await _playthrough("escape", 5, [Vector2(470, 108), Vector2(720, 96)])
+
+
 func test_wren_ending() -> void:
 	await _playthrough("wren", 0)
 
 
 # --- the run ---------------------------------------------------------------------
 
-func _playthrough(ending: String, purge: int) -> void:
+func _playthrough(ending: String, purge: int, square_deaths: Array = []) -> void:
 	_edge_returns = 0
 	memory().wipe()
 	memory().last_exit = "death"  # skip the boot cinematic
@@ -63,6 +74,8 @@ func _playthrough(ending: String, purge: int) -> void:
 		memory().sessions = purge
 		memory().purge = purge
 		memory().deaths = purge
+	for at: Vector2 in square_deaths:
+		memory().deaths_log.append({"area": "square", "x": at.x, "y": at.y, "session": purge})
 	_t0 = _now()
 	var w := await start_session(true, purge == 0)
 	var result := ""
@@ -169,8 +182,21 @@ func _take_wren(w: Node) -> bool:
 	var wren: Npc = w.area.wren
 	if wren == null:
 		return false
-	for i in 4:
-		await _go(w, [wren.global_position + Vector2(14, 0)], 10.0)
+	for i in 8:
+		# Her game comes before her ask (WREN_ARC.md): play it like a player,
+		# a mark under the awning, then let her go and look.
+		var sq: VillageSquare = w.area
+		if Relationships.has("wren.game") and not Relationships.has("wren.mark_ok") and VillageSquare.pending_mark() == "" \
+				and sq._wren_path.is_empty() and sq._wren_at_spot == "":
+			await _go(w, [VillageSquare.CHALK_SPOTS.recess + Vector2(-8, 0)], 12.0)
+			await press("interact")
+			await frames(3)
+			_step(w, "chalked a mark under the awning")
+		if not sq._wren_path.is_empty():
+			await wait_until(func() -> bool: return sq._wren_path.is_empty(), 20.0, "Wren reaching the mark")
+		# Across the square the way she walks it (the straight line is blocked).
+		var via: Array = [Vector2(400, 262)] if absf(w.player.global_position.x - wren.global_position.x) > 200.0 else []
+		await _go(w, via + [wren.global_position + Vector2(14, 0)], 14.0)
 		await press("interact")
 		await frames(3)
 		var opened: bool = w.hud.is_dialogue_open()
@@ -608,12 +634,31 @@ func _near_exit(w: Node, p: Vector2) -> bool:
 
 func _avoid(w: Node, n: Vector2) -> Vector2:
 	var p: Vector2 = w.player.global_position
+	# Arin walks a visible round: a player who sees him coming steps off
+	# his line instead of walking into him (PL-4: the bot used to react only
+	# inside 44 px, about 0.3 s head-on, and was caught walking into him
+	# after a reload re-timed its crossing). Not a change to the game.
+	var arin: Variant = w.area.get("arin")
+	if arin is OwnerAvatar and arin.stunned <= 0.0:
+		var to_arin: Vector2 = arin.global_position - p
+		if to_arin.length() < 130.0 and n.dot(to_arin.normalized()) > 0.5:
+			var side := to_arin.orthogonal().normalized()
+			if side.dot(n) < 0.0:
+				side = -side
+			n = (side * 1.2 - to_arin.normalized() * 0.3).normalized()
 	for pair in [["arin", 44.0], ["cursor", 56.0]]:
 		var h: Variant = w.area.get(pair[0])
 		if h is Node2D:
 			var away: Vector2 = p - h.global_position
 			if away.length() < pair[1]:
 				n = (away.normalized() * 1.5 + n * 0.4).normalized()
+	# Static ahead (the square's eraser at high purge): step round it, as a
+	# player would, instead of walking into it.
+	var e: Variant = w.area.get("erasure")
+	if e is Erasure and e.active:
+		var c: Vector2 = e.nearest_cell(p + n * 10.0, 20.0)
+		if c != Vector2.INF:
+			n = ((p - c).normalized() * 1.4 + n * 0.5).normalized()
 	# Dodging shouldn't carry us out of an exit we didn't mean to take
 	# (the Edge's road home is right under the arrival point).
 	if w.area.area_id == "edge" and p.y > 266.0 and n.y > 0.0:

@@ -32,6 +32,8 @@ const SELF_COLOR := Color("8cf2ff")
 ## The speaker portrait beside dialogue (PortraitView), in game pixels.
 const PORTRAIT_SIZE := 50.0
 const SLOT_COLOR := Color("c8b8a0")
+## The name over an interaction prompt: quieter than the verb under it.
+const PROMPT_NAME_COLOR := Color("e8c48a")
 ## Lines kept in the console (one fewer with large text, so it still fits).
 const MAX_LINES := 4
 const MAX_HISTORY := 200
@@ -75,6 +77,8 @@ var _tip_title: Label
 var _tip_body: Label
 var _tip_tween: Tween
 var _prompt: Label
+## The name line over the prompt (see set_prompt).
+var _prompt_name: Label
 var _overlay: ColorRect
 var _overlay_title: Label
 var _overlay_body: Label
@@ -228,6 +232,10 @@ func _ready() -> void:
 
 	_prompt = _make_label(root, Vector2(640 - SAFE.x - 176, 360 - SAFE.y - 62), Vector2(176, 16), 11, SLOT_COLOR)
 	_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	# What the thing is, over what [E] does to it ("SAVE POINT" over "[E] save"):
+	# a child of the prompt, so it shows and hides with it.
+	_prompt_name = _make_label(_prompt, Vector2(0, -10), Vector2(176, 10), 8, PROMPT_NAME_COLOR)
+	_prompt_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 
 	_glitch_prompt = _make_label(root, Vector2(640 - SAFE.x - 220, 360 - SAFE.y - 78), Vector2(220, 14), 10, GLITCH_COLOR)
 	_glitch_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -1244,8 +1252,11 @@ func set_awareness(value: float) -> void:
 
 ## at: the target's world position; the prompt sits just above it (kept on
 ## screen). Without one it sits in the bottom-right corner.
-func set_prompt(text: String, at := Vector2.INF) -> void:
+## `object_name`: what the thing is ("THE WELL", "WREN"), shown small over
+## the verb, so a player always knows what they are about to touch.
+func set_prompt(text: String, at := Vector2.INF, object_name := "") -> void:
 	_prompt.text = "[%s] %s" % [Settings.glyph("interact"), text] if text != "" else ""
+	_prompt_name.text = object_name.to_upper() if text != "" else ""
 	_prompt_at = at
 	_place_prompt()
 
@@ -1262,14 +1273,27 @@ func _prompt_corner() -> Vector2:
 ## One place decides where the prompt goes (set_prompt and every frame), so it
 ## never jumps between the corner and its target within a frame.
 func _place_prompt() -> void:
+	_prompt_name.size.x = _prompt.size.x
 	if _prompt_at == Vector2.INF or _prompt.text == "":
 		_prompt.position = _prompt_corner()
 		_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		_prompt_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		return
 	var screen := get_viewport().canvas_transform * _prompt_at
 	_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_prompt_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var w := _prompt.size.x
-	_prompt.position = Vector2(clampf(screen.x - w * 0.5, SAFE.x, 640.0 - SAFE.x - w), clampf(screen.y - 44.0, SAFE.y + 30.0, 360.0 - SAFE.y - 20.0))
+	# Over the thing, with its name line; against the top of the screen (a
+	# note on the north wall) there's no room, so under it instead.
+	var y := screen.y - 44.0
+	if y < SAFE.y + 40.0:
+		y = screen.y + 46.0  # clear of Rue, who stands in front of it
+	_prompt.position = Vector2(clampf(screen.x - w * 0.5, SAFE.x, 640.0 - SAFE.x - w), clampf(y, SAFE.y + 40.0, 360.0 - SAFE.y - 20.0))
+
+
+## The name line now over the prompt (tests and the route check read it).
+func prompt_name() -> String:
+	return _prompt_name.text
 
 
 func set_hint(text: String) -> void:
