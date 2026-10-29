@@ -2,7 +2,51 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current: refining toward a vertical slice (2026-10-28, branch at `3c00c96`)
+## Current: the supporting cast, canon A–E, the playtest kit (2026-10-29, branch at `40ba023`+)
+
+**Base:** `main` @ `6e67d0a`. Branch `claude/last-save-file-prototype-ljwuq4`. **Merge:** authorised by the author ("yes merge"; decisions 1–4 delegated, 2026-10-29), after CI is green on the PR.
+
+**Asked for:** "best work for 1 to 4" (the four decisions below) and more development, detail and graphics for the characters that weren't built enough.
+
+### Changed, with evidence
+
+| Area | Change | Evidence |
+|---|---|---|
+| Tobben | Reporting is a walk you can watch: he hesitates, walks to the board, writes "SEEN NEAR THE STALL". Rue can catch him on the way ("It's in my script. It isn't in me."). After the guest book he crosses his own name off, and it stays. Stall redrawn | `test_tobben` 3/3; `tour_characters` c01–c03 (`3ba17f5`) |
+| Mira | Her corner: a table, two cups, her folded note FOR THE BOARD before she asks; the table changes with her story (carried, pinned, lost, reset); pinned, she watches from the window; restricted, the owner's selection box | `test_mira_corner` 5/5 (incl. the leak fix below); `tour_characters` m01–m04 |
+| Pip | Leads once per long stop, then waits; hides behind Rue from Arin (ears back, crouched); lies down to rest | `test_pip` (`143b018`); `tour_characters` p01–p02 |
+| Archivist | Names the colours once while Rue is partly coloured; after the CHARACTER FILE he starts a new file, RUE, FILED UNDER: PEOPLE (a folder drawn on his desk) | `test_archivist_file` 3/3 (`de97fdb`); `tour_characters` a01 |
+| The Owner | Two notes: the house is sold and the console goes in the van; "when i play arin i'm nine again…" | story suites pass (`de97fdb`) |
+| Rue (canon B) | In the `rue` ending she picks a colour nobody chose for her and wears it from then on: a lilac flower clip in her hair, in the world and on the title. The owner's flicker takes it with the rest | `test_own_colour` 4/4; `tour_characters` r01 (`984aafc`) |
+| Canon A–E | Decided as recommended, on the author's delegation; each reversible (`CANON_DECISIONS.md` §7). B's playtest condition kept as a check | `TRUTH_TABLE.md` rows for the Owner and the colours |
+| Cold open | Dressed: a memory card beside the first line (its access light on while reading), the television's glass and scanlines, a block cursor that blinks while it waits. Reduce motion: no blink, no breathing glow | `test_cold_open` 4/4; `tour_cold_open` |
+| Playtests | `playtest/RUN_A_ROUND.md`: invitation, consent, links with parameters, variant order, schedule, log export, analysis table and decision rules written before the round | Document only; **no session run** |
+| Defect found and fixed | A deleted Mira's table was created and never added: one stray node per room build (found by the suite's leak check) | Test fails before, passes after (`401ffb1`) |
+
+### Verification
+
+| Check | Result |
+|---|---|
+| Strict full suite | **777/778** on `401ffb1` (1807.5 s, no script errors). The one failure: the voice manifest lacked the new epilogue line; regenerated in `40ba023` (data only), `test_voice_manifest` 3/3. The ObjectDB exit warning (PL-3) is still printed |
+| Ending bots (`40ba023`) | Run 1: escape, message, purge-5, wren pass; **purge-3 failed**. Run 2: all 5 pass. Purge-3 alone ×4: all pass. **Purge-3: 5 of 6 this round.** Investigated as PL-4b: not a threat defect |
+| Exports (`40ba023`) | Web, Windows, Linux exit 0. SHA-256: exe `fbd8ed208cd09b84`, x86_64 `462b64991a902cfa`. Linux smoke (xvfb, 240 frames): exit 0, no script errors |
+| Browser (headless Chromium, `40ba023` web export) | Lifecycle check all pass (memory card → festival → room; calm tab-close resumes free; no page errors). Story reader passes. Audio: room −30.8 dBFS, audible |
+| Playable build | https://claude.ai/artifact/3G95pCn7jTAYr2DPmmWu5w **version 23**, game code `40ba023`. Private until shared |
+
+### Not verified, and still open
+
+- **No unfamiliar player has played.** The kit is ready; recruiting is the author's step.
+- **Platform:** no Windows execution, no physical controller, no hardware GPU. Gamepad remapping is not built.
+- **Art:** everything is code-drawn and provisional (`production/PRODUCTION_STANDARD.md`). Nothing bought, commissioned or generated.
+- **Open defects:** PL-3, PL-4b (human check), UI-2, UI-4, UI-5, UI-6, SV-2.
+
+### Decisions for the author
+
+1. **Recruit five players** and run `playtest/RUN_A_ROUND.md`: it gates art, voice and pricing.
+2. **The square's death-seeded static** (PL-4b): keep (harder late game, the owner remembers), or mark-only like the Edge.
+3. Share the v23 link with anyone you want to play it (it's private).
+
+## Previous: refining toward a vertical slice (2026-10-28, branch at `3c00c96`)
 
 **Base:** `main` @ `6e67d0a` (PR #11). Branch `claude/last-save-file-prototype-ljwuq4`. **Not merged:** no merge authorisation for this round.
 
