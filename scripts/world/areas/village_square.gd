@@ -116,7 +116,7 @@ static func voice_lines() -> Dictionary:
 			+ Relationships.wren_lines(),
 		# (Frayed, he writes: only the line when his voice comes back is said.)
 		"npc.tobben": Story.recall_lines("tobben") + [Story.TRUTH_LINES.tobben, Story.FRAY_RETURNED.tobben] + TOBBEN_LINES
-			+ Relationships.tobben_lines(),
+			+ TOBBEN_CAUGHT + Relationships.tobben_lines(),
 	}
 
 

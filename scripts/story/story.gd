@@ -336,6 +336,12 @@ const MIRA_NOTE_GIVE := [
 	"Pin it up. Maybe they'll remember I can talk. That I'm not just a line.",
 ]
 const MIRA_NOTE_TEXT := "MIRA WAS HERE.\nI TALK. I REMEMBER.\n— M"
+## Her note on her table, before she asks Rue to take her to the board: Rue
+## only sees the outside.
+const MIRA_NOTE_FOLDED := [
+	"Folded in four, very neatly. On the outside, in careful capitals: FOR THE BOARD.",
+	"(it isn't mine to open.)",
+]
 const MIRA_NOTE_LOST := [
 	"mira_note.txt · confiscated · never pinned",
 	"\"MIRA WAS HERE. I TALK. I REMEM\"",
