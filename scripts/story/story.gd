@@ -204,11 +204,13 @@ const FINAL_FIGHT := {
 const OWNER_NOTES := [
 	"there's something in arin's room again. i'm not imagining it.",
 	"we used to play this on the couch at mum's. two controllers. i don't know why i'm writing that down.",
+	"mum's house is sold. everything in the loft goes in the van on friday. the console too, once i've cleaned it up.",
 	"she moved in the summer. said she'd visit every weekend. she came twice.",
 	"i kept her save for months. i'd walk arin past the spot where her character used to stand.",
 	"the night i deleted slot 2 i told myself it was for space. the card wasn't even half full.",
 	"she sent a message once. 'still have my save?' i started typing yes. that same night i deleted it instead, and never sent anything.",
 	"i didn't delete her because i hated her. i deleted her because the empty slot was easier than the waiting.",
+	"when i play arin i'm nine again. when i stop, i'm in an empty house full of boxes.",
 	"if that's you in there, i don't know what i want. i want you gone. i want you to stay.",
 ]
 
