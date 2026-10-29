@@ -33,6 +33,8 @@ func test_no_leaks_across_area_changes() -> void:
 		for a in route:
 			await go_to(w, a[0], a[1])
 	await frames(10)
+	if Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT) != 0:
+		Node.print_orphan_nodes()
 	check(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT) == 0, "no orphan nodes")
 	# A few nodes of slack: the console fills up to its line limit, transient
 	# tweens/effects come and go. A leak would grow by dozens over 16 loads.
