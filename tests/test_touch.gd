@@ -81,3 +81,52 @@ func _drag(finger: int, game_pos: Vector2) -> void:
 	e.position = _window_pos(game_pos)
 	Input.parse_input_event(e)
 	await frames(2)
+
+
+func test_focus_loss_releases_virtual_stick_and_buttons() -> void:
+	var w := await start_session()
+	await _touch(0, Vector2(120, 250), true)
+	await _drag(0, Vector2(150, 250))
+	await _touch(1, TouchControls.BUTTONS["interact"].center, true)
+	var controls: TouchControls = w.touch
+	check(controls != null, "touch controls exist")
+	if controls == null:
+		return
+	controls.notification(Node.NOTIFICATION_APPLICATION_FOCUS_OUT)
+	check_eq(controls._stick_finger, -1, "focus loss forgets the thumb")
+	check(controls._held.is_empty(), "focus loss releases buttons")
+	check(not Input.is_action_pressed("move_right"), "movement released")
+	check(not Input.is_action_pressed("interact"), "interaction released")
+	var stopped: Vector2 = w.player.global_position
+	await wait(0.3)
+	check(w.player.global_position.distance_to(stopped) < 1.0, "no walking while away")
+
+
+func test_canceled_touch_releases_the_stick() -> void:
+	var w := await start_session()
+	await _touch(0, Vector2(120, 250), true)
+	await _drag(0, Vector2(150, 250))
+	var e := InputEventScreenTouch.new()
+	e.index = 0
+	e.position = _window_pos(Vector2(150, 250))
+	e.canceled = true
+	e.pressed = true  # cancellation wins even if the platform retains pressed
+	Input.parse_input_event(e)
+	await frames(2)
+	check_eq(w.touch._stick_finger, -1, "OS cancellation releases the thumb")
+	check(not Input.is_action_pressed("move_right"), "no stuck movement")
+
+
+func test_rotating_to_portrait_cancels_and_blocks_virtual_movement() -> void:
+	var w := await start_session()
+	var win := tree.root
+	var original: Vector2i = win.size
+	w.touch.active = true
+	w.touch._touch_down(0, Vector2(120, 250))
+	w.touch._move_stick(Vector2(150, 250))
+	win.size = Vector2i(360, 640)
+	w.touch._process(0.01)
+	check_eq(w.touch._stick_finger, -1, "rotation cancels the existing drag")
+	w.touch._touch_down(0, Vector2(120, 250))
+	check_eq(w.touch._stick_finger, -1, "the portrait notice blocks new virtual movement")
+	win.size = original

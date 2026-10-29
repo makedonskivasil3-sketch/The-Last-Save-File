@@ -71,3 +71,50 @@ func test_the_cursor_waits_with_the_reader() -> void:
 	check(steady, "reduce motion: it doesn't blink")
 	check(card.cursor_at().x > card._labels[0].position.x + 100.0, "it sits after the typed line")
 	settings().reduce_motion = false
+
+
+func test_instant_text_and_reveal_require_a_separate_advance() -> void:
+	var old_speed: int = settings().text_speed
+	var title := await _title()
+	title._start()
+	await wait_until(func() -> bool: return scene() is ColdOpen, 3.0, "card")
+	var card: ColdOpen = scene()
+	card.set_process(false)
+	settings().text_speed = 3
+	card._typed = 0.0
+	card._labels[0].visible_characters = 0
+	card._process(0.01)
+	check_eq(card._labels[0].visible_characters, card._labels[0].text.length(), "Instant applies to the card")
+	settings().text_speed = 1
+	card._typed = 0.0
+	card._labels[0].visible_characters = 0
+	card._armed = true
+	Input.action_press("interact")
+	card._process(0.01)
+	check_eq(card._labels[0].visible_characters, card._labels[0].text.length(), "first press reveals")
+	card._process(0.5)
+	check_eq(card._line, 0, "holding the revealing press cannot dismiss the line")
+	Input.action_release("interact")
+	card._process(0.01)
+	Input.action_press("interact")
+	card._process(0.01)
+	check_eq(card._line, 1, "a separate press advances")
+	Input.action_release("interact")
+	settings().text_speed = old_speed
+
+
+func test_focus_loss_freezes_typing_and_clears_skip_hold() -> void:
+	var title := await _title()
+	title._start()
+	await wait_until(func() -> bool: return scene() is ColdOpen, 3.0, "card")
+	var card: ColdOpen = scene()
+	card.set_process(false)
+	var before: float = card._typed
+	card._skip_t = 0.6
+	card.notification(Node.NOTIFICATION_APPLICATION_FOCUS_OUT)
+	card._process(2.0)
+	check_eq(card._typed, before, "typing freezes while away")
+	check_eq(card._skip_t, 0.0, "skip hold is canceled")
+	card.notification(Node.NOTIFICATION_APPLICATION_FOCUS_IN)
+	card._process(0.1)
+	check(card._typed > before, "typing resumes on return")
