@@ -70,6 +70,8 @@ const EVENTS := {
 	"tobben.met": "Met Tobben at his stall.",
 	"tobben.fireworks": "Tobben still keeps the festival's fireworks under his counter.",
 	"tobben.guestbook": "You wrote RUE back in Tobben's guest book.",
+	"tobben.caught": "You caught Tobben on his way to the notice board. He went back to his stall.",
+	"tobben.crossed_out": "Tobben scratched his own name off the notice board.",
 	"tobben.restored": "You brought Tobben back from the Recycle Bin.",
 	"tobben.piece_taken": "You took Tobben's voice.",
 	"tobben.piece_returned": "You gave Tobben his voice back.",

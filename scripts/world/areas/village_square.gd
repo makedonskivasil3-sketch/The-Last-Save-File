@@ -215,6 +215,8 @@ func build() -> void:
 	board.position = BOARD_POS
 	board.player = world.player
 	board.text = "ASHVALE NOTICES\nHarvest fair on Sunday." if OwnerMemory.sessions <= 1 else "MISSING: ONE (1) INTRUDER.\nIF SEEN, TELL TOBBEN."
+	if Relationships.has("tobben.crossed_out"):
+		board.text = board.text.replace("TELL TOBBEN", "TELL xxxxxx")  # he scratched it out, and it stayed
 	board.lie = "INTRUDER CAUGHT.\nALL CLEAR."
 	if OwnerMemory.mira_quest == "pinned":
 		board.text = Story.MIRA_NOTE_TEXT  # it stays up, every run
@@ -686,6 +688,7 @@ func area_process(delta: float) -> void:
 	_wren_nod()
 	_wren_doing()
 	_notice_doodles()
+	_walk_tobben(delta)
 	_well_process(delta)
 	_wren_beckon(delta)
 	_mark_process()
@@ -916,6 +919,8 @@ func _wren_lines() -> Variant:
 
 
 func _tobben_lines() -> Variant:
+	if _tobben_errand == "report":
+		return _tobben_caught()
 	# What happened between you comes first (Relationships.tobben).
 	var told := Relationships.tobben()
 	if not told.is_empty():
@@ -970,35 +975,118 @@ func _offer_guestbook() -> void:
 	world.director.say("...who wrote her name in the book.")
 
 
-## Seconds after a conversation before Tobben's report reaches the owner.
-const REPORT_DELAY := 4.0
+## Tobben's report is something you can watch (docs/production/CHARACTERS.md):
+## after Rue talks to him he hesitates, pen in hand, then walks to the notice
+## board that says IF SEEN, TELL TOBBEN, writes on it, and walks back. The
+## owner reads the board. Talking to him on the way catches him out: he
+## gives that report up (it's still his script: he'll go again after the
+## next conversation). After the guest book he goes all the same, and
+## scratches his own name off the board instead.
+## Seconds from the end of a conversation until his note is up (the
+## hesitation, then the walk at TOBBEN_WALK).
+const REPORT_DELAY := 7.0
+const TOBBEN_HESITATE := 1.6
+const TOBBEN_WALK := 60.0
+const TOBBEN_HOME := Vector2(488, 92)
+## Out from behind the stall, across, and up to the board's foot.
+const TOBBEN_TO_BOARD: Array[Vector2] = [Vector2(430, 104), Vector2(262, 66)]
 const TOBBEN_REPORT := "tobben says you were asking questions."
 ## After the guest book: he still reports (it's his script), and leaves out
 ## what she asked.
 const TOBBEN_REPORT_BOOK := "tobben says you came by. he didn't say what for."
+const TOBBEN_SEEN := "SEEN NEAR THE STALL. —T."
+const TOBBEN_CAUGHT := [
+	"Oh! I was just... going for a walk. Towards the board. Not to write anything on it.",
+	"...It's in my script. It isn't in me. Welcome to Tobben's.",
+]
 
 
 ## After a report, he doesn't tell again for this long (he already did).
 const REPORT_COOLDOWN := 60.0
 var _report_pending := false
+## His walk, and what he's doing it for: "report", "home" or "".
+var _tobben_path: Array[Vector2] = []
+var _tobben_errand := ""
 
 
-## Tobben tells the owner about Rue after she talks to him: once, a few
-## seconds after the conversation (and after any scene that follows), not
-## once per conversation. He can't while his voice is Rue's (written). After
-## the guest book he still does, but leaves out what she asked.
+## Tobben tells the owner about Rue after she talks to him: once, after the
+## conversation (and after any scene that follows), not once per
+## conversation. He can't while his voice is Rue's (written). After the
+## guest book he still does, but leaves out what she asked.
 func _tobben_reports() -> void:
-	if _report_pending or tobben.mute or not _report_cooled():
+	if _report_pending or tobben.mute or not _report_cooled() or _tobben_errand != "":
 		return
 	_report_pending = true
 	await _story_clear()
 	if not is_inside_tree():
 		return
-	await get_tree().create_timer(REPORT_DELAY).timeout
+	# Pen in hand, looking at her, then at the board.
+	tobben.doing = "pen in hand"
+	tobben.emote("...", TOBBEN_HESITATE)
+	await get_tree().create_timer(TOBBEN_HESITATE).timeout
 	await _story_clear()  # a scene that started meanwhile goes first
-	if is_inside_tree():
-		_tobben_report_lands()
+	if not is_inside_tree() or not _report_pending:
+		return
+	_tobben_path = TOBBEN_TO_BOARD.duplicate()
+	_tobben_errand = "report"
+	tobben.doing = "going to the notice board"
+
+
+## Moves Tobben along his path; at the board, the report; then home.
+func _walk_tobben(delta: float) -> void:
+	if _tobben_path.is_empty() or tobben == null or not is_instance_valid(tobben):
+		return
+	if world.is_talking() and world._focused == tobben:
+		tobben._walk_velocity = Vector2.ZERO
+		return
+	var to := _tobben_path[0] - tobben.global_position
+	var step := to.limit_length(TOBBEN_WALK * delta)
+	tobben.global_position += step
+	tobben._walk_velocity = step / maxf(delta, 0.0001)
+	if to.length() <= TOBBEN_WALK * delta + 0.01:
+		_tobben_path.pop_front()
+	if not _tobben_path.is_empty():
+		return
+	tobben._walk_velocity = Vector2.ZERO
+	if _tobben_errand == "report":
+		_tobben_at_board()
+	else:
+		_tobben_errand = ""
+		tobben.doing = ""
+		tobben.idle_style = "tend"
+
+
+func _tobben_at_board() -> void:
+	tobben.emote("scritch", 1.2)
+	Sfx.play("scribble")
+	if OwnerMemory.guestbook_restored:
+		# He goes all the same (his script), and scratches his own name off.
+		if board.text.contains("TELL TOBBEN"):
+			board.set_text_now(board.text.replace("TELL TOBBEN", "TELL xxxxxx"))
+		if Relationships.add("tobben.crossed_out"):
+			PlaytestLog.mark("tobben: crossed his name off the board")
+	elif not board.falsified and not board.text.contains(TOBBEN_SEEN):
+		board.set_text_now(board.text + "\n" + TOBBEN_SEEN)
 	_report_pending = false
+	_tobben_report_lands()
+	await get_tree().create_timer(1.2).timeout
+	if not is_inside_tree():
+		return
+	_tobben_path = [Vector2(430, 104), TOBBEN_HOME] as Array[Vector2]
+	_tobben_errand = "home"
+	tobben.doing = "going back to his stall"
+
+
+## Rue talks to him on his way to the board: caught. He gives this report up.
+func _tobben_caught() -> Array:
+	_report_pending = false
+	world.set_meta("tobben_reported_at", Time.get_ticks_msec() / 1000.0)  # he doesn't set off again at once
+	_tobben_path = [Vector2(430, 104), TOBBEN_HOME] as Array[Vector2]
+	_tobben_errand = "home"
+	tobben.doing = "going back to his stall"
+	Relationships.add("tobben.caught")
+	PlaytestLog.mark("tobben: caught on the way to the board")
+	return TOBBEN_CAUGHT
 
 
 func _report_cooled() -> bool:
@@ -1040,7 +1128,7 @@ func _draw() -> void:
 			draw_circle(Vector2(px, n.position.y + 1.2), 0.9, Color("c84a3a"))
 	# Tobben's guest book, open on the counter once RUE is back in it.
 	if OwnerMemory.guestbook_restored:
-		var b := Rect2(STALL.position + Vector2(STALL.size.x * 0.5 - 7, 6), Vector2(14, 7))
+		var b := Rect2(STALL.position + Vector2(STALL.size.x * 0.5 - 7, 11), Vector2(14, 7))
 		draw_rect(b, Color("efe4cc"))
 		draw_line(Vector2(b.get_center().x, b.position.y), Vector2(b.get_center().x, b.end.y), Color("8a7a68"), 0.6)
 		draw_line(b.position + Vector2(1.5, 2.5), b.position + Vector2(5.5, 2.5), Color("3a2a20"), 0.6)  # ARIN
@@ -1114,18 +1202,7 @@ func _paint(ci: CanvasItem) -> void:
 	# Arin's house: roof, front wall, the door you came out of.
 	Decor.house(ci, HOUSE, Color("7a3a30"), Color("b8a088"), HOUSE_DOOR.get_center().x)
 	draw_well(ci, WELL, STONE)
-	# Tobben's stall: a counter with goods under a striped awning.
-	var counter := Decor.furniture(ci, STALL, Color("6b5040"), 6.0)
-	for k in 9:
-		var g := Vector2(counter.position.x + 6 + k * 10, counter.end.y - 6)
-		ci.draw_circle(g, 2.2, Color("c84a3a") if k % 3 == 0 else (Color("e8b84a") if k % 3 == 1 else Color("8ab05a")))
-	for k in 6:
-		var a := Rect2(STALL.position + Vector2(k * 16, -7), Vector2(16, 10))
-		ci.draw_rect(a, Color("a8443a") if k % 2 == 0 else Color("e8dcc4"))
-	ci.draw_rect(Rect2(STALL.position + Vector2(0, -7), Vector2(STALL.size.x, 10)), Decor.INK, false, 0.8)
-	for k in 6:
-		ci.draw_colored_polygon(PackedVector2Array([STALL.position + Vector2(k * 16, 3), STALL.position + Vector2(k * 16 + 16, 3), STALL.position + Vector2(k * 16 + 8, 6)]),
-			Color("a8443a") if k % 2 == 0 else Color("e8dcc4"))
+	draw_stall(ci, STALL)
 	# The fifth lantern (the festival, docs/INTRO_REBUILD.md): still lit by
 	# the well, three years on, the only one that is. A post with a crook,
 	# a paper lantern on it, and a faded festival ribbon. Its light is one
@@ -1149,6 +1226,80 @@ func _paint(ci: CanvasItem) -> void:
 		{"side": "right", "from": EAST_GAP.x, "to": EAST_GAP.y},
 		{"side": "top", "from": NORTH_GAP.x, "to": NORTH_GAP.y},
 	])
+
+
+## Tobben's stall (docs/production/CHARACTERS.md): a market counter that is
+## somebody's whole life. Two posts and a striped, scalloped awning with
+## its shadow on the boards; baskets of apples, pears and greens on the
+## counter; a hanging brass scale; a chalked price slate he still updates;
+## his till; and, under the counter, the festival's fireworks in their box
+## (he never set them off: he keeps them for the next one).
+static func draw_stall(ci: CanvasItem, r: Rect2) -> void:
+	var wood := Color("6b5040")
+	var dark := Color("3e2c22")
+	# Shadow, then the counter: top boards with grain, a front with planks.
+	ci.draw_rect(Rect2(r.position + Vector2(2, 8), r.size), Color(0, 0, 0, 0.3))
+	var top := Rect2(r.position + Vector2(0, 8), Vector2(r.size.x, r.size.y - 16))
+	ci.draw_rect(top, wood)
+	for k in 4:
+		var y := top.position.y + 2.0 + k * (top.size.y - 3.0) / 4.0
+		ci.draw_line(Vector2(top.position.x + 1, y), Vector2(top.end.x - 1, y), wood.darkened(0.18), 0.5)
+	var front := Rect2(top.position.x, top.end.y, r.size.x, 8)
+	ci.draw_rect(front, wood.darkened(0.32))
+	for k in range(1, 8):
+		var x := front.position.x + k * front.size.x / 8.0
+		ci.draw_line(Vector2(x, front.position.y), Vector2(x, front.end.y), dark, 0.6)
+	ci.draw_line(top.position, Vector2(top.end.x, top.position.y), wood.lightened(0.2), 0.8)
+	ci.draw_rect(Rect2(top.position, Vector2(r.size.x, top.size.y + 8)), Decor.INK, false, 0.8)
+	# The fireworks box, poking out under the counter's left end.
+	var box := Rect2(front.position + Vector2(4, 3), Vector2(16, 7))
+	ci.draw_rect(box, Color("8a2f2a"))
+	ci.draw_rect(box, Decor.INK, false, 0.5)
+	for k in 3:
+		var tip := box.position + Vector2(3 + k * 5, -1)
+		ci.draw_line(tip, tip + Vector2(0, -4), Color("e8dcc4"), 1.2)
+		ci.draw_colored_polygon(PackedVector2Array([tip + Vector2(-1.2, -4), tip + Vector2(1.2, -4), tip + Vector2(0, -6.5)]), [Color("e8b84a"), Color("5aa0c8"), Color("d8463a")][k])
+	# Baskets of produce: a woven rim, the fruit heaped inside.
+	var fruit := [[Color("c84a3a"), Color("e06a5a")], [Color("c8b44a"), Color("e8d47a")], [Color("6a9a4a"), Color("8ab05a")]]
+	for b in 3:
+		var c := Vector2(top.position.x + 12 + b * 17, top.position.y + top.size.y * 0.55)
+		ci.draw_rect(Rect2(c + Vector2(-7, -1), Vector2(14, 6)), Color("9a7a4a"))
+		for w in 3:
+			ci.draw_line(c + Vector2(-7, w * 2.0), c + Vector2(7, w * 2.0), Color("6a5030"), 0.4)
+		for f in 5:
+			var fp := c + Vector2(-5 + f * 2.5, -1.5 - float(f % 2) * 1.6)
+			ci.draw_circle(fp, 1.9, fruit[b][0])
+			ci.draw_circle(fp + Vector2(-0.5, -0.6), 0.6, fruit[b][1])
+	# The till and the brass scale on the right.
+	var till := Rect2(top.end.x - 22, top.position.y + 2, 9, 6)
+	ci.draw_rect(till, Color("4a3a2a"))
+	ci.draw_rect(Rect2(till.position + Vector2(1, 1), Vector2(7, 2)), Color("c8b07a"))
+	var hook := Vector2(top.end.x - 8, r.position.y - 2)
+	ci.draw_line(hook, hook + Vector2(0, 7), Color("8a7040"), 0.6)
+	ci.draw_line(hook + Vector2(-4, 7), hook + Vector2(4, 7), Color("c8a050"), 0.8)
+	for side in [-1.0, 1.0]:
+		ci.draw_line(hook + Vector2(side * 4, 7), hook + Vector2(side * 4, 10), Color("8a7040"), 0.4)
+		ci.draw_arc(hook + Vector2(side * 4, 10.5), 1.8, 0.0, PI, 6, Color("c8a050"), 0.8)
+	# Posts and the awning: alternating stripes, a scalloped hem, a shadow.
+	for x in [r.position.x + 1.5, r.end.x - 1.5]:
+		ci.draw_rect(Rect2(x - 1.2, r.position.y - 6, 2.4, 16), dark)
+	ci.draw_rect(Rect2(r.position + Vector2(0, 8), Vector2(r.size.x, 4)), Color(0, 0, 0, 0.18))
+	var n := 6
+	var w := r.size.x / n
+	for k in n:
+		var a := Rect2(r.position + Vector2(k * w, -9), Vector2(w, 11))
+		var col := Color("a8443a") if k % 2 == 0 else Color("e8dcc4")
+		ci.draw_rect(a, col)
+		ci.draw_line(a.position + Vector2(1, 1), a.position + Vector2(w - 1, 1), col.lightened(0.15), 0.6)
+		ci.draw_colored_polygon(PackedVector2Array([a.position + Vector2(0, 11), a.position + Vector2(w, 11), a.position + Vector2(w * 0.5, 14)]), col.darkened(0.06))
+	ci.draw_rect(Rect2(r.position + Vector2(0, -9), Vector2(r.size.x, 11)), Decor.INK, false, 0.8)
+	# The price slate hanging from the left post, in his round hand.
+	var slate := Rect2(r.position + Vector2(-14, 2), Vector2(12, 9))
+	ci.draw_rect(slate, Color("2a2a2e"))
+	ci.draw_rect(slate, Color("6b5040"), false, 0.8)
+	ci.draw_line(slate.position + Vector2(2, 3), slate.position + Vector2(8, 3), Color(0.95, 0.95, 0.9, 0.7), 0.5)
+	ci.draw_line(slate.position + Vector2(2, 6), slate.position + Vector2(6, 6), Color(0.95, 0.95, 0.9, 0.7), 0.5)
+	ci.draw_line(slate.position + Vector2(-1, 0), slate.position + Vector2(-1, -4), dark, 0.5)
 
 
 ## The well, seen from above and in front: a round stone ring (its rim an

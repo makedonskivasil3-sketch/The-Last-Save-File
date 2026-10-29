@@ -65,8 +65,8 @@ func test_tobben_reports_you() -> void:
 	await interact_with(w, w.area.tobben)
 	await finish_dialogue(w)
 	var before: float = w.director.awareness
-	await wait(4.6)
-	check(w.director.awareness >= before + 10.0, "Tobben tells the owner a few seconds later")
+	await wait(VillageSquare.REPORT_DELAY + 1.0)
+	check(w.director.awareness >= before + 10.0, "Tobben tells the owner a few seconds later (by the notice board)")
 
 
 func test_north_road_needs_the_archivists_pointer() -> void:
