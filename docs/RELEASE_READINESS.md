@@ -2,7 +2,65 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current: trust and control, free save, and Wren's game (2026-10-28, `2ed3eb4`)
+## Current: refining toward a vertical slice (2026-10-28, branch at `3c00c96`)
+
+**Base:** `main` @ `6e67d0a` (PR #11). Branch `claude/last-save-file-prototype-ljwuq4`. **Not merged:** no merge authorisation for this round.
+
+### Baseline at `6e67d0a` (re-verified this round, not carried over)
+
+- **Strict full suite:** 747/747, 1605.2 s, no script errors. The ObjectDB exit warning (PL-3) is still printed.
+- **What works:** transactional saving; free stopping at calm moments (browser-verified); keyboard remapping; pointer arrival and long-frame collision; actual-motion gait; stable facing; the festival's interruption and impossible action; Wren's chalk game.
+- **Defective, found this round:**
+  - Objects unidentifiable before touching them (UI-9).
+  - Feet skating 20–29 px a step: the planted foot moved forward.
+  - Wren's game unreachable before her escort on a natural route: the ask came first.
+  - Four documents stating the **rejected** premise as current canon.
+  - The audio check measuring the festival instead of the room.
+- **Hypotheses:** immediate movement is right; the cold open adds the wanted dread; players care about Wren; the "2–3 hour" length.
+- **Needs people or hardware:** every feel and comprehension question; Windows; a controller; listening.
+
+### Changed this round, with evidence
+
+| Area | Change | Evidence (revision) |
+|---|---|---|
+| Interaction | A name line over every prompt ("SAVE POINT", "OUT ON THE CROSSING", "WREN · WAITING FOR YOUR MARK"). Redrawn: the well (square and festival), the save crystal, the note, a memory (now a torn picture, not a second diamond) | `test_readability` 4/4; `tour_readability` captures (`3359569`) |
+| Animation contact | Planted-foot drift 20–29 px → **0.00 px** (Rue at 1× and 1.35×); supporting cast 10 → 0.00 px | `tour_foot_contact`; `test_movement` 19/19 (`3359569`) |
+| Movement variants | A / B / C switch for playtests, C default. A and C: 17 ms to motion, 0 px stop. B: 33 ms, 2.4 px stop. **No preference claimed** | `docs/review/movement/VARIANTS.md` |
+| Game camera | Reversal moves the view 5.0 px (max 1.57 px/frame); never past the map | `tour_game_camera` |
+| Wren | Game before her ask, no shelter prerequisite; "chalk out" invitation; drawings between sessions (lantern, fox or bird, hopscotch). Fresh-profile route reaches game → verdict → ask by ordinary play | `test_wren_route` 2/2, `test_wren_game` 7/7, Wren files 36/36; Wren-ending bot passes playing the game |
+| Opening | A memory card before the festival (first run): last 2-player session never closed; "one more go. then i'm cleaning it up." Reader-paced, skippable, kept in the journal | `test_cold_open` 3/3; title-path tests updated; browser check sees it |
+| Canon | Proposal: "colour is choice", Rue's mind, the Owner's goal and the in/out-of-machine frame. **Decisions A–E open** | `production/CANON_PROPOSAL_2026-10-28.md` |
+| Threat fairness (PL-4) | The failures were the bot walking head-on into Arin's visible round after a reload, and into the square's static at purge 4–5. Bot steering fixed; **the game is unchanged** | purge-3: before 2/6 failed, after **8/8** pass |
+| Narrative authority | Four banners corrected; `docs/README.md` says which documents govern; `WREN_ARC.md` intro corrected | `9b66266`, `1d4627f` |
+
+### Verification on this branch
+
+| Check | Result |
+|---|---|
+| Strict full suite | **759/760** on `b8105e7` (1704.5 s, no script errors). The one failure was `test_wren`'s helper (three talks; her game now takes the third), fixed in `3c00c96` and re-run: `test_wren` 7/7, all Wren files 36/36. **The code under test is identical** |
+| Ending bots | escape, message, purge-3, purge-5 (recovers from an Edge death), wren: **all pass** |
+| Exports (`b8105e7`) | Web, Windows, Linux exit 0. SHA-256: exe `ac8f57f2fdcd36ec`, x86_64 `b0c769e1470d67a8`. Linux smoke: 240 frames, exit 0, no script errors |
+| Browser (headless Chromium) | Lifecycle check all pass (memory card → festival → room; calm tab-close resumes free; no page errors). Story reader passes. Audio: room −29.9 dBFS |
+| Playable build | https://claude.ai/artifact/3G95pCn7jTAYr2DPmmWu5w **version 22**, game code identical to `3c00c96`. Private until shared |
+
+### Not verified, and what's still open
+
+- **No unfamiliar player has played any of it.** The protocol, the observer sheet and the timing for sessions A–E are ready.
+- **Platform:** no Windows execution, no physical controller, no hardware GPU.
+- **Gamepad remapping is not built.**
+- **Length:** the bots reach an ending in about 2.5 min of travel; the product spec's 2–3 h is unmeasured. **Don't price from it.**
+- **Assets:** nothing is final art. Briefs and quantities are in `production/PRODUCTION_STANDARD.md`; nothing purchased or generated.
+- **Open defects:** PL-3 (ObjectDB exit warning), UI-2, UI-4, UI-5, UI-6 and SV-2 remain open.
+- **Secondary characters (§10 of the brief):** not deepened this round.
+
+### Decisions for the author
+
+1. The canon proposal, A–E.
+2. Keep the cold open?
+3. Merge this branch?
+4. Arrange the playtests: they gate further investment.
+
+## Previous: trust and control, free save, and Wren's game (2026-10-28, `2ed3eb4`)
 
 **Code revision:** `2ed3eb4`. Base `b26aba0`. Merged to `main` with the author's authorisation (PR #11).
 
