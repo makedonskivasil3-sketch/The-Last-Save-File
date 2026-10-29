@@ -51,12 +51,19 @@ func _ready() -> void:
 	active = OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios")
 
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		cancel_touches()
+
+
 func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		active = true
 		if not buttons_enabled:
 			return
-		if event.pressed:
+		if event.canceled:
+			_touch_up(event.index)
+		elif event.pressed:
 			_touch_down(event.index, event.position)
 		else:
 			_touch_up(event.index)
@@ -65,6 +72,8 @@ func _input(event: InputEvent) -> void:
 
 
 func _touch_down(finger: int, pos: Vector2) -> void:
+	if get_window().size.y > get_window().size.x:
+		return
 	for name: String in BUTTONS:
 		var b: Dictionary = BUTTONS[name]
 		if pos.distance_to(b.center) <= b.radius + 6.0:
@@ -131,6 +140,10 @@ func _send(action: String, pressed: bool) -> void:
 
 
 func _process(_delta: float) -> void:
+	# Rotation must not leave an invisible joystick driving behind the notice.
+	if active and get_window().size.y > get_window().size.x \
+			and (_stick_finger != -1 or not _held.is_empty()):
+		cancel_touches()
 	if _stick_finger != -1:
 		_set_move(_stick)
 	_draw_node.visible = active
