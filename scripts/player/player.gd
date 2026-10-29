@@ -37,6 +37,10 @@ const BORROWED := {
 }
 ## Which keys each recovered fragment restores, in order.
 const RESTORE_ORDER := [["a"], ["h"], ["c", "d"], ["l", "f"], ["s", "e"]]
+## The first colour nobody chose for her (canon decision B, docs/CANON_DECISIONS.md):
+## she picks it herself in the `rue` ending, and wears it from then on, a clip
+## in her hair. Nobody in the cast has it.
+const OWN := Color("b89cf0")
 const TRAIL_LENGTH := 6
 const TRAIL_INTERVAL := 0.05
 
@@ -119,7 +123,7 @@ func _ready() -> void:
 ## `animate`, the restored colours flash in.
 func refresh_look(animate := true) -> void:
 	var count := mini(OwnerMemory.fragments.size(), RESTORE_ORDER.size())
-	_palette = palette_for(count, OwnerMemory.frayed)
+	_palette = palette_for(count, OwnerMemory.frayed, chose_own())
 	_sprite.palette = _palette
 	_sprite.leg_color = _palette["l"]
 	_sprite.shoe_color = _palette["f"]
@@ -129,10 +133,17 @@ func refresh_look(animate := true) -> void:
 	_restored = count
 
 
+## She has picked her own colour: she has reached the `rue` ending.
+static func chose_own() -> bool:
+	return "rue" in OwnerMemory.endings_seen
+
+
 ## Rue's colours with `count` memories restored, wearing what she took from
 ## `frayed` (the sprite, and the title's key art, use the same rule).
-static func palette_for(count: int, frayed: Array) -> Dictionary:
+static func palette_for(count: int, frayed: Array, own := false) -> Dictionary:
 	var out: Dictionary = MISSING.duplicate()
+	if own:
+		out["o"] = OWN
 	for i in mini(count, RESTORE_ORDER.size()):
 		for key in RESTORE_ORDER[i]:
 			out[key] = RUE[key]

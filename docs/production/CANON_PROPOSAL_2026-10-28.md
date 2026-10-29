@@ -1,6 +1,6 @@
 # Canon proposal: the colours, Rue's mind, the Owner (2026-10-28)
 
-**Status: proposal for the author.** Nothing here overrides [`CANON_DECISIONS.md`](../CANON_DECISIONS.md) or [`TRUTH_TABLE.md`](TRUTH_TABLE.md) until it is approved. Only the cold open (§4) is built, because the author asked for more tension at the start. It is one scene and easy to remove.
+**Status: DECIDED 2026-10-29.** The author delegated decisions A–E; all five were taken as recommended and built. The record, with how to reverse each, is [`CANON_DECISIONS.md`](../CANON_DECISIONS.md) §7; the rules are in [`TRUTH_TABLE.md`](TRUTH_TABLE.md). The text below is the reasoning, kept as it was proposed (its "not built" notes are history).
 
 Every proposal below is checked against what the game already shows. Nothing contradicts the decided canon:
 - Rue is the character left running, not the girl.
@@ -99,10 +99,10 @@ Every proposal below is checked against what the game already shows. Nothing con
 
 ## Author decisions
 
-| | Question | Recommendation |
-|---|---|---|
-| A | Adopt "colour is choice" (§1) as canon? | Yes: it explains what's built and changes no text |
-| B | Rue's own first colour in the `rue` ending? | Yes, but only after a playtest shows players read the colours at all |
-| C | The Owner's goal (§3): clearing the house, cleaning the save tonight? | Yes |
-| D | Keep the cold open (§4)? | Keep it; judge in play |
-| E | The two proposed lines (Archivist §1, owner note §3)? | Add once A and C are decided |
+| | Question | Recommendation | Decided 2026-10-29 |
+|---|---|---|---|
+| A | Adopt "colour is choice" (§1) as canon? | Yes: it explains what's built and changes no text | Yes |
+| B | Rue's own first colour in the `rue` ending? | Yes, but only after a playtest shows players read the colours at all | Yes, built; the playtest condition kept as a check |
+| C | The Owner's goal (§3): clearing the house, cleaning the save tonight? | Yes | Yes |
+| D | Keep the cold open (§4)? | Keep it; judge in play | Kept and polished |
+| E | The two proposed lines (Archivist §1, owner note §3)? | Add once A and C are decided | Added |

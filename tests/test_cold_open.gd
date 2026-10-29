@@ -49,3 +49,25 @@ func test_a_replay_from_the_menu_skips_it() -> void:
 	title._play_prologue(true)
 	await frames(4)
 	check(scene() is Prologue and scene().replay, "the festival replay goes straight in")
+
+
+func test_the_cursor_waits_with_the_reader() -> void:
+	var title := await _title()
+	title._start()
+	await wait_until(func() -> bool: return scene() is ColdOpen, 3.0, "the memory card")
+	var card: ColdOpen = scene()
+	check(card.cursor_on(), "solid while typing")
+	await wait(2.5)
+	var seen := {}
+	for i in 24:
+		seen[card.cursor_on()] = true
+		await wait(0.05)
+	check(seen.has(true) and seen.has(false), "blinks while it waits")
+	settings().reduce_motion = true
+	var steady := true
+	for i in 24:
+		steady = steady and card.cursor_on()
+		await wait(0.05)
+	check(steady, "reduce motion: it doesn't blink")
+	check(card.cursor_at().x > card._labels[0].position.x + 100.0, "it sits after the typed line")
+	settings().reduce_motion = false

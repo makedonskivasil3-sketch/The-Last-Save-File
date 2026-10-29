@@ -6,7 +6,8 @@ There are about sixty documents in `docs/`. Most are the history of earlier pass
 |---|---|
 | What is true in the story; what characters believe; what the player has seen | [`production/TRUTH_TABLE.md`](production/TRUTH_TABLE.md) |
 | Decisions only the author can make, and the ones they made | [`CANON_DECISIONS.md`](CANON_DECISIONS.md) |
-| Open canon proposals awaiting the author | [`production/CANON_PROPOSAL_2026-10-28.md`](production/CANON_PROPOSAL_2026-10-28.md) |
+| The reasoning behind the colours and the Owner's goal (decided 2026-10-29) | [`production/CANON_PROPOSAL_2026-10-28.md`](production/CANON_PROPOSAL_2026-10-28.md) |
+| The supporting cast: what each one does, wants and shows | [`production/CHARACTERS.md`](production/CHARACTERS.md) |
 | Where the project stands, with evidence per revision | [`RELEASE_READINESS.md`](RELEASE_READINESS.md), top section only |
 | Known defects and their status | [`production/ISSUE_REGISTER.md`](production/ISSUE_REGISTER.md) |
 | The game to be released | [`production/PRODUCT_SPEC.md`](production/PRODUCT_SPEC.md) |

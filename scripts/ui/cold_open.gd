@@ -8,6 +8,13 @@ extends Control
 ## explains nothing the festival shows; it only says what's at stake.
 ## Hold Esc (or the skip chip) to go straight to the festival. Kept in the
 ## journal either way, so skipping loses nothing.
+##
+## Dressing (drawn, no assets): an old television's glass (a soft glow
+## from the middle, faint scanlines, darker corners), the memory card
+## itself beside the first line with its slot label and contacts, and a
+## block cursor after the line being typed, blinking while it waits for the
+## reader. Reduce motion: the cursor doesn't blink and the glow doesn't
+## breathe. Nothing flashes.
 
 signal finished
 
@@ -33,6 +40,8 @@ var _skip_t := 0.0
 var _armed := false
 var _hint: Label
 var _done := false
+var _art: Control
+var _t := 0.0
 
 
 func _ready() -> void:
@@ -47,6 +56,12 @@ func _ready() -> void:
 	black.size = size
 	black.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(black)
+	_art = Control.new()
+	_art.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_art.size = size
+	_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_art.draw.connect(_draw_art)
+	add_child(_art)
 	for i in LINES.size():
 		var l := Label.new()
 		l.position = Vector2(96, 118 + i * 26)
@@ -75,6 +90,8 @@ static func journal_lines() -> Array:
 
 
 func _process(delta: float) -> void:
+	_t += delta
+	_art.queue_redraw()
 	if _done:
 		return
 	# Skip: a held Esc, never a tap (so nobody skips it by accident).
@@ -109,6 +126,72 @@ func _process(delta: float) -> void:
 		_typed = 0.0
 		if _line >= _labels.size():
 			_finish()
+
+
+## Where the cursor sits now: after the typed part of the current line.
+func cursor_at() -> Vector2:
+	var l := _labels[mini(_line, _labels.size() - 1)]
+	var font := l.get_theme_font("font")
+	var fs := l.get_theme_font_size("font_size")
+	var typed := l.text.substr(0, l.visible_characters)
+	var w := font.get_string_size(typed, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x if font else typed.length() * 6.0
+	return l.position + Vector2(w + 2.0, 3.0)
+
+
+## Whether the cursor shows this frame: solid while typing, blinking while
+## it waits for the reader (always solid with reduced motion).
+func cursor_on() -> bool:
+	if _done or _line >= _labels.size():
+		return false
+	var l := _labels[_line]
+	if l.visible_characters < l.text.length() or Settings.reduce_motion:
+		return true
+	return fmod(_held, 1.0) < 0.55
+
+
+func _draw_art() -> void:
+	var view := size
+	var mid := view * 0.5
+	# The glass: a soft glow from the middle (breathing very slowly), then
+	# darker corners.
+	var breath := 1.0 if Settings.reduce_motion else 0.92 + 0.08 * sin(_t * 0.8)
+	for i in 14:
+		var k := 1.0 - i / 14.0
+		var r := Vector2(300, 150) * (0.35 + 0.65 * k)
+		_art.draw_set_transform(mid, 0.0, Vector2(1.0, r.y / r.x))
+		_art.draw_circle(Vector2.ZERO, r.x, Color(0.30, 0.62, 0.70, 0.008 * breath))
+	_art.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	for y in range(0, int(view.y), 2):
+		_art.draw_line(Vector2(0, y + 0.5), Vector2(view.x, y + 0.5), Color(0, 0, 0, 0.16), 1.0)
+	var corner := Color(0, 0, 0, 0.35)
+	for c in [Vector2.ZERO, Vector2(view.x, 0), Vector2(0, view.y), view]:
+		_art.draw_circle(c, 90.0, Color(0, 0, 0, 0.22))
+		_art.draw_circle(c, 50.0, corner)
+	# The memory card, beside the first line once it starts.
+	var shown := clampf(float(_labels[0].visible_characters) / 4.0, 0.0, 1.0) if not _labels.is_empty() else 0.0
+	if shown > 0.0:
+		_memory_card(Vector2(62, 108), shown * (modulate.a if _done else 1.0))
+	if cursor_on():
+		var owner_line: bool = LINES[_line][0] == "owner"
+		var c := OWNER if owner_line else SYSTEM
+		_art.draw_rect(Rect2(cursor_at(), Vector2(6, 11)), Color(c, 0.85))
+
+
+## A small grey memory card seen face on: the notched corner, a label with
+## the slot written on it, the contacts along the bottom edge, and a tiny
+## access light that glows while the card is being read.
+func _memory_card(at: Vector2, a: float) -> void:
+	var body := PackedVector2Array([at, at + Vector2(16, 0), at + Vector2(20, 4), at + Vector2(20, 26), at + Vector2(0, 26)])
+	_art.draw_colored_polygon(PackedVector2Array(Array(body).map(func(p: Vector2) -> Vector2: return p + Vector2(1.5, 1.5))), Color(0, 0, 0, 0.5 * a))
+	_art.draw_colored_polygon(body, Color(0.42, 0.44, 0.48, a))
+	_art.draw_polyline(body + PackedVector2Array([at]), Color(0.62, 0.65, 0.7, a), 1.0)
+	_art.draw_rect(Rect2(at + Vector2(3, 5), Vector2(14, 11)), Color(0.88, 0.86, 0.80, a))
+	_art.draw_line(at + Vector2(5, 8), at + Vector2(14, 8), Color(0.25, 0.28, 0.4, a), 1.0)
+	_art.draw_line(at + Vector2(5, 12), at + Vector2(11, 12), Color(0.25, 0.28, 0.4, a), 1.0)
+	for i in 5:
+		_art.draw_rect(Rect2(at + Vector2(3 + i * 3, 20), Vector2(2, 4)), Color(0.78, 0.66, 0.35, a))
+	var reading := not _done and _line < _labels.size() and _labels[_line].visible_characters < _labels[_line].text.length()
+	_art.draw_circle(at + Vector2(17, 17.5), 1.0, Color(0.95, 0.35, 0.2, a) if reading else Color(0.3, 0.12, 0.1, a))
 
 
 func _finish() -> void:

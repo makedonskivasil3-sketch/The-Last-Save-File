@@ -43,7 +43,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_font = UiStyle.system_font()
-	var palette := Player.palette_for(OwnerMemory.fragments.size(), OwnerMemory.frayed)
+	var palette := Player.palette_for(OwnerMemory.fragments.size(), OwnerMemory.frayed, Player.chose_own())
 	_rue.palette = palette
 	_rue.leg_color = palette["l"]
 	_rue.shoe_color = palette["f"]

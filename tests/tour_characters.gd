@@ -72,3 +72,23 @@ func test_pip() -> void:
 	w.area.arin.global_position = w.player.global_position + Vector2(60, 0)
 	await wait(1.4)
 	await shot("p02_pip_afraid")
+
+
+func test_archivist_new_file() -> void:
+	memory().knows_truth = true
+	memory().fragments.assign(Story.FRAGMENTS.map(func(f: Dictionary) -> String: return f.id))
+	var w := await start_session()
+	await go_to(w, "archive", "west")
+	w.director.paused = true
+	w.player.global_position = Vector2(ArchiveArea.DESK.end.x + 24, ArchiveArea.DESK.end.y + 20)
+	await wait(1.0)
+	await shot("a01_archivist_new_file")
+
+
+func test_rue_own_colour() -> void:
+	memory().endings_seen.assign(["rue"])
+	memory().fragments.assign(Story.FRAGMENTS.map(func(f: Dictionary) -> String: return f.id))
+	var w := await start_session()
+	w.director.paused = true
+	await wait(1.0)
+	await shot("r01_rue_own_colour")

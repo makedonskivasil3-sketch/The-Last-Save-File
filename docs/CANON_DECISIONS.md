@@ -14,7 +14,7 @@ Save and Exit, production-art or commercial-publishing decision is implied.
 - Nothing here is merged to `main`, and the game has no player-facing
   canon toggle.
 
-**Open (2026-10-28):** the author asked for the story of the losing colours, Rue's independent mind and the Owner's larger goal. The proposals, checked against everything decided below, are in [`production/CANON_PROPOSAL_2026-10-28.md`](production/CANON_PROPOSAL_2026-10-28.md) (decisions A–E). Only its cold open is built.
+**Decided (2026-10-29), §7:** the colours, the Owner's goal and the cold open. The author delegated decisions A–E of [`production/CANON_PROPOSAL_2026-10-28.md`](production/CANON_PROPOSAL_2026-10-28.md) ("give me your best work for 1 to 4"); they were taken as recommended and built. Each is small and reversible: §7 lists what to remove to undo it.
 
 ## 1. Who Rue is (the central reveal): DECIDED, `main`'s premise
 
@@ -139,3 +139,20 @@ The rest of the branch's work does not depend on which premise is chosen:
   beginning to act after her player stops (the author's direction).
 - **Done:** the opening is reframed that way (`docs/OPENING_REVIEW.md`).
   The author should confirm it in play.
+
+## 7. The colours, the Owner's goal, the cold open: DECIDED 2026-10-29 (delegated)
+
+Taken by Claude on the author's delegation, as recommended in the proposal. The author can reverse any of them; each row says what that would remove.
+
+| | Decision | Built where | To reverse |
+|---|---|---|---|
+| A | **Colour is choice.** Slot 2 held what the girl chose (name, colours, face); the backup kept what she did. Rue runs on in missing-texture cyan; each memory puts one chosen colour back. The natives' colours are their own, which is why taking one is theft | No text changed: it explains `Player.RESTORE_ORDER`, `BORROWED` and the owner's flicker. Stated in `TRUTH_TABLE.md` | Delete the truth-table row |
+| B | **Rue's own first colour.** In the `rue` ending she picks a colour nobody chose for her (`Player.OWN`, a lilac no one in the cast wears) and wears it from then on as a clip in her hair. The owner's flicker takes it away with the rest | `Player.chose_own()`, `palette_for(.., own)`, `HeroFigure._own_clip`, `Story.RUE_OWN_COLOUR` (the `rue` epilogue), the title art. `tests/test_own_colour.gd` | Remove `OWN` and the epilogue line |
+| C | **The Owner's goal: finish closing the door.** Mum's house is being cleared; the console goes in the van on Friday. Tonight he plays once more, then cleans the save up to the version he can live with. Grief handled by deletion: it excuses nothing | The cold open's last line; two owner notes (`Story.OWNER_NOTES`) | Remove the two notes and the cold open's last line |
+| D | **Keep the cold open**, and polish it (memory card icon, screen glow, cursor) | `scripts/ui/cold_open.gd`, `tests/test_cold_open.gd` | `title.gd` `_play_cold_open()` |
+| E | **The two lines.** The Archivist's "Colours are what someone chose for you…" (once, while she is partly coloured). The owner's "when i play arin i'm nine again. when i stop, i'm in an empty house full of boxes." | `ArchiveArea.ARCHIVIST_COLOURS`, `Story.OWNER_NOTES`. `tests/test_archivist_file.gd` | Remove the constants |
+
+**One condition carried over from the proposal:** B was recommended "only after a playtest shows players read the colours at all". It is built now because the author asked for the best work rather than a wait, but the condition stands as a test: the playtest kit (`docs/playtest/RUN_A_ROUND.md`) asks whether players noticed the colours coming back and what they thought they meant. If nobody reads them, B's line in the epilogue is the first thing to cut.
+
+**Still not decided, and not implied:** live contact (§3), the kept place (§2), the demo endpoint (§5), any production art, voice or commercial step.
+

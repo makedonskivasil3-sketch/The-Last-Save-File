@@ -407,6 +407,9 @@ const EPILOGUE_TRUE := [
 	"> i kept your controller. it's still under the couch.",
 	"it presses LOAD anyway.",
 ]
+## Canon decision B: in the `rue` ending she picks a colour nobody chose for
+## her (Player.OWN), and keeps it.
+const RUE_OWN_COLOUR := "before it loads, she picks one more thing for herself: a colour. nobody chose it for her. she wears it in her hair."
 const EPILOGUE_PIP := "a small orange fox curls up at the bottom of the screen. nobody saved it. it came anyway."
 
 
@@ -537,6 +540,7 @@ static func epilogue(ending: String, found: int, pip: bool, message := 0) -> Arr
 			lines.append("the eraser stops. the cursor goes still. for the first time, the save is quiet.")
 		"rue":
 			lines = EPILOGUE_TRUE.duplicate()
+			lines.insert(1, RUE_OWN_COLOUR)
 		"unseen":
 			lines = [
 				"past the last drawn tile there's a grey that isn't anything.",

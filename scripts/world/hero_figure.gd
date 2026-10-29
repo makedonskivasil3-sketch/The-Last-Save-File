@@ -463,6 +463,7 @@ func _hero_head(p: IllustratedCharacter._Parts, r: Dictionary) -> void:
 			p.ellipse(c + Vector2(rx - 0.6, 0.8), Vector2(1.1, 2.2), hair)
 		elif style == "messy":
 			_tuft(p, c + Vector2(0.4, -ry) + ho * 1.6, hair)
+		_own_clip(p, c, rx, ry, r)
 		return
 	# Hair on top: a crown with locks, shaped per character.
 	match style:
@@ -485,10 +486,24 @@ func _hero_head(p: IllustratedCharacter._Parts, r: Dictionary) -> void:
 				p.poly(PackedVector2Array([c + Vector2(s * (rx + 0.3), 0.6), c + Vector2(s * (rx - 0.6), -2.6), c + Vector2(s * (rx - 2.2), -1.8), c + Vector2(s * (rx - 1.2), 1.6)]), hair)
 		"elder":
 			_hair_cap(p, c, rx, ry, -0.8, hair)
+	_own_clip(p, c, rx, ry, r)
 	if hero.get("beard", false):
 		p.poly(PackedVector2Array([c + Vector2(-rx + 0.6, ry * 0.25), c + Vector2(rx - 0.6, ry * 0.25), c + Vector2(rx * 0.55, ry + 4.4), c + Vector2(0, ry + 5.6), c + Vector2(-rx * 0.55, ry + 4.4)]), hair)
 	if hero.get("moustache", false):
 		p.ellipse(c + Vector2(0.4 if r.side else 0.0, ry * 0.42), Vector2(2.4, 0.75), hair.darkened(0.1), false)
+
+
+## Her own colour (Player.OWN, canon decision B): a small flower clip in her
+## hair, in the one colour nobody chose for her. Only when the palette has
+## it, so the owner's flicker (the MISSING palette) takes it away too.
+func _own_clip(p: IllustratedCharacter._Parts, c: Vector2, rx: float, ry: float, r: Dictionary) -> void:
+	var own: Variant = palette.get("o")
+	if not own is Color:
+		return
+	var at := c + Vector2(rx * (0.1 if r.side else 0.62) * float(r.flip), -ry * 0.62)
+	for k in 4:
+		p.circle(at + Vector2.from_angle(k * PI * 0.5 + 0.4) * 0.85, 0.75, own)
+	p.circle(at, 0.5, (own as Color).lightened(0.55))
 
 
 func _tuft(p: IllustratedCharacter._Parts, at: Vector2, hair: Color) -> void:
