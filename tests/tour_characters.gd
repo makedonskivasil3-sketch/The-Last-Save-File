@@ -55,3 +55,20 @@ func test_mira_lost() -> void:
 
 func test_mira_kept() -> void:
 	await _mira_shot("", 1, "m04_mira_kept")
+
+
+func test_pip() -> void:
+	memory().found_pip = true
+	var w := await start_session()
+	await wait_until(func() -> bool: return w.pip != null and w._awake, 8.0, "Pip")
+	await go_to(w, "square", "house")
+	w.director.paused = true
+	w.area.arin.paused = true
+	w.area.arin.position = Vector2(860, 300)
+	w.player.global_position = Vector2(400, 250)
+	await wait_until(func() -> bool: return w.pip.resting(), 12.0, "resting")
+	await wait(0.5)
+	await shot("p01_pip_resting")
+	w.area.arin.global_position = w.player.global_position + Vector2(60, 0)
+	await wait(1.4)
+	await shot("p02_pip_afraid")

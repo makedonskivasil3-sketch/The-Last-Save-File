@@ -24,7 +24,11 @@ const WARN_DISTANCE := 85.0
 ## area, and again once Rue has stood still this long. Otherwise it stays at
 ## her heel: a companion, not a route arrow.
 const ARRIVAL_LEAD := 3.0
-const HESITATE := 2.5
+## Leading again needs a long stop (12 s: someone looking around or reading
+## doesn't want a nudge every few seconds), and happens once per stop.
+const HESITATE := 12.0
+## After this long still, Pip lies down at her feet, awake.
+const REST_AFTER := 6.0
 ## Coming back to her (a new run): one quick circle round her feet.
 const GREET := 1.4
 
@@ -44,6 +48,10 @@ var _since_arrival := 0.0
 var _still := 0.0
 var _greet := 0.0
 var _leading := false
+## Led during this stop already (reset when she moves on).
+var _led_this_stop := false
+## 0..1: Arin is close; Pip crouches behind her, ears flat.
+var _afraid := 0.0
 
 
 func greeting() -> bool:
@@ -114,15 +122,27 @@ func _follow(delta: float) -> void:
 	var want := p + Vector2(-12.0 * _facing, 6.0)
 	_since_arrival += delta
 	_still = _still + delta if world.player.velocity.length() < 5.0 else 0.0
+	if _still == 0.0:
+		_led_this_stop = false
+	var arin: Variant = world.area.get("arin") if world.area else null
+	var near: bool = arin is Node2D and arin.global_position.distance_to(p) < WARN_DISTANCE
+	_afraid = move_toward(_afraid, 1.0 if near else 0.0, delta * 3.0)
 	if _greet > 0.0:
 		_greet -= delta
 		var a := (1.0 - _greet / GREET) * TAU
 		want = p + Vector2(cos(a), sin(a) * 0.6) * 16.0  # round her feet
 	var goal := world.guide_target()
-	_leading = _greet <= 0.0 and goal != Vector2.INF and goal.distance_to(p) > 20.0 \
-		and (_since_arrival < ARRIVAL_LEAD or _still > HESITATE)
+	var long_stop := _still > HESITATE and (not _led_this_stop or _leading)
+	_leading = _greet <= 0.0 and _afraid < 0.5 and goal != Vector2.INF and goal.distance_to(p) > 20.0 \
+		and (_since_arrival < ARRIVAL_LEAD or long_stop)
+	if _leading and _still > HESITATE:
+		_led_this_stop = true
+		if _still > HESITATE + 2.5:
+			_leading = false  # nosed the way once; back to her heel
 	if _leading:
 		want = p + (goal - p).normalized() * LEAD  # nose toward what's next
+	elif _afraid > 0.5 and arin is Node2D:
+		want = p + (p - arin.global_position).normalized() * 9.0 + Vector2(0, 3)  # behind her, away from him
 	var to := want - global_position
 	_moving = to.length() > 3.0
 	if _moving:
@@ -157,6 +177,9 @@ func _draw_fox() -> void:
 	# shapes with the shared outline, drawn facing right and mirrored.
 	var f := _facing
 	var sit := mode == Mode.WAITING or not _moving
+	if mode == Mode.FOLLOWING and resting():
+		_draw_resting(f)
+		return
 	var bob := 0.0 if _moving else sin(_t * 2.0) * 0.4
 	var swish := sin(_t * (9.0 if _moving else 3.0)) * 1.4
 	var step := sin(_t * 18.0) * 1.2 if _moving else 0.0
@@ -171,7 +194,7 @@ func _draw_fox() -> void:
 		if z < 1.2:
 			draw_string(ThemeDB.fallback_font, Vector2(5, -8 - z * 4.0), "z", HORIZONTAL_ALIGNMENT_LEFT, -1, 7, Color(1, 1, 1, 0.6))
 		return
-	var y := -1.5 + bob
+	var y := -1.5 + bob + _afraid * 1.4  # crouched low when Arin is near
 	# Tail behind, then legs, body, chest, head, ears.
 	var tail := PackedVector2Array([Vector2(-5 * f, y - 4), Vector2(-11 * f, y - 6 + swish), Vector2(-13 * f, y - 4 + swish), Vector2(-6 * f, y - 2)])
 	_poly(tail, ORANGE)
@@ -190,8 +213,10 @@ func _draw_fox() -> void:
 	_blob(Vector2(1.4 * f, y - 2.8), Vector2(2.2, 1.4), WHITE, false)  # white chest
 	var head := Vector2(4.4 * f, y - 7.6 + (0.4 if sit else 0.0))
 	for ear: float in [-1.4, 1.4]:
-		_poly(PackedVector2Array([head + Vector2((ear - 1.0) * f, -1.6), head + Vector2(ear * f, -5.0), head + Vector2((ear + 1.2) * f, -1.8)]), ORANGE)
-		_poly(PackedVector2Array([head + Vector2((ear - 0.4) * f, -2.0), head + Vector2(ear * f, -4.0), head + Vector2((ear + 0.6) * f, -2.1)]), DARK, false)  # inside the ear
+		# Ears up and forward; laid flat back when Arin is near.
+		var tip := head + Vector2(ear * f, -5.0).lerp(Vector2((ear - 3.2) * f, -2.4), _afraid)
+		_poly(PackedVector2Array([head + Vector2((ear - 1.0) * f, -1.6), tip, head + Vector2((ear + 1.2) * f, -1.8)]), ORANGE)
+		_poly(PackedVector2Array([head + Vector2((ear - 0.4) * f, -2.0), head.lerp(tip, 0.7), head + Vector2((ear + 0.6) * f, -2.1)]), DARK, false)  # inside the ear
 	_poly(PackedVector2Array([head + Vector2(-2.6 * f, -1.8), head + Vector2(2.2 * f, -2.2), head + Vector2(4.6 * f, 0.6), head + Vector2(1.6 * f, 2.2), head + Vector2(-2.4 * f, 1.4)]), ORANGE)
 	_poly(PackedVector2Array([head + Vector2(1.4 * f, 0.2), head + Vector2(4.6 * f, 0.6), head + Vector2(1.8 * f, 2.2)]), WHITE, false)  # muzzle
 	Decor.disc(self, head + Vector2(4.6 * f, 0.5), 0.7, Decor.INK, 8)  # nose
@@ -201,6 +226,31 @@ func _draw_fox() -> void:
 		var c := Color(1.0, 0.85, 0.45, minf(1.0, _yip * 3.0))
 		draw_rect(Rect2(-1, y - 22, 2, 6), c)
 		draw_rect(Rect2(-1, y - 15, 2, 2), c)
+
+
+## Lying down at her feet while she stands a while: awake, chin on paws,
+## blinking, the tail's white tip flicking now and then.
+func resting() -> bool:
+	return not _moving and _still > REST_AFTER and _afraid < 0.2 and not _leading and _greet <= 0.0
+
+
+func _draw_resting(f: float) -> void:
+	_blob(Vector2(0, -2.2), Vector2(6.6, 3.2), ORANGE, true)
+	_ellipse(Vector2(0, -1.2), Vector2(5.4, 1.2), ORANGE.darkened(0.16))
+	var flick := maxf(0.0, sin(_t * 1.3)) * 1.6 if fmod(_t, 5.0) < 1.4 else 0.0
+	_blob(Vector2(-5.6 * f, -1.6 - flick * 0.4), Vector2(3.2, 1.8), ORANGE.darkened(0.06), true)
+	_blob(Vector2(-8.0 * f, -1.8 - flick), Vector2(1.5, 1.2), WHITE, false)
+	var head := Vector2(5.0 * f, -2.6)
+	_blob(head, Vector2(2.8, 2.2), ORANGE, true)
+	_blob(head + Vector2(1.8 * f, 0.9), Vector2(1.6, 0.9), WHITE, false)  # muzzle on her paws
+	for ear: float in [-1.0, 1.2]:
+		_poly(PackedVector2Array([head + Vector2((ear - 0.9) * f, -1.4), head + Vector2((ear - 0.2) * f, -4.2), head + Vector2((ear + 0.9) * f, -1.6)]), ORANGE)
+	var blink := fmod(_t, 3.7) < 0.15
+	if blink:
+		draw_line(head + Vector2(0.4 * f, -0.6), head + Vector2(1.4 * f, -0.6), DARK, 0.6)
+	else:
+		Decor.disc(self, head + Vector2(0.9 * f, -0.6), 0.6, Color(0.1, 0.05, 0.05), 8)
+	Decor.disc(self, head + Vector2(3.3 * f, 0.7), 0.6, Decor.INK, 8)  # nose
 
 
 ## A soft blob (with the shared outline behind it if `outline`).
