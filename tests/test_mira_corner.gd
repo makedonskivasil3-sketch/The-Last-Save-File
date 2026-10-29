@@ -48,3 +48,12 @@ func test_kept_by_the_owner_is_drawn() -> void:
 	var w := await _room()
 	check(w.area.mira.state == Npc.State.RESTRICTED, "(restricted)")
 	check(w.area.corner.kept, "the owner's selection box round where she's kept")
+
+
+func test_a_deleted_mira_leaves_no_table_and_nothing_behind() -> void:
+	memory().purge = 3  # Mira deleted (World.is_mira_deleted)
+	var before := Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)
+	var w := await start_session()
+	check(w.area.corner == null, "no table: she isn't there")
+	await go_to(w, "square", "house")
+	check_eq(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT), before, "and no stray node left over from the room")

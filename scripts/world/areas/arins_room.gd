@@ -168,13 +168,15 @@ func build() -> void:
 			mira_state = Npc.State.DELETED
 		elif OwnerMemory.purge >= 1:
 			mira_state = Npc.State.RESTRICTED
-	corner = MiraCorner.new()
-	corner.position = MIRA_TABLE
-	corner.quest = OwnerMemory.mira_quest
-	corner.kept = mira_state == Npc.State.RESTRICTED
-	corner.kept_at = MIRA_POS
-	corner.sill = Vector2(WINDOW.end.x - 8, WINDOW.end.y + 3)
+	corner = null
 	if not world.is_mira_deleted():
+		# Only made when it goes in the room: a deleted Mira leaves no table.
+		corner = MiraCorner.new()
+		corner.position = MIRA_TABLE
+		corner.quest = OwnerMemory.mira_quest
+		corner.kept = mira_state == Npc.State.RESTRICTED
+		corner.kept_at = MIRA_POS
+		corner.sill = Vector2(WINDOW.end.x - 8, WINDOW.end.y + 3)
 		add_child(corner)
 		if corner.note_on_table() and not (world.escort and world.escort.npc_id == "mira"):
 			var folded := add_readable("MIRA'S NOTE", MIRA_TABLE + Vector2(0, 3), Readable.Look.NONE, func() -> Array: return Story.MIRA_NOTE_FOLDED.duplicate())
