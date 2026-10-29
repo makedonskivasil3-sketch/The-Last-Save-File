@@ -57,6 +57,11 @@ var square_gate_open := false
 ## memories), oldest first. Each entry is {id, kind, title, area, lines}.
 ## A note the owner rewrote keeps every version Rue saw.
 var journal: Array[Dictionary] = []
+## Seconds between the last save of the previous launch and this one (0: a
+## new save or an old file without the stamp). Read by World for "Previously".
+var away_seconds := 0.0
+## Tests: the stamp to write instead of now (< 0: now).
+var last_saved_unix_override := -1.0
 ## Generous sanity limits: the game has far fewer readable things than this,
 ## and reaching either one warns instead of dropping a line silently.
 const MAX_JOURNAL := 400
@@ -910,6 +915,7 @@ func save_memory() -> bool:
 		"returned_pending": returned_pending,
 		"shed_said": shed_said,
 		"last_exit": last_exit,
+		"last_saved_unix": last_saved_unix_override if last_saved_unix_override >= 0.0 else Time.get_unix_time_from_system(),
 		"start_previous": start_previous,
 		"encounters": encounters,
 		"conversations": conversations,
@@ -1073,6 +1079,9 @@ func load_memory() -> void:
 	wins = _int(data, "wins", 0)
 	purge = _int(data, "purge", 0, MAX_PURGE)
 	last_exit = _str(data, "last_exit", "none")
+	# How long the save sat untouched before this launch ("Previously").
+	var saved_at := float(data.get("last_saved_unix", 0.0)) if (data.get("last_saved_unix", 0.0) is float or data.get("last_saved_unix", 0.0) is int) else 0.0
+	away_seconds = maxf(0.0, Time.get_unix_time_from_system() - saved_at) if saved_at > 0.0 else 0.0
 	start_previous = _str(data, "start_previous", "none")
 	met_archivist = _bool(data, "met_archivist")
 	found_pip = _bool(data, "found_pip")

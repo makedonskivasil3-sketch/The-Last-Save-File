@@ -36,6 +36,9 @@ var _small_print: Array[Label] = []
 var _menu_scroll: ScrollContainer
 
 
+var build_label: Label
+
+
 func _ready() -> void:
 	Sfx.reset_scene_state()
 	WebState.publish({"scene": "title", "playable": false})  # nothing muffled or ducked carries in from the run
@@ -67,6 +70,19 @@ func _ready() -> void:
 	_ui.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_ui.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui_layer.add_child(_ui)
+	# Which build this is, small, bottom right (BuildInfo): out of the
+	# menu's way, there for a playtest note or a bug report.
+	build_label = Label.new()
+	build_label.text = BuildInfo.stamp()
+	UiStyle.sized(build_label, 7)
+	build_label.add_theme_color_override("font_color", Color(0.6, 0.62, 0.68, 0.55))
+	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	build_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	build_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui.add_child(build_label)
+	var h := build_label.get_minimum_size().y
+	build_label.position = Vector2(440, 358 - h)
+	build_label.size = Vector2(194, h)
 	# Left column, title type large and flush left; the key art has the
 	# right of the screen (scripts/fx/title_art.gd).
 	_menu = UiStyle.side_panel(_ui, 268)

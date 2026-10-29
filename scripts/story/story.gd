@@ -276,7 +276,10 @@ const OWNER_RECOGNITION := {
 }
 
 
-## The five acts. Each title card shows the first time you reach its area.
+## The five acts. Each title card shows the first time you reach its area,
+## numbered in the order this player reached them (UI-6: the Archive and
+## Out of Bounds can come either way round), so the cards always count up.
+## The labels below are the usual route's order.
 const ACTS := {
 	"room": ["ACT I", "SOMEONE ELSE'S SAVE"],
 	"square": ["ACT II", "ASHVALE"],
@@ -284,6 +287,10 @@ const ACTS := {
 	"archive": ["ACT IV", "CUT CONTENT"],
 	"edge": ["ACT V", "THE LAST SAVE FILE"],
 }
+
+static func act_label(n: int) -> String:
+	return "ACT " + ["I", "II", "III", "IV", "V", "VI"][clampi(n, 1, 6) - 1]
+
 
 ## Pip, the first time you find them out of bounds.
 const PIP_MEETING := [

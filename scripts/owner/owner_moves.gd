@@ -248,7 +248,7 @@ func load_last_save(force := false) -> void:
 	_history.resize(mini(target + 1, _history.size()))
 	_end_rewind()
 	_grace()
-	await get_tree().create_timer(0.8).timeout
+	await _wait(0.8)
 	if is_inside_tree() and world.hud.banner_text().begins_with("◀◀"):
 		world.hud.set_banner("")
 
@@ -394,6 +394,8 @@ func _update_save(delta: float) -> void:
 
 func _update_wren(delta: float, aw: float) -> void:
 	var who := world.escort_id()
+	if world.bench_immune:
+		return  # a benchmark's escort stays for the whole measurement (PL-5)
 	# Wren: deleted (unless she's cut content now). Mira: reset, whenever
 	# she's out of her room, however calm the owner is.
 	if who == "" or (who == "wren" and OwnerMemory.wren_saved) or (who == "mira" and world.area.area_id == "room"):
@@ -493,3 +495,14 @@ func _draw_ring(p: Vector2, k: float, text: String) -> void:
 	draw_line(p + Vector2(-4, -4), p + Vector2(4, 4), Color(1.0, 0.4, 0.4), 2.0)
 	draw_line(p + Vector2(4, -4), p + Vector2(-4, 4), Color(1.0, 0.4, 0.4), 2.0)
 	draw_string(UiStyle.system_font(), p + Vector2(-40, 20), text, HORIZONTAL_ALIGNMENT_CENTER, 80, 8, Color(1.0, 0.5, 0.5))
+
+
+## Waits `s` seconds of game time on frames, not a SceneTreeTimer: a timer
+## awaited by a node freed before it fires stays referenced and is reported
+## leaked at exit (ISSUE_REGISTER PL-3). Counts while the tree is paused,
+## as create_timer does by default.
+func _wait(s: float) -> void:
+	var t := 0.0
+	while t < s and is_inside_tree():
+		await get_tree().process_frame
+		t += get_process_delta_time()

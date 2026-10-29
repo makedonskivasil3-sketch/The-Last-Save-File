@@ -95,6 +95,7 @@ func _ready() -> void:
 	_pause_menu.console_hud = hud
 	_pause_menu.quit_requested.connect(_quit)
 	_pause_menu.suspend_handler = try_suspend
+	_pause_menu.report_provider = problem_report
 	OwnerMemory.safe_close = _close_safely
 	_pause_menu.debug_requested.connect(debug)
 	add_child(_pause_menu)
@@ -151,7 +152,7 @@ func _ready() -> void:
 ## Waking up: the very first time, the save boots and flags you; every time,
 ## you assemble out of pixels before the owner starts watching.
 func _begin_session(previous: String) -> void:
-	PlaytestLog.mark("session %d started" % OwnerMemory.sessions, "purge %d/%d, last exit: %s" % [OwnerMemory.purge, OwnerMemory.MAX_PURGE, previous])
+	PlaytestLog.mark("session %d started" % OwnerMemory.sessions, "purge %d/%d, last exit: %s, owner pace: %s, %s" % [OwnerMemory.purge, OwnerMemory.MAX_PURGE, previous, "gentle" if Settings.owner_pace == 1 else "normal", BuildInfo.stamp()])
 	_cutscene = true
 	player.frozen = true
 	# The boot log, unless the festival just showed its own (in the square).
@@ -163,10 +164,17 @@ func _begin_session(previous: String) -> void:
 		await _settle_resume()  # before she can move: never inside something rebuilt
 		if not is_inside_tree() or ending != "":
 			return
+	# Back after a real break: where she was and what she was doing, before
+	# anything moves (docs/prompts/NEXT_PASS_2026-10-29.md §1).
+	var recap := previously()
+	if not recap.is_empty():
+		await hud.cinematic("PREVIOUSLY", recap, Hud.SELF_COLOR, 0.8)
+		if not is_inside_tree() or ending != "":
+			return
 	fx.spike(0.6, 1.0)  # loading into a save you don't belong in
 	player.dissolve("materialize")
 	Sfx.play("fragment", -4.0, 0.5, 0.0)  # pieces of you, pulled together
-	await get_tree().create_timer(1.4 if OwnerMemory.sessions == 1 else 0.45).timeout
+	await _wait(1.4 if OwnerMemory.sessions == 1 else 0.45)
 	if not is_inside_tree() or ending != "":
 		return
 	player.frozen = false
@@ -200,6 +208,66 @@ func _begin_session(previous: String) -> void:
 		get_tree().create_timer(7.0).timeout.connect(func() -> void:
 			if is_inside_tree() and ending == "":
 				voice("fragment_hint"))
+
+
+## The text "Report a problem" copies: what build, where, what Rue was
+## doing, the settings that change play, and the last console lines. No
+## names, paths or anything about the player's machine beyond the platform.
+func problem_report() -> String:
+	var lines: Array[String] = ["THE LAST SAVE FILE · problem report", BuildInfo.stamp(),
+		"platform: %s" % OS.get_name(),
+		"area: %s at (%d, %d)" % [area.area_id if area else "?", int(player.global_position.x) if player else 0, int(player.global_position.y) if player else 0],
+		"session %d · purge %d/%d · awareness %d" % [OwnerMemory.sessions, OwnerMemory.purge, OwnerMemory.MAX_PURGE, int(director.awareness) if director else 0],
+		"goal: %s" % current_goal(),
+		"with: %s%s" % [escort.display_name if escort else "nobody", " + Pip" if OwnerMemory.found_pip else ""],
+		"settings: movement %s · owner pace %s · reduce motion %s · reduce flashing %s · text %s" % [MoveFeel.current(), "gentle" if Settings.owner_pace == 1 else "normal", Settings.reduce_motion, Settings.reduce_flashing, "large" if Settings.large_text else "normal"],
+		"", "last lines:"]
+	var recent: Array = hud.history.slice(maxi(0, hud.history.size() - 40))
+	for e: Dictionary in recent:
+		lines.append("  " + str(e.get("text", "")).replace("\n", " "))
+	if PlaytestLog.enabled():
+		lines.append("")
+		lines.append("playtest log:")
+		for l in PlaytestLog.lines.slice(maxi(0, PlaytestLog.lines.size() - 40)):
+			lines.append("  " + l)
+	return "\n".join(lines)
+
+
+## "Previously" after this long away (seconds).
+const RECAP_AFTER := 20.0 * 60.0
+var _recapped := false
+
+
+## The recap for a player coming back after RECAP_AFTER: the goal, the last
+## two things she read or heard, and who is with her. Only what the player
+## has seen (the journal holds nothing else). Empty when not due: a first
+## run, a quick retry, or already shown this launch.
+func previously() -> Array:
+	if _recapped or OwnerMemory.sessions <= 1 or OwnerMemory.away_seconds < RECAP_AFTER or OwnerMemory.journal.is_empty():
+		return []
+	_recapped = true
+	var lines: Array = []
+	var goal := current_goal()
+	if goal != "":
+		lines.append("(where i was: %s)" % goal.to_lower().trim_suffix("."))
+	var seen: Array = []
+	for i in range(OwnerMemory.journal.size() - 1, -1, -1):
+		var e: Dictionary = OwnerMemory.journal[i]
+		if str(e.get("title", "")) != "" and e.get("lines", []).size() > 0:
+			seen.append(e)
+		if seen.size() == 2:
+			break
+	for e: Dictionary in seen:
+		lines.append("%s: \"%s\"" % [str(e.title).to_upper(), str(e.lines[0]).left(90)])
+	var with: Array[String] = []
+	if escort:
+		with.append(escort.display_name.capitalize())
+	if OwnerMemory.found_pip:
+		with.append("Pip")
+	if not with.is_empty():
+		lines.append("(with me: %s.)" % " and ".join(with))
+	PlaytestLog.mark("previously shown", "away %d min" % int(OwnerMemory.away_seconds / 60.0))
+	return lines
 
 
 ## The intruder thinks out loud, once per beat per session.
@@ -540,6 +608,7 @@ func _process(delta: float) -> void:
 	_update_escort(delta)
 	_update_safe_mark(delta)
 	owner_moves.update(delta)
+	_check_portrait()
 	# [E] itself is read by the GlitchController: a tap comes back as tap_interact().
 
 
@@ -664,6 +733,16 @@ func focus_lost() -> void:
 	else:
 		get_tree().paused = true  # an epilogue or end card: hold it
 		_focus_paused = true
+
+
+## A phone turned to portrait mid-play (UI-2): the game is too small to play
+## like that, so it pauses like a lost focus; turning back, the player
+## resumes from the menu when ready.
+func _check_portrait() -> void:
+	if touch == null or not touch.active or not is_inside_tree() or get_tree().paused:
+		return
+	if TouchControls.is_portrait(Vector2(get_window().size)) and ending == "" and not purged:
+		open_pause()
 
 
 ## The player's controller dropped out mid-play (battery, cable): hold the
@@ -938,7 +1017,7 @@ func _area_intro() -> void:
 	if not purged and Story.ACTS.has(id) and id not in OwnerMemory.acts_seen:
 		OwnerMemory.acts_seen.append(id)
 		OwnerMemory.save_memory()
-		hud.show_act(Story.ACTS[id][0], Story.ACTS[id][1], area.display_name)
+		hud.show_act(Story.act_label(OwnerMemory.acts_seen.size()), Story.ACTS[id][1], area.display_name)
 	else:
 		hud.show_area_title(area.display_name)
 
@@ -1285,7 +1364,7 @@ func debug(action: String) -> void:
 		"drag":
 			if area.area_id != "square":
 				change_area("square", "well")
-				await get_tree().create_timer(0.8).timeout
+				await _wait(0.8)
 			if director.awareness < OwnerDirector.HUNT:
 				director.add_awareness(OwnerDirector.HUNT + 1.0 - director.awareness)
 			await get_tree().process_frame
@@ -1771,14 +1850,14 @@ func kill(cause: String, reason := "") -> void:
 	if area.area_id == "edge" and reason == "eraser":
 		tip = "Next time the static waits %d s before it starts. Its cracks show where." % int(TheEdge.grace_time())
 	# Let the death play out on screen before the text slams in.
-	await get_tree().create_timer(0.6).timeout
+	await _wait(0.6)
 	if not is_inside_tree():
 		return
 	hud.show_death(title, body, cause, tip, death_kept_line())
 	# The card waits for the player: the advice is read, then a press retries.
 	# A moment first, so a press still held from play doesn't skip it; less
 	# for a death the player has had before (the repeat player's fast path).
-	await get_tree().create_timer(RETRY_LOCK_REPEAT if times > 1 else RETRY_LOCK).timeout
+	await _wait(RETRY_LOCK_REPEAT if times > 1 else RETRY_LOCK)
 	if not is_inside_tree():
 		return  # F9 may have reloaded the scene in the meantime
 	hud.show_retry()
@@ -1873,12 +1952,12 @@ func _slot2_press() -> void:
 	if OwnerMemory.knows_truth:
 		slot2_press = "own"  # (she says so as the final exchange opens: win())
 		Sfx.play("click", -6.0, 0.85, 0.0)
-		await get_tree().create_timer(0.6).timeout
+		await _wait(0.6)
 	else:
 		slot2_press = "habit"
 		for h in Opening.HABIT:
 			get_tree().create_timer(h[0]).timeout.connect(func() -> void: Sfx.play("click", h[1], 1.3 if h[0] < 0.5 else 1.0, 0.0))
-		await get_tree().create_timer(0.8).timeout
+		await _wait(0.8)
 
 
 ## An ending: "escape" (Rue takes Slot 2), "wren" (Wren gets it), or
@@ -1904,7 +1983,7 @@ func win(chosen := "escape", message := 0) -> void:
 	var found := OwnerMemory.fragments.size()
 	var epilogue := Story.epilogue(chosen, found, OwnerMemory.found_pip, message)
 	OwnerMemory.record_win(chosen)
-	await get_tree().create_timer(1.5).timeout
+	await _wait(1.5)
 	if not is_inside_tree():
 		return
 	# The console, live: the last thing said.
@@ -1998,7 +2077,7 @@ func _quit(to_title: bool = false) -> void:
 	hud.show_overlay("QUITTING", "leaving? i'll still be here.")
 	fx.power_off(1.4)
 	Sfx.play("power_off", 0.0, 1.0, 0.0)
-	await get_tree().create_timer(1.6).timeout
+	await _wait(1.6)
 	if not is_inside_tree():
 		return
 	if to_title:
@@ -2076,7 +2155,7 @@ func _leave_suspended(to_title := true) -> void:
 	hud.show_overlay("SAVED", "i'll be right here.")
 	fx.power_off(1.0)
 	Sfx.play("power_off", -4.0, 1.2, 0.0)
-	await get_tree().create_timer(1.2).timeout
+	await _wait(1.2)
 	if not is_inside_tree():
 		return
 	if to_title:
@@ -2271,3 +2350,14 @@ func _handle_wipe(delta: float) -> void:
 	elif _wipe_hold > 0.0:
 		_wipe_hold = 0.0
 		hud.set_hint("")
+
+
+## Waits `s` seconds of game time on frames, not a SceneTreeTimer: a timer
+## awaited by a node freed before it fires stays referenced and is reported
+## leaked at exit (ISSUE_REGISTER PL-3). Counts while the tree is paused,
+## as create_timer does by default.
+func _wait(s: float) -> void:
+	var t := 0.0
+	while t < s and is_inside_tree():
+		await get_tree().process_frame
+		t += get_process_delta_time()

@@ -51,7 +51,16 @@ func _ready() -> void:
 	active = OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios")
 
 
+static func is_portrait(win: Vector2) -> bool:
+	return win.y > win.x
+
+
 func _input(event: InputEvent) -> void:
+	# A key or a pad press: the player switched device (UI-2, UX C12). The
+	# controls hide until the screen is touched again.
+	if active and (event is InputEventKey or event is InputEventJoypadButton) and event.is_pressed() and _held.is_empty() and _stick_finger == -1:
+		active = false
+		return
 	if event is InputEventScreenTouch:
 		active = true
 		if not buttons_enabled:
@@ -154,7 +163,7 @@ func cancel_touches() -> void:
 func _on_draw() -> void:
 	var font := ThemeDB.fallback_font
 	var win := Vector2(get_window().size)
-	if win.y > win.x:
+	if is_portrait(win):
 		# Portrait: the game is tiny like this.
 		_draw_node.draw_rect(Rect2(0, 0, 640, 360), Color(0, 0, 0, 0.85))
 		_draw_node.draw_string(font, Vector2(0, 170), "turn your phone sideways", HORIZONTAL_ALIGNMENT_CENTER, 640, 18, CYAN)

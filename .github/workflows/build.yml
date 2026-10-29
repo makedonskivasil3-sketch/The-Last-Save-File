@@ -69,6 +69,8 @@ jobs:
 
       - name: Export
         run: |
+          # The build stamp the game shows (BuildInfo): the commit it was built from.
+          printf '{"commit": "%s", "date": "%s"}\n' "${GITHUB_SHA::7}" "$(date -u +%Y-%m-%d)" > build_info.json
           mkdir -p build/windows build/linux build/web
           ~/godot/godot --headless --path . --export-release "Windows Desktop"
           ~/godot/godot --headless --path . --export-release "Linux"

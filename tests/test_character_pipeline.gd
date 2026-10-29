@@ -108,3 +108,21 @@ func test_the_world_draws_the_new_cast() -> void:
 	check(w.area.arin._sprite is HeroFigure, "Arin")
 	check(w.area.wren.sprite() is HeroFigure and w.area.tobben.sprite() is HeroFigure, "Wren and Tobben")
 	check(w.area.wren.sprite().height() < w.area.tobben.sprite().height(), "Wren is a child beside Tobben")
+
+
+## UI-5: "solid" draws the sheet's shape in one colour (a silhouette), as
+## the procedural rig does, not a tint of its colours.
+func test_solid_is_a_silhouette() -> void:
+	_write_sheet("rue", ["idle.front", "idle.back", "idle.side", "walk.front", "walk.side"])
+	var fig := CharacterArt.figure("rue", "rue", Player.RUE)
+	check(fig is CharacterSheet, "the sheet")
+	if not fig is CharacterSheet:
+		return
+	var s: CharacterSheet = fig
+	var img := s.silhouette().get_image()
+	if img == null or img.is_empty():
+		check(s.silhouette() == s.texture, "no pixel read-back here: falls back to the sheet")
+		return
+	check_eq(img.get_pixel(6, 10), Color(1, 1, 1, 1), "an opaque pixel is white (any colour modulates it exactly)")
+	check_eq(img.get_pixel(0, 0).a, 0.0, "a transparent one stays transparent")
+	check(s.silhouette() == s.silhouette(), "built once")

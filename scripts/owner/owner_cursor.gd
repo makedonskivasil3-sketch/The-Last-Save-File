@@ -77,14 +77,14 @@ func _drag_step(delta: float) -> void:
 	match _drag_phase:
 		"fetch":
 			var to := _drag_prop.global_position - position
-			position += to.normalized() * minf(speed * 1.6 * delta, to.length())
+			position += to.normalized() * minf(speed * 1.6 * Settings.pace("cursor") * delta, to.length())
 			if to.length() < 3.0:
 				_drag_phase = "carry"
 				_drag_prop.held = true
 				Sfx.play("click")
 		"carry":
 			var to := _drag_to - _drag_prop.global_position
-			var step := to.normalized() * minf(speed * 0.9 * delta, to.length())
+			var step := to.normalized() * minf(speed * 0.9 * Settings.pace("cursor") * delta, to.length())
 			# Never drop it onto Rue: wait while she's in the way.
 			var next := Rect2(_drag_prop.global_position + step - _drag_prop.size * 0.5, _drag_prop.size).grow(5.0)
 			if is_instance_valid(player) and next.has_point(player.global_position):
@@ -133,7 +133,7 @@ func _physics_process(delta: float) -> void:
 	elif position.distance_to(_goal) < 6.0:
 		_goal = _random_point()
 	var to := _goal - position
-	var spd := speed if visible_target or decoy != Vector2.INF else speed * 0.6
+	var spd := (speed if visible_target or decoy != Vector2.INF else speed * 0.6) * Settings.pace("cursor")
 	position += to.normalized() * minf(spd * delta, to.length())
 
 	_tracking = visible_target

@@ -8,6 +8,8 @@ signal quit_requested(to_title: bool)
 ## Save and exit (World.try_suspend): returns "" once the save is on disk,
 ## otherwise why it isn't, and then the menu stays up and says so.
 var suspend_handler: Callable
+## World.problem_report: the text for "Report a problem".
+var report_provider: Callable
 ## A debug tool was picked (World.debug()).
 signal debug_requested(action: String)
 
@@ -20,6 +22,7 @@ var _history_text: RichTextLabel
 var _history_back: Button
 var console_hud: Hud
 ## The playtest log page (PlaytestLog, only with ?playtest=1 / --playtest).
+var build_label: Label
 var _log_box: VBoxContainer
 var _log_text: Label
 var _log_back: Button
@@ -80,6 +83,8 @@ func _ready() -> void:
 	# Pausing is safe; only quitting ends the run (and counts).
 	UiStyle.note(_main, "nothing moves until you resume. the owner waits.", UiStyle.MUTED)
 	_goal_label = UiStyle.note(_main, "", UiStyle.TEXT)
+	build_label = UiStyle.note(_main, BuildInfo.stamp(), UiStyle.MUTED)
+	UiStyle.sized(build_label, 7)
 	var actions := GridContainer.new()
 	actions.columns = 2
 	_main.add_child(actions)
@@ -92,6 +97,7 @@ func _ready() -> void:
 	UiStyle.button(actions, "How to Play", _show_help)
 	if PlaytestLog.enabled():
 		UiStyle.button(actions, "Playtest log", _show_playtest_log)
+	UiStyle.button(actions, "Report a problem", _show_report)
 	_suspend = UiStyle.button(actions, "Save and exit", _do_suspend)
 	UiStyle.button(actions, "Quit to title", _ask_quit.bind(true))
 	UiStyle.button(actions, "Quit game", _ask_quit.bind(false))
@@ -267,6 +273,20 @@ func _show_journal() -> void:
 	_journal.refresh()
 	_show_only(_journal_box)
 	_journal.focus_first.call_deferred()
+
+
+## "Report a problem": the facts the author needs, shown and copied. It goes
+## nowhere by itself (docs/prompts/NEXT_PASS_2026-10-29.md §3).
+func _show_report() -> void:
+	var text: String = report_provider.call() if report_provider.is_valid() else BuildInfo.stamp()
+	last_report = text
+	DisplayServer.clipboard_set(text)
+	_log_text.text = "COPIED. Paste it into your message to the author, with what you were doing. Nothing is sent from the game.\n\n" + text
+	_show_only(_log_box)
+	_log_back.grab_focus()
+
+
+var last_report := ""
 
 
 func _show_playtest_log() -> void:

@@ -308,6 +308,8 @@ func entry_point(arrival: String) -> Vector2:
 ## seed_deaths: also seed where you died here before (the owner remembers).
 ## Death seeds closer than this to Rue are skipped when the static starts.
 const SAFE_SEED_DISTANCE := 40.0
+## How long a death spot glows before its static starts.
+const DEATH_SEED_WARNING := 3.0
 
 
 func start_erasure(extra_seeds: Array[Vector2] = [], seed_deaths := true) -> void:
@@ -323,7 +325,13 @@ func start_erasure(extra_seeds: Array[Vector2] = [], seed_deaths := true) -> voi
 		var here: Vector2 = world.player.global_position if world and world.player else Vector2.INF
 		for p in OwnerMemory.deaths_in(area_id):
 			if here == Vector2.INF or p.distance_to(here) > SAFE_SEED_DISTANCE:
-				erasure.seed_at(p)
+				# Shown first, then grown: the spot glows for a few seconds
+				# before its static starts (PL-4b), so it can be read and
+				# gone round; the owner still remembers where she died.
+				erasure.seed_after(p, DEATH_SEED_WARNING * Settings.pace("warning"))
+				for g in get_children():
+					if g is GhostMarker and g.position.distance_to(p) < 1.0:
+						g.warn(DEATH_SEED_WARNING * Settings.pace("warning"))
 	for p in extra_seeds:
 		erasure.seed_at(p)
 	world.fx.eraser_starts()
@@ -477,3 +485,14 @@ func add_readable(title: String, pos: Vector2, look: Readable.Look, provider: Ca
 func draw_walls(gaps: Array = []) -> void:
 	Decor.wall_shadow(self, bounds, 12.0, 0.3)
 	Decor.walls(self, bounds, WALL, wall_face, wall_cap, gaps)
+
+
+## Waits `s` seconds of game time on frames, not a SceneTreeTimer: a timer
+## awaited by a node freed before it fires stays referenced and is reported
+## leaked at exit (ISSUE_REGISTER PL-3). Counts while the tree is paused,
+## as create_timer does by default.
+func _wait(s: float) -> void:
+	var t := 0.0
+	while t < s and is_inside_tree():
+		await get_tree().process_frame
+		t += get_process_delta_time()
