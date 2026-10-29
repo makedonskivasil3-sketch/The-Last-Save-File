@@ -5,6 +5,7 @@ extends "res://tests/test_case.gd"
 
 
 func test_a_death_spot_glows_before_its_static_starts() -> void:
+	settings().owner_pace = 0  # Normal: the 3 s warning
 	var spot := Vector2(470, 108)
 	memory().deaths_log.append({"area": "square", "x": spot.x, "y": spot.y, "session": 0})
 	var w := await start_session()

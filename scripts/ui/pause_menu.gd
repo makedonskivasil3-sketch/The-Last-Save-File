@@ -83,8 +83,6 @@ func _ready() -> void:
 	# Pausing is safe; only quitting ends the run (and counts).
 	UiStyle.note(_main, "nothing moves until you resume. the owner waits.", UiStyle.MUTED)
 	_goal_label = UiStyle.note(_main, "", UiStyle.TEXT)
-	build_label = UiStyle.note(_main, BuildInfo.stamp(), UiStyle.MUTED)
-	UiStyle.sized(build_label, 7)
 	var actions := GridContainer.new()
 	actions.columns = 2
 	_main.add_child(actions)
@@ -97,7 +95,6 @@ func _ready() -> void:
 	UiStyle.button(actions, "How to Play", _show_help)
 	if PlaytestLog.enabled():
 		UiStyle.button(actions, "Playtest log", _show_playtest_log)
-	UiStyle.button(actions, "Report a problem", _show_report)
 	_suspend = UiStyle.button(actions, "Save and exit", _do_suspend)
 	UiStyle.button(actions, "Quit to title", _ask_quit.bind(true))
 	UiStyle.button(actions, "Quit game", _ask_quit.bind(false))
@@ -131,6 +128,9 @@ func _ready() -> void:
 	_history_box = UiStyle.centered_panel(_root, 480)
 	UiStyle.heading(_history_box, "HISTORY", UiStyle.TEXT, 14)
 	UiStyle.note(_history_box, "Everything said this run: dialogue, scenes and the console", UiStyle.MUTED)
+	# Which build, and a way to tell the author what went wrong (the report
+	# carries these lines with it).
+	build_label = UiStyle.note(_history_box, BuildInfo.stamp(), UiStyle.MUTED)
 	_history_text = RichTextLabel.new()
 	_history_text.custom_minimum_size = Vector2(440, 120)
 	_history_text.bbcode_enabled = false
@@ -145,6 +145,7 @@ func _ready() -> void:
 	var navigation := HBoxContainer.new()
 	_history_box.add_child(navigation)
 	UiStyle.button(navigation, "Older ↑", _scroll_history.bind(-120.0))
+	UiStyle.button(navigation, "Report a problem", _show_report)
 	UiStyle.button(navigation, "Newer ↓", _scroll_history.bind(120.0))
 	_history_back = UiStyle.button(navigation, "Back", _show_main, "ui_back")
 

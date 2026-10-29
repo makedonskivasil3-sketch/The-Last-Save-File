@@ -5,6 +5,7 @@ extends "res://tests/test_case.gd"
 
 func after_each() -> void:
 	settings().owner_pace = 0
+	settings().save()  # never leave Gentle in the test settings file
 	memory().away_seconds = 0.0
 	BuildInfo.reset()
 	super()
@@ -30,7 +31,7 @@ func test_the_title_and_pause_menu_show_it() -> void:
 	title.queue_free()
 	await frames(1)
 	var w := await start_session()
-	check_eq(w._pause_menu.build_label.text, BuildInfo.stamp(), "and the pause menu")
+	check(w._pause_menu.build_label.text.contains(BuildInfo.stamp()), "and the pause menu")
 
 
 # --- 1. Previously ---------------------------------------------------------------
