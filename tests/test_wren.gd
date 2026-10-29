@@ -3,9 +3,13 @@ extends "res://tests/test_case.gd"
 ## hunted) and she's saved for good, or lose her.
 
 
+## Talks until she asks. Since 2026-10-28 her game comes first (WREN_ARC.md,
+## "Order rules"): with no mark chalked, the third talk starts it, the
+## fourth nudges, and the fifth is her ask. (Three talks used to be enough;
+## then the "declining" tests below passed without any ask on screen.)
 func _ask(w: Node) -> void:
 	var wren: Npc = w.area.wren
-	for i in 3:
+	for i in 6:
 		await interact_with(w, wren, Vector2(14, 0))
 		await finish_dialogue(w)
 		await frames(3)
@@ -37,6 +41,7 @@ func test_declining_leaves_her_there() -> void:
 	var w := await start_session()
 	await go_to(w, "square", "house")
 	await _ask(w)
+	check(w.hud.is_choosing(), "(she has asked)")
 	w.hud._chosen.emit(1)
 	await frames(3)
 	check(w.escort == null, "'not now' leaves her in her corner")
