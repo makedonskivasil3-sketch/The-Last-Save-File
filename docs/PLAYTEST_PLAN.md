@@ -240,7 +240,7 @@ Answers to 1–3 test whether the connection was felt and the premise read. Answ
 
 ## Round focus: trust and one relationship (2026-10-28)
 
-**Status:** not run. This protocol is ready, but no participants have been arranged. **Nothing here may be reported as a result until it has been run with people.**
+**Status:** not run. This protocol is ready, but no participants have been arranged. **To run it, follow [`playtest/RUN_A_ROUND.md`](playtest/RUN_A_ROUND.md)** (invitation, consent, links, schedule, log export, analysis). **Nothing here may be reported as a result until it has been run with people.**
 
 Run five **separate** sessions; one player may do more than one, on different days. Observe without explaining. Write down **behaviour** (what they did, with the time) separately from **opinion** (what they said).
 

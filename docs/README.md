@@ -18,7 +18,7 @@ There are about sixty documents in `docs/`. Most are the history of earlier pass
 | Captions and who speaks | [`CAPTION_VOICE_CONTRACT.md`](CAPTION_VOICE_CONTRACT.md) |
 | Order of events; who knows what | [`STORY_CHRONOLOGY.md`](STORY_CHRONOLOGY.md) |
 | Visual style | [`ART_BIBLE.md`](ART_BIBLE.md) |
-| Playtests and the observer kit | [`PLAYTEST_PLAN.md`](PLAYTEST_PLAN.md), [`playtest/`](playtest/) |
+| Playtests and the observer kit | [`playtest/RUN_A_ROUND.md`](playtest/RUN_A_ROUND.md) (start here), [`PLAYTEST_PLAN.md`](PLAYTEST_PLAN.md), [`playtest/`](playtest/) |
 | Commercial direction (a proposal) | [`COMMERCIAL_DIRECTION.md`](COMMERCIAL_DIRECTION.md) |
 
 **History, kept for the record:** all other files, including:
