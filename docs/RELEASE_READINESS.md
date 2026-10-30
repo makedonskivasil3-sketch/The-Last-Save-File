@@ -2,7 +2,51 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current: the supporting cast, canon A–E, the playtest kit (2026-10-29, branch at `40ba023`+)
+## Current: unified gameplay, traversal and lantern workshop (2026-10-30)
+
+**Base:** main `a81baf7` (PR #12). **Final runtime:** `2f03453`.
+The author requested implementation and merging into main. The previous input
+fixes (`b5b0c36`) and current main's character/festival work are integrated;
+historical alternative branches are not reapplied over approved canon.
+
+The owner's friends reported gameplay, graphics and disconnected map changes.
+This pass addresses that feedback with a bounded mission and traversal revision,
+not a claim of final art or commercial readiness.
+
+- Normal crossings use quieter audio and shorter fades, with threshold cues,
+  inward entrance facing and protection while control is held.
+- Ordinary rooms no longer trigger a corruption tear. Impossible spaces and
+  Owner events keep their distinct effects.
+- The lantern workshop below the Archive adds a spare wick, repair action,
+  persistent light, journal/object states, Wren's acknowledgement, safe stopping
+  and an earned two-way route to the well. Main progression/endings stay intact.
+- Foot stance follows actual ground direction, including front/back/diagonals.
+- Touch interruption and cold-open reading fixes are included. Portrait gameplay
+  pauses safely; the rotation instruction sits above menus and landscape waits
+  for explicit Resume.
+
+| Verification | Result |
+| --- | --- |
+| Full native regression coverage | **793/793 passed**, zero failures/script errors; normal game speed, four isolated shards; inventory checked for no missing/duplicate cases. **Not a completed monolithic run.** |
+| Workshop route | Rendered ordinary-input route 1/1; software llvmpipe |
+| Workshop stopping | Resume before pickup, carrying wick, after repair: 1/1 route check, all stages |
+| Ending bots | Five played routes reached their requested outcomes; purge-3 used two retries. The runner's sixth PASS is an inactive opt-in probe, not another played route |
+| Windows / Linux / Web | Final runtime exports exit 0; Linux exported smoke 240 frames exit 0 |
+| Browser | Lifecycle, audible output, manual story reader and touch-orientation checks pass; one earlier story-click attempt was timing-sensitive under concurrent software rendering, retained in the evidence |
+
+Details, exact revisions, limitations, logs, hashes and screenshots:
+[`review/oct30/IMPLEMENTATION.md`](review/oct30/IMPLEMENTATION.md) and
+[`review/oct30/VERIFICATION.md`](review/oct30/VERIFICATION.md).
+
+**Still open:** final approved artwork/acting; physical Windows, controller and
+iPhone checks in this session; human listening; campaign-density/backtracking
+measurements; late-purge fairness; existing ObjectDB/anchor warnings. Friends'
+early feedback is valuable, but is not a recorded market-validation study.
+Use [`review/oct30/PLAYTEST.md`](review/oct30/PLAYTEST.md) for the next round.
+The workflow on main builds downloadable artifacts and deploys Pages; local
+export success does not mean the public deployment has completed.
+
+## Previous: the supporting cast, canon A–E, the playtest kit (2026-10-29, branch at `40ba023`+)
 
 **Base:** `main` @ `6e67d0a`. Branch `claude/last-save-file-prototype-ljwuq4`. **Merge:** authorised by the author ("yes merge"; decisions 1–4 delegated, 2026-10-29), after CI is green on the PR.
 

@@ -1,0 +1,257 @@
+Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
+
+SHARD 4/4; isolate XDG directories for each process.
+  PASS  test_ambient_pacing.test_a_short_goal_doesnt_cover_the_wall_notes
+  PASS  test_archive.test_objects_say_where_they_are_now
+  PASS  test_archive.test_a_mouse_pass_doesnt_mark_things_read
+  PASS  test_art.test_the_afternoon_drains_when_the_owner_watches
+  PASS  test_audio.test_loops_are_loops
+  PASS  test_audio.test_drone_layers_build_and_follow_tension
+  PASS  test_audio.test_positional_sound_and_the_owner_voice
+  PASS  test_audio_routing.test_the_hum_reaches_small_speakers
+  PASS  test_baked_audio.test_baked_themes_match_the_code
+  PASS  test_bin.test_restore_wren_from_the_bin
+  PASS  test_bin.test_pause_stops_the_bin
+  PASS  test_canon.test_message_then_delete_the_same_night
+  PASS  test_captions.test_in_auto_the_last_page_waits_for_the_last_words
+  PASS  test_character.test_fragments_restore_rue_in_order
+ERROR: Parse JSON failed. Error at line 0: Expected key
+   at: parse_string (core/io/json.cpp:576)
+WARNING: CharacterSheet: user://test_sheets/broken/sheet.json is not a JSON object; using the procedural figure
+     at: push_warning (core/variant/variant_utility.cpp:1112)
+WARNING: CharacterSheet: user://test_sheets/short/sheet.json doesn't describe its frames (frame, feet, rows, clips); using the procedural figure
+     at: push_warning (core/variant/variant_utility.cpp:1112)
+WARNING: CharacterSheet: user://test_sheets/rue/sheet.json doesn't describe its frames (frame, feet, rows, clips); using the procedural figure
+     at: push_warning (core/variant/variant_utility.cpp:1112)
+  PASS  test_character_pipeline.test_a_broken_sheet_falls_back_without_breaking_anything
+  PASS  test_character_presentation.test_every_expression_and_frame_reads_differently
+  PASS  test_character_presentation.test_talking_to_wren_shows_her_face
+  PASS  test_character_states.test_restricted_characters_stand_still
+  PASS  test_character_tells.test_the_real_arin_never_moves_its_mouth
+  PASS  test_characters_oct24.test_rue_presses_the_save_point_once_her_own_way
+  PASS  test_characters_oct24.test_wren_waves_rue_over_before_she_explains
+  PASS  test_characters_oct24.test_walking_off_a_topic_keeps_it
+  PASS  test_cohesion_fairness.test_freeze_means_arin_not_the_friend_beside_you
+  PASS  test_cohesion_story.test_saying_not_now_doesnt_hide_who_mira_is
+  PASS  test_cohesion_story.test_after_the_rue_ending_the_owner_keeps_their_word
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+  PASS  test_cold_open.test_held_esc_skips_it_and_the_journal_still_has_it
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+  PASS  test_cold_open.test_focus_loss_freezes_typing_and_clears_skip_hold
+  PASS  test_consistency_oct24.test_a_fact_is_not_learned_when_its_page_opens
+  PASS  test_consistency_oct24.test_milestones_come_in_order_and_once
+  PASS  test_consistency_oct24.test_rapid_conversations_make_one_report
+  PASS  test_consistency_oct24.test_after_the_guest_book_he_tells_less
+  PASS  test_consistency_oct24.test_the_present_is_dated
+  PASS  test_continuity.test_characters_acknowledge_only_what_they_saw
+  PASS  test_dark_truth.test_tobben_notices_the_handwriting
+  PASS  test_dark_truth.test_rue_with_the_truth
+  PASS  test_demo.test_nothing_past_the_arch_is_reachable
+  PASS  test_edge.test_grace_grows_after_the_static_gets_you
+  PASS  test_edge_confrontation.test_writing_neither_fills_nor_drains_behind_a_text_box
+  PASS  test_effects.test_each_death_style_plays_and_reloads
+  PASS  test_endings.test_two_choices_without_wren
+  PASS  test_endings.test_the_careful_find_a_hidden_way_out
+  PASS  test_endings.test_the_epilogue_remembers_who_you_helped
+  PASS  test_expansion.test_owner_cannot_see_out_of_bounds
+  PASS  test_expansion.test_pip_leads_the_way
+  PASS  test_expansion.test_true_ending_plays_the_epilogue
+  PASS  test_experience_fixes.test_a_question_holds_the_owner
+  PASS  test_experience_fixes.test_areas_never_play_the_rue_ending_theme
+  PASS  test_experience_fixes.test_holding_f9_mid_run_does_not_wipe
+  PASS  test_fairness.test_reload_skips_moments_next_to_the_cursor
+  PASS  test_fairness.test_save_over_death_names_the_save
+  PASS  test_final_pass.test_putting_things_right_warms_the_village
+  PASS  test_first_minutes.test_owner_banner_has_priority_over_tips
+  PASS  test_first_minutes.test_first_owner_line_is_distinct_in_colour_and_narration
+  PASS  test_first_session.test_interrupted_first_meeting_is_not_a_reunion
+  PASS  test_gameplay_consistency.test_goal_keeps_the_way_out_and_adds_the_hint
+  PASS  test_gameplay_consistency.test_shedding_rebuilds_the_live_patrol
+  PASS  test_gameplay_consistency.test_a_truth_piece_counts_when_its_line_is_shown
+  PASS  test_glitch.test_tap_still_interacts
+  PASS  test_glitch.test_phase_through_a_thin_wall
+  PASS  test_glitch.test_restore_brings_wren_back
+  PASS  test_house.test_the_second_controller
+  PASS  test_house.test_the_chime_leaves_time_to_reach_a_closet
+  PASS  test_input_ownership.test_unplugging_a_controller_nobody_is_using_changes_nothing
+  PASS  test_input_ownership.test_a_press_held_to_the_end_skips_and_only_skips
+  PASS  test_input_ownership.test_an_end_card_held_for_the_controller_can_be_taken_over_by_a_key
+  PASS  test_integration_followup.test_last_subthreshold_crate_movement_is_not_lost
+  PASS  test_journal.test_reading_a_book_keeps_it
+  PASS  test_journal.test_memories_are_kept_and_readable_from_pause
+  PASS  test_map_memory.test_found_places_stay_found_after_a_death
+  PASS  test_memory.test_wipe_resets_everything
+  PASS  test_memory.test_owner_never_patches_the_last_seam
+  PASS  test_memory.test_old_save_format_migrates
+  PASS  test_menus.test_quitting_at_a_calm_moment_is_free
+  PASS  test_mira_corner.test_her_note_is_on_the_table_before_she_asks
+  PASS  test_mira_corner.test_a_deleted_mira_leaves_no_table_and_nothing_behind
+  PASS  test_moment_safety.test_fidgeting_beside_her_is_not_replayed
+  PASS  test_movement.test_any_frame_length_arrives_without_overshoot
+  PASS  test_movement.test_the_closed_gate_holds_on_a_long_frame
+  PASS  test_movement.test_near_diagonal_input_doesnt_flicker_facing
+  PASS  test_movement.test_the_plain_camera_has_no_effects
+  PASS  test_movement.test_movement_variants
+  PASS  test_narration_probe.test_speech_rate_is_its_own_setting
+  PASS  test_narrative_reliability.test_a_very_long_line_is_shown_in_pages
+  PASS  test_narrative_reliability.test_a_save_in_progress_holds_while_you_read_and_resumes_after
+  PASS  test_narrative_reliability.test_a_conversation_doesnt_bank_the_owner_s_next_move
+  PASS  test_narrative_semantics.test_a_new_session_after_a_broken_off_introduction_is_not_a_reunion
+  PASS  test_onboarding.test_turning_tips_back_on_replays_them
+  PASS  test_onboarding.test_a_tip_cut_short_comes_back
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+  PASS  test_opening.test_first_launch_plays_the_festival_before_any_run
+  PASS  test_opening.test_reduced_motion_holds_the_camera_still
+  PASS  test_opening.test_the_opening_names_no_one
+  PASS  test_opening.test_the_player_walks_her_to_the_save_point_and_presses
+  PASS  test_opening.test_a_controller_dropping_out_holds_the_film
+  PASS  test_opening_slice.test_charge_counts_only_time_after_hold_and_cooldown
+  PASS  test_opening_slice.test_objective_yields_without_spending_its_reading_time
+  PASS  test_own_colour.test_before_it_she_does_not
+  PASS  test_owner_fixes.test_not_before_the_owner_warns_you
+  PASS  test_owner_moves.test_load_last_save_drags_you_back
+  PASS  test_owner_moves.test_no_moves_where_the_owner_cannot_see
+  PASS  test_owner_moves.test_a_reload_never_lands_on_an_exit
+  PASS  test_pass7.test_end_cards_follow_what_rue_knows
+  PASS  test_pass8.test_small_text_does_not_hold_the_owner
+  PASS  test_pass8.test_walkers_in_one_area_share_one_grid_and_see_the_change
+  PASS  test_pass8.test_every_path_step_is_safe_for_the_whole_body
+  PASS  test_pass8.test_a_death_elsewhere_keeps_the_room_closed
+  PASS  test_performance.test_no_leaks_across_area_changes
+  PASS  test_performance.test_frame_time_overlay_toggles
+  PASS  test_phase2.test_the_owner_loses_patience
+  PASS  test_pip.test_he_leads_once_per_stop_then_lies_down
+PLAYTEST 00:00  session 2 started  ·  purge 0/6, last exit: none
+PLAYTEST 00:00  entered square  ·  first time
+PLAYTEST 00:00  FIRST TIME OUT OF ARIN'S ROOM  ·  into square
+PLAYTEST 00:00  lifted the lane gate
+PLAYTEST 00:00  hidden from arin behind wren
+PLAYTEST 00:00  journal opened
+PLAYTEST 00:00  DIED  ·  cursor (selected) in square at (134, 246), awareness 0, warning on screen: "it's coming"
+  PASS  test_playtest_log.test_records_the_watch_list
+  PASS  test_polish.test_rumble_on_a_gamepad
+  PASS  test_presentation.test_narration_is_optional_and_persists
+  PASS  test_presentation_revision.test_visible_portrait_advances_its_animation_clock
+  PASS  test_prologue.test_the_gate_opens_only_while_arin_holds_the_plate
+  PASS  test_prologue.test_the_fifth_needs_both_and_his_half_stops
+  PASS  test_prologue.test_doing_nothing_still_moves_on
+  PASS  test_prologue.test_profiles_that_already_started_dont_get_it
+  PASS  test_prologue.test_every_step_says_what_to_do_without_sound
+  PASS  test_prologue_story.test_skipping_a_story_cancels_it_without_claiming_it_read
+  PASS  test_prologue_story.test_focus_loss_stops_automatic_reading_allowance
+  PASS  test_prompt_assets.test_actual_hud_uses_registered_approved_art_and_preserves_palette_fallback
+  PASS  test_prompt_captions.test_large_voiced_caption_pages_stay_inside_the_safe_canvas
+  PASS  test_prompt_speaking.test_written_tobben_and_silent_arin_do_not_mouth_typing
+  PASS  test_purge.test_purged_by_quitting_alone_mentions_no_marks
+  PASS  test_quests.test_every_first_hour_map_has_a_mission_with_a_reason
+  PASS  test_quests.test_an_old_save_opens_on_the_mission_it_has_reached
+  PASS  test_quests.test_wren_and_tobben_remember_it_too
+  PASS  test_readability.test_the_room_names_its_things
+  PASS  test_records.test_records_count_endings_including_rue
+  PASS  test_records.test_tobben_misses_wren
+  PASS  test_regressions.test_slot_two_choice_holds_the_owner_still
+  PASS  test_regressions.test_walking_away_from_wren_does_not_pop_the_choice
+  PASS  test_regressions.test_the_title_theme_never_blocks_or_waits
+  PASS  test_relationships.test_mira_reunion_after_she_saw_you_taken
+  PASS  test_relationships.test_each_restoration_is_its_own_moment
+  PASS  test_relationships.test_one_topic_per_conversation
+  PASS  test_relationships.test_malformed_event_records_are_dropped
+  PASS  test_remapping.test_pause_rebound_keeps_escape
+  PASS  test_review_fixes.test_a_question_open_when_rue_dies_answers_nothing
+  PASS  test_review_fixes.test_a_frayed_line_is_said_once_a_run_not_once_a_visit
+  PASS  test_review_fixes.test_every_piece_fits_in_the_bin
+  PASS  test_review_oct22.test_old_saves_keep_their_shelter_event
+  PASS  test_review_oct22.test_pip_leads_to_the_first_hitbox_when_it_still_has_something_to_say
+  PASS  test_review_oct22.test_without_a_recording_the_page_is_typed_again_from_its_start
+  PASS  test_review_oct22.test_the_static_goes_the_same_way_however_often_it_is_drawn
+  PASS  test_revision_oct21.test_gaze_turn_animates_once_and_does_not_chatter_near_diagonal
+WARNING: 2026-10-30T23:12:24  SafeFile: couldn't put the new save in place (rename user://test_owner_memory.json.tmp)
+     at: push_warning (core/variant/variant_utility.cpp:1112)
+  PASS  test_save_failure.test_the_pause_menu_stays_and_offers_retry
+ERROR: Parse JSON failed. Error at line 2: Unterminated String
+   at: parse_string (core/io/json.cpp:576)
+WARNING: SafeFile: user://test_owner_memory.json was unreadable, recovered from user://test_owner_memory.json.bak
+     at: push_warning (core/variant/variant_utility.cpp:1112)
+  PASS  test_save_safety.test_a_half_written_save_recovers_from_the_backup
+ERROR: Parse JSON failed. Error at line 0: Expected 'true','false' or 'null', got 'garbage'.
+   at: parse_string (core/io/json.cpp:576)
+WARNING: SafeFile: user://test_owner_memory.json and its backups are unreadable, starting fresh (kept as user://test_owner_memory.json.corrupt)
+     at: push_warning (core/variant/variant_utility.cpp:1112)
+  PASS  test_save_safety.test_reset_removes_the_backup
+  PASS  test_session_readability.test_repeat_materialization_finishes_before_control_returns
+  PASS  test_shedding.test_the_cost_is_shown_and_can_be_refused
+  PASS  test_shedding.test_the_bin_gives_it_back
+  PASS  test_shedding.test_the_message_ending_gives_the_pieces_back
+  PASS  test_side_stories.test_mira_asks_to_see_the_square
+  PASS  test_side_stories.test_dying_with_mira_out_loses_her_note
+  PASS  test_sound_check.test_it_plays_each_kind_of_sound
+  PASS  test_sound_check.test_narration_looks_for_voices_again
+  PASS  test_story.test_fragment_plays_flashback_and_is_kept
+  PASS  test_story_deep.test_the_owner_leaves_a_note_each_run
+  PASS  test_story_deep.test_the_false_memory
+  PASS  test_story_leaks.test_the_frame_shows_with_speaker_labels_off
+  PASS  test_story_pacing.test_manual_first_press_reveals_second_advances
+  PASS  test_story_pacing.test_pausing_freezes_reading_time_and_voice
+  PASS  test_story_pacing.test_history_keeps_every_route_with_speakers
+  PASS  test_story_pacing.test_a_tap_never_skips
+  PASS  test_story_pacing.test_the_goal_shows_when_it_changes
+  PASS  test_suspend.test_save_and_exit_resumes_once_and_counts_nothing
+  PASS  test_suspend.test_an_outdated_or_stale_record_starts_in_the_room
+  PASS  test_suspend.test_a_crash_at_a_calm_moment_resumes_for_free
+  PASS  test_threat_fairness.test_the_cone_stops_where_the_look_stops
+  PASS  test_threat_navigation.test_a_route_with_nowhere_valid_is_dropped_and_arin_still_watches
+  PASS  test_threat_navigation.test_every_edge_guard_route_is_walkable_and_walked
+  PASS  test_tobben.test_rue_can_catch_him_on_the_way
+  PASS  test_touch.test_e_button_talks
+  PASS  test_touch.test_rotating_to_portrait_cancels_and_blocks_virtual_movement
+  PASS  test_verification_probes.test_rue_cannot_walk_while_reading
+  PASS  test_vertical_slice.test_once_playing_a_quit_still_counts
+  PASS  test_vertical_slice.test_reduced_motion_cuts_instead_of_panning
+  PASS  test_vertical_slice.test_the_gate_opens_from_the_lane_and_stays_open
+  PASS  test_vertical_slice.test_when_she_saw_rue_taken_the_scene_is_the_reunion
+  PASS  test_voice_over.test_an_unrecorded_line_is_silent_and_harmless
+  PASS  test_voices.test_rue_gains_notes_with_memories
+  PASS  test_voices.test_muting_music_keeps_the_heartbeat
+  PASS  test_well_anchor.test_after_a_death_you_wake_under_the_well
+  PASS  test_well_anchor.test_an_ending_clears_the_anchor
+  PASS  test_well_anchor.test_waking_at_the_anchor_keeps_what_the_owner_learned
+  PASS  test_world.test_talking_to_mira_opens_dialogue
+  PASS  test_world.test_reaching_slot_two_wins
+  PASS  test_world.test_archive_is_a_breather
+  PASS  test_world_cohesion.test_wren_recognises_the_repair_only_after_it_happens
+  PASS  test_world_cohesion.test_workshop_state_survives_save_reload_and_free_suspension
+  PASS  test_wren.test_wren_asks_and_comes_along
+  PASS  test_wren.test_the_owner_deletes_her_if_you_let_it
+  PASS  test_wren_arc.test_her_ask_to_see_the_edge_comes_first
+  PASS  test_wren_arc.test_every_ending_but_overwrite_remembers_her_name
+  PASS  test_wren_arc.test_an_unfinished_game_holds_her_story_one_session
+  PASS  test_wren_game.test_the_ending_remembers_the_game
+  PASS  test_wren_route.test_a_fresh_player_plays_her_game_before_her_ask
+
+==== 198 passed, 0 failed (461.0s) ====
+WARNING: ObjectDB instances leaked at exit (run with --verbose for details).
+     at: cleanup (core/object/object.cpp:2284)

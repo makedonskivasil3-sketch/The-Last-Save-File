@@ -1,0 +1,3 @@
+PASS: keyboard acknowledges exactly one story page
+Error: Continue click must keep the reply too: {"area":"festival","id":"festival:first_light","kind":"note","lines":["PLAYER 2 · beside the television: You always let me do the first one."],"title":"Festival · first light"}
+    at /tmp/last-save-integration/tests/web/prologue_story_check.cjs:59:45
