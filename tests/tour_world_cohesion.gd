@@ -9,9 +9,9 @@ func _walk(w: World, target: Vector2) -> void:
 		var off := target - w.player.position
 		for action in ["move_left", "move_right", "move_up", "move_down"]:
 			Input.action_release(action)
-		if absf(off.x) > 3:
+		if absf(off.x) > 2:
 			Input.action_press("move_right" if off.x > 0 else "move_left")
-		elif absf(off.y) > 3:
+		elif absf(off.y) > 2:
 			Input.action_press("move_down" if off.y > 0 else "move_up")
 		await frames(1)
 		left -= 1.0 / 60.0
