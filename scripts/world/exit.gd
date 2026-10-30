@@ -122,12 +122,12 @@ func _draw() -> void:
 	var width := (half * across).length()
 	# The strip on the room side of the gap.
 	var inner := -outward * (half * outward.abs()).length()
-	for i in 5:
-		var d := float(i) * 3.0
-		var k := 1.0 - float(i) / 5.0
+	for i in 8:
+		var d := float(i) * 2.0
+		var k := 1.0 - float(i) / 8.0
 		var centre := inner - outward * d
 		var r := Rect2(centre - across * width - outward.abs() * 1.5, across * width * 2.0 + outward.abs() * 3.0)
-		draw_rect(r, Color(c, a * k * k))
+		draw_rect(r, Color(c, a * k * k * 0.75))
 	# Two door-post ticks at the ends of the gap.
 	for sgn: float in [-1.0, 1.0]:
 		var post := inner + across * width * sgn
