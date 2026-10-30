@@ -18,6 +18,9 @@ var failures: Array[String] = []
 
 func before_each() -> void:
 	memory().wipe()
+	# Each case starts a fresh profile; a preceding festival must not leave
+	# its one-shot "boot already shown" handoff in this case's new game.
+	Prologue.boot_shown = false
 	JournalPanel.forget_place()
 	ArchivePages.escort_now = ""
 	Relationships.wren_at_well = false
