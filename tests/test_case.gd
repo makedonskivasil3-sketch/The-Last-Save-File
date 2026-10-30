@@ -17,6 +17,9 @@ var failures: Array[String] = []
 # --- lifecycle -----------------------------------------------------------------
 
 func before_each() -> void:
+	# Area changes without the travel beats (World.travel_beats): hundreds of
+	# them across the suite. Their own tests, and the bots, turn them on.
+	World.travel_beats_default = false
 	memory().wipe()
 	JournalPanel.forget_place()
 	ArchivePages.escort_now = ""
@@ -25,6 +28,7 @@ func before_each() -> void:
 	s.glitch_intensity = 1.0
 	s.reduce_flashing = false
 	s.reduce_motion = false
+	s.owner_pace = 0
 	s.screen_effects = 2
 	s.large_text = false
 	# Tips off by default so they never get in a test's way; test_tutorial

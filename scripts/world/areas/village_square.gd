@@ -1557,3 +1557,9 @@ func _on_well_heard() -> void:
 			world.hud.say(l, "self")
 	else:
 		world.hud.say(WellSequence.COMPARED_NOT_YET, "self")
+
+
+## Arrival (Area.on_arrival): Wren looks up and waves; Tobben glances up
+## from his stall, then quickly back down.
+func arrival_people() -> Array:
+	return [[wren, "wren", "o/"], [tobben, "tobben", "!"]]

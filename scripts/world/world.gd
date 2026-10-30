@@ -85,6 +85,7 @@ var _win_card_shown := false
 
 
 func _ready() -> void:
+	travel_beats = travel_beats_default
 	Sfx.reset_scene_state()  # nothing muffled or ducked carries in from the last scene
 	ArchivePages.escort_now = ""  # escorts never carry over into a new session
 	# The Archivist's pointer to Slot 2 is kept in the save once given: the
@@ -852,7 +853,7 @@ static func demo_build() -> bool:
 	return OS.has_feature("web") and str(JavaScriptBridge.eval("window.location.search", true)).contains("demo")
 
 
-func change_area(id: String, arrival: String) -> void:
+func change_area(id: String, arrival: String, outward := Vector2.ZERO) -> void:
 	# Mid-reload you're being dragged back, not walking: no exits (the exit
 	# retries once you're free, if you're still standing in it).
 	if _transitioning or ending != "" or (owner_moves and owner_moves.rewinding):
@@ -869,7 +870,13 @@ func change_area(id: String, arrival: String) -> void:
 	hud.close_dialogue()
 	hud.set_prompt("")
 	hud.set_status("")
-	await hud.fade(true, 0.25).finished
+	# She walks out through the doorway as the picture darkens
+	# (docs/prompts/TRAVEL_AND_DEPTH_2026-10-30.md §1).
+	var walking := travel_beats and outward != Vector2.ZERO and not Settings.reduce_motion
+	if walking:
+		player.scripted = outward * WALK_OUT_SPEED
+	await hud.fade(true, TRAVEL_FADE if travel_beats else 0.25).finished
+	player.scripted = Vector2.ZERO
 	if not is_inside_tree() or ending != "":
 		return
 	if id in DEMO_END_AREAS and demo_build():
@@ -884,15 +891,71 @@ func change_area(id: String, arrival: String) -> void:
 	# just a short "back" (once a session).
 	var new_place := id not in OwnerMemory.places
 	_load_area(_make_area(id), arrival)
+	# The passage: where, why, with whom (§2). Long when it has something
+	# new to say, a glance at the name otherwise.
+	if travel_beats:
+		var p := passage_for(id)
+		await hud.passage(p.place, p.why, p.with, p.seconds)
+		if not is_inside_tree() or ending != "":
+			return
 	director.on_area_entered(area, first)
 	_visited[id] = true
 	if new_place:
 		voice({"square": "square_first", "archive": "archive_first", "edge": "edge_first", "oob": "oob_first", "bin": "bin_first", "house": "house_first"}.get(id, ""))
 	elif first and Story.VOICE_BACK.has(id):
 		hud.say(Story.VOICE_BACK[id], "self")
-	await hud.fade(false, 0.3).finished
+	# She walks in as the picture comes up, from just outside the entry.
+	var inward := Vector2.ZERO
+	if travel_beats and not Settings.reduce_motion:
+		inward = (area.bounds.get_center() - player.position).normalized()
+		inward = Vector2(signf(inward.x), 0.0) if absf(inward.x) > absf(inward.y) else Vector2(0.0, signf(inward.y))
+		player.position -= inward * WALK_OUT_SPEED * TRAVEL_FADE
+		player.scripted = inward * WALK_OUT_SPEED
+		if pip:
+			pip.position = player.position - inward * 22.0  # a step behind: she trots in after
+	_arrived_at = Vector2.INF
+	await hud.fade(false, TRAVEL_FADE if travel_beats else 0.3).finished
+	player.scripted = Vector2.ZERO
+	_arrived_at = player.position
+	if travel_beats and is_inside_tree():
+		area.on_arrival(first)
 	player.frozen = false
 	_transitioning = false
+
+
+## Travel beats (docs/prompts/TRAVEL_AND_DEPTH_2026-10-30.md): the walk out,
+## the passage card, the walk in. Tests start with them off (test_case) so
+## hundreds of area changes stay fast; their own tests and the bots play
+## with them on.
+var travel_beats := true
+## What each new World starts with (tests switch it off; the bots back on).
+static var travel_beats_default := true
+const TRAVEL_FADE := 0.4
+const WALK_OUT_SPEED := 40.0
+const PASSAGE_LONG := 1.4
+const PASSAGE_SHORT := 0.6
+var _last_passage := ""
+## Where she arrived: exits ignore her until she has moved Exit.ARRIVAL_CLEAR away.
+var _arrived_at := Vector2.INF
+
+
+func arrival_cleared(pos: Vector2) -> bool:
+	return _arrived_at == Vector2.INF or pos.distance_to(_arrived_at) >= Exit.ARRIVAL_CLEAR
+
+
+## What the passage into `id` says, and for how long.
+func passage_for(id: String) -> Dictionary:
+	var place := area.display_name.to_upper() if area else id.to_upper()
+	var why := Quests.passage_reason(id, flags.get("pointer", false))
+	var with := ""
+	if escort:
+		with = {"wren": "(wren's hand in mine.)", "mira": "(mira beside me, the note in her hand.)"}.get(escort.npc_id, "(%s with me.)" % escort.npc_id)
+	elif pip:
+		with = "(pip at my heels.)"
+	var key := why + "|" + with
+	var long := key != _last_passage
+	_last_passage = key
+	return {"place": place, "why": why if long else "", "with": with if long else "", "seconds": PASSAGE_LONG if long else PASSAGE_SHORT}
 
 
 ## The demo's last card: nothing past the arch, nothing explained. The
@@ -1486,7 +1549,7 @@ func is_owner_paused() -> bool:
 ## set_owner_paused(); the area's own pause follows it each frame in
 ## _update_reading_hold.
 func _reading_now() -> bool:
-	return hud.is_dialogue_open() or hud.is_cinematic() or _cutscene or hud.is_act_shown()
+	return hud.is_dialogue_open() or hud.is_cinematic() or _cutscene or hud.is_act_shown() or hud.passage_shown or (_transitioning and travel_beats)
 
 
 ## Is the story holding the action right now (see _reading_now)? Unlike

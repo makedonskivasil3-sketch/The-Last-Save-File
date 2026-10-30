@@ -143,3 +143,33 @@ static func log_text(area_id: String) -> String:
 	if not finished.is_empty():
 		lines.append("DONE\n" + "\n".join(finished))
 	return "\n\n".join(lines)
+
+
+## Why Rue is going where she is going, in her own words, for the passage
+## card between two maps (docs/prompts/TRAVEL_AND_DEPTH_2026-10-30.md §2).
+## From the mission she is on there; "back" when the place has nothing new.
+static func passage_reason(dest: String, pointer := false) -> String:
+	var mission := active(dest, pointer)
+	match dest:
+		"room":
+			return "(back into arin's room.)"
+		"oob":
+			return "(down, after the light.)" if not OwnerMemory.found_pip else "(back under the well.)"
+		"archive":
+			return "(the records. someone wrote down who lit it.)" if mission == "who_kept" else "(the archive. then north.)"
+		"house":
+			return "(her house. she sat here, in front of the screen.)" if not OwnerMemory.found_controller else "(back through arin's house.)"
+		"bin":
+			return "(the bin. deleted things wait there, for a while.)"
+		"edge":
+			return "(slot 2. what's left of it.)"
+		"square":
+			match mission:
+				"fifth_lantern", "well_light":
+					return "(the lantern by the well.)"
+				"who_kept":
+					return "(east, to the archive.)"
+				"slot2":
+					return "(north. slot 2.)"
+	return "(on.)"
+

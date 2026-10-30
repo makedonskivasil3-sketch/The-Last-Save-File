@@ -139,6 +139,12 @@ var _act_label: Label
 var _area_sub: Label
 var _area_tween: Tween
 var _fade: ColorRect
+var _passage: Control
+var _passage_place: Label
+var _passage_why: Label
+var _passage_with: Label
+## The passage card is up (World holds the owner while it is).
+var passage_shown := false
 var _bars: Array[ColorRect] = []
 var _cine_title: Label
 var _cine_text: Label
@@ -414,6 +420,18 @@ func _ready() -> void:
 	_fade.color = Color(0, 0, 0, 0)
 	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_fade)
+	# The passage card, over the fade (docs/prompts/TRAVEL_AND_DEPTH_2026-10-30.md §2).
+	_passage = Control.new()
+	_passage.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_passage.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_passage.modulate.a = 0.0
+	root.add_child(_passage)
+	_passage_place = _make_label(_passage, Vector2(0, 150), Vector2(640, 26), 18, Color("e8e4dc"))
+	_passage_place.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_passage_why = _make_label(_passage, Vector2(60, 182), Vector2(520, 16), 10, SELF_COLOR)
+	_passage_why.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_passage_with = _make_label(_passage, Vector2(60, 200), Vector2(520, 14), 9, Color(SELF_COLOR, 0.7))
+	_passage_with.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
 	# Cinematic: letterbox bars and a centred, typed text block (above the fade,
 	# so a fully black fade still shows the text).
@@ -904,6 +922,34 @@ func _show_title(text: String, hold: float) -> void:
 
 
 ## Fades the screen to black (or back). Await the returned tween's `finished`.
+## Between two maps, on black: where she is going, why, and who is with
+## her. `seconds` long unless a press of interact or confirm ends it.
+func passage(place: String, why: String, with: String, seconds: float) -> void:
+	_passage_place.text = place
+	_passage_why.text = why
+	_passage_with.text = with
+	passage_shown = true
+	var tw := create_tween()
+	tw.tween_property(_passage, "modulate:a", 1.0, 0.0 if Settings.reduce_motion else 0.15)
+	var t := 0.0
+	var armed := not (Input.is_action_pressed("interact") or Input.is_action_pressed("confirm"))
+	while t < seconds and is_inside_tree():
+		await get_tree().process_frame
+		t += get_process_delta_time()
+		var pressing := Input.is_action_pressed("interact") or Input.is_action_pressed("confirm")
+		if armed and pressing:
+			break  # read it: on
+		if not pressing:
+			armed = true
+	if is_inside_tree():
+		_passage.modulate.a = 0.0
+	passage_shown = false
+
+
+func passage_text() -> String:
+	return "%s | %s | %s" % [_passage_place.text, _passage_why.text, _passage_with.text]
+
+
 func fade(to_black: bool, duration: float = 0.25) -> Tween:
 	var tw := create_tween()
 	tw.tween_property(_fade, "color:a", 1.0 if to_black else 0.0, duration)

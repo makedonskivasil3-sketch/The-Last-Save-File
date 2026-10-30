@@ -67,6 +67,7 @@ func test_wren_ending() -> void:
 # --- the run ---------------------------------------------------------------------
 
 func _playthrough(ending: String, purge: int, square_deaths: Array = []) -> void:
+	World.travel_beats_default = true  # the bots travel as a player does
 	_edge_returns = 0
 	memory().wipe()
 	memory().last_exit = "death"  # skip the boot cinematic

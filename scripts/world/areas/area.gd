@@ -421,15 +421,17 @@ func add_exit(rect: Rect2, target: String, arrival: String, open := true, blocke
 	e.setup(rect, target, arrival)
 	e.open = open
 	e.blocked_message = blocked_message
-	e.used.connect(func(x: Exit) -> void: world.change_area(x.target_area, x.arrival))
+	e.used.connect(func(x: Exit) -> void: world.change_area(x.target_area, x.arrival, x.outward))
 	e.blocked.connect(func(x: Exit) -> void: world.blocked_exit(x))
 	exits.append(e)
 	# Something solid just beyond the exit so you can't leave the screen.
 	var beyond := rect
 	if rect.size.x < rect.size.y:
-		beyond.position.x += rect.size.x * (1.0 if rect.position.x > bounds.get_center().x else -1.0)
+		e.outward = Vector2(1.0 if rect.position.x > bounds.get_center().x else -1.0, 0.0)
+		beyond.position.x += rect.size.x * e.outward.x
 	else:
-		beyond.position.y += rect.size.y * (1.0 if rect.position.y > bounds.get_center().y else -1.0)
+		e.outward = Vector2(0.0, 1.0 if rect.position.y > bounds.get_center().y else -1.0)
+		beyond.position.y += rect.size.y * e.outward.y
 	add_solid(beyond)
 	return e
 
@@ -485,3 +487,33 @@ func add_readable(title: String, pos: Vector2, look: Readable.Look, provider: Ca
 func draw_walls(gaps: Array = []) -> void:
 	Decor.wall_shadow(self, bounds, 12.0, 0.3)
 	Decor.walls(self, bounds, WALL, wall_face, wall_cap, gaps)
+
+
+## People notice her arrive (docs/prompts/TRAVEL_AND_DEPTH_2026-10-30.md §4):
+## each [npc, id, emote] from arrival_people(), once per arrival, only for
+## someone Rue has met, never her escort, never while the owner is hunting,
+## and only for someone standing there as themselves (not deleted or kept).
+## Returns the ids that reacted (tests).
+func on_arrival(_first: bool) -> Array:
+	var reacted: Array = []
+	if world == null or world.director.awareness >= OwnerDirector.HUNT:
+		return reacted
+	var delay := 0.25
+	for r in arrival_people():
+		var who: Npc = r[0]
+		if who == null or not is_instance_valid(who) or who == world.escort or not OwnerMemory.has_met(str(r[1])):
+			continue
+		if who.state != Npc.State.NORMAL:
+			continue
+		reacted.append(r[1])
+		get_tree().create_timer(delay).timeout.connect(func() -> void:
+			if is_instance_valid(who):
+				who.emote(str(r[2]), 1.4))
+		delay += 0.35
+	return reacted
+
+
+## Who notices her come in here: [Npc, id, emote]. Areas override it.
+func arrival_people() -> Array:
+	return []
+
