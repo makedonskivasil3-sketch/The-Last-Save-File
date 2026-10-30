@@ -2,7 +2,49 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current: the supporting cast, canon A–E, the playtest kit (2026-10-29, branch at `40ba023`+)
+## Current: the open-issue sweep and the next pass (2026-10-30, branch at `7734ab1`)
+
+**Base:** `main` @ `a81baf7` (PR #12). The author asked to "implement all the issues that remain unsolved", write a prompt for what the game still lacks, and implement it. The prompt is [`prompts/NEXT_PASS_2026-10-29.md`](prompts/NEXT_PASS_2026-10-29.md).
+
+### Open issues
+
+| Issue | Done | Evidence |
+|---|---|---|
+| PL-3 exit warning | Characterised. One cause fixed (Tobben's report). The rest are test teardown under pending effects. The exported game exits clean. **Still open** | Verbose suite: 25 timers, 23 tweens, 14 coroutines at exit. Linux smoke: no warning |
+| PL-4b death-seeded static | A death spot glows red for 3 s before its static starts | `test_death_seeds` |
+| PL-5 benchmark validity | The escort survives under `bench_immune`. The hunted scenario is valid 3/3 | `tour_benchmark` (xvfb, software renderer) |
+| UI-2 phones | Portrait pauses play. A key or pad press hides the touch controls. Dialogue text clears the E button | `test_touch_fixes` 3/3. **No phone tested** |
+| UI-3 gamepad remapping | Interact and Pause can be rebound. B, the d-pad and Home are refused. Start always pauses. Kept and reset | `test_pad_remapping` 4/4. **No physical controller** |
+| UI-4 flashing | `tour_flash`: worst second at default is 2 (a real death with its card; was 3). Reduced flashing: 0 | An engineering measurement, not a certified PSE test |
+| UI-5 silhouettes | `solid` draws a true silhouette | `test_character_pipeline` |
+| UI-6 act numbers | Cards count up in the order the places are reached | `test_act_order` 2/2 |
+
+### The next pass (the prompt's §1–4)
+
+| Feature | What a player gets | Evidence |
+|---|---|---|
+| Build stamp | "build abc1234 · date" on the title and on the pause menu's History page. CI writes `build_info.json` | `test_next_pass` |
+| Previously | After 20 min away: the goal, the last two things read, who is with her. Reader-paced, before anything moves | `test_next_pass` (shown, not shown, once, nothing unseen, save stamp) |
+| Owner pace | Settings → Owner pace: Normal / Gentle. Gentle: Arin and the cursor at 80%, static at 60%, death-spot warning ×2. Story unchanged. Logged in the playtest log | `test_next_pass` (multipliers, Arin's real speed, kept) |
+| Report a problem | Pause → History → Report a problem: build, place, goal, play settings and the last 40 lines, copied to paste to the author. Nothing is sent | `test_next_pass` |
+
+### Verification (`7734ab1`)
+
+| Check | Result |
+|---|---|
+| Strict full suite | **799/799** (1823.5 s, verbose). The exit warning is still printed (PL-3) |
+| Ending bots | see the PR |
+| Exports | Web, Windows, Linux exit 0. SHA-256: exe `cd8a6f6e90713983`, x86_64 `f5ee03a69b420d6a`. Linux smoke (xvfb, 240 frames): exit 0, no script errors, no leak warning |
+| Browser (headless Chromium) | Lifecycle all pass; story reader passes; audio: title −29.7 dBFS, room −32.8 dBFS |
+| Playable build | https://claude.ai/artifact/3G95pCn7jTAYr2DPmmWu5w **version 24** (`7734ab1`, stamp shows the commit). Private until shared |
+
+### Still needs people, hardware or the author
+
+- **Playtests:** five unfamiliar players (`playtest/RUN_A_ROUND.md`). Add the new questions: did anyone use Gentle, and did "Previously" help after a break?
+- **Hardware:** Windows run, a physical controller (now including remapping), a phone (portrait and touch), Mobile Safari (SV-2).
+- **Assets:** final art and voices, under `production/PRODUCTION_STANDARD.md`.
+
+## Previous: the supporting cast, canon A–E, the playtest kit (2026-10-29, branch at `40ba023`+)
 
 **Base:** `main` @ `6e67d0a`. Branch `claude/last-save-file-prototype-ljwuq4`. **Merge:** authorised by the author ("yes merge"; decisions 1–4 delegated, 2026-10-29), after CI is green on the PR.
 
