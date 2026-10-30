@@ -33,7 +33,7 @@
 | Check | Result |
 |---|---|
 | Strict full suite | **799/799** (1823.5 s, verbose). The exit warning is still printed (PL-3) |
-| Ending bots | see the PR |
+| Ending bots (`7734ab1`, two runs) | Run 1: escape, message, purge-3, Wren, the purge-5 probe pass; **purge-5 failed** (two Edge static deaths after reloads, PL-4c). Run 2: **all 6 pass** |
 | Exports | Web, Windows, Linux exit 0. SHA-256: exe `cd8a6f6e90713983`, x86_64 `f5ee03a69b420d6a`. Linux smoke (xvfb, 240 frames): exit 0, no script errors, no leak warning |
 | Browser (headless Chromium) | Lifecycle all pass; story reader passes; audio: title −29.7 dBFS, room −32.8 dBFS |
 | Playable build | https://claude.ai/artifact/3G95pCn7jTAYr2DPmmWu5w **version 24** (`7734ab1`, stamp shows the commit). Private until shared |
