@@ -1,0 +1,15 @@
+PASS: the title screen loads
+PASS: a first launch opens on the memory card  {"fps":9,"frames":21,"paused":false,"playable":false,"scene":"cold_open"}
+PASS: a first launch plays the festival  {"fps":17,"frames":147,"paused":false,"playable":true,"scene":"prologue"}
+PASS: holding Esc skips into the run
+TIMING {"marks":{"title":4.7,"opening":15.4,"game_scene":24.9,"playable":29.4},"fps":{"title":1,"opening":17,"game_scene":11,"playable":3},"holds":{"cutscene":4},"slowest_ms":144,"presses":0,"game_ms":1729,"wall_ms":4626,"clock_ratio":2.7}
+PASS: the run becomes playable (Rue under the player's control)  {"area":"room","awake":true,"fps":3,"frames":269,"game_ms":1729,"hold":"","paused":false,"persistent":true,"playable":true,"reading":false,"scene":"game","sfx_busy":false,"slowest_ms":135,"stop":"not in the middle of a conversation.","wall_ms":4626,"x":320,"y":270}
+PASS: startup takes under 30 s of game time, whatever the runner's speed  {"game_ms":1729,"wall_ms":4626}
+PASS: Rue moves on real keyboard input  {"before":{"area":"room","awake":true,"fps":3,"frames":269,"game_ms":1729,"hold":"","paused":false,"persistent":true,"playable":true,"reading":false,"scene":"game","sfx_busy":false,"slowest_ms":135,"stop":"not in the middle of a conversation.","wall_ms":4626,"x":320,"y":270},"after":{"area":"room","awake":true,"fps":2,"frames":273,"game_ms":2271,"hold":"","paused":false,"persistent":true,"playable":true,"reading":false,"scene":"game","sfx_busy":false,"slowest_ms":146,"stop":"not in the middle of a conversation.","wall_ms":6154,"x":332,"y":270},"moved":12}
+PASS: the open run is saved (session 1, no quits)  {"sessions":1,"deaths":0,"quits":0,"purge":0,"last_exit":"active"}
+PASS: a calm moment is kept on disk (last_exit safe)  {"save":{"sessions":1,"deaths":0,"quits":0,"purge":0,"last_exit":"safe"},"stop":"","persistent":true,"area":"room"}
+PASS: no leave prompt at a calm moment (window.__tlsfRunning false)
+PASS: a tab closed at a calm moment resumes free (quits 0, purge 0, last_exit suspend)  {"sessions":1,"deaths":0,"quits":0,"purge":0,"last_exit":"suspend"}
+PASS: no page or runtime errors  []
+screenshots: /tmp/cohesion-web-release
+ALL WEB CHECKS PASSED

@@ -10,8 +10,9 @@ extends RefCounted
 ## comes first, and the mission after it. Missions frame the story; they
 ## never gate it: the memories, the truth and all six endings are unchanged.
 
-const ORDER := ["fifth_lantern", "well_light", "under_well", "who_kept", "what_she_left", "bring_back", "slot2"]
+const ORDER := ["fifth_lantern", "well_light", "under_well", "who_kept", "service_light", "what_she_left", "bring_back", "slot2"]
 const TITLES := {
+	"service_light": "A LIGHT KEPT BURNING",
 	"fifth_lantern": "THE FIFTH LANTERN",
 	"well_light": "THE LIGHT BY THE WELL",
 	"under_well": "UNDER THE WELL",
@@ -22,6 +23,7 @@ const TITLES := {
 }
 ## Why she goes: the journal's line for each (the HUD's comes from line()).
 const WHY := {
+	"service_light": "A festival wick can relight the service route, joining the well to the Archive without crossing Arin's road.",
 	"fifth_lantern": "The fifth lantern is still lit. Find out who kept it burning.",
 	"well_light": "The last lantern of the festival still burns by the well, three years on.",
 	"under_well": "The lantern's light goes down the well, further than a well should.",
@@ -65,6 +67,8 @@ static func story_mission(pointer := false) -> String:
 ## The active mission in `area_id` (a dangerous place has its own).
 static func active(area_id: String, pointer := false) -> String:
 	match area_id:
+		"workshop":
+			return "service_light"
 		"edge":
 			return "slot2"
 		"bin":
@@ -82,6 +86,8 @@ static func active(area_id: String, pointer := false) -> String:
 ## Edge's own reading of what is happening there, if it has one.
 static func line(area_id: String, edge_goal := "", pointer := false) -> String:
 	match area_id:
+		"workshop":
+			return LanternRoute.goal()
 		"edge":
 			return edge_goal if edge_goal != "" else EDGE
 		"bin":
@@ -113,6 +119,8 @@ static func goal(area_id: String, edge_goal := "", pointer := false) -> String:
 ## Missions finished, from what the save says happened.
 static func done(id: String) -> bool:
 	match id:
+		"service_light":
+			return LanternRoute.repaired()
 		"fifth_lantern":
 			return "square" in OwnerMemory.places
 		"well_light":

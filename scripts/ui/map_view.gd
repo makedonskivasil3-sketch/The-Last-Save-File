@@ -17,9 +17,10 @@ const NODES := {
 	"archive": ["THE ARCHIVE", Vector2(0.64, 0.46)],
 	"oob": ["OUT OF BOUNDS", Vector2(0.37, 0.84)],
 	"bin": ["RECYCLE BIN", Vector2(0.89, 0.46)],
+	"workshop": ["WORKSHOP", Vector2(0.64, 0.84)],
 	"house": ["ARIN'S HOUSE", Vector2(0.12, 0.12)],
 }
-const LINKS := [["room", "square"], ["square", "archive"], ["square", "edge"], ["square", "oob"], ["archive", "bin"], ["square", "house"]]
+const LINKS := [["room", "square"], ["square", "archive"], ["square", "edge"], ["square", "oob"], ["archive", "bin"], ["square", "house"], ["archive", "workshop"]]
 const BOX := Vector2(84, 22)
 const CYAN := Color("8cf2ff")
 const TEXT := Color("c8b8a0")
@@ -50,6 +51,8 @@ func _draw() -> void:
 		var b := _centre(link[1])
 		var known: bool = is_found(link[0]) and is_found(link[1])
 		draw_line(a, b, Color(TEXT, 0.35 if known else 0.12), 1.0)
+	if LanternRoute.repaired() and is_found("workshop"):
+		draw_line(_centre("workshop"), _centre("oob"), Color(CYAN, 0.65), 2.0)
 	for id: String in NODES:
 		var c := _centre(id)
 		var r := Rect2(c - BOX * 0.5, BOX)

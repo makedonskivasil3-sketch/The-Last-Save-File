@@ -108,6 +108,8 @@ func _ready() -> void:
 	hud.line_revealed.connect(_on_line_revealed)
 	touch = TouchControls.new()
 	add_child(touch)
+	touch.orientation_changed.connect(_orientation_changed)
+	_pause_menu.resume_blocked = func() -> bool: return touch.portrait_active()
 	_focus_marker = FocusMarker.new()
 	_focus_marker.z_index = 15
 	add_child(_focus_marker)
@@ -556,6 +558,14 @@ func open_pause() -> void:
 	_pause_menu.open()
 
 
+func _orientation_changed(portrait: bool) -> void:
+	if portrait and not get_tree().paused:
+		touch.cancel_touches()
+		open_pause()
+	# Landscape only removes the notice. The player explicitly resumes;
+	# an existing menu/focus/controller hold is never cleared by rotation.
+
+
 ## What the map shows (MapView): where Rue is, where she has been this run,
 ## everywhere she has found in any run, and which found places have no way
 ## in right now (and why). Never a place she hasn't found.
@@ -786,11 +796,16 @@ func change_area(id: String, arrival: String) -> void:
 		return
 	_transitioning = true
 	player.frozen = true
-	Sfx.play("transition")
+	player.velocity = Vector2.ZERO
+	if touch._stick_finger != -1 or not touch._held.is_empty():
+		touch.cancel_touches()
+	_update_reading_hold()
+	var passage := area.area_id == "oob" or id == "oob"
+	Sfx.play("transition" if passage else "ui_back")
 	hud.close_dialogue()
 	hud.set_prompt("")
 	hud.set_status("")
-	await hud.fade(true, 0.25).finished
+	await hud.fade(true, 0.25 if passage else 0.12).finished
 	if not is_inside_tree() or ending != "":
 		return
 	if id in DEMO_END_AREAS and demo_build():
@@ -811,9 +826,10 @@ func change_area(id: String, arrival: String) -> void:
 		voice({"square": "square_first", "archive": "archive_first", "edge": "edge_first", "oob": "oob_first", "bin": "bin_first", "house": "house_first"}.get(id, ""))
 	elif first and Story.VOICE_BACK.has(id):
 		hud.say(Story.VOICE_BACK[id], "self")
-	await hud.fade(false, 0.3).finished
+	await hud.fade(false, 0.3 if passage else 0.16).finished
 	player.frozen = false
 	_transitioning = false
+	_update_reading_hold()
 
 
 ## The demo's last card: nothing past the arch, nothing explained. The
@@ -847,6 +863,7 @@ func _make_area(id: String) -> Area:
 		"oob": return OutOfBounds.new()
 		"bin": return RecycleBin.new()
 		"house": return ArinsHouse.new()
+		"workshop": return LanternWorkshop.new()
 	push_error("unknown area %s" % id)
 	return VillageSquare.new()
 
@@ -891,6 +908,9 @@ func _load_area(next: Area, arrival: String) -> void:
 	_visited[area.area_id] = true
 	player.position = area.entry_point(arrival)
 	player.velocity = Vector2.ZERO
+	# Face into the room, along the direction of travel, rather than keeping
+	# a stale facing from the previous scene (or a previous life).
+	player._sprite.facing = area.entry_direction(arrival)
 	update_camera(0.0, true)  # arrive already framed: no pan on the way in
 	_observe_in_view()
 	if pip:
@@ -1407,7 +1427,7 @@ func is_owner_paused() -> bool:
 ## set_owner_paused(); the area's own pause follows it each frame in
 ## _update_reading_hold.
 func _reading_now() -> bool:
-	return hud.is_dialogue_open() or hud.is_cinematic() or _cutscene or hud.is_act_shown()
+	return _transitioning or hud.is_dialogue_open() or hud.is_cinematic() or _cutscene or hud.is_act_shown()
 
 
 ## Is the story holding the action right now (see _reading_now)? Unlike
@@ -2013,7 +2033,7 @@ func _quit(to_title: bool = false) -> void:
 ## older suspends are dropped and the run starts in Arin's room.
 const SUSPEND_VERSION := 1
 ## Where a suspend can resume (the Edge is the finale: never there).
-const SUSPEND_AREAS := ["room", "square", "archive", "oob", "bin", "house"]
+const SUSPEND_AREAS := ["room", "square", "archive", "oob", "bin", "house", "workshop"]
 const SUSPEND_WAKE := "(you came back. i stayed right here.)"
 ## This session resumed a suspended run.
 var woke_from_suspend := false

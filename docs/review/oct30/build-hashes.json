@@ -1,0 +1,25 @@
+{
+  "runtime_commit": "2f03453",
+  "files": {
+    "build/windows/TheLastSaveFile.exe": {
+      "bytes": 87481552,
+      "sha256": "18593f1a42193f3e587243347c9deef66ef48bd80cd14b4a72db8dd19ae1f8c0"
+    },
+    "build/linux/TheLastSaveFile.x86_64": {
+      "bytes": 69341232,
+      "sha256": "5cc3f607cdf694b6f056479787844f85a0c4e69d83663ad517de2abc82388116"
+    },
+    "build/web/index.wasm": {
+      "bytes": 35376909,
+      "sha256": "fe5cebc590758c10bc4469be5a591e28edbde5ec8f458f21baeb83db50d028b9"
+    },
+    "build/web/index.pck": {
+      "bytes": 3266656,
+      "sha256": "a7208696eafad5f687616e8c21dc7309bff07e98c9d76c7324b7e1139a4086fb"
+    },
+    "build/dist/TheLastSaveFile-windows.zip": {
+      "bytes": 32784997,
+      "sha256": "ef1e17f2330e49f34097fc1283b72c3d8f25c23d5f4a7cd56c1a246b7d997e5f"
+    }
+  }
+}

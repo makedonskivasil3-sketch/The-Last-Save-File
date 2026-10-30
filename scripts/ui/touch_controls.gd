@@ -1,5 +1,6 @@
 class_name TouchControls
 extends CanvasLayer
+signal orientation_changed(portrait: bool)
 ## On-screen controls for phones and tablets. Hidden until the screen is
 ## touched (or on a mobile browser / device), then:
 ##   - a joystick wherever your thumb lands on the left side of the screen;
@@ -38,6 +39,11 @@ var _stick := Vector2.ZERO
 ## Finger index -> button name.
 var _held: Dictionary = {}
 var _draw_node: Control
+var _portrait := false
+
+
+func portrait_active() -> bool:
+	return active and get_window().size.y > get_window().size.x
 
 
 func _ready() -> void:
@@ -51,12 +57,19 @@ func _ready() -> void:
 	active = OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios")
 
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		cancel_touches()
+
+
 func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		active = true
 		if not buttons_enabled:
 			return
-		if event.pressed:
+		if event.canceled:
+			_touch_up(event.index)
+		elif event.pressed:
 			_touch_down(event.index, event.position)
 		else:
 			_touch_up(event.index)
@@ -65,6 +78,8 @@ func _input(event: InputEvent) -> void:
 
 
 func _touch_down(finger: int, pos: Vector2) -> void:
+	if get_window().size.y > get_window().size.x:
+		return
 	for name: String in BUTTONS:
 		var b: Dictionary = BUTTONS[name]
 		if pos.distance_to(b.center) <= b.radius + 6.0:
@@ -131,6 +146,17 @@ func _send(action: String, pressed: bool) -> void:
 
 
 func _process(_delta: float) -> void:
+	var portrait := portrait_active()
+	# The rotation instruction must remain readable above the pause/story
+	# panels. Normal virtual controls stay beneath those modal panels.
+	layer = 30 if portrait else 18
+	if portrait != _portrait:
+		_portrait = portrait
+		orientation_changed.emit(portrait)
+	# Rotation must not leave an invisible joystick driving behind the notice.
+	if active and get_window().size.y > get_window().size.x \
+			and (_stick_finger != -1 or not _held.is_empty()):
+		cancel_touches()
 	if _stick_finger != -1:
 		_set_move(_stick)
 	_draw_node.visible = active

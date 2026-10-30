@@ -67,7 +67,8 @@ func _init() -> void:
 	tint = Color(0.85, 0.9, 1.05)
 	# "anchor": where the well keeps you (World.ANCHORS): the landing beside
 	# the pillar, an anchor that never streams away.
-	entries = {"well": ENTRY, "anchor": ENTRY}
+	entries = {"well": ENTRY, "anchor": ENTRY, "workshop": ENTRY}
+	entry_facings = {"workshop": Vector2.DOWN}
 
 
 func build() -> void:
@@ -86,6 +87,18 @@ func build() -> void:
 	pillar.lit = not OwnerMemory.anchor.is_empty()  # the well keeps your answer here
 	add_child(pillar)
 	interactables.append(pillar)
+	if LanternRoute.repaired():
+		var service := Passage.new()
+		service.position = Vector2(130, 94)
+		service.object_name = "LIT SERVICE HATCH"
+		service.prompt = "climb to the lantern workshop"
+		service.target_area = "workshop"
+		service.arrival = "well"
+		service.taken.connect(func(p: Passage) -> void: world.change_area(p.target_area, p.arrival))
+		add_child(service)
+		interactables.append(service)
+		add_light(service.position, Color("ffd392"), 0.8, 50)
+		add_sign(Vector2(150, 60), "WORKSHOP / ARCHIVE", Vector2.RIGHT)
 	mark = AnchorMark.new()
 	mark.position = MARK_POS
 	mark.offered = WellSequence.anchor_offered()
@@ -243,6 +256,13 @@ func _draw() -> void:
 		draw_rect(a, Color(WIRE, 0.7), false, 1.0)
 		draw_string(UiStyle.system_font(), a.position + Vector2(3, 8), "anchor", HORIZONTAL_ALIGNMENT_LEFT, -1, 6, Color(WIRE, 0.35))
 	draw_rect(r, Color(WIRE, 0.25), false, 1.0)
+	if LanternRoute.repaired():
+		# The same brass rungs as the workshop hatch, on the solid landing.
+		var hatch := Rect2(122, 86, 16, 16)
+		draw_rect(hatch, Color("302b27"))
+		draw_rect(hatch, Color("efcd8c"), false, 1)
+		for y in range(90, 101, 4):
+			draw_line(Vector2(125, y), Vector2(135, y), Color("b18a50"), 1)
 
 
 ## The square above, seen from underneath: flat grey undersides, mirrored.

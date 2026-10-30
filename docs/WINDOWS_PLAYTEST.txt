@@ -8,7 +8,9 @@ is unsigned.
 
 Move: WASD / arrows. Interact: E / Space. Hold interact: glitch. Pause: Esc.
 
-First launch starts the playable Lantern Festival. Its story breaks wait
+First launch opens on the memory card, then the playable Lantern Festival.
+The card respects text speed: one press reveals, a separate press advances.
+The festival story breaks wait
 for Continue (E / Space or the button); release between pages. Hold Esc to
 skip the prologue. Acknowledged festival lines remain in Journal > Documents.
 
@@ -27,7 +29,14 @@ No recorded voices are included in this build yet.
 
 The optional place kept under the well is a death-recovery checkpoint.
 It does not restore an entire world snapshot or resume a closed session.
-Quitting during a run still raises purge, as the pause menu warns.
+Use Save and exit at a calm moment to resume without a purge charge. Calm
+browser closes are also saved free; an unsafe quit or close can raise purge,
+as the menu warns. Pause > Journal keeps documents, people, objects and leads.
+
+New optional mission: take the Archive's south stair to the Lantern Workshop.
+Find the spare festival wick on the west bench and fit it to the centre lamp.
+The lit hatch opens a two-way service route to the well landing. The original
+Square route stays open. Wren can notice the light after you have met her.
 
 If Windows blocks launch, record the exact message. Do not disable antivirus
 or run as administrator to work around an unexplained failure.

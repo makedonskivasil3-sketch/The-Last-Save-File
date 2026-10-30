@@ -1,0 +1,42 @@
+{
+  "build": "local",
+  "held": {
+    "area": "room",
+    "awake": true,
+    "fps": 4,
+    "frames": 289,
+    "game_ms": 7056,
+    "hold": "",
+    "paused": false,
+    "persistent": true,
+    "playable": true,
+    "reading": false,
+    "scene": "game",
+    "sfx_busy": false,
+    "slowest_ms": 139,
+    "stop": "",
+    "wall_ms": 14520,
+    "x": 320,
+    "y": 270
+  },
+  "resumed": {
+    "area": "room",
+    "awake": true,
+    "fps": 3,
+    "frames": 422,
+    "game_ms": 7589,
+    "hold": "",
+    "paused": false,
+    "persistent": true,
+    "playable": true,
+    "reading": false,
+    "scene": "game",
+    "sfx_busy": false,
+    "slowest_ms": 138,
+    "stop": "",
+    "wall_ms": 25028,
+    "x": 320,
+    "y": 270
+  },
+  "page_errors": []
+}
