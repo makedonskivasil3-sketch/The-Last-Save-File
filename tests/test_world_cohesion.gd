@@ -129,6 +129,7 @@ func test_orientation_holds_hazards_without_clearing_the_menu() -> void:
 	tree.root.size = Vector2i(360, 640)
 	w.touch._process(0.01)
 	check(tree.paused and w._pause_menu.visible, "portrait opens a real pause")
+	check(w.touch.layer > w._pause_menu.layer, "rotation instruction stays above the paused menu")
 	var age: float = w.player.idle_time
 	await wait(0.2)
 	check_eq(w.player.idle_time, age, "gameplay clocks do not run unseen")

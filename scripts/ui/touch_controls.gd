@@ -147,6 +147,9 @@ func _send(action: String, pressed: bool) -> void:
 
 func _process(_delta: float) -> void:
 	var portrait := portrait_active()
+	# The rotation instruction must remain readable above the pause/story
+	# panels. Normal virtual controls stay beneath those modal panels.
+	layer = 30 if portrait else 18
 	if portrait != _portrait:
 		_portrait = portrait
 		orientation_changed.emit(portrait)
