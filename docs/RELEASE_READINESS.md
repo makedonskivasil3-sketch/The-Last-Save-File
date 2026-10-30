@@ -29,7 +29,7 @@
 | Check | Result |
 |---|---|
 | Strict full suite | **809/809** (`407db87`; the later commit only changes the bots' wait) |
-| Ending bots, with travel beats | **6/6** (escape, message, purge-3, purge-5, the purge-5 probe, Wren). A second run is in the PR |
+| Ending bots, with travel beats | **6/6 in two runs** (escape, message, purge-3, purge-5, the purge-5 probe, Wren) |
 | Exports | Web, Windows, Linux exit 0. SHA-256: exe `29e4758894c93631`, x86_64 `0ef1fbc43b1dcd86`. Linux smoke: exit 0, no script errors |
 | Browser | Lifecycle passes; audio: title −29.8 dBFS, room −31.2 dBFS. The story reader **failed once in three runs** (the "Continue click keeps the reply" step), then passed twice. It is timing-sensitive, in the festival, which this pass doesn't touch. Recorded, not hidden |
 | Playable build | https://claude.ai/artifact/3G95pCn7jTAYr2DPmmWu5w **version 25** (`e551c6c`). Private until shared |
