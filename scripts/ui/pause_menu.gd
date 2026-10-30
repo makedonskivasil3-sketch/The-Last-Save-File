@@ -8,6 +8,8 @@ signal quit_requested(to_title: bool)
 ## Save and exit (World.try_suspend): returns "" once the save is on disk,
 ## otherwise why it isn't, and then the menu stays up and says so.
 var suspend_handler: Callable
+## Orientation must not resume an existing menu or let hazards run unseen.
+var resume_blocked: Callable
 ## A debug tool was picked (World.debug()).
 signal debug_requested(action: String)
 
@@ -188,6 +190,8 @@ func open() -> void:
 
 
 func close() -> void:
+	if resume_blocked.is_valid() and resume_blocked.call():
+		return
 	VoiceOver.stop_preview()  # a replay from the History page ends with the menu
 	visible = false
 	get_tree().paused = false

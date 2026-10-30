@@ -41,6 +41,7 @@ var _scarf_vel := Vector2.ZERO
 var _hair_off := Vector2.ZERO
 var _hair_vel := Vector2.ZERO
 var _speed := 0.0
+var _ground_direction := Vector2.RIGHT
 ## "Left running": the faint shimmer of a character nobody saves any more.
 var left_running := false
 
@@ -74,6 +75,8 @@ func play_spin() -> void:
 func update(delta: float, velocity: Vector2, face_motion := true) -> void:
 	super(delta, velocity, face_motion)
 	_speed = velocity.length()
+	if _speed > 0.01:
+		_ground_direction = velocity.normalized()
 	habit = maxf(0.0, habit - delta)
 	spin = maxf(0.0, spin - delta)
 	# The loose ends trail against the motion and settle back: k (stiffness)
@@ -244,6 +247,13 @@ func _leg_pose(s: float, r: Dictionary) -> Dictionary:
 		var up := lift * leg_len * 0.22
 		knee = Vector2(x0 + s * spread * 1.05, hip * 0.5 - up * 0.6)
 		foot = Vector2(x0 + s * spread * 1.1, -0.6 - up)
+	# Plant on the actual ground direction, including front/back and diagonal
+	# travel. Previously only side-on X was distance-driven; front-facing
+	# feet stayed at a constant Y while the whole body slid over the floor.
+	var local_direction := Vector2(_ground_direction.x * (-1.0 if facing.x < 0 else 1.0), _ground_direction.y)
+	var foot_base := x0 + s * (0.4 if r.side else float(hero.hip) * 0.55 * 1.1)
+	foot = Vector2(foot_base, -0.6) + local_direction * fx - Vector2(0, lift * leg_len * 0.22)
+	knee = top.lerp(foot, 0.52) + Vector2(lift * 1.8, -lift * 1.4)
 	return {"top": top, "knee": knee, "foot": foot, "lift": lift - crouch_k}
 
 
