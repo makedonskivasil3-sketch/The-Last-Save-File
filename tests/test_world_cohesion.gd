@@ -1,6 +1,19 @@
 extends "res://tests/test_case.gd"
 
 
+func test_entrance_directions_include_front_doors_and_service_hatches() -> void:
+	var house := ArinsHouse.new()
+	var workshop := LanternWorkshop.new()
+	var below := OutOfBounds.new()
+	check_eq(house.entry_direction("front"), Vector2.UP, "house entry faces in from the south door")
+	check_eq(workshop.entry_direction("stairs"), Vector2.DOWN, "Archive stair faces down into workshop")
+	check_eq(workshop.entry_direction("well"), Vector2.RIGHT, "west hatch faces along workshop floor")
+	check_eq(below.entry_direction("workshop"), Vector2.DOWN, "hatch arrives facing onto the solid landing")
+	house.free()
+	workshop.free()
+	below.free()
+
+
 func test_ordinary_doors_do_not_signal_corruption() -> void:
 	var w := await start_session()
 	w.fx._glitch = 0.0

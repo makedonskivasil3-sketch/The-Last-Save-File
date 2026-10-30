@@ -20,6 +20,7 @@ func _init() -> void:
 	awareness_rate = -0.6
 	tint = Color(1.0, 0.94, 0.84)
 	entries = {"stairs": Vector2(450, 64), "well": Vector2(152, 250)}
+	entry_facings = {"well": Vector2.RIGHT}
 
 
 func build() -> void:

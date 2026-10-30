@@ -68,6 +68,7 @@ func _init() -> void:
 	# "anchor": where the well keeps you (World.ANCHORS): the landing beside
 	# the pillar, an anchor that never streams away.
 	entries = {"well": ENTRY, "anchor": ENTRY, "workshop": ENTRY}
+	entry_facings = {"workshop": Vector2.DOWN}
 
 
 func build() -> void:

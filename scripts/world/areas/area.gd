@@ -30,6 +30,8 @@ var interactables: Array[Node2D] = []
 var exits: Array[Exit] = []
 ## Arrival name -> position.
 var entries: Dictionary = {}
+## Unusual passages can override the conventional compass entrance facing.
+var entry_facings: Dictionary = {}
 
 var _body: StaticBody2D
 
@@ -305,11 +307,13 @@ func entry_point(arrival: String) -> Vector2:
 
 
 func entry_direction(from: String) -> Vector2:
+	if entry_facings.has(from):
+		return entry_facings[from]
 	match from:
 		"west": return Vector2.RIGHT
 		"east": return Vector2.LEFT
 		"north", "stairs", "well", "house": return Vector2.DOWN
-		"south", "workshop": return Vector2.UP
+		"south", "workshop", "front": return Vector2.UP
 	return Vector2.DOWN
 
 
