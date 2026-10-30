@@ -2,7 +2,41 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current: the open-issue sweep and the next pass (2026-10-30, branch at `7734ab1`)
+## Current: travel between maps, movement, graphics, character depth (2026-10-30, branch at `e551c6c`)
+
+**Asked for:** update the graphics, movement and character depth, and fix "the fast meaningless jumping from map to map". The brief is [`prompts/TRAVEL_AND_DEPTH_2026-10-30.md`](prompts/TRAVEL_AND_DEPTH_2026-10-30.md), written and applied.
+
+**The problem, measured:**
+- Most maps are one screen (448×256); Rue crosses one in about 5 s.
+- An exit fired on any touch, even brushing past sideways.
+- The change was a 0.25 s fade, the next map, then a 0.3 s fade: **about 0.55 s, with no reason given**.
+
+| Change | What the player gets | Evidence |
+|---|---|---|
+| Leaving on purpose | An exit fires only when Rue moves out through it, or stops in it. Brushing a doorway sideways doesn't change the map. After arriving, she can't bounce straight back | `test_travel` |
+| Walking out and in | She walks through the doorway as the picture darkens (0.4 s), and walks in on the other side. Reduced motion: no walk | `test_travel` |
+| The passage card | On black: the place's name, why she is going ("(the records. someone wrote down who lit it.)") and who is with her ("(pip at my heels.)"). 1.4 s when there's something new to say, 0.6 s (name only) otherwise; a press ends it; threats are held. A transition now takes **about 2.6 s with something to say, 1.4 s without** | `test_travel`; `tour_travel` t02 |
+| Doorways you can see | Every exit draws a lit threshold that brightens within 40 px. Closed ones are cold | `test_travel`; `tour_travel` t01 |
+| Dust | A puff at her feet when she sets off, stops sharply or turns round. Off with reduced motion | `test_travel` |
+| People notice her | Wren waves, Tobben glances up, the Archivist keeps writing, Mira turns from the window. Only people she has met, never her escort, never while the owner hunts. Pip trots in a step behind | `test_travel`; `tour_travel` t04 |
+
+**Test isolation, explicit:** the suite runs with travel beats off by default (`World.travel_beats_default`). `test_travel` and the bots turn them on.
+
+**Found by the bots:** with travel on, every route stalled entering Out of Bounds. The arrival itself was fine (318 frames, Rue on her entry point); the bot only waited 240 frames. Its wait is now 8 s by the clock (`e551c6c`).
+
+### Verification (`e551c6c`)
+
+| Check | Result |
+|---|---|
+| Strict full suite | **809/809** (`407db87`; the later commit only changes the bots' wait) |
+| Ending bots, with travel beats | **6/6** (escape, message, purge-3, purge-5, the purge-5 probe, Wren). A second run is in the PR |
+| Exports | Web, Windows, Linux exit 0. SHA-256: exe `29e4758894c93631`, x86_64 `0ef1fbc43b1dcd86`. Linux smoke: exit 0, no script errors |
+| Browser | Lifecycle passes; audio: title −29.8 dBFS, room −31.2 dBFS. The story reader **failed once in three runs** (the "Continue click keeps the reply" step), then passed twice. It is timing-sensitive, in the festival, which this pass doesn't touch. Recorded, not hidden |
+| Playable build | https://claude.ai/artifact/3G95pCn7jTAYr2DPmmWu5w **version 25** (`e551c6c`). Private until shared |
+
+**Not verified:** whether players find the passage helpful or slow. Add it to the playtest questions: "Moving between places, did you know where you were going and why?"
+
+## Previous: the open-issue sweep and the next pass (2026-10-30, branch at `7734ab1`)
 
 **Base:** `main` @ `a81baf7` (PR #12). The author asked to "implement all the issues that remain unsolved", write a prompt for what the game still lacks, and implement it. The prompt is [`prompts/NEXT_PASS_2026-10-29.md`](prompts/NEXT_PASS_2026-10-29.md).
 

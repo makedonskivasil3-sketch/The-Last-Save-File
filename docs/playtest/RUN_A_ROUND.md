@@ -142,3 +142,4 @@ Since the protocol was written, the supporting cast changed (`../production/CHAR
 - **The Archivist:** after the CHARACTER FILE, do they find his new file on the desk?
 - **The colours:** do they mention Rue's colours coming back? Ask afterwards: **"Did anything about how Rue looked change? What do you think that meant?"**
 - **The memory card:** ask **"Before the festival started, what did you think was going to happen? Who typed the last line?"**
+- **Travel (2026-10-30):** ask "Moving between places, did you know where you were going and why?" Watch whether they skip the passage card, and whether anyone leaves a map by accident.

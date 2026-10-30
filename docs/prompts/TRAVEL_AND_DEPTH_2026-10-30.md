@@ -99,4 +99,6 @@
 
 ## Built (2026-10-30)
 
-See `RELEASE_READINESS.md`, top section, for the commit and the evidence.
+- **Built:** §1–4, on `e87f012`, `407db87` and `e551c6c`.
+- **Not built:** making dust a separate setting. It follows reduced motion.
+- **Evidence:** `RELEASE_READINESS.md`, top section.
