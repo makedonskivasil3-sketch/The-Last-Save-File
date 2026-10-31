@@ -9,6 +9,9 @@ const SAVE_PATH := "user://owner_memory.json"
 ## Automated tests run with `-- --test-mode` and use their own file, so they
 ## can never touch a player's real progress.
 const TEST_SAVE_PATH := "user://test_owner_memory.json"
+## A demo build keeps its own save: the full game never loads demo progress,
+## and a demo never touches a full game's save in the same user folder.
+const DEMO_SAVE_PATH := "user://demo_owner_memory.json"
 ## When purge reaches this, the intruder is gone for good.
 const MAX_PURGE := 6
 const MAX_REMEMBERED_DEATHS := 12
@@ -57,6 +60,11 @@ var square_gate_open := false
 ## memories), oldest first. Each entry is {id, kind, title, area, lines}.
 ## A note the owner rewrote keeps every version Rue saw.
 var journal: Array[Dictionary] = []
+## Seconds between the last save of the previous launch and this one (0: a
+## new save or an old file without the stamp). Read by World for "Previously".
+var away_seconds := 0.0
+## Tests: the stamp to write instead of now (< 0: now).
+var last_saved_unix_override := -1.0
 ## Generous sanity limits: the game has far fewer readable things than this,
 ## and reaching either one warns instead of dropping a line silently.
 const MAX_JOURNAL := 400
@@ -179,17 +187,25 @@ var _path := SAVE_PATH
 var safe_close: Callable
 ## Whether the last save_memory() reached the disk.
 var last_save_ok := true
+## Progress made this run that isn't on disk yet: the last write failed.
+## World retries it (and says so); Save and exit stays its own transaction.
+var unsaved := false
 ## Why the last record_suspend() failed, for the player ("" when it didn't).
 var suspend_error := ""
 
 
 func _ready() -> void:
-	if is_test_mode():
-		_path = TEST_SAVE_PATH
+	_path = save_path_for(is_test_mode(), World.demo_build())
 	_register_input()
 	load_memory()
 	# We want to see the window close so the owner can count it as a quit.
 	get_tree().set_auto_accept_quit(false)
+
+
+static func save_path_for(test: bool, demo: bool) -> String:
+	if test:
+		return TEST_SAVE_PATH
+	return DEMO_SAVE_PATH if demo else SAVE_PATH
 
 
 func _notification(what: int) -> void:
@@ -405,6 +421,19 @@ func add_event(id: String) -> bool:
 	_occur(id)
 	save_memory()
 	return true
+
+
+## A mission step as one transaction: its events and its journal note go to
+## disk in a single write, so a failure never leaves half of it saved. The
+## step stands in memory either way (the player saw it happen); the return
+## says whether it is on disk. Events already recorded aren't added again.
+func commit_step(events: Array, note_id: String, title: String, area: String, lines: Array) -> bool:
+	for id: String in events:
+		if not rel_events.has(id):
+			_occur(id)
+	if note_id != "":
+		record_read(note_id, "note", title, area, lines, false)
+	return save_memory()
 
 
 ## Records another occurrence of an event that can happen again (a death
@@ -910,6 +939,7 @@ func save_memory() -> bool:
 		"returned_pending": returned_pending,
 		"shed_said": shed_said,
 		"last_exit": last_exit,
+		"last_saved_unix": last_saved_unix_override if last_saved_unix_override >= 0.0 else Time.get_unix_time_from_system(),
 		"start_previous": start_previous,
 		"encounters": encounters,
 		"conversations": conversations,
@@ -925,6 +955,7 @@ func save_memory() -> bool:
 		"archive_seen": archive_seen,
 	}
 	last_save_ok = SafeFile.write_atomic(_path, JSON.stringify(data, "\t"))
+	unsaved = not last_save_ok
 	return last_save_ok
 
 
@@ -1073,6 +1104,9 @@ func load_memory() -> void:
 	wins = _int(data, "wins", 0)
 	purge = _int(data, "purge", 0, MAX_PURGE)
 	last_exit = _str(data, "last_exit", "none")
+	# How long the save sat untouched before this launch ("Previously").
+	var saved_at := float(data.get("last_saved_unix", 0.0)) if (data.get("last_saved_unix", 0.0) is float or data.get("last_saved_unix", 0.0) is int) else 0.0
+	away_seconds = maxf(0.0, Time.get_unix_time_from_system() - saved_at) if saved_at > 0.0 else 0.0
 	start_previous = _str(data, "start_previous", "none")
 	met_archivist = _bool(data, "met_archivist")
 	found_pip = _bool(data, "found_pip")

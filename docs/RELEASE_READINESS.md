@@ -2,7 +2,86 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current: unified gameplay, traversal and lantern workshop (2026-10-30)
+## Current: production revision (2026-10-31)
+
+**Branch:** `claude/last-save-file-prototype-ljwuq4`.
+- `main` @ `adf2710` was merged in at `b5db36a`. Main's doorway design won.
+- Code verified at `3062c7d`.
+- Register: [`production/ISSUE_REGISTER.md`](production/ISSUE_REGISTER.md) (top section).
+- Spec: [`production/PRODUCT_SPEC.md`](production/PRODUCT_SPEC.md) (top page).
+
+### What changed, and why it matters to a player
+
+| Change | Commit | Player benefit |
+|---|---|---|
+| Workshop steps saved in one write; a failed write says so and retries; failure injection tests | `d6fd6ed` | Nothing shown as done can vanish on relaunch without a warning |
+| Chapters follow story milestones, not places. Places are named on arrival | `d6fd6ed` | No later chapter before an earlier one, in any exploration order |
+| The title glitch can no longer rewrap the title and move the menu | `7f9f7e6` | A click lands on the button the player aimed at |
+| RD-1: the browser story check was measuring IndexedDB sync, not reading. Root cause measured; check fixed; web save delay registered (WEB-1) | `837e798` | A verified reader. An honest statement about web saves |
+| The workshop mission deepened: Rue's reason, a readable problem, a decision (her name on the fifth frame), Wren's variant | `3a5487c` | The one optional mission now has a why, a choice and a remembered consequence |
+| The candidate demo endpoint (`?demo=workshop`) ends after a finished mission. Demo saves are separate | `d9beec1` | A demo that shows the game's third promise. Demo progress never leaks into the full game |
+
+### Verified
+
+- **Strict suite, at `d9beec1`:**
+  - Four shards with isolated XDG folders.
+  - **834/834 inventory cases ran**, checked against `--list-tests`: no omission, no duplicate, no script error.
+  - 833 passed. One failure: the voice manifest was out of date after the new Wren line. Regenerated with the repo's tool in `3062c7d`; the voice tests then pass 12/12.
+  - The ObjectDB exit warning is still printed (PL-3). It is not suppressed.
+- **Earlier sharded run (`d6fd6ed` + docs):** 2 failures, both investigated and reproduced, not re-rolled.
+  - UI-7: title glitch.
+  - QA-2: test isolation.
+  - Both fixed in `7f9f7e6`.
+- **Bots** (code at `d9beec1`, game time): every bot reached the exact ending asked for.
+  - escape at purge 0: 149 s, then 149 s;
+  - escape at purge 3: 132 s, then 135 s;
+  - escape at purge 5: 126 s; then 220 s, finished after one death at the Edge;
+  - message: 151 s;
+  - Wren: 178 s.
+- **Exports from `3062c7d`:** Windows, Linux and Web, all exit 0.
+  - SHA-256 prefixes:
+    - `TheLastSaveFile.exe` `25dec7ff8106633a`;
+    - `TheLastSaveFile.x86_64` `363cbae00bc059f8`;
+    - `index.pck` `edaea729a6f7ca5c`;
+    - `index.wasm` `fe5cebc590758c10`.
+  - Linux smoke run exits 0 with no errors.
+  - These are local builds in the session container, not public downloads. CI builds the public artifacts.
+- **Browser checks on that web build:**
+  - `web_check`: 12/12;
+  - `prologue_story_check`: reader 58–102 ms, stored 0.7–1.7 s. Also 4/4 at CPU throttle ×1 and ×6 at `837e798`;
+  - `audio_output_check`: pass.
+
+### Route timing (bots, escape at purge 0, game time without reading)
+
+| Stretch | Seconds |
+|---|---|
+| Arin's room | about 35. About 20 of that is the bot circling a table: bot navigation, not a player problem |
+| Square → under the well | about 13 |
+| Under the well | about 26 |
+| Square → Archive | about 8 |
+| Archive | about 9 |
+| Square → Edge | about 10 |
+| Edge to Slot 2 | about 31 |
+
+**Backtracking:**
+- The square is crossed three times, for about 18 s of 149 s (12%).
+- Every crossing has a new reason (`production/WORLD_CONNECTIONS.md`).
+- **No route change is made from this.** The bots don't read, and players do. The real length is still unmeasured.
+
+### Not verified (needs people, hardware or the author)
+
+- No playtest has been run.
+- **Hardware never tried:**
+  - Windows;
+  - a physical controller;
+  - a phone.
+- **Web saves on real low-end hardware.** WEB-1 was measured in headless Chromium only.
+- **Listening:** nobody has listened to the mix.
+- **The demo endpoint:** the choice between the two is the author's, after a playtest.
+- **Art:** the fifth frame's label is small at game scale. Polish it only if a playtest shows players miss it.
+- **Commercial:** see [`production/COMMERCIAL_PLAN_2026-10-31.md`](production/COMMERCIAL_PLAN_2026-10-31.md). Nothing has been bought, signed or published.
+
+## Previous: unified gameplay, traversal and lantern workshop (2026-10-30)
 
 **Base:** main `a81baf7` (PR #12). **Final runtime:** `2f03453`.
 The author requested implementation and merging into main. The previous input
@@ -45,6 +124,84 @@ early feedback is valuable, but is not a recorded market-validation study.
 Use [`review/oct30/PLAYTEST.md`](review/oct30/PLAYTEST.md) for the next round.
 The workflow on main builds downloadable artifacts and deploys Pages; local
 export success does not mean the public deployment has completed.
+
+## Previous (parallel branch, reconciled 2026-10-31): travel between maps (`e551c6c`)
+
+> **Reconciled with `main` @ `adf2710` on 2026-10-31.** That branch and `main` took opposite approaches to doorways. `main`'s design is kept: quick 0.12/0.16 s fades, stone thresholds, explicit arrival facing. **Removed here:** the passage card, the walk-out and walk-in, exit intent, the arrival clear-zone and the lit-threshold glow. **Kept:** dust at Rue's feet, and people noticing her arrive (`Area.on_arrival`, now called from `main`'s `change_area`). The rest of that branch's work (the open-issue sweep and next pass below) is merged unchanged. Its verification figures belong to that branch's revisions, not to the merge.
+
+**Asked for:** update the graphics, movement and character depth, and fix "the fast meaningless jumping from map to map". The brief is [`prompts/TRAVEL_AND_DEPTH_2026-10-30.md`](prompts/TRAVEL_AND_DEPTH_2026-10-30.md), written and applied.
+
+**The problem, measured:**
+- Most maps are one screen (448×256); Rue crosses one in about 5 s.
+- An exit fired on any touch, even brushing past sideways.
+- The change was a 0.25 s fade, the next map, then a 0.3 s fade: **about 0.55 s, with no reason given**.
+
+| Change | What the player gets | Evidence |
+|---|---|---|
+| Leaving on purpose | An exit fires only when Rue moves out through it, or stops in it. Brushing a doorway sideways doesn't change the map. After arriving, she can't bounce straight back | `test_travel` |
+| Walking out and in | She walks through the doorway as the picture darkens (0.4 s), and walks in on the other side. Reduced motion: no walk | `test_travel` |
+| The passage card | On black: the place's name, why she is going ("(the records. someone wrote down who lit it.)") and who is with her ("(pip at my heels.)"). 1.4 s when there's something new to say, 0.6 s (name only) otherwise; a press ends it; threats are held. A transition now takes **about 2.6 s with something to say, 1.4 s without** | `test_travel`; `tour_travel` t02 |
+| Doorways you can see | Every exit draws a lit threshold that brightens within 40 px. Closed ones are cold | `test_travel`; `tour_travel` t01 |
+| Dust | A puff at her feet when she sets off, stops sharply or turns round. Off with reduced motion | `test_travel` |
+| People notice her | Wren waves, Tobben glances up, the Archivist keeps writing, Mira turns from the window. Only people she has met, never her escort, never while the owner hunts. Pip trots in a step behind | `test_travel`; `tour_travel` t04 |
+
+**Test isolation, explicit:** the suite runs with travel beats off by default (`World.travel_beats_default`). `test_travel` and the bots turn them on.
+
+**Found by the bots:** with travel on, every route stalled entering Out of Bounds. The arrival itself was fine (318 frames, Rue on her entry point); the bot only waited 240 frames. Its wait is now 8 s by the clock (`e551c6c`).
+
+### Verification (`e551c6c`)
+
+| Check | Result |
+|---|---|
+| Strict full suite | **809/809** (`407db87`; the later commit only changes the bots' wait) |
+| Ending bots, with travel beats | **6/6 in two runs** (escape, message, purge-3, purge-5, the purge-5 probe, Wren) |
+| Exports | Web, Windows, Linux exit 0. SHA-256: exe `29e4758894c93631`, x86_64 `0ef1fbc43b1dcd86`. Linux smoke: exit 0, no script errors |
+| Browser | Lifecycle passes; audio: title −29.8 dBFS, room −31.2 dBFS. The story reader **failed once in three runs** (the "Continue click keeps the reply" step), then passed twice. It is timing-sensitive, in the festival, which this pass doesn't touch. Recorded, not hidden |
+| Playable build | https://claude.ai/artifact/3G95pCn7jTAYr2DPmmWu5w **version 25** (`e551c6c`). Private until shared |
+
+**Not verified:** whether players find the passage helpful or slow. Add it to the playtest questions: "Moving between places, did you know where you were going and why?"
+
+## Previous: the open-issue sweep and the next pass (2026-10-30, branch at `7734ab1`)
+
+**Base:** `main` @ `a81baf7` (PR #12). The author asked to "implement all the issues that remain unsolved", write a prompt for what the game still lacks, and implement it. The prompt is [`prompts/NEXT_PASS_2026-10-29.md`](prompts/NEXT_PASS_2026-10-29.md).
+
+### Open issues
+
+| Issue | Done | Evidence |
+|---|---|---|
+| PL-3 exit warning | Characterised. One cause fixed (Tobben's report). The rest are test teardown under pending effects. The exported game exits clean. **Still open** | Verbose suite: 25 timers, 23 tweens, 14 coroutines at exit. Linux smoke: no warning |
+| PL-4b death-seeded static | A death spot glows red for 3 s before its static starts | `test_death_seeds` |
+| PL-5 benchmark validity | The escort survives under `bench_immune`. The hunted scenario is valid 3/3 | `tour_benchmark` (xvfb, software renderer) |
+| UI-2 phones | Portrait pauses play. A key or pad press hides the touch controls. Dialogue text clears the E button | `test_touch_fixes` 3/3. **No phone tested** |
+| UI-3 gamepad remapping | Interact and Pause can be rebound. B, the d-pad and Home are refused. Start always pauses. Kept and reset | `test_pad_remapping` 4/4. **No physical controller** |
+| UI-4 flashing | `tour_flash`: worst second at default is 2 (a real death with its card; was 3). Reduced flashing: 0 | An engineering measurement, not a certified PSE test |
+| UI-5 silhouettes | `solid` draws a true silhouette | `test_character_pipeline` |
+| UI-6 act numbers | Cards count up in the order the places are reached | `test_act_order` 2/2 |
+
+### The next pass (the prompt's §1–4)
+
+| Feature | What a player gets | Evidence |
+|---|---|---|
+| Build stamp | "build abc1234 · date" on the title and on the pause menu's History page. CI writes `build_info.json` | `test_next_pass` |
+| Previously | After 20 min away: the goal, the last two things read, who is with her. Reader-paced, before anything moves | `test_next_pass` (shown, not shown, once, nothing unseen, save stamp) |
+| Owner pace | Settings → Owner pace: Normal / Gentle. Gentle: Arin and the cursor at 80%, static at 60%, death-spot warning ×2. Story unchanged. Logged in the playtest log | `test_next_pass` (multipliers, Arin's real speed, kept) |
+| Report a problem | Pause → History → Report a problem: build, place, goal, play settings and the last 40 lines, copied to paste to the author. Nothing is sent | `test_next_pass` |
+
+### Verification (`7734ab1`)
+
+| Check | Result |
+|---|---|
+| Strict full suite | **799/799** (1823.5 s, verbose). The exit warning is still printed (PL-3) |
+| Ending bots (`7734ab1`, two runs) | Run 1: escape, message, purge-3, Wren, the purge-5 probe pass; **purge-5 failed** (two Edge static deaths after reloads, PL-4c). Run 2: **all 6 pass** |
+| Exports | Web, Windows, Linux exit 0. SHA-256: exe `cd8a6f6e90713983`, x86_64 `f5ee03a69b420d6a`. Linux smoke (xvfb, 240 frames): exit 0, no script errors, no leak warning |
+| Browser (headless Chromium) | Lifecycle all pass; story reader passes; audio: title −29.7 dBFS, room −32.8 dBFS |
+| Playable build | https://claude.ai/artifact/3G95pCn7jTAYr2DPmmWu5w **version 24** (`7734ab1`, stamp shows the commit). Private until shared |
+
+### Still needs people, hardware or the author
+
+- **Playtests:** five unfamiliar players (`playtest/RUN_A_ROUND.md`). Add the new questions: did anyone use Gentle, and did "Previously" help after a break?
+- **Hardware:** Windows run, a physical controller (now including remapping), a phone (portrait and touch), Mobile Safari (SV-2).
+- **Assets:** final art and voices, under `production/PRODUCTION_STANDARD.md`.
 
 ## Previous: the supporting cast, canon A–E, the playtest kit (2026-10-29, branch at `40ba023`+)
 

@@ -153,13 +153,14 @@ func play_death(cause: String) -> void:
 			# Retreats as the death text arrives, so the text stays readable.
 			tw.tween_property(self, "smear", 0.0, 0.8)
 		"selected":
+			# One inverted hit, then the white wash: two flashes, not three
+			# (UI-4: measured by tests/tour_flash.gd; the second hit 0.12 s
+			# later put this at the WCAG limit).
 			_invert = 1.0
 			noise(1.0, 2.0)
 			spike(1.0, 1.8)
 			shake(4.0)
-			tw.tween_interval(0.12)
-			tw.tween_callback(func() -> void: _invert = 1.0)
-			tw.tween_interval(0.25)
+			tw.tween_interval(0.37)
 			tw.tween_callback(func() -> void: wash(Color(0.9, 0.95, 1.0), 0.7, 1.4))
 		_:
 			spike(1.0, 2.5)

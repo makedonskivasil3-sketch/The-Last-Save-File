@@ -394,6 +394,8 @@ func _update_save(delta: float) -> void:
 
 func _update_wren(delta: float, aw: float) -> void:
 	var who := world.escort_id()
+	if world.bench_immune:
+		return  # a benchmark's escort stays for the whole measurement (PL-5)
 	# Wren: deleted (unless she's cut content now). Mira: reset, whenever
 	# she's out of her room, however calm the owner is.
 	if who == "" or (who == "wren" and OwnerMemory.wren_saved) or (who == "mira" and world.area.area_id == "room"):

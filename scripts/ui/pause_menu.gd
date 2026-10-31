@@ -8,6 +8,8 @@ signal quit_requested(to_title: bool)
 ## Save and exit (World.try_suspend): returns "" once the save is on disk,
 ## otherwise why it isn't, and then the menu stays up and says so.
 var suspend_handler: Callable
+## World.problem_report: the text for "Report a problem".
+var report_provider: Callable
 ## Orientation must not resume an existing menu or let hazards run unseen.
 var resume_blocked: Callable
 ## A debug tool was picked (World.debug()).
@@ -22,6 +24,7 @@ var _history_text: RichTextLabel
 var _history_back: Button
 var console_hud: Hud
 ## The playtest log page (PlaytestLog, only with ?playtest=1 / --playtest).
+var build_label: Label
 var _log_box: VBoxContainer
 var _log_text: Label
 var _log_back: Button
@@ -127,6 +130,9 @@ func _ready() -> void:
 	_history_box = UiStyle.centered_panel(_root, 480)
 	UiStyle.heading(_history_box, "HISTORY", UiStyle.TEXT, 14)
 	UiStyle.note(_history_box, "Everything said this run: dialogue, scenes and the console", UiStyle.MUTED)
+	# Which build, and a way to tell the author what went wrong (the report
+	# carries these lines with it).
+	build_label = UiStyle.note(_history_box, BuildInfo.stamp(), UiStyle.MUTED)
 	_history_text = RichTextLabel.new()
 	_history_text.custom_minimum_size = Vector2(440, 120)
 	_history_text.bbcode_enabled = false
@@ -141,6 +147,7 @@ func _ready() -> void:
 	var navigation := HBoxContainer.new()
 	_history_box.add_child(navigation)
 	UiStyle.button(navigation, "Older ↑", _scroll_history.bind(-120.0))
+	UiStyle.button(navigation, "Report a problem", _show_report)
 	UiStyle.button(navigation, "Newer ↓", _scroll_history.bind(120.0))
 	_history_back = UiStyle.button(navigation, "Back", _show_main, "ui_back")
 
@@ -271,6 +278,20 @@ func _show_journal() -> void:
 	_journal.refresh()
 	_show_only(_journal_box)
 	_journal.focus_first.call_deferred()
+
+
+## "Report a problem": the facts the author needs, shown and copied. It goes
+## nowhere by itself (docs/prompts/NEXT_PASS_2026-10-29.md §3).
+func _show_report() -> void:
+	var text: String = report_provider.call() if report_provider.is_valid() else BuildInfo.stamp()
+	last_report = text
+	DisplayServer.clipboard_set(text)
+	_log_text.text = "COPIED. Paste it into your message to the author, with what you were doing. Nothing is sent from the game.\n\n" + text
+	_show_only(_log_box)
+	_log_back.grab_focus()
+
+
+var last_report := ""
 
 
 func _show_playtest_log() -> void:

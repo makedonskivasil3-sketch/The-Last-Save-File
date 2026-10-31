@@ -52,6 +52,9 @@ var crt_screen := false
 var screen_effects := 2
 ## Softens flashes: no strobing lights, gentler spikes, slower blinking.
 var reduce_flashing := false
+## Owner pace (docs/prompts/NEXT_PASS_2026-10-29.md §2): 0 normal, 1 gentle.
+## Gentle slows the threats down; it changes no story, purge or ending.
+var owner_pace := 0
 ## No parallax, camera drift, pushes or follow: the picture holds still
 ## (the title room, the opening's push, area cameras).
 var reduce_motion := false
@@ -116,6 +119,14 @@ func mark_tip_seen(id: String) -> void:
 const TEXT_SPEEDS := [0.6, 1.0, 1.8, INF]
 func text_rate() -> float:
 	return TEXT_SPEEDS[clampi(text_speed, 0, 3)]
+
+
+## How fast a threat runs at this Owner pace: "arin" and "cursor" move at
+## this share of their speed, "static" spreads at it, and a death spot's
+## "warning" lasts this many times as long. 1.0 at Normal, always.
+const GENTLE := {"arin": 0.8, "cursor": 0.8, "static": 0.6, "warning": 2.0}
+func pace(kind: String) -> float:
+	return float(GENTLE.get(kind, 1.0)) if owner_pace == 1 else 1.0
 
 
 func flash_scale() -> float:
@@ -185,6 +196,7 @@ func bind_key(action: String, keycode: int) -> String:
 
 func reset_binds() -> void:
 	key_binds.clear()
+	pad_binds.clear()
 	apply_binds()
 	save()
 
@@ -206,16 +218,78 @@ func apply_binds() -> void:
 			var ev := InputEventKey.new()
 			ev.physical_keycode = own
 			InputMap.action_add_event(action, ev)
+	# Pads: the action's own button replaces the default; Start stays on pause.
+	for action: String in PAD_REBINDABLE:
+		if not InputMap.has_action(action):
+			continue
+		var fixed := int(FIXED_PADS.get(action, JOY_BUTTON_INVALID))
+		for e in InputMap.action_get_events(action):
+			if e is InputEventJoypadButton and int((e as InputEventJoypadButton).button_index) != fixed:
+				InputMap.action_erase_event(action, e)
+		if pad_for(action) != fixed:
+			var pe := InputEventJoypadButton.new()
+			pe.button_index = pad_for(action) as JoyButton
+			InputMap.action_add_event(action, pe)
+
+
+# --- control remapping (gamepad) ---------------------------------------------
+
+## Pad buttons the player can rebind (movement stays on the stick and the
+## d-pad). B is kept for backing out of menus and Start stays a pause
+## fallback, so nobody can lock themselves out.
+const PAD_REBINDABLE := ["interact", "pause"]
+const DEFAULT_PADS := {"interact": JOY_BUTTON_A, "pause": JOY_BUTTON_START}
+const FIXED_PADS := {"pause": JOY_BUTTON_START}
+const PAD_NAMES := {
+	JOY_BUTTON_A: "A", JOY_BUTTON_B: "B", JOY_BUTTON_X: "X", JOY_BUTTON_Y: "Y",
+	JOY_BUTTON_LEFT_SHOULDER: "LB", JOY_BUTTON_RIGHT_SHOULDER: "RB",
+	JOY_BUTTON_LEFT_STICK: "L3", JOY_BUTTON_RIGHT_STICK: "R3",
+	JOY_BUTTON_BACK: "BACK", JOY_BUTTON_START: "START", JOY_BUTTON_GUIDE: "HOME",
+	JOY_BUTTON_DPAD_UP: "D-PAD UP", JOY_BUTTON_DPAD_DOWN: "D-PAD DOWN",
+	JOY_BUTTON_DPAD_LEFT: "D-PAD LEFT", JOY_BUTTON_DPAD_RIGHT: "D-PAD RIGHT",
+}
+## action -> JoyButton, only where the player changed it.
+var pad_binds: Dictionary = {}
+
+
+func pad_for(action: String) -> int:
+	return int(pad_binds.get(action, DEFAULT_PADS.get(action, JOY_BUTTON_INVALID)))
+
+
+func pad_label(action: String) -> String:
+	return str(PAD_NAMES.get(pad_for(action), "BUTTON %d" % pad_for(action)))
+
+
+## Binds `action` to a pad button. Returns "" when done, or why not.
+func bind_pad(action: String, button: int) -> String:
+	if action not in PAD_REBINDABLE:
+		return "that can't be changed."
+	if button == JOY_BUTTON_B:
+		return "B is kept for going back."
+	if button == JOY_BUTTON_GUIDE:
+		return "the home button belongs to the system."
+	if button in [JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_DOWN, JOY_BUTTON_DPAD_LEFT, JOY_BUTTON_DPAD_RIGHT]:
+		return "the d-pad moves Rue."
+	for other: String in PAD_REBINDABLE:
+		if other != action and (pad_for(other) == button or int(FIXED_PADS.get(other, JOY_BUTTON_INVALID)) == button):
+			return "%s already uses %s." % [ACTION_NAMES[other], PAD_NAMES.get(button, "that button")]
+	if button == int(DEFAULT_PADS[action]):
+		pad_binds.erase(action)
+	else:
+		pad_binds[action] = button
+	apply_binds()
+	save()
+	return ""
 
 
 func glyph(action: String) -> String:
 	match action:
 		"interact":
-			return "A" if using_gamepad else key_label("interact")
+			return pad_label("interact") if using_gamepad else key_label("interact")
 		"confirm":
 			return "A" if using_gamepad else "ENTER"
 		"pause":
-			return "II" if using_touch else ("START" if using_gamepad else ("ESC" if key_for("pause") == KEY_ESCAPE else key_label("pause") + " / ESC"))
+			return "II" if using_touch else ((pad_label("pause") if pad_for("pause") == JOY_BUTTON_START else pad_label("pause") + " / START") if using_gamepad else ("ESC" if key_for("pause") == KEY_ESCAPE else key_label("pause") + " / ESC"))
 		"move":
 			if using_touch:
 				return "Drag on the left side of the screen"
@@ -315,6 +389,7 @@ func save() -> void:
 	cfg.set_value("video", "fullscreen", fullscreen)
 	cfg.set_value("accessibility", "glitch_intensity", glitch_intensity)
 	cfg.set_value("accessibility", "reduce_flashing", reduce_flashing)
+	cfg.set_value("accessibility", "owner_pace", owner_pace)
 	cfg.set_value("accessibility", "vibration", vibration)
 	cfg.set_value("accessibility", "reduce_motion", reduce_motion)
 	cfg.set_value("video", "crt_screen", crt_screen)
@@ -324,6 +399,7 @@ func save() -> void:
 	cfg.set_value("help", "tips_seen", tips_seen)
 	cfg.set_value("help", "opening_seen", opening_seen)
 	cfg.set_value("controls", "keys", key_binds)
+	cfg.set_value("controls", "pads", pad_binds)
 	cfg.save(_path)
 
 
@@ -355,6 +431,7 @@ func _load() -> void:
 	fullscreen = bool(cfg.get_value("video", "fullscreen", fullscreen))
 	glitch_intensity = clampf(float(cfg.get_value("accessibility", "glitch_intensity", glitch_intensity)), 0.0, 1.0)
 	reduce_flashing = bool(cfg.get_value("accessibility", "reduce_flashing", reduce_flashing))
+	owner_pace = clampi(int(cfg.get_value("accessibility", "owner_pace", owner_pace)), 0, 1)
 	vibration = bool(cfg.get_value("accessibility", "vibration", vibration))
 	reduce_motion = bool(cfg.get_value("accessibility", "reduce_motion", reduce_motion))
 	# The old "crt_curvature" key was on by default for everyone, so it isn't
@@ -366,6 +443,12 @@ func _load() -> void:
 	var seen: Variant = cfg.get_value("help", "tips_seen", [])
 	tips_seen = seen if seen is Array else []
 	opening_seen = bool(cfg.get_value("help", "opening_seen", false))
+	pad_binds = {}
+	var pads: Variant = cfg.get_value("controls", "pads", {})
+	if pads is Dictionary:
+		for a in pads:
+			if a in PAD_REBINDABLE and (pads[a] is int) and int(pads[a]) >= 0 and int(pads[a]) != JOY_BUTTON_B:
+				pad_binds[a] = int(pads[a])
 	key_binds = {}
 	var binds: Variant = cfg.get_value("controls", "keys", {})
 	if binds is Dictionary:

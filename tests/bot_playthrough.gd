@@ -730,7 +730,10 @@ func _release_all() -> void:
 # --- waiting -------------------------------------------------------------------------
 
 func _arrived(w: Node, id: String) -> bool:
-	for i in 240:
+	# Time, not frames: a passage between maps takes ~2 s (World travel
+	# beats), more frames than a fast headless run used to allow.
+	var until := _now() + 8.0
+	while _now() < until:
 		if w.ending != "" or not is_instance_valid(w):
 			return false
 		if w.area.area_id == id and not w._transitioning:

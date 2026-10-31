@@ -321,6 +321,8 @@ func entry_direction(from: String) -> Vector2:
 ## seed_deaths: also seed where you died here before (the owner remembers).
 ## Death seeds closer than this to Rue are skipped when the static starts.
 const SAFE_SEED_DISTANCE := 40.0
+## How long a death spot glows before its static starts.
+const DEATH_SEED_WARNING := 3.0
 
 
 func start_erasure(extra_seeds: Array[Vector2] = [], seed_deaths := true) -> void:
@@ -336,7 +338,13 @@ func start_erasure(extra_seeds: Array[Vector2] = [], seed_deaths := true) -> voi
 		var here: Vector2 = world.player.global_position if world and world.player else Vector2.INF
 		for p in OwnerMemory.deaths_in(area_id):
 			if here == Vector2.INF or p.distance_to(here) > SAFE_SEED_DISTANCE:
-				erasure.seed_at(p)
+				# Shown first, then grown: the spot glows for a few seconds
+				# before its static starts (PL-4b), so it can be read and
+				# gone round; the owner still remembers where she died.
+				erasure.seed_after(p, DEATH_SEED_WARNING * Settings.pace("warning"))
+				for g in get_children():
+					if g is GhostMarker and g.position.distance_to(p) < 1.0:
+						g.warn(DEATH_SEED_WARNING * Settings.pace("warning"))
 	for p in extra_seeds:
 		erasure.seed_at(p)
 	world.fx.eraser_starts()
@@ -492,3 +500,33 @@ func add_readable(title: String, pos: Vector2, look: Readable.Look, provider: Ca
 func draw_walls(gaps: Array = []) -> void:
 	Decor.wall_shadow(self, bounds, 12.0, 0.3)
 	Decor.walls(self, bounds, WALL, wall_face, wall_cap, gaps)
+
+
+## People notice her arrive (docs/prompts/TRAVEL_AND_DEPTH_2026-10-30.md §4):
+## each [npc, id, emote] from arrival_people(), once per arrival, only for
+## someone Rue has met, never her escort, never while the owner is hunting,
+## and only for someone standing there as themselves (not deleted or kept).
+## Returns the ids that reacted (tests).
+func on_arrival(_first: bool) -> Array:
+	var reacted: Array = []
+	if world == null or world.director.awareness >= OwnerDirector.HUNT:
+		return reacted
+	var delay := 0.25
+	for r in arrival_people():
+		var who: Npc = r[0]
+		if who == null or not is_instance_valid(who) or who == world.escort or not OwnerMemory.has_met(str(r[1])):
+			continue
+		if who.state != Npc.State.NORMAL:
+			continue
+		reacted.append(r[1])
+		get_tree().create_timer(delay).timeout.connect(func() -> void:
+			if is_instance_valid(who):
+				who.emote(str(r[2]), 1.4))
+		delay += 0.35
+	return reacted
+
+
+## Who notices her come in here: [Npc, id, emote]. Areas override it.
+func arrival_people() -> Array:
+	return []
+

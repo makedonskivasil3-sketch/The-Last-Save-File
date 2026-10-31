@@ -955,13 +955,18 @@ func _show_dialogue_line() -> void:
 	_fit_dialogue()
 
 
+## Where dialogue text ends on a touch screen: left of the E button.
+const TOUCH_TEXT_RIGHT := 520.0
+
+
 ## With a portrait the text moves right to make room for it.
 func _layout_dialogue_face() -> void:
 	var x := PORTRAIT_SIZE + 14.0 if _dialogue_face else 8.0
 	_dialogue_portrait.visible = _dialogue_face != null
 	_dialogue_speaker.position.x = x
 	_dialogue_text.position.x = x
-	_dialogue_text.size.x = 568.0 - x
+	# On touch, the text stops short of the E button (UI-2, UX C11).
+	_dialogue_text.size.x = (568.0 if not Settings.using_touch else TOUCH_TEXT_RIGHT) - x
 
 
 ## The face talks (mouth frames) while the line types or the voice speaks,

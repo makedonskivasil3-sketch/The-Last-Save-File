@@ -453,3 +453,8 @@ func _paint(ci: CanvasItem) -> void:
 	ci.draw_circle(Vector2(320, 190), 60.0, Color(0.55, 0.95, 1.0, 0.03))
 	Decor.wall_shadow(ci, bounds, 12.0, 0.3)
 	Decor.walls(ci, bounds, WALL, Color("5a4a40"), Color("241e1c"), [{"side": "left", "from": WEST_GAP.x, "to": WEST_GAP.y}, {"side": "right", "from": EAST_GAP.x, "to": EAST_GAP.y}, {"side": "bottom", "from": 430.0, "to": 470.0}])
+
+
+## Arrival (Area.on_arrival): the Archivist doesn't look up. He is filing.
+func arrival_people() -> Array:
+	return [[archivist, "archivist", "..."]]

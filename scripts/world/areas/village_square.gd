@@ -688,6 +688,7 @@ func area_process(delta: float) -> void:
 	_wren_nod()
 	_wren_doing()
 	_notice_doodles()
+	_tobben_before_walk(delta)
 	_walk_tobben(delta)
 	_well_process(delta)
 	_wren_beckon(delta)
@@ -1017,19 +1018,33 @@ func _tobben_reports() -> void:
 	if _report_pending or tobben.mute or not _report_cooled() or _tobben_errand != "":
 		return
 	_report_pending = true
-	await _story_clear()
-	if not is_inside_tree():
+	# Driven by area_process, not a coroutine: the area can be freed
+	# mid-report (a death, an exit), and a suspended wait would leak.
+	_tobben_errand = "wait"
+	_tobben_hesitate = TOBBEN_HESITATE
+
+
+## Before his walk: after the conversation (and any scene after it), pen in
+## hand, looking at her, then at the board; then he sets off.
+func _tobben_before_walk(delta: float) -> void:
+	if _tobben_errand not in ["wait", "hesitate"] or not is_instance_valid(tobben):
 		return
-	# Pen in hand, looking at her, then at the board.
-	tobben.doing = "pen in hand"
-	tobben.emote("...", TOBBEN_HESITATE)
-	await get_tree().create_timer(TOBBEN_HESITATE).timeout
-	await _story_clear()  # a scene that started meanwhile goes first
-	if not is_inside_tree() or not _report_pending:
+	if _story_busy():
+		return  # a scene goes first
+	if _tobben_errand == "wait":
+		_tobben_errand = "hesitate"
+		tobben.doing = "pen in hand"
+		tobben.emote("...", TOBBEN_HESITATE)
+		return
+	_tobben_hesitate -= delta
+	if _tobben_hesitate > 0.0:
 		return
 	_tobben_path = TOBBEN_TO_BOARD.duplicate()
 	_tobben_errand = "report"
 	tobben.doing = "going to the notice board"
+
+
+var _tobben_hesitate := 0.0
 
 
 ## Moves Tobben along his path; at the board, the report; then home.
@@ -1096,8 +1111,12 @@ func _report_cooled() -> bool:
 
 ## Waits until nobody is talking and no scene or question is on screen.
 func _story_clear() -> void:
-	while is_inside_tree() and (world.hud.is_dialogue_open() or world.hud.is_cinematic() or world.hud.is_choosing() or world._cutscene):
+	while is_inside_tree() and _story_busy():
 		await get_tree().process_frame
+
+
+func _story_busy() -> bool:
+	return world.hud.is_dialogue_open() or world.hud.is_cinematic() or world.hud.is_choosing() or world._cutscene
 
 
 func _tobben_report_lands() -> void:
@@ -1538,3 +1557,9 @@ func _on_well_heard() -> void:
 			world.hud.say(l, "self")
 	else:
 		world.hud.say(WellSequence.COMPARED_NOT_YET, "self")
+
+
+## Arrival (Area.on_arrival): Wren looks up and waves; Tobben glances up
+## from his stall, then quickly back down.
+func arrival_people() -> Array:
+	return [[wren, "wren", "o/"], [tobben, "tobben", "!"]]
