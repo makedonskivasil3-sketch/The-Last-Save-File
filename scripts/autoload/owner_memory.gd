@@ -9,6 +9,9 @@ const SAVE_PATH := "user://owner_memory.json"
 ## Automated tests run with `-- --test-mode` and use their own file, so they
 ## can never touch a player's real progress.
 const TEST_SAVE_PATH := "user://test_owner_memory.json"
+## A demo build keeps its own save: the full game never loads demo progress,
+## and a demo never touches a full game's save in the same user folder.
+const DEMO_SAVE_PATH := "user://demo_owner_memory.json"
 ## When purge reaches this, the intruder is gone for good.
 const MAX_PURGE := 6
 const MAX_REMEMBERED_DEATHS := 12
@@ -192,12 +195,17 @@ var suspend_error := ""
 
 
 func _ready() -> void:
-	if is_test_mode():
-		_path = TEST_SAVE_PATH
+	_path = save_path_for(is_test_mode(), World.demo_build())
 	_register_input()
 	load_memory()
 	# We want to see the window close so the owner can count it as a quit.
 	get_tree().set_auto_accept_quit(false)
+
+
+static func save_path_for(test: bool, demo: bool) -> String:
+	if test:
+		return TEST_SAVE_PATH
+	return DEMO_SAVE_PATH if demo else SAVE_PATH
 
 
 func _notification(what: int) -> void:

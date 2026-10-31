@@ -875,14 +875,35 @@ func _unhandled_input(event: InputEvent) -> void:
 ## unless asked for: a "demo" export feature, `-- --demo`, or ?demo=1.
 const DEMO_END_AREAS: Array[String] = ["archive", "bin", "edge"]
 static var demo_override := -1  # tests: 1 on, 0 off, -1 ask the build
+## Tests: "arch" or "workshop" with demo_override 1 ("" = the build's own).
+static var demo_endpoint_override := ""
 
 
 static func demo_build() -> bool:
+	return demo_endpoint() != ""
+
+
+## Which demo this is: "" (the full game), "arch" (ends under the Archive's
+## arch) or "workshop" (the candidate, revision brief §18: the well's
+## service ladder leads up to the workshop; the demo ends once Wren has
+## noticed the light). Both end before the Archivist, the CHARACTER FILE,
+## the Edge or any ending. Asked for with a "demo" / "demo_workshop" export
+## feature, `-- --demo` / `-- --demo=workshop`, or ?demo=1 / ?demo=workshop.
+static func demo_endpoint() -> String:
 	if demo_override != -1:
-		return demo_override == 1
-	if OS.has_feature("demo") or "--demo" in OS.get_cmdline_user_args():
-		return true
-	return OS.has_feature("web") and str(JavaScriptBridge.eval("window.location.search", true)).contains("demo")
+		return "" if demo_override == 0 else (demo_endpoint_override if demo_endpoint_override != "" else "arch")
+	var args := OS.get_cmdline_user_args()
+	if OS.has_feature("demo_workshop") or "--demo=workshop" in args:
+		return "workshop"
+	if OS.has_feature("demo") or "--demo" in args:
+		return "arch"
+	if OS.has_feature("web"):
+		var search := str(JavaScriptBridge.eval("window.location.search", true))
+		if search.contains("demo=workshop"):
+			return "workshop"
+		if search.contains("demo"):
+			return "arch"
+	return ""
 
 
 func change_area(id: String, arrival: String) -> void:
@@ -938,8 +959,10 @@ func change_area(id: String, arrival: String) -> void:
 
 ## The demo's last card: nothing past the arch, nothing explained. The
 ## session closes cleanly (not a quit: no purge).
-func _end_demo() -> void:
-	PlaytestLog.mark("DEMO END", "under the Archive's arch")
+func _end_demo(where := "under the Archive's arch") -> void:
+	if ending != "":
+		return
+	PlaytestLog.mark("DEMO END", where)
 	ending = "demo"
 	director.stop()
 	hud.cancel_choice()
@@ -1208,6 +1231,10 @@ func _on_dialogue_closed() -> void:
 		for f: Callable in told.get("after", []):
 			f.call()  # a one-time remark, heard
 		conversation_completed.emit(who)
+		# The candidate demo ends on Wren noticing the light: one mission,
+		# done and acknowledged by someone who matters.
+		if demo_endpoint() == "workshop" and told.get("conversation", "") == "wren.service_light":
+			_end_demo.call_deferred("after Wren saw the light")
 	if area and is_instance_valid(who) and area.has_method("on_dialogue_closed"):
 		area.on_dialogue_closed(who)
 

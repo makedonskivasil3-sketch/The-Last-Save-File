@@ -87,11 +87,11 @@ func build() -> void:
 	pillar.lit = not OwnerMemory.anchor.is_empty()  # the well keeps your answer here
 	add_child(pillar)
 	interactables.append(pillar)
-	if LanternRoute.repaired():
+	if LanternRoute.repaired() or World.demo_endpoint() == "workshop":
 		var service := Passage.new()
 		service.position = Vector2(130, 94)
-		service.object_name = "LIT SERVICE HATCH"
-		service.prompt = "climb to the lantern workshop"
+		service.object_name = "LIT SERVICE HATCH" if LanternRoute.repaired() else "DARK SERVICE LADDER"
+		service.prompt = "climb to the lantern workshop" if LanternRoute.repaired() else "climb up into the dark"
 		service.target_area = "workshop"
 		service.arrival = "well"
 		service.taken.connect(func(p: Passage) -> void: world.change_area(p.target_area, p.arrival))
@@ -256,7 +256,7 @@ func _draw() -> void:
 		draw_rect(a, Color(WIRE, 0.7), false, 1.0)
 		draw_string(UiStyle.system_font(), a.position + Vector2(3, 8), "anchor", HORIZONTAL_ALIGNMENT_LEFT, -1, 6, Color(WIRE, 0.35))
 	draw_rect(r, Color(WIRE, 0.25), false, 1.0)
-	if LanternRoute.repaired():
+	if LanternRoute.repaired() or World.demo_endpoint() == "workshop":
 		# The same brass rungs as the workshop hatch, on the solid landing.
 		var hatch := Rect2(122, 86, 16, 16)
 		draw_rect(hatch, Color("302b27"))
