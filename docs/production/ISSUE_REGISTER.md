@@ -1,5 +1,41 @@
 # Issue register
 
+## Register of 2026-10-31 (current)
+
+**Baseline:** `main` @ `adf2710` (runtime `2f03453`; test fixture `335a5f3`), all three verified to exist. Reconciled into `claude/last-save-file-prototype-ljwuq4` by merge `b5db36a`: where this branch and `main` disagreed on doorways, `main` won.
+
+**How to read it:**
+- **Class:**
+  - **D:** reproduced defect.
+  - **R:** code risk needing reproduction.
+  - **W:** design weakness.
+  - **P:** production gap.
+  - **H:** hardware or human verification gap.
+  - **X:** historical, already fixed.
+- **Sev:** S1 (blocks play or loses progress) to S4 (cosmetic).
+
+| ID | Class | Sev | Problem | Evidence/revision | Player impact | Proposed fix | Verification |
+|---|---|---|---|---|---|---|---|
+| WS-1 | D | S2 | Workshop steps were two separate writes: the event, then the journal note. Neither result was returned | `LanternRoute.record` @ `adf2710` | A failed second write left "repaired" saved without its note. The feedback said "kept" either way | **Done (`d6fd6ed`):** one write per step (`OwnerMemory.commit_step`); the result is returned, and "NOT SAVED YET" is shown when it fails | `test_workshop_persistence` (failure injection: no half-saved step, retry lands, relaunch restarts the step, no double reward) |
+| SV-4 | D | S2 | Ordinary progress writes fail silently. Only Save and Exit was transactional | `OwnerMemory.save_memory` sets `last_save_ok`, which nothing reads | Progress shown on screen can vanish on relaunch, with no warning | **Done (`d6fd6ed`):** a failed write sets `unsaved`; the console says so once; the write is retried every 4 s; recovery is announced. The last good save is never touched | Same tests. **Not yet tested on web storage (IndexedDB)** |
+| UI-6 | W | S3 | Act cards were tied to areas, so free exploration could show a later act first. This branch's interim fix (numbering by arrival order) still mixed places with story | `world._area_intro` | Contradictory chapter order | **Done (`d6fd6ed`):** places are named on arrival. Chapters follow `Quests.story_mission()` (I–IV, V at the Edge), only forward, stored as `chapter:<id>` in `acts_seen` (no new flag). An old save shows its current chapter once | `test_act_order` (Archive first, well first, workshop, old save, pointer in place) |
+| RD-1 | R | S2 | The exported story reader failed one "Continue click keeps the reply" step under load | `oct30/VERIFICATION.md`; failed 1 in 3 at `e551c6c` | A player may lose a reply page from the journal, or need an extra press, on slow devices | Reproduce with CPU throttling; tell game state apart from storage timing; fix the cause | Pending (below) |
+| TR-1 | X | S3 | Two branches built opposite doorway designs (fast thresholds vs a passage card) | `adf2710` vs `e551c6c` | Mixed travel feel | Reconciled: `main`'s thresholds, facing and short fades. Kept: dust, arrival reactions | `test_world_cohesion`, `test_travel` |
+| PL-3 | R | S4 | ObjectDB instances leaked at exit (test runner only) | Verbose suite: timers, tweens and coroutines pending at teardown | None in the exported game (Linux smoke exits clean) | Fix the per-test teardown, not the game | Open; not suppressed |
+| PL-4c | H | S3 | Late-purge Edge deaths after a reload (bot 1 in 2 at `7734ab1`) | `RELEASE_READINESS` | May read as unfair at purge 5 | Human play at purge 4–5; Owner pace Gentle exists | Needs people |
+| DM-1 | W | S3 | The demo ends at the Archive arch, before any complete mission | `World.DEMO_END_AREAS` | The demo shows no completed action or consequence | Candidate endpoint after the workshop repair and Wren's acknowledgement (brief §18) | To build and review |
+| RT-1 | P | S2 | No measured campaign length or route timing with people | No playtest data exists | Price and scope can't be set | Run `playtest/RUN_A_ROUND.md` | Needs people |
+| AR-1 | P | S2 | All art is code-drawn: consistent, but programmer art | `PRODUCTION_STANDARD.md` | Weak store presence; the world reads as provisional | Representative section standard; briefs for commissioned sprites (authorisation needed) | Author decision |
+| AU-1 | H | S3 | No human listening of the mix; no recorded voice | — | Unknown fatigue and readability | A small pilot with rights and consent | Needs people |
+| HW-1 | H | S2 | Never run on Windows, a physical controller or a phone | — | Unknown platform defects | Run on hardware | Needs hardware |
+| QA-1 | P | S3 | The monolithic suite at normal game speed takes over an hour | `oct30/VERIFICATION.md` | Slow verification | Four shards with isolated XDG folders, checked against `--list-tests` | Used this pass |
+| DC-1 | P | S4 | `docs/` is 56 MB and about 190k words | `du`, `wc` | Slows contributors; stale docs mislead | Archive review captures and pass notes out of the working tree | Open |
+
+---
+
+## History (2026-10-27 onward)
+
+
 **Opened:** 2026-10-27.
 
 **Baseline:** `main` @ `6fb8e23`. Strict suite reproduced in this session: **691/691**, 1527.3 s, no script errors. The ObjectDB exit warning is still printed.
