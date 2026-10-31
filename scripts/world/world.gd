@@ -235,6 +235,34 @@ func problem_report() -> String:
 	return "\n".join(lines)
 
 
+## A progress write that failed (OwnerMemory.unsaved): the progress stands in
+## this run, the player is told once, and the write is retried every few
+## seconds until it lands. The last good save on disk is never touched by a
+## failed write (SafeFile.write_atomic), so a relaunch meanwhile loads it.
+const UNSAVED_RETRY := 4.0
+var _chapter_t := 1.0
+var _unsaved_t := 0.0
+var _unsaved_told := false
+
+
+func _retry_unsaved(delta: float) -> void:
+	if not OwnerMemory.unsaved:
+		if _unsaved_told:
+			_unsaved_told = false
+			hud.say("progress saved.", "system")
+		return
+	if not _unsaved_told:
+		_unsaved_told = true
+		_unsaved_t = UNSAVED_RETRY
+		hud.say("NOT SAVED: %s Progress is kept for now; trying again." % (SafeFile.last_error if SafeFile.last_error != "" else "the save couldn't be written."), "system")
+		PlaytestLog.mark("progress not saved", SafeFile.last_error)
+		return
+	_unsaved_t -= delta
+	if _unsaved_t <= 0.0:
+		_unsaved_t = UNSAVED_RETRY
+		OwnerMemory.save_memory()
+
+
 ## "Previously" after this long away (seconds).
 const RECAP_AFTER := 20.0 * 60.0
 var _recapped := false
@@ -561,6 +589,12 @@ func _process(delta: float) -> void:
 		_observe_in_view()
 	_publish_web_state(delta)
 	_handle_wipe(delta)
+	_retry_unsaved(delta)
+	_chapter_t -= delta
+	if _chapter_t <= 0.0:
+		_chapter_t = 1.0
+		if _awake and not _transitioning and ending == "" and not _reading_now() and not get_tree().paused:
+			_chapter_check()  # a story step mid-area (the Archivist's pointer) turns the chapter
 	# Before anything returns early: a scene holds the owner like a question
 	# does (the cursor, the erasure and Arin wait), whichever scene it is.
 	if ending == "" and not purged and area:
@@ -1024,13 +1058,28 @@ func _load_area(next: Area, arrival: String) -> void:
 ## The first time ever you reach an act's area: its title card. Otherwise
 ## just the place name.
 func _area_intro() -> void:
-	var id := area.area_id
-	if not purged and Story.ACTS.has(id) and id not in OwnerMemory.acts_seen:
-		OwnerMemory.acts_seen.append(id)
-		OwnerMemory.save_memory()
-		hud.show_act(Story.act_label(OwnerMemory.acts_seen.size()), Story.ACTS[id][1], area.display_name)
-	else:
+	if not _chapter_check():
 		hud.show_area_title(area.display_name)
+
+
+## A chapter card when the story has reached a chapter not shown yet
+## (Story.CHAPTERS, from Quests.story_mission: only ever forward). Earlier
+## chapters skipped by an old save are marked seen, not shown in a row.
+## Kept in acts_seen as "chapter:<id>", no other flag. True if one showed.
+func _chapter_check() -> bool:
+	if purged or area == null:
+		return false
+	var n := Story.chapter_now(area.area_id, flags.get("pointer", false))
+	var key := "chapter:" + str(Story.CHAPTERS[n][0])
+	if key in OwnerMemory.acts_seen:
+		return false
+	for i in n + 1:
+		var k := "chapter:" + str(Story.CHAPTERS[i][0])
+		if k not in OwnerMemory.acts_seen:
+			OwnerMemory.acts_seen.append(k)
+	OwnerMemory.save_memory()
+	hud.show_act("CHAPTER " + ["I", "II", "III", "IV", "V"][n], str(Story.CHAPTERS[n][1]), area.display_name)
+	return true
 
 
 func _base_light() -> Color:

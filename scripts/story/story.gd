@@ -276,10 +276,9 @@ const OWNER_RECOGNITION := {
 }
 
 
-## The five acts. Each title card shows the first time you reach its area,
-## numbered in the order this player reached them (UI-6: the Archive and
-## Out of Bounds can come either way round), so the cards always count up.
-## The labels below are the usual route's order.
+## The five acts, as places (kept for the place titles some screens use).
+## Arriving somewhere only names it now; chapters follow the story
+## (CHAPTERS, below).
 const ACTS := {
 	"room": ["ACT I", "SOMEONE ELSE'S SAVE"],
 	"square": ["ACT II", "ASHVALE"],
@@ -287,6 +286,30 @@ const ACTS := {
 	"archive": ["ACT IV", "CUT CONTENT"],
 	"edge": ["ACT V", "THE LAST SAVE FILE"],
 }
+
+## Chapters follow the story, not the map (docs/production/ISSUE_REGISTER.md
+## UI-6): each is a stage of Quests.story_mission(), which only moves
+## forward, so the cards can't come out of order however the player
+## explores. The last is reaching the Edge. [id, title].
+const CHAPTERS := [
+	["fifth_lantern", "SOMEONE ELSE'S SAVE"],
+	["well_light", "THE LIGHT BY THE WELL"],
+	["who_kept", "WHO KEPT IT BURNING"],
+	["slot2", "WHAT'S LEFT OF SLOT 2"],
+	["finale", "THE LAST SAVE FILE"],
+]
+
+
+## The chapter the story is in (index into CHAPTERS).
+static func chapter_now(area_id: String, pointer := false) -> int:
+	if area_id == "edge":
+		return CHAPTERS.size() - 1
+	var m := Quests.story_mission(pointer)
+	for i in CHAPTERS.size():
+		if CHAPTERS[i][0] == m:
+			return i
+	return 0
+
 
 static func act_label(n: int) -> String:
 	return "ACT " + ["I", "II", "III", "IV", "V", "VI"][clampi(n, 1, 6) - 1]

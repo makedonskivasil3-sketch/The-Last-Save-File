@@ -25,25 +25,30 @@ func interact_prompt() -> String:
 
 func interact() -> String:
 	if not lamp:
-		LanternRoute.record(LanternRoute.SPOOL, "A spare festival wick", [
+		var kept := LanternRoute.record(LanternRoute.SPOOL, "A spare festival wick", [
 			"A coil of wick, still wrapped in paper marked FIFTH LANTERN.",
 			"The service lantern on the centre bench has an empty holder. This will fit."])
 		Sfx.play("ui_confirm")
 		changed.emit()
 		queue_redraw()
-		return "WICK KEPT  ·  fit it to the service lantern. (journal: Objects)"
+		return "WICK KEPT  ·  fit it to the service lantern. (journal: Objects)" + _unsaved_note(kept)
 	if LanternRoute.repaired():
 		return "The light reaches the hatch. A way back that doesn't cross Arin's road."
 	if not Relationships.has(LanternRoute.SPOOL):
 		return "An empty wick holder. A spare coil lies on the west workbench."
-	LanternRoute.record(LanternRoute.REPAIRED, "A light kept burning", [
+	var saved := LanternRoute.record(LanternRoute.REPAIRED, "A light kept burning", [
 		"I fitted the spare wick. The service light came on, and the hatch under the well opened.",
 		"The festival needed two people to hold a light. I kept this one burning myself.",
 		"The workshop is quiet. Save and exit is available here when no story panel is open."])
 	Sfx.play("ui_confirm")
 	changed.emit()
 	queue_redraw()
-	return "SERVICE ROUTE OPEN  ·  hatch to the well; stairs to the Archive."
+	return "SERVICE ROUTE OPEN  ·  hatch to the well; stairs to the Archive." + _unsaved_note(saved)
+
+
+## Said only when the write failed: the step stands, the game keeps trying.
+func _unsaved_note(saved: bool) -> String:
+	return "" if saved else "  ·  NOT SAVED YET (the game keeps trying)"
 
 
 func _draw() -> void:

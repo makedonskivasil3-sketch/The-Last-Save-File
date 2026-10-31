@@ -184,6 +184,9 @@ var _path := SAVE_PATH
 var safe_close: Callable
 ## Whether the last save_memory() reached the disk.
 var last_save_ok := true
+## Progress made this run that isn't on disk yet: the last write failed.
+## World retries it (and says so); Save and exit stays its own transaction.
+var unsaved := false
 ## Why the last record_suspend() failed, for the player ("" when it didn't).
 var suspend_error := ""
 
@@ -410,6 +413,19 @@ func add_event(id: String) -> bool:
 	_occur(id)
 	save_memory()
 	return true
+
+
+## A mission step as one transaction: its events and its journal note go to
+## disk in a single write, so a failure never leaves half of it saved. The
+## step stands in memory either way (the player saw it happen); the return
+## says whether it is on disk. Events already recorded aren't added again.
+func commit_step(events: Array, note_id: String, title: String, area: String, lines: Array) -> bool:
+	for id: String in events:
+		if not rel_events.has(id):
+			_occur(id)
+	if note_id != "":
+		record_read(note_id, "note", title, area, lines, false)
+	return save_memory()
 
 
 ## Records another occurrence of an event that can happen again (a death
@@ -931,6 +947,7 @@ func save_memory() -> bool:
 		"archive_seen": archive_seen,
 	}
 	last_save_ok = SafeFile.write_atomic(_path, JSON.stringify(data, "\t"))
+	unsaved = not last_save_ok
 	return last_save_ok
 
 

@@ -20,6 +20,7 @@ static func goal() -> String:
 	return "Find the spare wick on the west workbench, then repair the service lamp."
 
 
-static func record(id: String, title: String, lines: Array) -> void:
-	Relationships.add(id)
-	OwnerMemory.record_read("workshop:" + id, "note", title, "workshop", lines)
+## One step of the mission, saved as a single write (OwnerMemory.commit_step).
+## Returns whether it reached the disk: the caller tells the player if not.
+static func record(id: String, title: String, lines: Array) -> bool:
+	return OwnerMemory.commit_step([id], "workshop:" + id, title, "workshop", lines)
