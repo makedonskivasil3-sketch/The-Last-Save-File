@@ -25,7 +25,9 @@ func test_unlock_opens_arins_front_door() -> void:
 	await frames(3)
 	check_eq(w.glitch.target.get("id", ""), "unlock", "facing it offers UNLOCK")
 	await hold("interact", 0.9)
-	check(w.area.door.is_forced_open(), "the lock pops")
+	# Shorter ordinary crossings can already have entered the house by the
+	# time the hold helper returns. Do not dereference the old Square here.
+	check(w.area is ArinsHouse or (w.area is VillageSquare and w.area.door.is_forced_open()), "the lock opens and permits the crossing")
 	await wait_until(func() -> bool: return w.area.area_id == "house" and not w._transitioning, 4.0, "walking into the house")
 	check(w._visited.has("house"), "the house is on the map now")
 

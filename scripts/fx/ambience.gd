@@ -35,7 +35,7 @@ func setup(w: World, id: String) -> void:
 	match id:
 		"square":
 			_bed = _loop(Sfx.stream("wind"), Sfx.LEVEL["wind"])
-		"archive":
+		"archive", "workshop":
 			_bed = _loop(Sfx.stream("archive_hum"), Sfx.LEVEL["archive_hum"])
 		"edge":
 			_theme = _loop(MusicBox.stream(_level(), "reverse"), -14.0)

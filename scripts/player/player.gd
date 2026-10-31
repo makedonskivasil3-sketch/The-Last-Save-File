@@ -47,11 +47,6 @@ const TRAIL_INTERVAL := 0.05
 @export var speed := 90.0
 
 var frozen := false
-## A short walk the game does for her (leaving through a doorway, walking
-## in on arrival: docs/prompts/TRAVEL_AND_DEPTH_2026-10-30.md §1), px/s.
-## Moves her even while frozen to input, without collision (she is in the
-## doorway), and drives the gait like real travel.
-var scripted := Vector2.ZERO
 ## Dust at her feet (start, sharp stop, reversal): [global pos, age].
 var _dust: Array = []
 var _was_speed := 0.0
@@ -219,11 +214,6 @@ func startle() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if scripted != Vector2.ZERO:
-		position += scripted * delta
-		velocity = scripted
-		_intent = scripted.normalized()
-		return
 	if frozen or reading:
 		# Reading or answering: Rue stands still (and the owner holds, World._update_reading_hold).
 		velocity = Vector2.ZERO
@@ -279,9 +269,9 @@ func _process(delta: float) -> void:
 			_dissolve = ""
 	# What she actually travelled drives the gait (docs/production/MOVEMENT_SPEC.md);
 	# what the player asks for turns her, even against a wall.
-	var moved := scripted if scripted != Vector2.ZERO else (get_real_velocity() if not frozen else Vector2.ZERO)
+	var moved := get_real_velocity() if not frozen else Vector2.ZERO
 	_sprite.update(delta, moved, false)
-	if not frozen or scripted != Vector2.ZERO:
+	if not frozen:
 		_sprite.face(_intent)
 	_update_dust(delta, moved)
 	_update_mood(delta)

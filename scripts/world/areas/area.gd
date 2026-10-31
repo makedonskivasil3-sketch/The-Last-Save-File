@@ -30,6 +30,8 @@ var interactables: Array[Node2D] = []
 var exits: Array[Exit] = []
 ## Arrival name -> position.
 var entries: Dictionary = {}
+## Unusual passages can override the conventional compass entrance facing.
+var entry_facings: Dictionary = {}
 
 var _body: StaticBody2D
 
@@ -304,6 +306,17 @@ func entry_point(arrival: String) -> Vector2:
 	return entries.get(arrival, bounds.get_center())
 
 
+func entry_direction(from: String) -> Vector2:
+	if entry_facings.has(from):
+		return entry_facings[from]
+	match from:
+		"west": return Vector2.RIGHT
+		"east": return Vector2.LEFT
+		"north", "stairs", "well", "house": return Vector2.DOWN
+		"south", "workshop", "front": return Vector2.UP
+	return Vector2.DOWN
+
+
 ## Erasure grows in this area; seeded where you died here before.
 ## seed_deaths: also seed where you died here before (the owner remembers).
 ## Death seeds closer than this to Rue are skipped when the static starts.
@@ -419,19 +432,19 @@ func add_exit(rect: Rect2, target: String, arrival: String, open := true, blocke
 	var e := Exit.new()
 	add_child(e)
 	e.setup(rect, target, arrival)
+	var toward := bounds.get_center() - rect.get_center()
+	e.inward = Vector2(signf(toward.x), 0) if rect.size.x < rect.size.y else Vector2(0, signf(toward.y))
 	e.open = open
 	e.blocked_message = blocked_message
-	e.used.connect(func(x: Exit) -> void: world.change_area(x.target_area, x.arrival, x.outward))
+	e.used.connect(func(x: Exit) -> void: world.change_area(x.target_area, x.arrival))
 	e.blocked.connect(func(x: Exit) -> void: world.blocked_exit(x))
 	exits.append(e)
 	# Something solid just beyond the exit so you can't leave the screen.
 	var beyond := rect
 	if rect.size.x < rect.size.y:
-		e.outward = Vector2(1.0 if rect.position.x > bounds.get_center().x else -1.0, 0.0)
-		beyond.position.x += rect.size.x * e.outward.x
+		beyond.position.x += rect.size.x * (1.0 if rect.position.x > bounds.get_center().x else -1.0)
 	else:
-		e.outward = Vector2(0.0, 1.0 if rect.position.y > bounds.get_center().y else -1.0)
-		beyond.position.y += rect.size.y * e.outward.y
+		beyond.position.y += rect.size.y * (1.0 if rect.position.y > bounds.get_center().y else -1.0)
 	add_solid(beyond)
 	return e
 

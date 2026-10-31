@@ -23,9 +23,10 @@ const SECTION_LABEL := {"people": "PEOPLE", "memories": "MEMORIES", "documents":
 
 const NAMES := {"mira": "MIRA", "wren": "WREN", "tobben": "TOBBEN", "archivist": "THE ARCHIVIST", "pip": "PIP"}
 const PLACE_NAMES := {"room": "Arin's room", "square": "Ashvale square", "oob": "Out of bounds, under the well",
-	"archive": "The Archive", "bin": "The Recycle Bin", "house": "Arin's house", "edge": "The Edge"}
+	"archive": "The Archive", "bin": "The Recycle Bin", "house": "Arin's house", "edge": "The Edge", "workshop": "Lantern workshop"}
 ## What each place is, once Rue has been there (no spoilers of what's beyond).
 const PLACE_NOTES := {
+	"workshop": "Under the Archive: spare festival lanterns, a service light, and a hatch down to the well.",
 	"room": "Where you wake. Mira lives here. The owner watches this room most.",
 	"square": "The village. Arin walks a loop. Wren stands by the crates; Tobben keeps the stall. The well is in the middle.",
 	"oob": "Under the well, where nothing is saved. The floor comes and goes. The owner can barely see down here.",
@@ -260,6 +261,9 @@ static func objects() -> Array:
 	var add := func(id: String, title: String, status: String, word: String, note: String) -> void:
 		out.append({"key": "object:" + id, "title": title, "kind": "object", "area": "",
 			"body": "STATUS: %s: %s\n\n%s" % [word, status, note] if note != "" else "STATUS: %s: %s" % [word, status], "who": "", "rev": word})
+	if Relationships.has(LanternRoute.SPOOL):
+		add.call("festival_wick", "The spare festival wick", "fitted to the service lantern." if LanternRoute.repaired() else "carried; fits the service lantern in the workshop.",
+			"USED" if LanternRoute.repaired() else "CARRIED", "Found on the west workbench beneath the Archive. Its wrapper says FIFTH LANTERN.")
 	match OwnerMemory.mira_quest:
 		"pinned":
 			add.call("mira_note", "Mira's note", "pinned on the square's notice board. Mira pinned it herself.", "USED", "It's still up.")
@@ -328,6 +332,8 @@ static func leads() -> Array:
 			add.call("promise:" + who, NAMES[who].capitalize(), open)
 	for l in WellSequence.leads():
 		add.call(l[0], l[1], l[2])
+	if Relationships.has(LanternRoute.ENTERED):
+		add.call("service_light", "The well service route", LanternRoute.goal())
 	return out
 
 

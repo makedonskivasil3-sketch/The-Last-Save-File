@@ -10,6 +10,8 @@ signal quit_requested(to_title: bool)
 var suspend_handler: Callable
 ## World.problem_report: the text for "Report a problem".
 var report_provider: Callable
+## Orientation must not resume an existing menu or let hazards run unseen.
+var resume_blocked: Callable
 ## A debug tool was picked (World.debug()).
 signal debug_requested(action: String)
 
@@ -195,6 +197,8 @@ func open() -> void:
 
 
 func close() -> void:
+	if resume_blocked.is_valid() and resume_blocked.call():
+		return
 	VoiceOver.stop_preview()  # a replay from the History page ends with the menu
 	visible = false
 	get_tree().paused = false

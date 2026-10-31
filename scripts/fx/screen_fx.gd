@@ -132,8 +132,10 @@ func enter_area(area_id: String) -> void:
 		spike(1.0, 1.4)
 		noise(0.6, 1.2)
 		roll_slip(0.18)
-	else:
-		spike(0.4, 0.6)
+	elif area_id == "oob":
+		spike(0.2, 0.4)
+	# Ordinary doors do not tear the picture. Corruption belongs to the
+	# Owner's actions and impossible spaces, not every change of room.
 
 
 ## Death. Each cause gets its own treatment:

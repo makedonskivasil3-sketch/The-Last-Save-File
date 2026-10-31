@@ -42,6 +42,7 @@ var _hint: Label
 var _done := false
 var _art: Control
 var _t := 0.0
+var _focused := true
 
 
 func _ready() -> void:
@@ -89,7 +90,18 @@ static func journal_lines() -> Array:
 	return out
 
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		_focused = false
+		_armed = false
+		_skip_t = 0.0
+	elif what == NOTIFICATION_APPLICATION_FOCUS_IN:
+		_focused = true
+
+
 func _process(delta: float) -> void:
+	if not _focused:
+		return
 	_t += delta
 	_art.queue_redraw()
 	if _done:
@@ -110,7 +122,14 @@ func _process(delta: float) -> void:
 	var l := _labels[_line]
 	if l.visible_characters < l.text.length():
 		var before := l.visible_characters
-		_typed += delta * TYPE_RATE
+		var reveal := _armed and pressing
+		var rate := Settings.text_rate()
+		if reveal or is_inf(rate):
+			_typed = float(l.text.length())
+		else:
+			_typed += delta * TYPE_RATE * rate
+		if reveal:
+			_armed = false  # release before advancing; one press only reveals
 		l.visible_characters = mini(l.text.length(), int(_typed))
 		if l.visible_characters != before and l.text[l.visible_characters - 1] != " ":
 			Sfx.play("key_system", -16.0 if LINES[_line][0] == "system" else -10.0, 1.0 + randf() * 0.15, 0.0)

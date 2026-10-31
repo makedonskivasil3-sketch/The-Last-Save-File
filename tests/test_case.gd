@@ -17,10 +17,10 @@ var failures: Array[String] = []
 # --- lifecycle -----------------------------------------------------------------
 
 func before_each() -> void:
-	# Area changes without the travel beats (World.travel_beats): hundreds of
-	# them across the suite. Their own tests, and the bots, turn them on.
-	World.travel_beats_default = false
 	memory().wipe()
+	# Each case starts a fresh profile; a preceding festival must not leave
+	# its one-shot "boot already shown" handoff in this case's new game.
+	Prologue.boot_shown = false
 	JournalPanel.forget_place()
 	ArchivePages.escort_now = ""
 	Relationships.wren_at_well = false

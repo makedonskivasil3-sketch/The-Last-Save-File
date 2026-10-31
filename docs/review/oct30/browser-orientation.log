@@ -1,0 +1,4 @@
+PASS: portrait freezes gameplay and refuses Resume
+PASS: landscape preserves the pause
+PASS: explicit Resume returns control
+PASS: no page errors (Chromium touch emulation; physical iPhone unverified)

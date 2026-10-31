@@ -2,7 +2,7 @@
 
 **Written by Claude for Claude**, from the author's request: "Update the game's graphics, movement and character depth; work on fixing the fast meaningless jumping from map to map."
 
-**Status:** built in the same pass (see the bottom). Check every line against the code before trusting it.
+**Status: superseded on 2026-10-31.** When this branch was reconciled with `main` @ `adf2710`, `main`'s faster doorway design was kept. The passage card, the walk-out and walk-in, and exit intent were removed. Dust and arrival reactions remain. Kept as history.
 
 ## The problem, measured
 

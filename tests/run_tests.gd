@@ -43,6 +43,9 @@ func _run() -> void:
 		return
 	var filter := ""
 	var prefix := "test_"
+	var shard := 1
+	var shards := 1
+	var list_only := "--list-tests" in OS.get_cmdline_user_args()
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--filter="):
 			filter = arg.trim_prefix("--filter=")
@@ -54,10 +57,25 @@ func _run() -> void:
 			_timeout = BOT_TIMEOUT  # tours walk whole sessions
 		elif arg.begins_with("--speed="):
 			Engine.time_scale = clampf(float(arg.trim_prefix("--speed=")), 0.25, 8.0)
+		elif arg.begins_with("--shard="):
+			var parts := arg.trim_prefix("--shard=").split("/")
+			if parts.size() != 2 or not parts[0].is_valid_int() or not parts[1].is_valid_int():
+				push_error("Use --shard=i/n, with 1 <= i <= n <= 8.")
+				quit(2)
+				return
+			shard = int(parts[0])
+			shards = int(parts[1])
+	if shards < 1 or shards > 8 or shard < 1 or shard > shards:
+		push_error("Use --shard=i/n, with 1 <= i <= n <= 8.")
+		quit(2)
+		return
+	if shards > 1:
+		print("SHARD %d/%d; isolate XDG directories for each process." % [shard, shards])
 
 	var files := DirAccess.get_files_at(TEST_DIR)
 	files.sort()
 	var started := Time.get_ticks_msec()
+	var ordinal := 0
 	for file in files:
 		if not (file.begins_with(prefix) and file.ends_with(".gd")) or file == "test_case.gd":
 			continue
@@ -68,7 +86,17 @@ func _run() -> void:
 				continue
 			if filter != "" and not Array(filter.split(",")).any(func(f: String) -> bool: return f in file or f in name):
 				continue  # (a comma-separated filter matches any of its parts)
+			ordinal += 1
+			if (ordinal - 1) % shards != shard - 1:
+				continue
+			if list_only:
+				print("TEST ", file.get_basename(), ".", name)
+				continue
 			await _run_one(script, file.get_basename(), name)
+	if list_only:
+		_cleanup()
+		quit(0)
+		return
 
 	var secs := (Time.get_ticks_msec() - started) / 1000.0
 	print("")

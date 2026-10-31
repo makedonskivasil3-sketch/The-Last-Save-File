@@ -31,7 +31,7 @@ func _init() -> void:
 	# last threshold reached). The one place to catch your breath.
 	awareness_rate = -0.6
 	tint = Color(0.9, 0.88, 1.0)
-	entries = {"west": Vector2(118, 180), "east": Vector2(522, 180)}
+	entries = {"west": Vector2(118, 180), "east": Vector2(522, 180), "workshop": Vector2(450, 266)}
 
 
 func build() -> void:
@@ -45,7 +45,8 @@ func build() -> void:
 	# the way through it, from the doorway).
 	add_light(Vector2(320, 150), Color(0.6, 0.75, 1.0), 0.5, 150.0)
 	add_dust(Rect2(DESK.position.x - 70, DESK.position.y - 120, DESK.size.x + 140, 130), Color(1.0, 0.85, 0.6, 0.45), 20, Vector2(2, -2))
-	add_boundary([{"side": "left", "from": WEST_GAP.x, "to": WEST_GAP.y}, {"side": "right", "from": EAST_GAP.x, "to": EAST_GAP.y}])
+	add_boundary([{"side": "left", "from": WEST_GAP.x, "to": WEST_GAP.y}, {"side": "right", "from": EAST_GAP.x, "to": EAST_GAP.y},
+		{"side": "bottom", "from": 430.0, "to": 470.0}])
 	for s in SHELVES:
 		add_solid(s)
 	add_solid(DESK)
@@ -54,6 +55,8 @@ func build() -> void:
 	add_sign(Vector2(bounds.position.x + 32, WEST_GAP.x - 10), "ASHVALE", Vector2.LEFT)
 	add_exit(Rect2(bounds.end.x, EAST_GAP.x, 8, EAST_GAP.y - EAST_GAP.x), "bin", "west")
 	add_sign(Vector2(bounds.end.x - 40, EAST_GAP.x - 10), "RECYCLE BIN", Vector2.RIGHT)
+	add_exit(Rect2(430, bounds.end.y, 40, 8), "workshop", "stairs")
+	add_sign(Vector2(450, 252), "LANTERN WORKSHOP", Vector2.DOWN)
 	archivist = add_npc("archivist", Vector2(320, 192))
 	archivist.display_name = "THE ARCHIVIST"
 	archivist.name_color = Color("8cf2ff")
@@ -345,6 +348,9 @@ func _paint(ci: CanvasItem) -> void:
 	# that remembers kindly.
 	var r := bounds
 	Decor.flagstones(ci, r, FLOOR.lightened(0.12), 26.0, 5.0)
+	# The same stair stones continue in the workshop below.
+	for y in range(270, 296, 5):
+		ci.draw_line(Vector2(432, y), Vector2(468, y), Color("b3a18c"), 1)
 	# The aisle: west door to east door, the way through.
 	var aisle := Rect2(r.position.x, WEST_GAP.x + 4, r.size.x, WEST_GAP.y - WEST_GAP.x - 8)
 	ci.draw_rect(aisle, Color("2e2628"))
@@ -446,7 +452,7 @@ func _paint(ci: CanvasItem) -> void:
 	# Soft light: nothing in here was ever finished.
 	ci.draw_circle(Vector2(320, 190), 60.0, Color(0.55, 0.95, 1.0, 0.03))
 	Decor.wall_shadow(ci, bounds, 12.0, 0.3)
-	Decor.walls(ci, bounds, WALL, Color("5a4a40"), Color("241e1c"), [{"side": "left", "from": WEST_GAP.x, "to": WEST_GAP.y}, {"side": "right", "from": EAST_GAP.x, "to": EAST_GAP.y}])
+	Decor.walls(ci, bounds, WALL, Color("5a4a40"), Color("241e1c"), [{"side": "left", "from": WEST_GAP.x, "to": WEST_GAP.y}, {"side": "right", "from": EAST_GAP.x, "to": EAST_GAP.y}, {"side": "bottom", "from": 430.0, "to": 470.0}])
 
 
 ## Arrival (Area.on_arrival): the Archivist doesn't look up. He is filing.
