@@ -5,17 +5,25 @@ extends Node2D
 
 signal changed
 var lamp := false
+## The fifth festival frame on the shelf (LanternRoute.NAMED).
+var frame := false
 
 
 func can_interact() -> bool:
+	if frame:
+		return true
 	return lamp or not Relationships.has(LanternRoute.SPOOL)
 
 
 func interact_name() -> String:
+	if frame:
+		return "THE FIFTH FRAME"
 	return "SERVICE LANTERN" if lamp else "FESTIVAL WICK"
 
 
 func interact_prompt() -> String:
+	if frame:
+		return "read the label" if LanternRoute.named() or not LanternRoute.repaired() else "look at the blank label"
 	if not lamp:
 		return "take spare wick"
 	if LanternRoute.repaired():
@@ -24,6 +32,12 @@ func interact_prompt() -> String:
 
 
 func interact() -> String:
+	if frame:
+		if LanternRoute.named():
+			return "1 · 2 · 3 · 4 · RUE. My own handwriting, a little crooked."
+		if not LanternRoute.repaired():
+			return "Five festival frames. Four labels are numbered, one to four. The fifth label is blank, and the frame is empty."
+		return ""  # the question follows (LanternWorkshop.interact_extra)
 	if not lamp:
 		var kept := LanternRoute.record(LanternRoute.SPOOL, "A spare festival wick", [
 			"A coil of wick, still wrapped in paper marked FIFTH LANTERN.",
@@ -35,10 +49,11 @@ func interact() -> String:
 	if LanternRoute.repaired():
 		return "The light reaches the hatch. A way back that doesn't cross Arin's road."
 	if not Relationships.has(LanternRoute.SPOOL):
-		return "An empty wick holder. A spare coil lies on the west workbench."
+		return "Cold glass and an empty wick holder. Without it, the hatch beside the well ladder is too dark to find. A spare coil lies on the west workbench."
 	var saved := LanternRoute.record(LanternRoute.REPAIRED, "A light kept burning", [
 		"I fitted the spare wick. The service light came on, and the hatch under the well opened.",
 		"The festival needed two people to hold a light. I kept this one burning myself.",
+		"Nobody asked me to. Nobody was holding the controller. It still counts.",
 		"The workshop is quiet. Save and exit is available here when no story panel is open."])
 	Sfx.play("ui_confirm")
 	changed.emit()
@@ -52,6 +67,15 @@ func _unsaved_note(saved: bool) -> String:
 
 
 func _draw() -> void:
+	if frame:
+		# Drawn up on the shelf, in line with the four painted frames.
+		draw_rect(Rect2(-4, -36, 8, 13), Color("ba9158"), false, 1)
+		draw_line(Vector2(-5, -22), Vector2(5, -22), Color("e3c995"), 1)
+		draw_rect(Rect2(-5, -20, 10, 4), Color("e9dcc0"))
+		if LanternRoute.named():
+			for i in 3:
+				draw_line(Vector2(-3 + i * 2.2, -17), Vector2(-2 + i * 2.2, -19), Color("8f6ad6"), 1)
+		return
 	if not lamp:
 		if Relationships.has(LanternRoute.SPOOL):
 			return

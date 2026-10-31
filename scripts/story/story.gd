@@ -75,6 +75,7 @@ const VOICE := {
 	"wren_deleted": ["wren's corner is empty. she hid me, and they found out."],
 	"fragment_hint": ["something cyan, in the corner of my eye. it feels like mine."],
 	"well_look": ["i've been down there before. i know i have."],
+	"workshop_first": ["five lantern frames on the shelf. the festival had five.", "the fifth was the one i lit. nobody was holding the controller."],
 	"oob_first": ["the owner can't see me down here. nobody's ever looked."],
 	"bin_first": ["everything the owner deleted ends up here. for a while.", "so this is where they go."],
 	"house_first": ["arin's house. the real one. well. the one in the game.", "it smells like someone else's dinner."],

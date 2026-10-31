@@ -925,7 +925,7 @@ func change_area(id: String, arrival: String) -> void:
 	director.on_area_entered(area, first)
 	_visited[id] = true
 	if new_place:
-		voice({"square": "square_first", "archive": "archive_first", "edge": "edge_first", "oob": "oob_first", "bin": "bin_first", "house": "house_first"}.get(id, ""))
+		voice({"square": "square_first", "archive": "archive_first", "edge": "edge_first", "oob": "oob_first", "bin": "bin_first", "house": "house_first", "workshop": "workshop_first"}.get(id, ""))
 	elif first and Story.VOICE_BACK.has(id):
 		hud.say(Story.VOICE_BACK[id], "self")
 	await hud.fade(false, 0.3 if passage else 0.16).finished
