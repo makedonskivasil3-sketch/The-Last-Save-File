@@ -31,6 +31,13 @@ func before_each() -> void:
 	s.owner_pace = 0
 	s.screen_effects = 2
 	s.large_text = false
+	# The shipped volumes: a case that silences a channel (test_sound_check)
+	# must not leave the next case, in whatever order or shard, without it.
+	s.volume = 0.8
+	s.music_volume = 0.8
+	s.sfx_volume = 0.9
+	s.voice_volume = 0.9
+	s.apply()
 	# Tips off by default so they never get in a test's way; test_tutorial
 	# turns them on.
 	s.tutorial_tips = false

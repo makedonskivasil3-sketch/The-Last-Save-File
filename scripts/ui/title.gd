@@ -203,9 +203,30 @@ func _process(delta: float) -> void:
 	# The title glitches more the further the purge has gone.
 	var chance := (0.01 + OwnerMemory.purge * 0.02) * Settings.flash_scale()
 	if randf() < 1.0 - pow(1.0 - clampf(chance, 0.0, 1.0), delta * 60.0):
-		var i := randi() % TITLE.length()
-		_title.text = TITLE.substr(0, i) + ["#", "_", "?", "0"].pick_random() + TITLE.substr(i + 1)
+		glitch_title(randi(), ["#", "_", "?", "0"].pick_random())
 	elif _title.text != TITLE and randf() < 1.0 - pow(0.8, delta * 60.0):
+		_title.text = TITLE
+
+
+## The title with one letter corrupted. Never a space: joining two words
+## would rewrap the title and move every button under the pointer for as
+## long as the glitch lasts (a click meant for one button lands on another).
+static func glitched(pick: int, symbol: String) -> String:
+	var letters: Array[int] = []
+	for i in TITLE.length():
+		if TITLE[i] != " ":
+			letters.append(i)
+	var at: int = letters[absi(pick) % letters.size()]
+	return TITLE.substr(0, at) + symbol + TITLE.substr(at + 1)
+
+
+## Shows a glitched title only if it keeps the clean title's lines: a wider
+## symbol for a narrow letter can rewrap it too, at any text size.
+func glitch_title(pick: int, symbol: String) -> void:
+	_title.text = TITLE
+	var lines := _title.get_line_count()
+	_title.text = glitched(pick, symbol)
+	if _title.get_line_count() != lines:
 		_title.text = TITLE
 
 
