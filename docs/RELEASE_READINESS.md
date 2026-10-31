@@ -2,7 +2,86 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current: unified gameplay, traversal and lantern workshop (2026-10-30)
+## Current: production revision (2026-10-31)
+
+**Branch:** `claude/last-save-file-prototype-ljwuq4`.
+- `main` @ `adf2710` was merged in at `b5db36a`. Main's doorway design won.
+- Code verified at `3062c7d`.
+- Register: [`production/ISSUE_REGISTER.md`](production/ISSUE_REGISTER.md) (top section).
+- Spec: [`production/PRODUCT_SPEC.md`](production/PRODUCT_SPEC.md) (top page).
+
+### What changed, and why it matters to a player
+
+| Change | Commit | Player benefit |
+|---|---|---|
+| Workshop steps saved in one write; a failed write says so and retries; failure injection tests | `d6fd6ed` | Nothing shown as done can vanish on relaunch without a warning |
+| Chapters follow story milestones, not places. Places are named on arrival | `d6fd6ed` | No later chapter before an earlier one, in any exploration order |
+| The title glitch can no longer rewrap the title and move the menu | `7f9f7e6` | A click lands on the button the player aimed at |
+| RD-1: the browser story check was measuring IndexedDB sync, not reading. Root cause measured; check fixed; web save delay registered (WEB-1) | `837e798` | A verified reader. An honest statement about web saves |
+| The workshop mission deepened: Rue's reason, a readable problem, a decision (her name on the fifth frame), Wren's variant | `3a5487c` | The one optional mission now has a why, a choice and a remembered consequence |
+| The candidate demo endpoint (`?demo=workshop`) ends after a finished mission. Demo saves are separate | `d9beec1` | A demo that shows the game's third promise. Demo progress never leaks into the full game |
+
+### Verified
+
+- **Strict suite, at `d9beec1`:**
+  - Four shards with isolated XDG folders.
+  - **834/834 inventory cases ran**, checked against `--list-tests`: no omission, no duplicate, no script error.
+  - 833 passed. One failure: the voice manifest was out of date after the new Wren line. Regenerated with the repo's tool in `3062c7d`; the voice tests then pass 12/12.
+  - The ObjectDB exit warning is still printed (PL-3). It is not suppressed.
+- **Earlier sharded run (`d6fd6ed` + docs):** 2 failures, both investigated and reproduced, not re-rolled.
+  - UI-7: title glitch.
+  - QA-2: test isolation.
+  - Both fixed in `7f9f7e6`.
+- **Bots** (code at `d9beec1`, game time): every bot reached the exact ending asked for.
+  - escape at purge 0: 149 s, then 149 s;
+  - escape at purge 3: 132 s, then 135 s;
+  - escape at purge 5: 126 s; then 220 s, finished after one death at the Edge;
+  - message: 151 s;
+  - Wren: 178 s.
+- **Exports from `3062c7d`:** Windows, Linux and Web, all exit 0.
+  - SHA-256 prefixes:
+    - `TheLastSaveFile.exe` `25dec7ff8106633a`;
+    - `TheLastSaveFile.x86_64` `363cbae00bc059f8`;
+    - `index.pck` `edaea729a6f7ca5c`;
+    - `index.wasm` `fe5cebc590758c10`.
+  - Linux smoke run exits 0 with no errors.
+  - These are local builds in the session container, not public downloads. CI builds the public artifacts.
+- **Browser checks on that web build:**
+  - `web_check`: 12/12;
+  - `prologue_story_check`: reader 58–102 ms, stored 0.7–1.7 s. Also 4/4 at CPU throttle ×1 and ×6 at `837e798`;
+  - `audio_output_check`: pass.
+
+### Route timing (bots, escape at purge 0, game time without reading)
+
+| Stretch | Seconds |
+|---|---|
+| Arin's room | about 35. About 20 of that is the bot circling a table: bot navigation, not a player problem |
+| Square → under the well | about 13 |
+| Under the well | about 26 |
+| Square → Archive | about 8 |
+| Archive | about 9 |
+| Square → Edge | about 10 |
+| Edge to Slot 2 | about 31 |
+
+**Backtracking:**
+- The square is crossed three times, for about 18 s of 149 s (12%).
+- Every crossing has a new reason (`production/WORLD_CONNECTIONS.md`).
+- **No route change is made from this.** The bots don't read, and players do. The real length is still unmeasured.
+
+### Not verified (needs people, hardware or the author)
+
+- No playtest has been run.
+- **Hardware never tried:**
+  - Windows;
+  - a physical controller;
+  - a phone.
+- **Web saves on real low-end hardware.** WEB-1 was measured in headless Chromium only.
+- **Listening:** nobody has listened to the mix.
+- **The demo endpoint:** the choice between the two is the author's, after a playtest.
+- **Art:** the fifth frame's label is small at game scale. Polish it only if a playtest shows players miss it.
+- **Commercial:** see [`production/COMMERCIAL_PLAN_2026-10-31.md`](production/COMMERCIAL_PLAN_2026-10-31.md). Nothing has been bought, signed or published.
+
+## Previous: unified gameplay, traversal and lantern workshop (2026-10-30)
 
 **Base:** main `a81baf7` (PR #12). **Final runtime:** `2f03453`.
 The author requested implementation and merging into main. The previous input
