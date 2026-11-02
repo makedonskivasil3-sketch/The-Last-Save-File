@@ -27,7 +27,22 @@
 
 - **Strict suite at `7fa700c`:** four isolated shards, **841/841** inventory cases. No omission, no duplicate, no script error. The ObjectDB exit warning is still printed (PL-3).
 - **Movement, touch, glitch, fairness and cohesion suites:** 95/95. The new `test_controls_feel`: 7/7.
-- **Bots:** see below.
+- **Bots at `7fa700c`:** every bot reached the ending asked for.
+  - escape at purge 0: 145 s;
+  - escape at purge 3: 215 s, one eraser death at the Edge;
+  - escape at purge 5: 142 s, then 184 s (one eraser death);
+  - message: 150 s;
+  - Wren: 167 s.
+- **Stalls (stuck navigation) fell:**
+  - Wren: 2 → 0;
+  - purge 5: 9 → 3 and 0;
+  - all others: 0.
+  This is a small sample, so it is consistent with the corner assist but doesn't prove it.
+- **Exports from `7fa88ef`:** Windows, Linux and Web, all exit 0.
+  - SHA-256 prefixes: `.exe` `93ab1f657f34d440`; `.x86_64` `1fa9ac66ad956259`; `index.pck` `a6976ac5efc9efda`.
+  - Linux smoke run: 0.
+  - Local builds only, not public downloads.
+- **Browser checks:** `web_check` 12/12; story check pass (reader 58–86 ms); audio pass.
 
 ### Not verified (needs people, hardware or the author)
 
