@@ -2,7 +2,40 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current: production revision (2026-10-31)
+## Current: player-experience pass (2026-11-02)
+
+**Brief:** [`prompts/PLAYER_EXPERIENCE_PASS_2026-11-02.md`](prompts/PLAYER_EXPERIENCE_PASS_2026-11-02.md). It covers controls, gameplay, graphics, player experience, performance and commercial work, with one status per item.
+
+### Changed
+
+| Change | Commit | Before → after |
+|---|---|---|
+| **Corner assist:** a blocked, mostly single-axis move slides round an edge it only clips (up to 5 px), through normal collision | `7fa700c` | Clipping the workshop bench by 1–5 px stopped Rue dead → she rounds it at 1–4 px with no overlap. Square-on blocks and long walls are unchanged |
+| **Early-press buffer:** an [E] tap with nothing in reach is kept for 200 ms | `7fa700c` | A tap 0.10 s before reaching the lamp was lost → used when she arrives. A stale tap expires; nothing carries over a change of place |
+| The name on the fifth frame is drawn as letters | `7fa700c` | Three unreadable strokes → "RUE" in her lilac |
+
+### Measured, no change needed
+
+- **Death to control:** 2.3 s (first death) and 1.6 s (repeat), pressing at once. The target was 6 s or less.
+- **Endings count:** Records already shows "ENDINGS n/6" with hints.
+- **Death cards:** every one names its cause and a counter.
+- **Small text:** six world strings under 7 px. The smallest, at 5 px, is legible in captures.
+- **Drawing:** the square's per-frame redraw is ten specks.
+- **Draw calls** (software renderer): square about 790–1,100, room 650–750. Lights and particles are under 2% of that. **Optimizing them waits for a real-GPU benchmark**, so as not to guess.
+
+### Verified
+
+- **Strict suite at `7fa700c`:** four isolated shards, **841/841** inventory cases. No omission, no duplicate, no script error. The ObjectDB exit warning is still printed (PL-3).
+- **Movement, touch, glitch, fairness and cohesion suites:** 95/95. The new `test_controls_feel`: 7/7.
+- **Bots:** see below.
+
+### Not verified (needs people, hardware or the author)
+
+- A real controller and real hands on the corner assist: whether players notice it, or ever feel pulled.
+- A real-GPU benchmark (P1, P3).
+- Everything marked PEOPLE in the brief.
+
+## Previous: production revision (2026-10-31)
 
 **Branch:** `claude/last-save-file-prototype-ljwuq4`.
 - `main` @ `adf2710` was merged in at `b5db36a`. Main's doorway design won.
