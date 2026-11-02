@@ -71,10 +71,10 @@ func _draw() -> void:
 		# Drawn up on the shelf, in line with the four painted frames.
 		draw_rect(Rect2(-4, -36, 8, 13), Color("ba9158"), false, 1)
 		draw_line(Vector2(-5, -22), Vector2(5, -22), Color("e3c995"), 1)
-		draw_rect(Rect2(-5, -20, 10, 4), Color("e9dcc0"))
+		draw_rect(Rect2(-6, -21, 12, 6), Color("e9dcc0"))
 		if LanternRoute.named():
-			for i in 3:
-				draw_line(Vector2(-3 + i * 2.2, -17), Vector2(-2 + i * 2.2, -19), Color("8f6ad6"), 1)
+			# Her name in her own lilac (Player.OWN), the size of Wren's chalk name.
+			draw_string(ThemeDB.fallback_font, Vector2(-5.5, -16.2), "RUE", HORIZONTAL_ALIGNMENT_LEFT, -1, 5, Player.OWN)
 		return
 	if not lamp:
 		if Relationships.has(LanternRoute.SPOOL):

@@ -640,6 +640,7 @@ func _process(delta: float) -> void:
 	if _talking_to and (not is_instance_valid(_talking_to) or player.global_position.distance_to(_talking_to.global_position) > TALK_BREAK_DISTANCE):
 		hud.close_dialogue()
 	_update_focus()
+	_use_buffered_tap()
 	_update_decoy()
 	_update_escort(delta)
 	_update_safe_mark(delta)
@@ -918,6 +919,7 @@ func change_area(id: String, arrival: String) -> void:
 			hud.say("wait for %s." % escort.npc_id, "self")
 		return
 	_transitioning = true
+	_tap_buffered = -1  # a press never carries into the next place
 	player.frozen = true
 	player.velocity = Vector2.ZERO
 	if touch._stick_finger != -1 or not touch._held.is_empty():
@@ -1502,6 +1504,28 @@ func can_act() -> bool:
 ## A tap of [E]: interact with whatever's focused.
 func tap_interact() -> void:
 	if _focused and can_act():
+		_tap_buffered = -1
+		_interact(_focused)
+	elif can_act():
+		# Pressed a moment early, walking up to something: kept for
+		# TAP_BUFFER_MS (docs/prompts/PLAYER_EXPERIENCE_PASS_2026-11-02.md, C2).
+		_tap_buffered = Time.get_ticks_msec()
+
+
+## An [E] tap with nothing in reach is kept this long: if something comes
+## into reach in time, it is used. Short enough that nobody is surprised.
+const TAP_BUFFER_MS := 200
+var _tap_buffered := -1
+
+
+func _use_buffered_tap() -> void:
+	if _tap_buffered < 0:
+		return
+	if Time.get_ticks_msec() - _tap_buffered > TAP_BUFFER_MS or not can_act():
+		_tap_buffered = -1
+		return
+	if _focused:
+		_tap_buffered = -1
 		_interact(_focused)
 
 

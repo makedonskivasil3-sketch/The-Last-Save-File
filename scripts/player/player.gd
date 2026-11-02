@@ -226,12 +226,46 @@ func _physics_process(delta: float) -> void:
 	_drive = MoveFeel.drive(_drive, dir * speed, speed, delta)
 	velocity = _drive
 	move_and_slide()
+	_round_corner(dir, delta)
 	if get_real_velocity().length() < 0.5 and dir == Vector2.ZERO:
 		_drive = Vector2.ZERO
 	if dir != Vector2.ZERO:
 		idle_time = 0.0
 	elif not reading and not reading_card:
 		idle_time += delta
+
+
+## Corner assist (docs/prompts/PLAYER_EXPERIENCE_PASS_2026-11-02.md, C1):
+## walking straight into the corner of a table or a doorway's edge, a few
+## pixels off, used to stop Rue dead. If the way is clear within CORNER_NUDGE
+## px to one side, she slides round it instead, at walking speed, through
+## the ordinary collision (never into anything). A long wall stays a wall:
+## both sides are blocked there.
+const CORNER_NUDGE := 5
+var corner_assists := 0  # how often it helped (tests, playtest notes)
+
+
+func _round_corner(dir: Vector2, delta: float) -> void:
+	if dir == Vector2.ZERO:
+		return
+	var main := Vector2(signf(dir.x), 0.0) if absf(dir.x) > absf(dir.y) else Vector2(0.0, signf(dir.y))
+	if absf(dir.dot(main)) < 0.85:
+		return  # a real diagonal already slides along whatever it meets
+	var moved := get_real_velocity().dot(main)
+	if moved > speed * 0.25:
+		return  # not blocked
+	var step := main * 2.0
+	if not test_move(global_transform, step):
+		return  # nothing ahead: she stopped for another reason
+	var side := Vector2(-main.y, main.x)
+	for k in range(1, CORNER_NUDGE + 1):
+		for s: float in [1.0, -1.0]:
+			var shifted := global_transform.translated(side * s * k)
+			if test_move(global_transform, side * s * k) or test_move(shifted, step):
+				continue
+			move_and_collide(side * s * minf(float(k), speed * delta))
+			corner_assists += 1
+			return
 
 
 ## Play the end-of-life (or rescue) animation for this cause, or
