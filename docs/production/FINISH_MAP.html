@@ -173,9 +173,9 @@ a:focus-visible, .chip:focus-visible { outline: 2px solid var(--lantern); outlin
   </div>
   <div class="sum">
     <span class="eyebrow">Proven by machine</span>
-    <h3>Stable</h3>
+    <h3>Machine-tested, not yet release-proven</h3>
     <ul>
-      <li>841/841 tests pass</li>
+      <li>842 test cases; the runner now also fails on unexpected engine errors</li>
       <li>All six endings are tested; the bots play through three of them</li>
       <li>Windows, Linux and web builds export</li>
       <li>Saves are transactional; stopping at a calm moment is free</li>
@@ -641,68 +641,58 @@ a:focus-visible, .chip:focus-visible { outline: 2px solid var(--lantern); outlin
 
 <section aria-labelledby="road-h" style="display:grid; gap:18px">
   <div style="display:grid; gap:6px">
-    <span class="eyebrow">Part 4</span>
-    <h2 id="road-h">The road from today to a finished 1.0</h2>
-    <p class="lede">Proposed plan, following the recommended route: a store page and free demo before Christmas, Steam Next Fest in February, launch after it. Each phase ends at a gate. Don't start the next phase until its gate is met. The phase dates are proposals to adjust; the Steam dates are Valve's.</p>
+    <span class="eyebrow">Part 4 · updated 3 November 2026</span>
+    <h2 id="road-h">The road to a full PC release before Christmas</h2>
+    <p class="lede">The chosen target is a full Windows release with a working launch date of <b>10 December 2026</b>. The go/no-go decision is on <b>4 December</b>, made against evidence. It is a target, not a promise: Valve's onboarding and review must allow it. The game must not launch with unresolved progress loss, crashes, soft-locks or unusable controls.</p>
   </div>
 
-  <div class="date-row" aria-label="Fixed external dates">
-    <div class="date"><b>10 Jan 2027</b><span>Next Fest registration closes</span></div>
-    <div class="date"><b>8 Feb 2027</b><span>Next Fest items due for review</span></div>
-    <div class="date"><b>22 Feb – 1 Mar</b><span>Steam Next Fest (one time only per game)</span></div>
+  <div class="date-row" aria-label="Fixed and target dates">
+    <div class="date"><b>About 30 days</b><span>Steam Direct fee to release eligibility. Valve's pages say 21 or 30; plan on 30 and confirm in the dashboard</span></div>
     <div class="date"><b>≥ 2 weeks</b><span>Coming Soon page live before release</span></div>
+    <div class="date"><b>3–5 business days</b><span>Typical page or build review; allow 7</span></div>
+    <div class="date"><b>17 Dec – 4 Jan</b><span>Steam Winter Sale 2026</span></div>
   </div>
 
   <div class="phases">
     <div class="phase">
-      <div class="phase-side"><span class="eyebrow">Phase A</span><h3>Prove it with people</h3><span class="when">3 – 16 Nov</span><span class="gate">Gate: 5 sessions run and a first-ending time measured</span></div>
+      <div class="phase-side"><span class="eyebrow">3 – 6 Nov</span><h3>Red build and scope</h3><span class="when">Under way</span><span class="gate">Gate: CI green on the head; engine errors gated; scope, engine and platforms frozen</span></div>
       <div class="phase-main"><ul class="tasks">
-        <li><span class="chip people">People</span><span>Playtest round 1: five unfamiliar players on the web build with <code>?playtest=1</code>, run with <code>docs/playtest/RUN_A_ROUND.md</code>. <b>The most important item in the plan.</b></span></li>
-        <li><span class="chip people">People</span><span>Run the Windows build end to end, plus one physical controller session</span></li>
-        <li><span class="chip people">People</span><span>Run <code>tools/run_benchmark.sh</code> on a real graphics card</span></li>
-        <li><span class="chip open">Open</span><span>Warning-time table, glitch budget, hiding-spot capture sheet, death-card captures</span></li>
-        <li><span class="chip author">Author</span><span>Lock the scope: these 8 places and 6 endings are the game</span></li>
+        <li><span class="chip built">Done</span><span>Browser calm-save check: cause measured (IndexedDB sync on a slow runner), check fixed; engine-error gate; freed-lambda errors fixed</span></li>
+        <li><span class="chip built">Done</span><span>Honest coverage: skipped probes reported; overwrite ending played by a full route</span></li>
+        <li><span class="chip author">Author</span><span>Confirm the Steamworks account, fee, tax and bank status and the real release-eligibility date</span></li>
       </ul></div>
     </div>
     <div class="phase">
-      <div class="phase-side"><span class="eyebrow">Phase B</span><h3>Fix what players hit</h3><span class="when">17 – 30 Nov</span><span class="gate">Gate: round 2 shows the top three problems gone</span></div>
+      <div class="phase-side"><span class="eyebrow">By 8 Nov</span><h3>First players and Windows</h3><span class="when">This week</span><span class="gate">Gate: 5 observed sessions on one build; a real Windows and controller run</span></div>
       <div class="phase-main"><ul class="tasks">
-        <li><span class="chip open">Open</span><span>Fix the top problems from round 1: where people got lost, unfair deaths, text they skipped</span></li>
-        <li><span class="chip open">Open</span><span>Apply the playtest decision rules: movement variant, the seam hint, the colours line, Wren's scenes</span></li>
-        <li><span class="chip open">Open</span><span>Clean up the test-runner exit warning (PL-3); check large text for clipping on every menu</span></li>
-        <li><span class="chip people">People</span><span>Playtest round 2: five new people on the fixed build</span></li>
-        <li><span class="chip author">Author</span><span>Set the price from the measured length (bands are in the sprint brief)</span></li>
+        <li><span class="chip people">People</span><span>Five unfamiliar players, keyboard and controller (<code>docs/playtest/RUN_A_ROUND.md</code>, now with safe profile instructions)</span></li>
+        <li><span class="chip people">People</span><span>The Windows build, first start to first ending, on a real PC</span></li>
+        <li><span class="chip author">Author</span><span>Choose the public demo behaviour</span></li>
       </ul></div>
     </div>
     <div class="phase">
-      <div class="phase-side"><span class="eyebrow">Phase C</span><h3>Look like a product</h3><span class="when">1 – 20 Dec</span><span class="gate">Gate: the Coming Soon page is live with honest text</span></div>
+      <div class="phase-side"><span class="eyebrow">9 – 20 Nov</span><h3>Fix, finish the look, the store page</h3><span class="when">Content freeze by 20 Nov</span><span class="gate">Gate: Coming Soon page live by 20 Nov for a 10 Dec launch</span></div>
       <div class="phase-main"><ul class="tasks">
-        <li><span class="chip author">Author</span><span>Steamworks account, the US$100 fee, tax and bank forms</span></li>
-        <li><span class="chip author">Author</span><span>Commission capsule and key art, with a written assignment of rights. Optionally, character sprites through the existing pipeline</span></li>
-        <li><span class="chip open">Open</span><span>An art pass on the three store moments: the festival, the square at dusk and the Edge. One consistent palette across all maps</span></li>
-        <li><span class="chip open">Open</span><span>Six 1920×1080 screenshots from the game; a 45–60 s trailer storyboard and capture; store text with an honest length</span></li>
-        <li><span class="chip author">Author</span><span>Choose the demo ending (the arch or the workshop), then build the public demo with its separate save</span></li>
+        <li><span class="chip open">Open</span><span>Fix the three largest observed problems; approve one visual standard (the Square first)</span></li>
+        <li><span class="chip author">Author</span><span>Store assets and the full current Steam asset list; the page submitted for review with a buffer</span></li>
+        <li><span class="chip people">People</span><span>Second player round</span></li>
       </ul></div>
     </div>
     <div class="phase">
-      <div class="phase-side"><span class="eyebrow">Phase D</span><h3>Demo and Next Fest</h3><span class="when">Dec – 1 Mar</span><span class="gate">Gate: Next Fest done; feedback read and triaged</span></div>
+      <div class="phase-side"><span class="eyebrow">24 Nov – 4 Dec</span><h3>Release candidate</h3><span class="when">Go or no-go 4 Dec</span><span class="gate">Gate: RC1 by 1 Dec; every advertised feature and ending evidenced</span></div>
       <div class="phase-main"><ul class="tasks">
-        <li><span class="chip author">Author</span><span>Publish the demo; register for Next Fest by 10 Jan; submit the items by 8 Feb</span></li>
-        <li><span class="chip open">Open</span><span>Read "Report a problem" and demo feedback each week; fix the top three each week</span></li>
-        <li><span class="chip open">Open</span><span>Optional: Steam achievements (six endings, Pip) and Steam Cloud on <code>user://</code></span></li>
-        <li><span class="chip people">People</span><span>Steam Deck / 16:10 check: HUD, menus, controller prompts by default</span></li>
+        <li><span class="chip open">Open</span><span>Build submitted for review by 24 Nov; RC1 with clean tests and exports, hashes and a rollback package by 1 Dec</span></li>
+        <li><span class="chip author">Author</span><span>Go or no-go on 4 Dec against the evidence</span></li>
       </ul></div>
     </div>
     <div class="phase">
-      <div class="phase-side"><span class="eyebrow">Phase E</span><h3>Release candidate and launch</h3><span class="when">Mar – Apr 2027</span><span class="gate">Gate: RC passes everything; Valve review approved</span></div>
+      <div class="phase-side"><span class="eyebrow">10 – 24 Dec</span><h3>Launch and support</h3><span class="when">If approved and safe</span><span class="gate">Gate: no cosmetic patch that risks saves without migration and rollback tests</span></div>
       <div class="phase-main"><ul class="tasks">
-        <li><span class="chip open">Open</span><span>RC1: full suite, bots ×2, exports with hashes, browser checks; bug fixes only from here, each with a test</span></li>
-        <li><span class="chip people">People</span><span>Final Windows and Deck runs on the RC build</span></li>
-        <li><span class="chip author">Author</span><span>Submit for review; set the launch date two to six weeks after Next Fest; press kit and announcement</span></li>
-        <li><span class="chip open">Open</span><span>Launch week: watch crash reports and reviews; patch 1.0.1 within 72 hours if needed</span></li>
+        <li><span class="chip author">Author</span><span>Launch on 10 Dec. If Steam can't meet the date: a tested full release through another authorised store (for example itch.io), or a demo and a rescheduled paid release. Never a demo labelled as the full game</span></li>
       </ul></div>
     </div>
   </div>
+  <p class="lede" style="font-size:13px"><b>Alternative, not chosen:</b> a store page and demo before Christmas, Next Fest (22 Feb – 1 Mar 2027), and launch in March–April 2027. This is commercially stronger if wishlists matter more than the date. It is kept here for comparison, but the owner chose a December release.</p>
 </section>
 
 <section aria-labelledby="done-h" style="display:grid; gap:14px">
@@ -712,7 +702,8 @@ a:focus-visible, .chip:focus-visible { outline: 2px solid var(--lantern); outlin
   </div>
   <ul class="done-list">
     <li class="y">Every place, memory, secret and ending is in the game and tested</li>
-    <li class="y">Saves never lose progress silently; stopping at a calm moment is free</li>
+    <li class="y">A failed save says so, keeps the last good save and retries; stopping at a calm moment is free</li>
+    <li>On the web, a save becomes durable only after the browser's storage sync (measured up to about 31 s on a very slow machine): proven on real low-end hardware</li>
     <li class="y">Reduced motion, reduced flashing, Owner pace, large text and key and pad remapping</li>
     <li class="y">Controls: corner assist and an early-press buffer</li>
     <li>Ten or more unfamiliar players have played it, and their top problems are fixed</li>

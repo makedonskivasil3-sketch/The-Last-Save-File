@@ -173,9 +173,9 @@ a:focus-visible, .chip:focus-visible { outline: 2px solid var(--lantern); outlin
   </div>
   <div class="sum">
     <span class="eyebrow">Доказано от машината</span>
-    <h3>Стабилна</h3>
+    <h3>Тествана от машини, още не доказана за издаване</h3>
     <ul>
-      <li>841 от 841 автоматични теста минават</li>
+      <li>842 тестови случая; изпълнителят на тестовете вече отхвърля и неочаквани грешки на двигателя</li>
       <li>И шестте края са тествани; ботовете изиграват три от тях докрай</li>
       <li>Версиите за Windows, Linux и браузър се изграждат</li>
       <li>Записите не губят прогрес; спирането в спокоен момент е безплатно</li>
@@ -641,68 +641,58 @@ a:focus-visible, .chip:focus-visible { outline: 2px solid var(--lantern); outlin
 
 <section aria-labelledby="road-h" style="display:grid; gap:18px">
   <div style="display:grid; gap:6px">
-    <span class="eyebrow">Част 4</span>
-    <h2 id="road-h">Пътят от днес до завършена версия 1.0</h2>
-    <p class="lede">Предложен план по препоръчания път: страница в магазина и безплатно демо преди Коледа, Steam Next Fest през февруари и излизане след него. Всяка фаза завършва с праг, и следващата не започва, докато прагът не е изпълнен. Датите на фазите са предложения за уточняване; датите на Steam са на Valve.</p>
+    <span class="eyebrow">Част 4 · обновено на 3 ноември 2026</span>
+    <h2 id="road-h">Пътят до пълно издаване за PC преди Коледа</h2>
+    <p class="lede">Избраната цел е пълна версия за Windows с работна дата на излизане <b>10 декември 2026</b>. Решението „да или не“ е на <b>4 декември</b>, по доказателства. Това е цел, не обещание: процедурите и проверката на Valve трябва да го позволят. Играта не излиза с неразрешена загуба на прогрес, сривове, заклещвания или неизползваемо управление.</p>
   </div>
 
-  <div class="date-row" aria-label="Фиксирани външни дати">
-    <div class="date"><b>10 ян. 2027</b><span>Краен срок за регистрация в Next Fest</span></div>
-    <div class="date"><b>8 февр. 2027</b><span>Материалите за Next Fest се подават за проверка</span></div>
-    <div class="date"><b>22 февр. – 1 март</b><span>Steam Next Fest (само веднъж за игра)</span></div>
+  <div class="date-row" aria-label="Фиксирани и целеви дати">
+    <div class="date"><b>около 30 дни</b><span>От таксата в Steam Direct до право на издаване. Страниците на Valve казват 21 или 30; планирай 30 и провери в таблото</span></div>
     <div class="date"><b>≥ 2 седмици</b><span>Страница „Очаквайте скоро“ преди излизането</span></div>
+    <div class="date"><b>3–5 работни дни</b><span>Обичайна проверка на страница или версия; предвиди 7</span></div>
+    <div class="date"><b>17 дек. – 4 ян.</b><span>Зимната разпродажба на Steam 2026</span></div>
   </div>
 
   <div class="phases">
     <div class="phase">
-      <div class="phase-side"><span class="eyebrow">Фаза A</span><h3>Докажи я с хора</h3><span class="when">3 – 16 ноем.</span><span class="gate">Праг: 5 игрови сесии и измерено време до първия край</span></div>
+      <div class="phase-side"><span class="eyebrow">3 – 6 ноем.</span><h3>Червената компилация и обхватът</h3><span class="when">В ход</span><span class="gate">Праг: зелен CI на последната версия; грешките на двигателя са под контрол; обхват, двигател и платформи са замразени</span></div>
       <div class="phase-main"><ul class="tasks">
-        <li><span class="chip people">Хора</span><span>Първи тестов кръг: петима непознати играчи на браузърната версия с <code>?playtest=1</code>, по <code>docs/playtest/RUN_A_ROUND.md</code>. <b>Най-важното в целия план.</b></span></li>
-        <li><span class="chip people">Хора</span><span>Пълно изиграване на Windows версията, плюс една сесия с истински контролер</span></li>
-        <li><span class="chip people">Хора</span><span>Пускане на <code>tools/run_benchmark.sh</code> на истинска видеокарта</span></li>
-        <li><span class="chip open">Предстои</span><span>Таблица с времената за предупреждение, бюджет на гличовете, снимки на скривалищата и на картите на смъртта</span></li>
-        <li><span class="chip author">Автор</span><span>Заключване на обхвата: тези 8 места и 6 края са играта</span></li>
+        <li><span class="chip built">Готово</span><span>Проверката за запис в спокоен момент в браузъра: причината е измерена (синхронизация на IndexedDB на бавна машина), проверката е поправена; контрол на грешките на двигателя; поправени грешки с освободени ламбди</span></li>
+        <li><span class="chip built">Готово</span><span>Честно покритие: пропуснатите проверки се отчитат; краят „overwrite“ е изигран по пълен маршрут</span></li>
+        <li><span class="chip author">Автор</span><span>Потвърждение на акаунта в Steamworks, таксата, данъчните и банковите данни и реалната дата на право на издаване</span></li>
       </ul></div>
     </div>
     <div class="phase">
-      <div class="phase-side"><span class="eyebrow">Фаза B</span><h3>Поправи това, в което се блъскат играчите</h3><span class="when">17 – 30 ноем.</span><span class="gate">Праг: вторият кръг показва, че трите главни проблема ги няма</span></div>
+      <div class="phase-side"><span class="eyebrow">До 8 ноем.</span><h3>Първи играчи и Windows</h3><span class="when">Тази седмица</span><span class="gate">Праг: 5 наблюдавани сесии на една версия; реално изиграване на Windows с контролер</span></div>
       <div class="phase-main"><ul class="tasks">
-        <li><span class="chip open">Предстои</span><span>Поправка на главните проблеми от първия кръг: къде се губят, несправедливи смърти, пропуснат текст</span></li>
-        <li><span class="chip open">Предстои</span><span>Прилагане на правилата за решение от тестовете: начин на движение, подсказката за цепнатината, репликата за цветовете, сцените на Рен</span></li>
-        <li><span class="chip open">Предстои</span><span>Почистване на предупреждението при изход от тестовете (PL-3); проверка на едрия текст за отрязване във всяко меню</span></li>
-        <li><span class="chip people">Хора</span><span>Втори тестов кръг: петима нови души на поправената версия</span></li>
-        <li><span class="chip author">Автор</span><span>Определяне на цената по измерената дължина</span></li>
+        <li><span class="chip people">Хора</span><span>Петима непознати играчи, с клавиатура и контролер (<code>docs/playtest/RUN_A_ROUND.md</code>, вече с безопасни указания за профилите)</span></li>
+        <li><span class="chip people">Хора</span><span>Версията за Windows, от първото пускане до първия край, на истински компютър</span></li>
+        <li><span class="chip author">Автор</span><span>Избор на поведението на публичното демо</span></li>
       </ul></div>
     </div>
     <div class="phase">
-      <div class="phase-side"><span class="eyebrow">Фаза C</span><h3>Да изглежда като продукт</h3><span class="when">1 – 20 дек.</span><span class="gate">Праг: страницата „Очаквайте скоро“ е публикувана с честен текст</span></div>
+      <div class="phase-side"><span class="eyebrow">9 – 20 ноем.</span><h3>Поправки, визия, страница в магазина</h3><span class="when">Замразяване на съдържанието до 20 ноем.</span><span class="gate">Праг: страницата „Очаквайте скоро“ е публикувана до 20 ноем. за излизане на 10 дек.</span></div>
       <div class="phase-main"><ul class="tasks">
-        <li><span class="chip author">Автор</span><span>Акаунт в Steamworks, таксата от 100 щ.д., данъчните и банковите форми</span></li>
-        <li><span class="chip author">Автор</span><span>Поръчка на капсула и основна илюстрация с писмено прехвърляне на правата. По желание и спрайтове на героите</span></li>
-        <li><span class="chip open">Предстои</span><span>Графична шлифовка на трите момента за магазина: празника, площада по здрач и Ръба. Една обща палитра за всички карти</span></li>
-        <li><span class="chip open">Предстои</span><span>Шест снимки 1920×1080 от играта; сценарий и запис на трейлър от 45–60 s; текст за магазина с честна дължина</span></li>
-        <li><span class="chip author">Автор</span><span>Избор на края на демото (арката или работилницата), после публично демо с отделен запис</span></li>
+        <li><span class="chip open">Предстои</span><span>Поправка на трите най-големи наблюдавани проблема; одобряване на един визуален стандарт (първо площадът)</span></li>
+        <li><span class="chip author">Автор</span><span>Материали за магазина по пълния актуален списък на Steam; страницата подадена за проверка с резерв</span></li>
+        <li><span class="chip people">Хора</span><span>Втори кръг с играчи</span></li>
       </ul></div>
     </div>
     <div class="phase">
-      <div class="phase-side"><span class="eyebrow">Фаза D</span><h3>Демо и Next Fest</h3><span class="when">дек. – 1 март</span><span class="gate">Праг: Next Fest е минал; обратната връзка е прочетена и подредена</span></div>
+      <div class="phase-side"><span class="eyebrow">24 ноем. – 4 дек.</span><h3>Кандидат-версия</h3><span class="when">Решение на 4 дек.</span><span class="gate">Праг: RC1 до 1 дек.; всяка обявена функция и всеки край са доказани</span></div>
       <div class="phase-main"><ul class="tasks">
-        <li><span class="chip author">Автор</span><span>Публикуване на демото; регистрация за Next Fest до 10 ян.; подаване на материалите до 8 февр.</span></li>
-        <li><span class="chip open">Предстои</span><span>Всяка седмица: четене на докладите „Report a problem“ и отзивите за демото, поправка на трите главни</span></li>
-        <li><span class="chip open">Предстои</span><span>По желание: постижения в Steam (шестте края, Пип) и Steam Cloud</span></li>
-        <li><span class="chip people">Хора</span><span>Проверка на Steam Deck / 16:10: интерфейсът, менютата, подсказки за контролер по подразбиране</span></li>
+        <li><span class="chip open">Предстои</span><span>Версията подадена за проверка до 24 ноем.; RC1 с чисти тестове и изграждания, хешове и пакет за връщане назад до 1 дек.</span></li>
+        <li><span class="chip author">Автор</span><span>Решение „да или не“ на 4 дек. по доказателствата</span></li>
       </ul></div>
     </div>
     <div class="phase">
-      <div class="phase-side"><span class="eyebrow">Фаза E</span><h3>Кандидат-версия и излизане</h3><span class="when">март – апр. 2027</span><span class="gate">Праг: кандидат-версията минава всичко; проверката на Valve е одобрена</span></div>
+      <div class="phase-side"><span class="eyebrow">10 – 24 дек.</span><h3>Излизане и поддръжка</h3><span class="when">Ако е одобрено и безопасно</span><span class="gate">Праг: никаква козметична кръпка, която рискува записите без тестове за миграция и връщане</span></div>
       <div class="phase-main"><ul class="tasks">
-        <li><span class="chip open">Предстои</span><span>RC1: всички тестове, ботовете два пъти, изграждане с хешове, браузърни проверки; оттук само поправки на грешки, всяка с тест</span></li>
-        <li><span class="chip people">Хора</span><span>Последни изигравания на Windows и Steam Deck с кандидат-версията</span></li>
-        <li><span class="chip author">Автор</span><span>Подаване за проверка; дата на излизане 2–6 седмици след Next Fest; комплект за пресата и обявление</span></li>
-        <li><span class="chip open">Предстои</span><span>Седмицата на излизането: наблюдение на сривове и отзиви; кръпка 1.0.1 до 72 часа, ако е нужно</span></li>
+        <li><span class="chip author">Автор</span><span>Излизане на 10 дек. Ако Steam не стигне датата: тествано пълно издаване през друг одобрен магазин (например itch.io) или демо и отложено платено издаване. Никога демо, наречено пълна игра</span></li>
       </ul></div>
     </div>
   </div>
+  <p class="lede" style="font-size:13px"><b>Алтернатива, неизбрана:</b> страница в магазина и демо преди Коледа, Next Fest (22 февр. – 1 март 2027) и излизане март–април 2027. Търговски по-силна е, ако списъците с желания тежат повече от датата. Оставена е за сравнение; собственикът избра декемврийско излизане.</p>
 </section>
 
 <section aria-labelledby="done-h" style="display:grid; gap:14px">
@@ -712,7 +702,8 @@ a:focus-visible, .chip:focus-visible { outline: 2px solid var(--lantern); outlin
   </div>
   <ul class="done-list">
     <li class="y">Всяко място, спомен, тайна и край е в играта и е тествано</li>
-    <li class="y">Записите никога не губят прогрес тихо; спирането в спокоен момент е безплатно</li>
+    <li class="y">Неуспешен запис го казва, пази последния добър запис и опитва отново; спирането в спокоен момент е безплатно</li>
+    <li>В браузъра записът става траен едва след синхронизацията на хранилището (измерено до около 31 s на много бавна машина): да се докаже на реален слаб хардуер</li>
     <li class="y">Намалено движение, намалено мигане, темпо на Собственика, едър текст, пренастройване на клавиши и контролер</li>
     <li class="y">Управлението: заобикаляне на ъгли и запомняне на ранно натискане</li>
     <li>Десет или повече непознати играчи са я изиграли, и главните им проблеми са поправени</li>

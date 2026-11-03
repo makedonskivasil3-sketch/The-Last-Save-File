@@ -31,7 +31,7 @@
 - **Prologue:** the festival.
 - **Chapters I–IV:** the story stages (Arin's room; the light by the well; who kept it burning; what's left of Slot 2).
 - **Chapter V:** the Edge.
-- **Places:** seven, plus the optional lantern workshop.
+- **Places:** eight (seven maps plus the optional lantern workshop), after the festival prologue.
 - **Endings:** six. Each is preserved with its identity.
 - **Length:** *unmeasured*. The bots reach an ending in about 2.5 minutes of travel; the real length is reading and relationships. **Don't price from a guess.**
 
