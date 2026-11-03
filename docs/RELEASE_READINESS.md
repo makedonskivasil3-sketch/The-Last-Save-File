@@ -2,7 +2,61 @@
 
 **This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current: player-experience pass (2026-11-02)
+## Current: release blockers, December full PC release (2026-11-03)
+
+**Brief:** the release execution prompt of 3 November 2026.
+- **Checklist and blockers:** [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md).
+- **Issues:** register rows CI-1, EN-1, EN-2, QA-3, DM-2 and WEB-1.
+- **Target:** full Windows release on 10 Dec; go or no-go on 4 Dec.
+
+**Code** at `55141d6` (blocker fixes); **documents** at `6d7a37c`. The exports are built from `6d7a37c`.
+
+### Fixed, with cause
+
+| Blocker | Cause (measured) | Fix |
+|---|---|---|
+| CI red on the PR head (browser calm-save check) | The game marked calm at once and never flipped back. IndexedDB stored it later:<br>• ×1: 5.2 s (10.8 s in the final run);<br>• ×6: 22.2 s (16.3 s in the final run);<br>• ×12: 30.7 s.<br>The CI runner draws 1 fps; the check allowed 15 s | The game's decision is checked separately from storage. Storage is bounded at 60 s (about twice the worst measured). `WEB_CPU_THROTTLE` reproduces a slow machine |
+| 9 freed-lambda engine errors hidden by a passing summary | `Area.on_arrival` used lambdas that captured people; leaving within about 1 s freed the captures | A bound method of the area. Every unexpected `ERROR` now fails `tests/run.sh` (allowlist: five corrupt-JSON cases). The gate's self-test runs in CI |
+| A skipped probe counted as passed; ending coverage overstated | The probe returned early but was reported as PASS | A SKIP status. A new full-route bot for overwrite |
+| The demo candidate could end before its mission | The Archive way ended it | The ways stay shut with a pointer back to the mission |
+
+### Verified (automated, this machine)
+
+- **Strict suite:** 842/842 inventory cases across four isolated shards. No omission, no duplicate, no script error, **no unexpected engine error**. The ObjectDB exit warning is a WARNING and remains (PL-3).
+- **Bots,** through the gated `run.sh`. Each reached the exact ending asked for:
+  - escape at purge 0: 146 s;
+  - escape at purge 3: 135 s;
+  - escape at purge 5: 120 s;
+  - message: 150 s;
+  - Wren: 176 s, 2 stalls;
+  - **overwrite: 183 s, 47 glitches** (an earlier run: 3 sessions, 2 eraser deaths at the Edge, 14 stalls).
+  - The probe reports SKIP.
+  - **Rue and unseen have no full route:** Slot 2 scenario tests only.
+- **Exports from `6d7a37c`:** Windows, Linux and Web all exit 0.
+  - SHA-256:
+    - `.exe` `cf5e89399836fc6de63fc6ca0d2e1d8caf2a652c43a839b38424c197de5e9826`;
+    - `.x86_64` `9bc65dfa7d28545b9641a47097a91d5688c537a014ba5700a37a2734c8e0a9a7`;
+    - `index.pck` `3cb3a8419f7a2f1b4db4ef0b475d78d8100d9870ae75f625afac0b5020548d3e`;
+    - `index.wasm` `fe5cebc590758c10bc4469be5a591e28edbde5ec8f458f21baeb83db50d028b9`.
+  - Linux smoke run: exit 0, no errors.
+  - Local builds, not public downloads.
+- **Browser checks:**
+  - `web_check`: all pass, at ×1 and ×6;
+  - story check: pass, reader 76–107 ms;
+  - audio check: pass.
+- **Clean-checkout import:** font errors on the first import only (EN-2). The second import is clean.
+
+### Not verified, and what blocks a release (`RELEASE_CHECKLIST.md`)
+
+- **No unfamiliar players yet** (B6, due 8 Nov).
+- **No Windows hardware or physical-controller run** (B7).
+- **Steam onboarding, fee and eligibility date unknown** (B8; author).
+- **Coming Soon page by 20 Nov** (B9).
+- **Rue and unseen endings:** not played through by any route.
+- **Web saves on a real low-end browser:** not measured (B5).
+- **CI on the new head:** waiting.
+
+## Previous: player-experience pass (2026-11-02)
 
 **Brief:** [`prompts/PLAYER_EXPERIENCE_PASS_2026-11-02.md`](prompts/PLAYER_EXPERIENCE_PASS_2026-11-02.md). It covers controls, gameplay, graphics, player experience, performance and commercial work, with one status per item.
 
