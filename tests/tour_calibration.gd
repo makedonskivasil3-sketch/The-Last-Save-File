@@ -10,7 +10,7 @@ const SPOTS := {
 	"room": [Vector2(320, 220), "door"],
 	"square": [Vector2(320, 200), "house"],
 	"house": [Vector2(320, 220), "square"],
-	"archive": [Vector2(320, 172), "square"],
+	"archive": [Vector2(250, 240), "square"],
 	"workshop": [Vector2(250, 240), "stairs"],
 	"oob": [Vector2(110, 84), "well"],
 	"bin": [Vector2(118, 180), "archive"],

@@ -115,7 +115,26 @@ muted. Length target: 60–75 s. Not cut, and nothing rendered.
 Withheld from the trailer: the CHARACTER FILE, the truth, every ending,
 Slot 2's choice.
 
-## Screenshot shortlist (5, existing captures)
+## Refresh, 3 November 2026 (implementation brief §13)
+
+**Positioning hypothesis, to test with players, not assume:** a story-driven escape adventure about a forgotten character trying to survive in someone else's save. The commercial asset is the relationship between player, character and save, not graphics or volume of content.
+
+**One-sentence hook:** *You are the character someone left running. The save is being cleared.*
+
+**What the screenshots must show** (every one from the current build, `docs/review/calibration_2026-11-03/`, re-captured at 1920×1080 from a release export before any store use):
+1. Control: Rue in Arin's room, the first exit in view (`area_room.jpg`).
+2. Exploration: the Square around the well and the fifth lantern (`area_square.jpg`).
+3. A readable threat: the Edge unloading, the cursor and Slot 2 (`area_edge.jpg`).
+4. A character's response and a consequence: the workshop's repaired light running to the hatch (`cal_workshop_repaired_before_after.jpg`, right half).
+5. A colder system space: the Recycle Bin (`area_bin.jpg`).
+
+No identity truth or final choice in any image.
+
+**Demo to full game:** the workshop candidate ends after Wren notices the light (DM-2); its save is separate from the full game's. The full game starts its own save; nothing is carried over, so nobody replays the tutorial to buy, and nobody is told they will keep demo progress.
+
+**Price:** not set. It waits for measured human campaign length, finish quality and a current comparable list. Scenarios, when made, are low, base and high, with stated assumptions and net receipts after platform share, refunds and tax. No forecast is claimed.
+
+## Screenshot shortlist (5, existing captures; superseded by the refresh above)
 
 1. `docs/review/opening/after_o5_paused_she_walks.jpg`: the premise in one
    frame.

@@ -1,8 +1,40 @@
 # Release readiness
 
-**The top section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
+**The top section ("Current") is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current: release director pass (2026-11-03, second brief)
+## Current: graphics, story and player-experience pass (2026-11-03, implementation brief)
+
+**Starting point:** `7f909c7`. CI run 41637456426 green: 845 tests, all six endings by full routes, the scarred-square probe SKIP.
+**Sections below this one are history.** Blockers, owners and dates live only in [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md).
+
+### What players now see or do differently
+
+| Change | Why | Evidence (class, revision) |
+|---|---|---|
+| The Archive's two missions ask who **kept** the fifth lantern burning, not who **lit** it | The festival shows Rue lighting it, so asking who lit it contradicted what the player just did. The mystery is how it survived three years unsaved, and the Archive's log answers that ("never saved off"). Stale wording, not memory loss | Source plus automated: `test_quests.test_no_mission_asks_who_lit_the_lantern_she_lit` (`61b4ce6`) |
+| An ordinary escape ends with one quiet lead for the next run | RUE is in practice a second-run ending (DS-1). The escape stays a complete ending. With memories missing: they survive, go back. With all five: the people who watched her might know the rest. It never names the truth | Automated: `test_endings.test_an_escape_points_at_the_next_run_without_the_truth` (`61b4ce6`) |
+| The goal line moved from the top of the screen to the band under the map, above the console | When wrapped at the top, it covered the room's wall notes ("I SAW YOU", the window) and the workshop's top wall. The band under the map was empty in all eight areas | Visual inspection of same-state captures; automated: `test_hud_layout` (`6d6a816`) |
+| The workshop is a working room: pegboard of tools, wick-spool rack, a shelf of finished frames with one place empty, stock in the corner, worn mats, shavings | It read as three benches floating in a hall | Visual inspection: `docs/review/calibration_2026-11-03/cal_workshop_*_before_after.jpg` (`4ae1057`). All new solids hug walls. The workshop and controls suites pass |
+| The repaired light runs to the hatch as a soft band with a bright core; the hatch glows | The 1 px line didn't read as light, or as the next route | Same captures |
+| The well has a stone apron and worn-earth ring, and the fifth lantern has its own light | The well is the village's landmark; it sat on undifferentiated lawn | `cal_square_before_after.jpg` (`4ae1057`). Paint only, no collision change |
+
+### Current captures of every area
+
+`docs/review/calibration_2026-11-03/area_*.jpg`, from `tests/tour_calibration.gd`: the same position and save state each time, 1280×720, software renderer under Xvfb. **Not a hardware or GPU result.**
+
+Observed, not yet changed:
+- **Edge:** the missing-asset labels ("TODO: art", "tree_04.png (missing)") read as deliberate only with context. A human round should say whether they look unfinished.
+- **Archive:** strong. The reading stands and the desk are distinct.
+- **Arin's house, Out of Bounds and the Bin:** no change this pass.
+
+### Not done in this pass, honestly
+
+- **Rue's animation audit** (turns, foot contact, scarf), **NPC silhouettes**, and **the Archive, house, Out of Bounds, Bin and Edge art passes:** the approved rules are the calibration above. Applying them needs the author's approval of the two calibration scenes first (the brief's order).
+- **First-session timing:** needs humans; bots aren't evidence of pacing.
+- **The audio audit, Windows hardware and the controller:** need people and devices.
+- **Steam:** account status unknown. See the checklist.
+
+## History: release director pass (2026-11-03, second brief)
 
 **Brief:** the release director prompt of 3 November 2026 (sections 1–19). It builds on the release execution pass below and doesn't replace it.
 **Starting point:** PR #13 head `3d5a25b`. CI run 41607676951 was green on that head.
@@ -36,7 +68,7 @@
 
 The scarred-square probe still reports SKIP, as it should.
 
-## Current: release blockers, December full PC release (2026-11-03)
+## History: release blockers, December full PC release (2026-11-03)
 
 **Brief:** the release execution prompt of 3 November 2026.
 - **Checklist and blockers:** [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md).
@@ -90,7 +122,7 @@ The scarred-square probe still reports SKIP, as it should.
 - **Web saves on a real low-end browser:** not measured (B5).
 - **CI on the new head:** waiting.
 
-## Previous: player-experience pass (2026-11-02)
+## History: player-experience pass (2026-11-02)
 
 **Brief:** [`prompts/PLAYER_EXPERIENCE_PASS_2026-11-02.md`](prompts/PLAYER_EXPERIENCE_PASS_2026-11-02.md). It covers controls, gameplay, graphics, player experience, performance and commercial work, with one status per item.
 
@@ -138,7 +170,7 @@ The scarred-square probe still reports SKIP, as it should.
 - A real-GPU benchmark (P1, P3).
 - Everything marked PEOPLE in the brief.
 
-## Previous: production revision (2026-10-31)
+## History: production revision (2026-10-31)
 
 **Branch:** `claude/last-save-file-prototype-ljwuq4`.
 - `main` @ `adf2710` was merged in at `b5db36a`. Main's doorway design won.
@@ -217,7 +249,7 @@ The scarred-square probe still reports SKIP, as it should.
 - **Art:** the fifth frame's label is small at game scale. Polish it only if a playtest shows players miss it.
 - **Commercial:** see [`production/COMMERCIAL_PLAN_2026-10-31.md`](production/COMMERCIAL_PLAN_2026-10-31.md). Nothing has been bought, signed or published.
 
-## Previous: unified gameplay, traversal and lantern workshop (2026-10-30)
+## History: unified gameplay, traversal and lantern workshop (2026-10-30)
 
 **Base:** main `a81baf7` (PR #12). **Final runtime:** `2f03453`.
 The author requested implementation and merging into main. The previous input
@@ -297,7 +329,7 @@ export success does not mean the public deployment has completed.
 
 **Not verified:** whether players find the passage helpful or slow. Add it to the playtest questions: "Moving between places, did you know where you were going and why?"
 
-## Previous: the open-issue sweep and the next pass (2026-10-30, branch at `7734ab1`)
+## History: the open-issue sweep and the next pass (2026-10-30, branch at `7734ab1`)
 
 **Base:** `main` @ `a81baf7` (PR #12). The author asked to "implement all the issues that remain unsolved", write a prompt for what the game still lacks, and implement it. The prompt is [`prompts/NEXT_PASS_2026-10-29.md`](prompts/NEXT_PASS_2026-10-29.md).
 
@@ -339,7 +371,7 @@ export success does not mean the public deployment has completed.
 - **Hardware:** Windows run, a physical controller (now including remapping), a phone (portrait and touch), Mobile Safari (SV-2).
 - **Assets:** final art and voices, under `production/PRODUCTION_STANDARD.md`.
 
-## Previous: the supporting cast, canon A–E, the playtest kit (2026-10-29, branch at `40ba023`+)
+## History: the supporting cast, canon A–E, the playtest kit (2026-10-29, branch at `40ba023`+)
 
 **Base:** `main` @ `6e67d0a`. Branch `claude/last-save-file-prototype-ljwuq4`. **Merge:** authorised by the author ("yes merge"; decisions 1–4 delegated, 2026-10-29), after CI is green on the PR.
 
@@ -383,7 +415,7 @@ export success does not mean the public deployment has completed.
 2. **The square's death-seeded static** (PL-4b): keep (harder late game, the owner remembers), or mark-only like the Edge.
 3. Share the v23 link with anyone you want to play it (it's private).
 
-## Previous: refining toward a vertical slice (2026-10-28, branch at `3c00c96`)
+## History: refining toward a vertical slice (2026-10-28, branch at `3c00c96`)
 
 **Base:** `main` @ `6e67d0a` (PR #11). Branch `claude/last-save-file-prototype-ljwuq4`. **Not merged:** no merge authorisation for this round.
 
@@ -441,7 +473,7 @@ export success does not mean the public deployment has completed.
 3. Merge this branch?
 4. Arrange the playtests: they gate further investment.
 
-## Previous: trust and control, free save, and Wren's game (2026-10-28, `2ed3eb4`)
+## History: trust and control, free save, and Wren's game (2026-10-28, `2ed3eb4`)
 
 **Code revision:** `2ed3eb4`. Base `b26aba0`. Merged to `main` with the author's authorisation (PR #11).
 
@@ -488,7 +520,7 @@ export success does not mean the public deployment has completed.
 - Browser storage durability is defined but not tested in a private window.
 - Nothing here shows whether players care about Wren. That is the next gate.
 
-## Previous: Save and exit, and Wren's arc (2026-10-27, `483ac8f`)
+## History: Save and exit, and Wren's arc (2026-10-27, `483ac8f`)
 
 **Author decisions:**
 - **Wren** is the deep relationship.
@@ -502,7 +534,7 @@ export success does not mean the public deployment has completed.
 
 **Not verified:** nobody has played either change.
 
-## Previous: the festival's break rebuilt (2026-10-27, branch `claude/last-save-file-prototype-ljwuq4`)
+## History: the festival's break rebuilt (2026-10-27, branch `claude/last-save-file-prototype-ljwuq4`)
 
 **Code revision:** `08ab155`, based on `main` @ `6fb8e23`. Not merged.
 
@@ -525,7 +557,7 @@ export success does not mean the public deployment has completed.
 
 **Not verified:** Windows execution, hardware GPU, a physical controller, and unfamiliar players. This is not a release claim. The ObjectDB exit warning is still printed.
 
-## Previous: verified integration and player-paced festival (2026-10-26)
+## History: verified integration and player-paced festival (2026-10-26)
 
 The author requested integrating the review branch into **main**. Source
 branch `claude/last-save-file-prototype-ljwuq4` at `095ab8c` is integrated
@@ -566,7 +598,7 @@ The Windows build is packaged locally and main's GitHub Actions workflow
 rebuilds it for artifact download. An exported executable is not evidence
 that a Windows PC has run it; a queued CI run is not a finished download.
 
-## Previous: the first ten minutes rebuilt (2026-10-24, afternoon)
+## History: the first ten minutes rebuilt (2026-10-24, afternoon)
 
 **Branch:** `claude/last-save-file-prototype-ljwuq4`. PR #10 is still a
 **draft, not merged**; `main` is `09aeb3b`. The brief is
@@ -613,7 +645,7 @@ the art direction in `docs/ART_BIBLE.md`.
   - nothing published or bought.
 - **Open author decisions:** Q1–Q5 in `INTRO_REBUILD.md` §4.
 
-## Previous: consistency, characters and places (2026-10-24)
+## History: consistency, characters and places (2026-10-24)
 
 **Branch:** `claude/last-save-file-prototype-ljwuq4`. PR #10 is still a
 **draft, not merged**; `main` is `09aeb3b`. The review started from
@@ -653,7 +685,7 @@ the art direction in `docs/ART_BIBLE.md`.
   (opening auto-play waits, Suspend, the demo endpoint, the act card, and
   the cost of Rue's press).
 
-## Previous: opening, character and world revision (2026-10-22, evening)
+## History: opening, character and world revision (2026-10-22, evening)
 
 **Branch:** `claude/last-save-file-prototype-ljwuq4`.
 - PR #10 is a **draft, not merged**. `main` is at `09aeb3b`.
@@ -725,7 +757,7 @@ version 18, built from `afb3bc0`. It is private to its owner until shared.
 - unfamiliar players. None were observed; the protocol and the playtest
   log are ready (`PLAYTEST_PLAN.md`).
 
-## Previous: review milestone after the vertical slice (2026-10-22, morning)
+## History: review milestone after the vertical slice (2026-10-22, morning)
 
 **Branch:** `claude/last-save-file-prototype-ljwuq4`.
 - PR #10 is a **draft, not merged**. `main` is at `09aeb3b`.
@@ -784,7 +816,7 @@ suppressed:**
 
 None of these is claimed.
 
-## Previous: coherence milestone, review branch (2026-10-21)
+## History: coherence milestone, review branch (2026-10-21)
 
 Branch: `claude/last-save-file-prototype-ljwuq4` (PR #10, draft, **not
 merged**). `main` = `09aeb3b`. The code head is `537df8c`; later commits
@@ -830,7 +862,7 @@ are documents only. The evidence and the remaining work are in
 
 None of these is claimed.
 
-## Previous: continuity milestone, review branch (2026-10-21)
+## History: continuity milestone, review branch (2026-10-21)
 
 Branch: `claude/last-save-file-prototype-ljwuq4`, not merged. `main` (now
 `09aeb3b`, with PR #9) was merged into it. Where PR #9 and this branch

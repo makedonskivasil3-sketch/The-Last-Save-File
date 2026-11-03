@@ -24,7 +24,7 @@
 
 | ID | Blocker | Reproduction | Owner | Acceptance | Target | Status |
 |---|---|---|---|---|---|---|
-| B1 | CI red on the PR head (browser calm-save check) | Run 41537563245 at `f042ae9` | Claude | Cause measured; check fixed; head CI green | 6 Nov | **Fixed in code (`55141d6`)**: the game marks calm at once, and IndexedDB stores it 5.2–30.7 s later depending on CPU throttle. Waiting for CI on the head |
+| B1 | CI red on the PR head (browser calm-save check) | Run 41537563245 at `f042ae9` | Claude | Cause measured; check fixed; head CI green | 6 Nov | **Fixed (`55141d6`)**: the game marks calm at once; IndexedDB stores it 5.2–30.7 s later depending on CPU throttle. CI green on `3d5a25b` and `7f909c7` (run 41637456426) |
 | B2 | Engine errors passed the suite | `ERROR: Lambda capture at index 0 was freed` in the 841-case run | Claude | No unexpected engine errors; the gate rejects new ones | 6 Nov | **Fixed and gated (`55141d6`)**: cause was `Area.on_arrival`. Gate self-test 7/7 |
 | B3 | Coverage overstated (a skipped probe counted as passed; "six endings" claimed from five routes) | `bot_playthrough` summary | Claude | Skips reported; each ending's coverage stated exactly | 6 Nov | **Fixed.** All six endings have full bot routes: escape, message, Wren and overwrite (`55141d6`), plus unseen and rue (2026-11-03). Rue takes two runs; that design question is for the author and the player round |
 | B4 | The demo candidate could end before its mission | `test_the_stairs_up_still_end_the_candidate_at_the_archive` (old) | Claude, then the author picks one endpoint | Wrong turns don't end the demo; it ends after Wren notices the light | 8 Nov | **Fixed (`55141d6`)**. The author chooses the endpoint after the player round |
@@ -34,6 +34,8 @@
 | B8 | Steam onboarding, fee, tax and eligibility date unknown | — | **Author** | The dashboard shows the release-eligibility date. Plan on 30 days from the fee | 6 Nov | **Open**. If the fee isn't paid by ~10 Nov, a Steam launch on 10 Dec is unlikely |
 | B9 | Coming Soon page live by 20 Nov | — | **Author** (assets and submission), Claude (text and captures) | Live, with honest text and shipped-game screenshots | 20 Nov | **Open** |
 | B10 | Build submitted for review | — | Author | Submitted by 24 Nov | 24 Nov | **Open** |
+| B12 | Author approves the two calibration scenes (workshop, Square) before the rules go to the other six areas | `docs/review/calibration_2026-11-03/` | **Author** (approval), Claude (apply) | Approved or redirected | 6 Nov | **Open**. Waiting on the author |
+| B13 | The Steam calendar fits 10 Dec | Steam Direct: about 30 days from the fee to release eligibility. Coming Soon public at least 2 weeks. Store and build reviews: plan at least 7 business days each | **Author** (account) | The dashboard's eligibility date is on or before 10 Dec. Coming Soon live by about 25 Nov, so it has been public two weeks by 10 Dec. The store page submitted for review by about 14 Nov | 6 Nov | **Open, unverified.** If the fee isn't paid by about 10 Nov, choose a later Windows date or another authorised storefront. Never ship a demo as the game |
 | B11 | RC1 | — | Claude | Clean suite, every bot, exports with hashes, browser checks, rollback package | 1 Dec | **Open** |
 
 ## Required launch polish (not blockers alone)
