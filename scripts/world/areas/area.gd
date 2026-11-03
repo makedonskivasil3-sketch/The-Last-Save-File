@@ -519,11 +519,17 @@ func on_arrival(_first: bool) -> Array:
 		if who.state != Npc.State.NORMAL:
 			continue
 		reacted.append(r[1])
-		get_tree().create_timer(delay).timeout.connect(func() -> void:
-			if is_instance_valid(who):
-				who.emote(str(r[2]), 1.4))
+		# A method of this area, not a lambda: if Rue leaves before the
+		# timer fires, the freed area's connection goes with it (a lambda
+		# capturing `who` was called with its captures already freed).
+		get_tree().create_timer(delay).timeout.connect(_arrival_emote.bind(who, str(r[2])))
 		delay += 0.35
 	return reacted
+
+
+func _arrival_emote(who: Npc, emote: String) -> void:
+	if is_instance_valid(who) and who.is_inside_tree():
+		who.emote(emote, 1.4)
 
 
 ## Who notices her come in here: [Npc, id, emote]. Areas override it.

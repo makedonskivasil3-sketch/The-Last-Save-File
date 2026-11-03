@@ -1,0 +1,11 @@
+# Engine errors a test case causes on purpose (tests/run.sh rejects every other one).
+# One per line: <exact test case> | <regex the whole error line must match>.
+# Keep this list short and specific: never a wildcard test, never a bare "ERROR".
+#
+# These cases feed the game a corrupt file to prove it recovers; Godot's JSON
+# parser reports the corruption before the game handles it.
+test_save_safety.test_a_half_written_save_recovers_from_the_backup|^ERROR: Parse JSON failed\.
+test_save_safety.test_nothing_readable_starts_fresh_without_crashing|^ERROR: Parse JSON failed\.
+test_save_safety.test_reset_removes_the_backup|^ERROR: Parse JSON failed\.
+test_save_failure.test_a_crash_between_steps_never_loses_the_save|^ERROR: Parse JSON failed\.
+test_character_pipeline.test_a_broken_sheet_falls_back_without_breaking_anything|^ERROR: Parse JSON failed\.

@@ -56,6 +56,7 @@ func test_full_game_escape_purge_5() -> void:
 ## sessions (ISSUE_REGISTER PL-4).
 func test_probe_purge_5_scarred_square() -> void:
 	if "--probe-scarred" not in OS.get_cmdline_user_args():
+		skip("a diagnostic probe; run with -- --probe-scarred")
 		return
 	await _playthrough("escape", 5, [Vector2(470, 108), Vector2(720, 96)])
 
@@ -64,10 +65,22 @@ func test_wren_ending() -> void:
 	await _playthrough("wren", 0)
 
 
+## The reckless hidden ending, played: every glitch the run can afford on
+## the way to the slot, until the owner is at full awareness with ten
+## glitches spent (World.is_reckless_run), then Slot 1 is overwritten.
+func test_full_game_overwrite() -> void:
+	await _playthrough("overwrite", 0)
+
+
 # --- the run ---------------------------------------------------------------------
+
+## The overwrite route glitches at every chance (a reckless player).
+var _reckless := false
+
 
 func _playthrough(ending: String, purge: int, square_deaths: Array = []) -> void:
 	_edge_returns = 0
+	_reckless = false  # the overwrite route turns reckless at the Edge (_be_reckless)
 	memory().wipe()
 	memory().last_exit = "death"  # skip the boot cinematic
 	if purge > 0:
@@ -89,6 +102,7 @@ func _playthrough(ending: String, purge: int, square_deaths: Array = []) -> void
 		_release_all()
 		if result != "death":
 			break
+		_reckless = false
 		_deaths.append(_death_note(w))
 		_say("DIED: %s" % _deaths[-1])
 		w = await wait_for_new_session(w)
@@ -429,6 +443,8 @@ func _edge(w: Node, ending: String) -> String:
 	if w.ending == "" and w.area.area_id != "edge":
 		return await _back_to_edge(w, ending)
 	_step(w, "cursor lured (%d)" % lure)
+	if ending == "overwrite":
+		await _be_reckless(w)
 	await _go(w, [Vector2(250, 236), Vector2(420, 236), Vector2(520, 230), Vector2(520, 90), TheEdge.SLOT_POS], 15.0)
 	if w.ending == "" and w.area.area_id != "edge":
 		return await _back_to_edge(w, ending)
@@ -460,7 +476,7 @@ func _edge(w: Node, ending: String) -> String:
 		memory().is_deleted("wren"), memory().fragments.size(), memory().knows_truth])
 	# By name: hidden options can shift the list. The option missing is a
 	# result of its own, never a quiet fallback to the first one.
-	var label: String = {"escape": "Write", "rue": "Write RUE", "wren": "Wren", "message": "message"}.get(ending, "Write")
+	var label: String = {"escape": "Write", "rue": "Write RUE", "wren": "Wren", "message": "message", "overwrite": Story.SLOT2_OVERWRITE}.get(ending, "Write")
 	var want := -1
 	for i in options.size():
 		if str(options[i]).contains(label):
@@ -674,6 +690,8 @@ func _should_glitch(w: Node) -> bool:
 	var t: Dictionary = w.glitch.target
 	if t.is_empty():
 		return false
+	if _reckless:
+		return true  # the overwrite route: every glitch it can reach
 	if w.owner_moves.save_progress > 0.25 or w.owner_moves.wren_delete > 0.3:
 		return true
 	if t.id == "freeze" and t.node is OwnerAvatar:
@@ -681,6 +699,43 @@ func _should_glitch(w: Node) -> bool:
 	if t.id == "blind" and t.node is OwnerCursor:
 		return w.player.global_position.distance_to(t.node.global_position) < 45.0
 	return false
+
+
+## For the overwrite route: spend glitches at the Edge until the run counts
+## as reckless. Bounded; the result says if it never got there.
+func _be_reckless(w: Node) -> void:
+	_reckless = true  # from here to the slot, every glitch it can reach
+	var tries := 0
+	var dir := 1.0
+	var why := {"cannot_act": 0, "no_target": 0, "glitched": 0}
+	while w.ending == "" and not w.is_reckless_run() and tries < 300:
+		tries += 1
+		if w.area.area_id != "edge":
+			return
+		if not w.can_act():
+			why.cannot_act += 1
+			if w.hud.is_dialogue_open() or w.hud.is_cinematic():
+				await _read_press()  # story text holds play: read on, like a player
+			else:
+				await wait(0.25)
+			continue
+		elif w.glitch.target.is_empty():
+			why.no_target += 1
+		else:
+			why.glitched += 1
+			await _glitch(w)
+			continue
+		# Keep moving (DECOY needs a run) and drift towards the cursor (BLIND).
+		var cursor: Node2D = w.area.cursor
+		var to: Vector2 = cursor.global_position - w.player.global_position if cursor else Vector2.ZERO
+		var n := Vector2(dir, 0.0) if to.length() < 60.0 or to == Vector2.ZERO else to.normalized()
+		if tries % 6 == 0:
+			dir = -dir
+		_steer(w, n)
+		await wait(0.25)
+	_release_all()
+	_reckless = false  # reckless enough: now get to the slot
+	_step(w, "reckless: %s (glitches %d, awareness %.0f, tries %s)" % [w.is_reckless_run(), memory().session_glitches, w.director.awareness, str(why)])
 
 
 func _glitch(w: Node) -> void:

@@ -12,6 +12,13 @@ const TITLE_SCENE := "res://scenes/title.tscn"
 
 var tree: SceneTree
 var failures: Array[String] = []
+## Set by skip(): the case did not run its check, so it counts as neither
+## passed nor failed, and the summary lists it (a probe off by default).
+var skipped := ""
+
+
+func skip(reason: String) -> void:
+	skipped = reason
 
 
 # --- lifecycle -----------------------------------------------------------------

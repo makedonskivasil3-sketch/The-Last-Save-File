@@ -1012,6 +1012,11 @@ const RELOAD_WARNING := "do that again and i'm loading the autosave."
 ## The demo build's last card (COMMERCIAL_DIRECTION.md §4: proposed, not
 ## approved). Spoiler-safe: it comes before the reveal.
 const DEMO_END := "still have my save?"
+## The candidate demo's boundary (World.change_area): where the mission is,
+## nothing about what lies past it.
+static func demo_boundary(repaired: bool) -> String:
+	return "not that way. not yet. wren should see the light first." if repaired \
+		else "not that way. not yet. the lantern by the well came from somewhere below it."
 
 const PURGED_TITLE := "PURGED"
 const PURGED_QUESTION := "Slot 1 is clean. There's nothing of you left to load."

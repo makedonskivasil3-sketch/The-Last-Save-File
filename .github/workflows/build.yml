@@ -58,8 +58,13 @@ jobs:
       - name: Import project
         run: ~/godot/godot --headless --path . --import
 
-      # Blocks the build: if any test fails or Godot reports a script error,
-      # nothing gets exported or deployed.
+      # The gate below rejects unexpected engine errors; prove it still does.
+      - name: Engine-error gate self-test
+        run: tests/check_engine_errors_selftest.sh
+
+      # Blocks the build: if any test fails, Godot reports a script error or an
+      # unexpected engine error (tests/allowed_engine_errors.txt), nothing gets
+      # exported or deployed.
       - name: Run tests
         run: GODOT=~/godot/godot tests/run.sh
 

@@ -109,6 +109,9 @@ async function mark(page, name) {
   let page = await context.newPage();
   lastPage = page;
   watch(page);
+  // A slow machine on demand (WEB_CPU_THROTTLE=6): the CI runner draws 1-8 fps.
+  const throttle = Number(process.env.WEB_CPU_THROTTLE || 1);
+  if (throttle > 1) { const cdp = await context.newCDPSession(page); await cdp.send('Emulation.setCPUThrottlingRate', { rate: throttle }); console.log('CPU throttled ' + throttle + 'x'); }
 
   // 1. The title.
   navStart = Date.now();
@@ -224,9 +227,37 @@ async function mark(page, name) {
     if (st && st.reading) await page.keyboard.press('e');
     await page.waitForTimeout(500);
   }
-  const calm = await waitForSave(page, (d) => d.last_exit === 'safe', 15000);
+  // Two separate questions (WEB-1, 2026-11-03), as in the story check:
+  // did the game mark the calm moment (window.__lsf.last_exit, set once the
+  // write to user:// succeeded), and when did the browser store it? Godot
+  // copies user:// to IndexedDB asynchronously, and on a runner at 1 fps a
+  // copy takes many seconds, so the decision is bounded in game time and
+  // the storage in wall time, and both are reported.
+  const decided = await (async () => {
+    const t0 = Date.now();
+    const s0 = await state(page);
+    const g0 = s0 && s0.game_ms || 0;
+    let s = s0;
+    while (Date.now() - t0 < 180000) {
+      s = await state(page);
+      if (s && s.last_exit === 'safe') return { ok: true, wall_ms: Date.now() - t0, game_ms: (s.game_ms || 0) - g0, state: s };
+      if (s && (s.game_ms || 0) - g0 > 20000) break;  // 20 s of play with no calm mark: a real failure
+      await page.waitForTimeout(250);
+    }
+    return { ok: false, wall_ms: Date.now() - t0, game_ms: (s && s.game_ms || 0) - g0, state: s };
+  })();
+  expect(decided.ok, 'the game marks a calm moment (in memory, written to user://)', { wall_ms: decided.wall_ms, game_ms: decided.game_ms,
+    last_exit: decided.state && decided.state.last_exit, stop: decided.state && decided.state.stop, safe_marks: decided.state && decided.state.safe_marks,
+    unsafe_marks: decided.state && decided.state.unsafe_marks, save_ok: decided.state && decided.state.save_ok, fps: decided.state && decided.state.fps });
+  const storeMs = Number(process.env.WEB_STORE_MS || 60000);
+  const tStore = Date.now();
+  const calm = await waitForSave(page, (d) => d.last_exit === 'safe', storeMs);
   const why = await state(page);
-  expect(calm && calm.last_exit === 'safe', 'a calm moment is kept on disk (last_exit safe)', { save: pick(calm), stop: why && why.stop, persistent: why && why.persistent, area: why && why.area });
+  timing.calm = { decided_wall_ms: decided.wall_ms, decided_game_ms: decided.game_ms, stored_wall_ms: Date.now() - tStore,
+    safe_marks: why && why.safe_marks, unsafe_marks: why && why.unsafe_marks, fps: why && why.fps };
+  console.log('CALM ' + JSON.stringify(timing.calm));
+  expect(calm && calm.last_exit === 'safe', 'the browser stores the calm moment (IndexedDB last_exit safe)', { save: pick(calm), stop: why && why.stop,
+    in_memory: why && why.last_exit, safe_marks: why && why.safe_marks, unsafe_marks: why && why.unsafe_marks, persistent: why && why.persistent, area: why && why.area, bound_ms: storeMs });
 
   // 4. Closing the tab at a calm moment: nothing to lose, so no prompt, and
   //    the next visit resumes it free (an unsafe close still counts: tested headless).

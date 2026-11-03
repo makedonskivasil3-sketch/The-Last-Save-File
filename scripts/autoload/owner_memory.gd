@@ -609,6 +609,12 @@ func record_suspend(area_id: String, at: Vector2, version: int, run_flags: Dicti
 ## A calm moment, kept on disk while it lasts (World keeps it current): if
 ## the game closes, crashes or the tab is shut now, the next launch resumes
 ## here once, free, as if Save and exit had been chosen. The run stays open.
+## Written calm and not-calm marks this launch (the browser check reads them
+## through WebState to tell the game's decision from the browser's storage).
+var safe_marks := 0
+var unsafe_marks := 0
+
+
 func mark_safe(area_id: String, at: Vector2, version: int, run_flags: Dictionary) -> void:
 	if _session_closed or not _armed or not storage_persistent():
 		return
@@ -623,6 +629,7 @@ func mark_safe(area_id: String, at: Vector2, version: int, run_flags: Dictionary
 		suspend = {}
 		last_exit = was_exit
 		return
+	safe_marks += 1
 	_leave_guard(false)  # nothing to lose by closing the tab now
 
 
@@ -632,7 +639,8 @@ func mark_unsafe() -> void:
 		return
 	suspend = {}
 	last_exit = "active"
-	save_memory()
+	if save_memory():
+		unsafe_marks += 1
 	_leave_guard(true)
 
 

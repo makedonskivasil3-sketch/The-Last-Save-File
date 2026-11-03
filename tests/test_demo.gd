@@ -116,14 +116,41 @@ func test_the_workshop_candidate_ends_after_wren_sees_the_light() -> void:
 	World.demo_endpoint_override = ""
 
 
-func test_the_stairs_up_still_end_the_candidate_at_the_archive() -> void:
+func test_no_wrong_turn_ends_the_candidate_early() -> void:
+	# The candidate ends on a finished mission. Walking up the workshop stairs,
+	# or down the square's east road, before Wren has seen the light used to
+	# end it at the Archive; now the way stays shut and says where to go.
 	World.demo_override = 1
 	World.demo_endpoint_override = "workshop"
 	var w := await start_session()
 	await go_to(w, "workshop", "well")
 	w.change_area("archive", "workshop")
+	await frames(10)
+	check_eq(w.ending, "", "the stairs up don't end the demo")
+	check_eq(w.area.area_id, "workshop", "she stays in the workshop")
+	var said: Array = (w.hud.history + w.hud._queue).map(func(h: Dictionary) -> String: return str(h.text))
+	check(said.has(Story.demo_boundary(false)), "and Rue says where the mission is (%s)" % str(said.slice(-3)))
+	Relationships.add(LanternRoute.REPAIRED)
+	await go_to(w, "square", "well")
+	for later in World.DEMO_END_AREAS:
+		w._leash_said = -100000
+		w.change_area(later, "south" if later == "edge" else "west")
+		await frames(6)
+		check_eq(w.ending, "", "%s doesn't end the demo either" % later)
+		check_eq(w.area.area_id, "square", "%s is never loaded" % later)
+	said = (w.hud.history + w.hud._queue).map(func(h: Dictionary) -> String: return str(h.text))
+	check(said.has(Story.demo_boundary(true)), "after the repair, it points to Wren")
+	World.demo_endpoint_override = ""
+
+
+func test_the_arch_demo_still_ends_at_the_arch() -> void:
+	World.demo_override = 1
+	World.demo_endpoint_override = "arch"
+	var w := await start_session()
+	await go_to(w, "square", "house")
+	w.change_area("archive", "west")
 	await wait_until(func() -> bool: return w.ending == "demo", 3.0, "the demo's end")
-	check_eq(w.area.area_id, "workshop", "the Archive is never loaded")
+	check_eq(w.ending, "demo", "the arch demo is unchanged")
 	World.demo_endpoint_override = ""
 
 
@@ -150,7 +177,7 @@ func test_nothing_past_the_candidate_is_reachable_from_the_workshop() -> void:
 	var ways := 0
 	for e in w.area.find_children("*", "Exit", true, false):
 		ways += 1
-		check(e.target_area in kept or e.target_area in World.DEMO_END_AREAS, "workshop -> %s is kept or ends the demo" % e.target_area)
+		check(e.target_area in kept or e.target_area in World.DEMO_END_AREAS, "workshop -> %s is kept or shut in the candidate demo" % e.target_area)
 	Relationships.add(LanternRoute.REPAIRED)
 	(w.area as LanternWorkshop)._refresh()
 	for p in w.area.find_children("*", "Passage", true, false):

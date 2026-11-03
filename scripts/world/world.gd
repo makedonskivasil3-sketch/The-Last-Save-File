@@ -578,6 +578,8 @@ func _publish_web_state(delta: float) -> void:
 	WebState.publish({"scene": "game", "playable": playable, "reading": reading, "hold": hold, "awake": _awake, "slowest_ms": slowest,
 		"sfx_busy": Sfx.is_busy(), "game_ms": roundi(_web_game_ms), "wall_ms": Time.get_ticks_msec() - _web_wall0,
 		"area": area.area_id if area else "", "stop": suspend_blocker(), "persistent": OwnerMemory.storage_persistent(),
+		"last_exit": OwnerMemory.last_exit, "safe_marks": OwnerMemory.safe_marks, "unsafe_marks": OwnerMemory.unsafe_marks,
+		"save_ok": OwnerMemory.last_save_ok,
 		"x": snappedf(player.global_position.x, 0.1), "y": snappedf(player.global_position.y, 0.1)})
 
 
@@ -911,6 +913,15 @@ func change_area(id: String, arrival: String) -> void:
 	# Mid-reload you're being dragged back, not walking: no exits (the exit
 	# retries once you're free, if you're still standing in it).
 	if _transitioning or ending != "" or (owner_moves and owner_moves.rewinding):
+		return
+	# The candidate demo ends on a finished mission (Wren noticing the light),
+	# never on a wrong turn: the ways past it stay shut, saying where the
+	# mission is. Quitting from the pause menu is always there.
+	if id in DEMO_END_AREAS and demo_endpoint() == "workshop":
+		var now_ms := Time.get_ticks_msec()
+		if now_ms - _leash_said > 2500:
+			_leash_said = now_ms
+			hud.say(Story.demo_boundary(LanternRoute.repaired()), "self")
 		return
 	if escort and escort.global_position.distance_to(player.global_position) > ESCORT_LEASH:
 		var now := Time.get_ticks_msec()
