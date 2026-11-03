@@ -72,13 +72,43 @@ func test_full_game_overwrite() -> void:
 	await _playthrough("overwrite", 0)
 
 
+## RUE, played over two runs, the way the save is built: the truth needs
+## all five memories, and two of them are at the Edge, past the guard. Run 1
+## takes the slot without it (escape). Memories survive an ending, so run 2
+## starts knowing everything: Wren's piece in the square, Pip's FIRST HITBOX
+## out of bounds, the CHARACTER FILE read whole in the Archive, then the
+## slot again, written RUE. (Going back down from the Edge in run 1 was
+## tried first: the guard, the cursor and the static killed it 2 of 2 times,
+## see RELEASE_READINESS 2026-11-03.)
+func test_full_game_rue() -> void:
+	await _playthrough("rue", 0)
+
+
+## UNSEEN: no glitches of its own (the room's crack is the one allowed),
+## and Arin must never see her (World.is_unseen_run). The route is the
+## escape route's own lures; if Arin ever sees her the option is missing
+## and the case fails as "unavailable", never as a pass.
+func test_full_game_unseen() -> void:
+	await _playthrough("unseen", 0)
+
+
 # --- the run ---------------------------------------------------------------------
 
 ## The overwrite route glitches at every chance (a reckless player).
 var _reckless := false
 
 
+## The ending this run is playing for.
+var _ending := ""
+
+
+## Runs ended so far (RUE plays a second one).
+var _runs := 0
+
+
 func _playthrough(ending: String, purge: int, square_deaths: Array = []) -> void:
+	_ending = ending
+	_runs = 0
 	_edge_returns = 0
 	_reckless = false  # the overwrite route turns reckless at the Edge (_be_reckless)
 	memory().wipe()
@@ -100,6 +130,14 @@ func _playthrough(ending: String, purge: int, square_deaths: Array = []) -> void
 			break
 		result = await _play_session(w, ending)
 		_release_all()
+		if ending == "rue" and result == "ending:escape" and not memory().knows_truth and _runs < 2:
+			# Run 1 is over; the next one starts from the title, like a player's.
+			_runs += 1
+			_say("run %d ended in escape: playing again for the truth" % _runs)
+			if _reading:
+				await _watch_epilogue()
+			w = await start_session(true, false)
+			continue
 		if result != "death":
 			break
 		_reckless = false
@@ -134,6 +172,11 @@ func _play_session(w: Node, ending: String) -> String:
 		if not await _down_the_well(w):
 			return _why(w, "out of bounds")
 		_step(w, "out of bounds done")
+	# RUE, a run that starts remembering everything: two of them have
+	# noticed what she is (Story.truth_ready), then the Archive's file.
+	if ending == "rue" and memory().fragments.size() >= Story.FRAGMENTS.size() and not memory().knows_truth:
+		if not await _truth_pieces(w):
+			return _why(w, "the truth pieces")
 	# Wren deleted for helping in an earlier run: bring her back from the bin
 	# like a player would, then fetch her again.
 	if not await _archive(w, ending != "wren" or memory().is_deleted("wren")):
@@ -246,6 +289,13 @@ func _down_the_well(w: Node) -> bool:
 		await _read_dialogue(w)
 		await frames(10)
 		_step(w, "pip found: %s" % memory().found_pip)
+	if _ending == "rue" and "pip" not in memory().truth_pieces and memory().fragments.size() >= Story.FRAGMENTS.size():
+		# Pip's ledge: the shape Slot 2 was made with (a piece of the truth,
+		# counted once its last line is read: World._on_line_revealed).
+		await _go(w, [OutOfBounds.FIRST_SHAPE_POS + Vector2(-6, 6)], 6.0)
+		await _read_press()
+		await _read_dialogue(w)
+		_step(w, "first hitbox read: pieces %s" % str(memory().truth_pieces))
 	if not await _oob_cross(w, false):
 		_say("couldn't get back across (at %s)" % w.player.global_position.round())
 		return false
@@ -340,6 +390,8 @@ func _archive(w: Node, with_bin: bool) -> bool:
 			await _go(w, [Vector2(360, 170), Vector2(525, 170), Vector2(525, 100), f.pos], 14.0)
 			await _wait_cutscene(w)
 			_step(w, "memory: %s" % f.id)
+	if _ending == "rue" and Story.truth_ready() and not memory().knows_truth:
+		await _read_character_file(w)
 	if with_bin and not memory().npc_fates.is_empty():
 		await _bin(w)
 	await _go(w, [Vector2(525, 170), Vector2(300, 170), Vector2(110, 180), Vector2(80, 180)], 18.0)
@@ -382,6 +434,50 @@ func _shelter_through_sweep(w: Node, bin: RecycleBin) -> void:
 	while w.ending == "" and (bin.sweep_x >= 0.0 or bin.next_empty <= RecycleBin.WARNING + 0.5):
 		_steer(w, Vector2.ZERO)
 		await frames(1)
+
+
+## RUE's pieces, in a run that starts with every memory: Wren in the
+## square (all five memories make her say what she noticed), then, if one
+## more is needed, the FIRST HITBOX on Pip's ledge out of bounds.
+func _truth_pieces(w: Node) -> bool:
+	_say("for the truth: memories %d, pieces %s" % [memory().fragments.size(), str(memory().truth_pieces)])
+	for i in 6:
+		if Story.truth_ready() or "wren" in memory().truth_pieces or w.ending != "":
+			break
+		var wren: Npc = w.area.wren
+		if wren == null:
+			break
+		var via: Array = [Vector2(400, 262)] if absf(w.player.global_position.x - wren.global_position.x) > 200.0 else []
+		await _go(w, via + [wren.global_position + Vector2(14, 0)], 16.0)
+		await _read_press()
+		await frames(3)
+		await _read_dialogue(w)
+		if w.hud.is_choosing():
+			await press("ui_down")  # "Not now": this run goes alone
+			await _read_press()
+			await frames(3)
+			await _read_dialogue(w)
+		_say("talked to Wren for her piece (%d): pieces %s" % [i, str(memory().truth_pieces)])
+	if not Story.truth_ready() and w.ending == "":
+		if not await _down_the_well(w):
+			return false
+	_step(w, "truth pieces %s, the file opens: %s" % [str(memory().truth_pieces), Story.truth_ready()])
+	return Story.truth_ready()
+
+
+## The CHARACTER FILE on the Archive desk, read to its last line: the truth.
+func _read_character_file(w: Node) -> void:
+	var file := Vector2(ArchiveArea.DESK.end.x + 10.0, ArchiveArea.DESK.get_center().y)
+	await _go(w, [Vector2(525, 170), Vector2(file.x + 14.0, 172), file + Vector2(6, 14)], 14.0)
+	for i in 3:
+		if memory().knows_truth or w.ending != "":
+			break
+		await _read_press()
+		await frames(3)
+		await _read_dialogue(w)
+		await _wait_cutscene(w)
+	await _read_dialogue(w)
+	_step(w, "the CHARACTER FILE: knows the truth %s" % memory().knows_truth)
 
 
 func _north(w: Node) -> bool:
@@ -472,11 +568,14 @@ func _edge(w: Node, ending: String) -> String:
 		options.append(b.text)
 	var escort_note := "escort %s%s" % [w.escort.npc_id if w.escort else "none",
 		" (present)" if w.escort and w.escort.is_present() else ""]
-	_say("SLOT 2 options %s · %s · wren deleted %s · memories %d · truth %s" % [str(options), escort_note,
-		memory().is_deleted("wren"), memory().fragments.size(), memory().knows_truth])
+	_say("SLOT 2 options %s · %s · wren deleted %s · memories %d · truth %s · seen by arin %s · glitches this run %d" % [str(options), escort_note,
+		memory().is_deleted("wren"), memory().fragments.size(), memory().knows_truth,
+		w.flags.get("seen_by_arin", false), memory().session_glitches])
 	# By name: hidden options can shift the list. The option missing is a
 	# result of its own, never a quiet fallback to the first one.
-	var label: String = {"escape": "Write", "rue": "Write RUE", "wren": "Wren", "message": "message", "overwrite": Story.SLOT2_OVERWRITE}.get(ending, "Write")
+	var label: String = {"escape": "Write", "rue": Story.SLOT2_ESCAPE_NAMED, "unseen": Story.SLOT2_UNSEEN, "wren": "Wren", "message": "message", "overwrite": Story.SLOT2_OVERWRITE}.get(ending, "Write")
+	if ending == "rue" and not memory().knows_truth:
+		label = "Write"  # run 1: the slot without the truth (escape)
 	var want := -1
 	for i in options.size():
 		if str(options[i]).contains(label):
@@ -692,6 +791,8 @@ func _should_glitch(w: Node) -> bool:
 		return false
 	if _reckless:
 		return true  # the overwrite route: every glitch it can reach
+	if _ending == "unseen":
+		return false  # one glitch at most this run (World.is_unseen_run): none
 	if w.owner_moves.save_progress > 0.25 or w.owner_moves.wren_delete > 0.3:
 		return true
 	if t.id == "freeze" and t.node is OwnerAvatar:

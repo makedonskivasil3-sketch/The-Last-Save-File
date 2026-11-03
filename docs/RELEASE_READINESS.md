@@ -1,6 +1,40 @@
 # Release readiness
 
-**This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
+**The top section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
+
+## Current: release director pass (2026-11-03, second brief)
+
+**Brief:** the release director prompt of 3 November 2026 (sections 1–19). It builds on the release execution pass below and doesn't replace it.
+**Starting point:** PR #13 head `3d5a25b`. CI run 41607676951 was green on that head.
+
+### Work ledger
+
+| # | Class | Item | Evidence and revision |
+|---|---|---|---|
+| 1 | Confirmed defect, fixed | Rue and unseen endings had no played route (QA-3) | **Both now have integrated bot routes.**<br>• `test_full_game_unseen`: `ending:unseen`, 1 session, 147 s, never seen by Arin, 1 glitch.<br>• `test_full_game_rue`: `ending:rue`, 2 runs, 290 s, 0 deaths, pieces Wren and Pip, CHARACTER FILE read whole.<br>All six ending IDs are now reached by full routes |
+| 2 | Already fixed | Browser calm-save check (CI-1), freed-lambda errors (EN-1), demo ending early (DM-2) | Fixed in `55141d6`; CI green on `3d5a25b` |
+| 3 | Risk, tested | Save contract: rapid calm and conversation flips; danger straight after calm; settings across a story reset | New `tests/test_save_contract.gd`, 3 cases, all pass. The disk always holds the game's latest decision. A close in danger never resumes as calm. Settings survive `wipe()` |
+| 4 | Risk, closed | First-import font errors (EN-2) | A fresh checkout's first import: 4 font errors. Second import: 0. A Linux export built from that clean tree: exit 0, 0 errors. Running the export: no font or other errors. **Not a release defect** |
+| 5 | Design weakness, for the player round | **RUE is in practice a second-run ending.** The truth needs all five memories, two of them at the Edge. Going back down from the Edge means passing the south gap (where Arin enters), the cursor and the square's static at peak awareness | The bot's first design went back down from the Edge and died both times: cursor at the gap, then the eraser in the square. Memories survive an ending, so run 2 reaches the file before the Edge. **The author decides** whether this is intended. If not, the smallest fix is a signpost after the first escape ("someone in the square noticed something"), not a new mechanic |
+| 6 | Human or hardware needed | Players, Windows PC, physical controller, Steam account, low-end browser | Unchanged: B5–B10 in `RELEASE_CHECKLIST.md`. None can be done from here |
+| 7 | Post-launch | Achievements, cloud saves, localisation, recorded voice, Deck verification | `RELEASE_CHECKLIST.md`, post-launch section |
+
+### Ending coverage: exact routes (bots, `tests/run.sh --bots`)
+
+| Ending | Route | Last result |
+|---|---|---|
+| escape | `test_full_game_escape`, also at purge 3 and purge 5 | Passed:<br>• purge 0: 147 s, 0 deaths;<br>• purge 3: 139 s, 0 deaths (a second run: 201 s, 1 eraser death at the Edge);<br>• purge 5: 119 s, 0 deaths |
+| message | `test_full_game_message` | Passed: 149 s, 0 deaths |
+| wren | `test_wren_ending` | Passed: 176 s, 2 stalls |
+| overwrite | `test_full_game_overwrite` | Passed: 2 sessions, 280 s, 1 eraser death at the Edge, 94 glitches |
+| **unseen** | **`test_full_game_unseen` (new):** no glitches beyond the room's own, Arin never sees her | **Passed: 1 session, 147 s** |
+| **rue** | **`test_full_game_rue` (new):** run 1 takes the slot without the truth (escape). Run 2 gets Wren's piece, Pip's FIRST HITBOX and the CHARACTER FILE, then writes RUE | **Passed: 2 runs, 290 s, 0 deaths** |
+
+**Strict suite** on the new tests: 845/845 across four isolated shards (842 + `test_save_contract`), every shard exit 0, with the engine-error gate on.
+
+**Runtime code is unchanged** since `55141d6`; this pass changed tests and documents only. So the export hashes below (built from `6d7a37c`) still describe the game's code.
+
+The scarred-square probe still reports SKIP, as it should.
 
 ## Current: release blockers, December full PC release (2026-11-03)
 
