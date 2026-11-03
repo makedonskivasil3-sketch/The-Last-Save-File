@@ -96,6 +96,8 @@ func _playthrough(ending: String, purge: int, square_deaths: Array = []) -> void
 		ending, purge, result, _session, _now() - _t0, memory().fragments.size(), memory().found_pip,
 		_deaths.size(), str(_deaths), _glitches, _reloads, _stalls]
 	print(summary)
+	if _reading:
+		await _watch_epilogue()
 	# The ending asked for, exactly: a different ending is a failure, not a pass.
 	check_eq(result, "ending:" + ending, "the bot reached the %s ending" % ending)
 
@@ -189,7 +191,7 @@ func _take_wren(w: Node) -> bool:
 		if Relationships.has("wren.game") and not Relationships.has("wren.mark_ok") and VillageSquare.pending_mark() == "" \
 				and sq._wren_path.is_empty() and sq._wren_at_spot == "":
 			await _go(w, [VillageSquare.CHALK_SPOTS.recess + Vector2(-8, 0)], 12.0)
-			await press("interact")
+			await _read_press()
 			await frames(3)
 			_step(w, "chalked a mark under the awning")
 		if not sq._wren_path.is_empty():
@@ -197,14 +199,14 @@ func _take_wren(w: Node) -> bool:
 		# Across the square the way she walks it (the straight line is blocked).
 		var via: Array = [Vector2(400, 262)] if absf(w.player.global_position.x - wren.global_position.x) > 200.0 else []
 		await _go(w, via + [wren.global_position + Vector2(14, 0)], 14.0)
-		await press("interact")
+		await _read_press()
 		await frames(3)
 		var opened: bool = w.hud.is_dialogue_open()
 		await _read_dialogue(w)
 		await frames(3)
 		_say("talked to Wren (%d): opened %s, focus %s, asked %s, choosing %s" % [i, opened, w._focused, w.area._wren_asked, w.hud.is_choosing()])
 		if w.hud.is_choosing():
-			await press("interact")  # "Take her with you"
+			await _read_press()  # "Take her with you"
 			await frames(3)
 			await _read_dialogue(w)
 			return w.escort != null
@@ -226,7 +228,7 @@ func _down_the_well(w: Node) -> bool:
 		_step(w, "memory: the well")
 	if not memory().found_pip and w.pip == null:
 		await _go(w, [OutOfBounds.PIP_POS + Vector2(0, 14)], 6.0)
-		await press("interact")
+		await _read_press()
 		await _read_dialogue(w)
 		await frames(10)
 		_step(w, "pip found: %s" % memory().found_pip)
@@ -316,7 +318,7 @@ func _archive(w: Node, with_bin: bool) -> bool:
 	# bot still walks the same way past him, the route it knows is clear).
 	await _go(w, [Vector2(320, 172)], 8.0)
 	if not w.flags.get("pointer", false):
-		await press("interact")
+		await _read_press()
 		await frames(4)
 		await _read_dialogue(w)
 	for f in Story.fragments_in("archive"):
@@ -342,7 +344,7 @@ func _bin(w: Node) -> void:
 			await _shelter_through_sweep(w, bin)
 			await _go(w, [f.global_position + Vector2(0, 14)], 6.0)
 			if f.can_interact():
-				await press("interact")
+				await _read_press()
 			while not f.done and w.ending == "" and bin.next_empty > RecycleBin.WARNING + 0.6 and bin.sweep_x < 0.0:
 				_steer(w, Vector2.ZERO)
 				await frames(1)
@@ -468,14 +470,14 @@ func _edge(w: Node, ending: String) -> String:
 		return "unavailable:%s (options %s, %s)" % [ending, str(options), escort_note]
 	for i in want:
 		await press("ui_down")
-	await press("interact")
+	await _read_press()
 	if ending == "message":
 		await frames(4)
-		await press("interact")
+		await _read_press()
 	for i in 120:
 		if w._win_card_shown:
 			break
-		await press("interact")
+		await _read_press()
 		await wait(0.25)
 	return "ending:" + memory().last_ending  # exactly as recorded: escape and rue are different endings
 
@@ -512,7 +514,7 @@ func _go(w: Node, points: Array, timeout := STEP_TIMEOUT) -> bool:
 				_steer(w, Vector2.ZERO)
 				# Read like a player: story text waits for a press (manual advance).
 				if w.hud.is_dialogue_open() or w.hud.is_cinematic():
-					await press("interact")
+					await _read_press()
 					await wait(0.1)
 				await frames(1)
 				cutscene_for += tree.root.get_process_delta_time()
@@ -747,7 +749,7 @@ func _wait_cutscene(w: Node) -> void:
 	var until := _now() + 30.0
 	while (w._cutscene or w.hud.is_cinematic()) and w.ending == "" and _now() < until:
 		if w.hud.is_cinematic():
-			await press("interact")  # read each line, then move on (manual advance)
+			await _read_press()  # read each line, then move on (manual advance)
 			await wait(0.15)
 		await frames(2)
 	await frames(3)
@@ -757,7 +759,7 @@ func _read_dialogue(w: Node) -> void:
 	for i in 60:
 		if not w.hud.is_dialogue_open():
 			return
-		await press("interact")
+		await _read_press()
 		await wait(0.05)
 
 
@@ -771,7 +773,7 @@ func _interact_until_gone(w: Node, from_area: String, spot := Vector2.INF) -> vo
 			await _read_dialogue(w)
 			if spot != Vector2.INF:
 				await _go(w, [spot], 3.0)
-		await press("interact")
+		await _read_press()
 		await wait(0.2)
 
 
@@ -802,6 +804,43 @@ func _heartbeat(w: Node, goal: Vector2) -> void:
 	_beat = _now()
 	_say("... %s at %s -> %s  cutscene %s  dialogue %s  frozen %s" % [w.area.area_id, w.player.global_position.round(),
 			goal, w._cutscene, w.hud.is_dialogue_open(), w.player.frozen])
+
+## For a film an observer can follow (BOT_READ=1, tools/record_film.sh):
+## before pressing on, wait as long as a person needs for the text on
+## screen. Off by default: the bot suite reads at once.
+static var _reading := OS.get_environment("BOT_READ") != ""
+
+
+## For the film: read the epilogue through, then let the title show.
+func _watch_epilogue() -> void:
+	var t := 0.0
+	while t < 240.0:
+		var w: Node = scene()
+		if not (w is World):
+			await wait(5.0)
+			return
+		var hud: Node = (w as World).hud
+		if hud.is_cinematic() or hud.is_dialogue_open() or hud._overlay.visible:
+			await _read_press()
+			t += 2.0
+		else:
+			await wait(0.5)
+			t += 0.5
+
+
+func _read_press() -> void:
+	if _reading:
+		var w: Node = scene()
+		var text := ""
+		if w is World:
+			var hud: Node = (w as World).hud
+			if hud.is_dialogue_open():
+				text = str(hud._dialogue_text.text)
+			elif hud.is_cinematic():
+				text = str(hud._cine_text.text) if "_cine_text" in hud else ""
+		await wait(clampf(1.2 + text.length() / 16.0, 1.6, 7.0))
+	await press("interact")
+
 
 func _now() -> float:
 	return Time.get_ticks_msec() / 1000.0 * Engine.time_scale
