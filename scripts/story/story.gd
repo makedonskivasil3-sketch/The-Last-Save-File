@@ -589,10 +589,21 @@ static func epilogue(ending: String, found: int, pip: bool, message := 0) -> Arr
 			]
 		_:
 			lines = ["you wrote yourself into the last save file.", "you load in somewhere the owner has never looked."]
+			lines.append(escape_lead(full))
 	lines.append_array(_epilogue_people(ending))
 	if pip and ending != "overwrite":
 		lines.append(EPILOGUE_PIP if ending != "wren" else "a small orange fox jumps into the new game after her. she'll need someone to hide behind.")
 	return lines
+
+
+## After an ordinary escape: a complete ending, with a quiet lead for the
+## next run (RUE needs every memory and what the people who watched her
+## noticed; docs/production/ISSUE_REGISTER.md DS-1). It never says what she is.
+const ESCAPE_LEAD_PIECES := "(some of me is still back there. memories survive this. i could go back for them.)"
+const ESCAPE_LEAD_PEOPLE := "(i remember all of it now. it still doesn't add up to a name. the ones who watched me might know the rest.)"
+## (Knowing the truth with every memory is RUE, never escape: World.win.)
+static func escape_lead(full: bool) -> String:
+	return ESCAPE_LEAD_PEOPLE if full else ESCAPE_LEAD_PIECES
 
 
 ## Wren's name on the well's rim (docs/production/WREN_ARC.md), after any

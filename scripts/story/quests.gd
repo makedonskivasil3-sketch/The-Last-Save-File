@@ -42,8 +42,10 @@ const ROOM := "Find who kept the fifth lantern burning: get out of Arin's room."
 const WELL := "Reach the fifth lantern by the well; Wren can hide you from Arin."
 const OOB := "Follow the lantern's light: cross to the far ledge. Something is waiting there."
 const OOB_DONE := "Climb back up at the respawn point. The Archive, east of the square, keeps the festival's records."
-const ARCHIVE := "Ask the Archivist who lit the fifth lantern, and where Slot 2 went."
-const EAST := "Ask the Archive who lit the fifth lantern: the road east leads somewhere old."
+## She lit it (the festival shows her doing it); the mystery is how it
+## survived three years unsaved (Story.festival_log: "never saved off").
+const ARCHIVE := "Ask the Archivist who kept the fifth lantern burning, and where Slot 2 went."
+const EAST := "Ask the Archive who kept the fifth lantern burning: the road east leads somewhere old."
 const NORTH := "Take the north road out of the village square, to what's left of Slot 2."
 const BIN := "When the bin empties, stand in a system file's shadow; between sweeps, restore what was deleted."
 const HOUSE := "When the door chimes, step into a closet; until then, look around Arin's house."

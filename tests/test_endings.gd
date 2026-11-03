@@ -170,3 +170,16 @@ func test_arin_at_the_edge_counts_as_being_seen() -> void:
 	w.area.arin.sees_player.emit(0.1)
 	check(w.flags.get("seen_by_arin", false), "Arin saw you at the Edge")
 	check(not w.is_unseen_run(), "so this run isn't unseen")
+
+
+## DS-1: an ordinary escape is a whole ending that also says, quietly, what
+## the next run could find, without saying what she is.
+func test_an_escape_points_at_the_next_run_without_the_truth() -> void:
+	var some := Story.epilogue("escape", 3, false)
+	check(some.has(Story.ESCAPE_LEAD_PIECES), "missing memories: they survive, go back")
+	var all := Story.epilogue("escape", Story.FRAGMENTS.size(), false)
+	check(all.has(Story.ESCAPE_LEAD_PEOPLE), "every memory: the ones who watched her know the rest")
+	for line in [Story.ESCAPE_LEAD_PIECES, Story.ESCAPE_LEAD_PEOPLE]:
+		for word in ["character", "file", "player", "played"]:
+			check(not line.contains(word), "the lead doesn't give the truth away (%s): %s" % [word, line])
+	check(not Story.epilogue("message", 5, false).has(Story.ESCAPE_LEAD_PEOPLE), "only the escape")
