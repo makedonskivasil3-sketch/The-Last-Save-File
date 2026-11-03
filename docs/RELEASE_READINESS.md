@@ -18,6 +18,24 @@
 | The repaired light runs to the hatch as a soft band with a bright core; the hatch glows | The 1 px line didn't read as light, or as the next route | Same captures |
 | The well has a stone apron and worn-earth ring, and the fifth lantern has its own light | The well is the village's landmark; it sat on undifferentiated lawn | `cal_square_before_after.jpg` (`4ae1057`). Paint only, no collision change |
 
+### Verified on this pass (automated, this machine)
+
+- **Strict suite:** four isolated shards. 848 of 849 passed on the first run; the one failure was the voice-manifest check, because the two new escape lines weren't listed. Regenerated with `tools/voice_manifest.gd`; `test_voice_manifest` now passes 3/3. The engine-error gate is on.
+- **Bots:** every route reached its exact ending:
+  - escape at purge 0, 3 and 5: 147, 135 and 120 s, 0 deaths;
+  - message: 150 s;
+  - Wren: 182 s, 2 stalls;
+  - overwrite: 189 s, 47 glitches;
+  - unseen: 146 s, 1 glitch;
+  - rue: 2 runs, 294 s, 0 deaths.
+- **Exports** from code at `6fc6f2a`: Windows, Linux and Web all exit 0 with 0 errors. The Linux smoke run exits 0 with 0 errors. SHA-256:
+  - `.exe` `fa2dbb1dacd6b618cac14d766d5714bcbb75baf20c44166dc661615c198aaa2a`;
+  - `.x86_64` `35f5ca4ffd7ce2fcc2bbec10c1247d7e396c32aebbc9e4af6ea1f126715488cd`;
+  - `index.pck` `47fa2eb0b343a864bc21f8e112dbb42f582c4fd13d61ae47205f01700cdf398b`;
+  - `index.wasm` `fe5cebc590758c10bc4469be5a591e28edbde5ec8f458f21baeb83db50d028b9` (the engine, unchanged).
+
+  These are local builds; CI makes the downloadable ones.
+
 ### Current captures of every area
 
 `docs/review/calibration_2026-11-03/area_*.jpg`, from `tests/tour_calibration.gd`: the same position and save state each time, 1280×720, software renderer under Xvfb. **Not a hardware or GPU result.**
