@@ -333,7 +333,7 @@ func _oob_cross(w: Node, outbound: bool) -> bool:
 		var leg: Array = legs[i]
 		if not await _go(w, [leg[0]], 10.0):
 			_say("didn't reach the wait point %s (at %s)" % [leg[0], w.player.global_position.round()])
-			if _at_entry(w):
+			if _at_entry(w) or (not outbound and _on_landing(w)):
 				# Fell on the way: outbound, start over; on the way back, the
 				# fall put us next to the pillar anyway.
 				if not outbound:
@@ -356,7 +356,7 @@ func _oob_cross(w: Node, outbound: bool) -> bool:
 		if w.player.global_position.distance_to(end) > 12.0:
 			tries += 1
 			_say("fell out of bounds (try %d)" % tries)
-			if not outbound and _at_entry(w):
+			if not outbound and _on_landing(w):
 				return true
 			i = 0 if outbound else i
 			continue
@@ -366,6 +366,14 @@ func _oob_cross(w: Node, outbound: bool) -> bool:
 
 func _at_entry(w: Node) -> bool:
 	return w.player.global_position.distance_to(OutOfBounds.ENTRY) < 30.0
+
+
+## On the landing ledge (where a fall puts her, and the pillar is): on the
+## way back, that is home, wherever on the ledge she stands. (CI, 2026-11-03:
+## a fall on the return left her 31 px from ENTRY, and the bot walked all
+## the way out again.)
+func _on_landing(w: Node) -> bool:
+	return OutOfBounds.ANCHORS[0].grow(16.0).has_point(w.player.global_position)
 
 
 func _archive(w: Node, with_bin: bool) -> bool:
