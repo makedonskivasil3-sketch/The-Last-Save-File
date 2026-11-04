@@ -830,7 +830,11 @@ func _avoid(w: Node, n: Vector2) -> Vector2:
 	# player would, instead of walking into it.
 	var e: Variant = w.area.get("erasure")
 	if e is Erasure and e.active:
-		var c: Vector2 = e.nearest_cell(p + n * 10.0, 20.0)
+		# Look further ahead when frames are long: on a slow runner (CI; or
+		# --max-fps 15 here) the static grew onto the bot between two looks
+		# (purge 5: "eraser in square", 3 CI runs and 1 of 4 throttled runs).
+		var ahead := 10.0 + clampf(w.get_physics_process_delta_time() * 600.0, 0.0, 30.0)
+		var c: Vector2 = e.nearest_cell(p + n * ahead, 20.0 + ahead * 0.5)
 		if c != Vector2.INF:
 			n = ((p - c).normalized() * 1.4 + n * 0.5).normalized()
 	# Dodging shouldn't carry us out of an exit we didn't mean to take
