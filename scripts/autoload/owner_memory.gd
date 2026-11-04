@@ -556,10 +556,11 @@ func record_death(area: String, at: Vector2, reason := "") -> bool:
 	if reason != "":
 		death_causes[reason] = int(death_causes.get(reason, 0)) + 1
 	# The static at the Edge waits a little longer each time it gets you there.
+	# A death on the way back (Arin in the square) no longer cancels that: it
+	# sent a struggling player back to the harshest Edge (2026-11-04 fairness
+	# audit). It resets with an ending, and the grace is capped (MAX_GRACE).
 	if area == "edge" and reason == "eraser":
 		edge_static_deaths += 1
-	elif area != "edge":
-		edge_static_deaths = 0
 	_lose_carried_note()
 	var forgiven := area == "edge" and not edge_mercy_used
 	if forgiven:

@@ -31,6 +31,10 @@ var paused := false
 var lure: Callable
 ## Seconds left frozen by Rue's FREEZE glitch: no moving, seeing or touching.
 var stunned := 0.0
+## A reload's hold (OwnerMoves.load_last_save): Arin waits where he is and
+## touches nothing while Rue has no control, and for a beat after. Unlike
+## FREEZE (stunned) it shows no glitch and a reload never undoes it.
+var held := 0.0
 
 ## Arin's feet: walls, furniture and missing-texture blocks stop a circle this
 ## size (people don't: Arin walks past them, as before).
@@ -98,6 +102,9 @@ func stun(seconds: float) -> void:
 
 
 func _physics_step(delta: float) -> void:
+	if held > 0.0:
+		held -= delta
+		return
 	if stunned > 0.0:
 		stunned -= delta
 		return

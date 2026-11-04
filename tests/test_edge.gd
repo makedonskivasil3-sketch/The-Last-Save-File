@@ -58,9 +58,15 @@ func test_grace_grows_after_the_static_gets_you() -> void:
 	m.begin_session()
 	m.record_death("edge", Vector2.ZERO, "eraser")
 	check(TheEdge.grace_time() > before, "a longer grace next time (%.1f -> %.1f)" % [before, TheEdge.grace_time()])
+	var grown := TheEdge.grace_time()
 	m.begin_session()
 	m.record_death("square", Vector2.ZERO, "arin")
-	check_eq(TheEdge.grace_time(), TheEdge.GRACE, "back to normal once you die somewhere else")
+	# Changed 2026-11-04 (trust contract): a death on the way back no longer
+	# sends her to the harshest Edge. An ending resets it (record_win).
+	check_eq(TheEdge.grace_time(), grown, "kept when you die somewhere else on the way back")
+	m.begin_session()
+	m.record_win("escape")
+	check_eq(TheEdge.grace_time(), TheEdge.GRACE, "back to normal after an ending")
 
 
 func test_one_edge_death_does_not_count() -> void:
