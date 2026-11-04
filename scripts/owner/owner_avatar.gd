@@ -31,6 +31,10 @@ var paused := false
 var lure: Callable
 ## Seconds left frozen by Rue's FREEZE glitch: no moving, seeing or touching.
 var stunned := 0.0
+## A reload's hold (OwnerMoves.load_last_save): Arin waits where he is and
+## touches nothing while Rue has no control, and for a beat after. Unlike
+## FREEZE (stunned) it shows no glitch and a reload never undoes it.
+var held := 0.0
 
 ## Arin's feet: walls, furniture and missing-texture blocks stop a circle this
 ## size (people don't: Arin walks past them, as before).
@@ -98,6 +102,9 @@ func stun(seconds: float) -> void:
 
 
 func _physics_step(delta: float) -> void:
+	if held > 0.0:
+		held -= delta
+		return
 	if stunned > 0.0:
 		stunned -= delta
 		return
@@ -114,7 +121,7 @@ func _physics_step(delta: float) -> void:
 			# whatever is in the way.
 			var to_decoy := decoy - global_position
 			_facing = _facing.lerp(to_decoy.normalized(), minf(1.0, delta * 8.0)).normalized()
-			if to_decoy.length() > 6.0 and _go(decoy, speed * 1.2, delta) == Go.BLOCKED:
+			if to_decoy.length() > 6.0 and _go(decoy, speed * 1.2 * Settings.pace("arin"), delta) == Go.BLOCKED:
 				# Can't get to it (no way round, or as close as it gets): look a
 				# moment where it should be, then give up on it and go back to
 				# the round. No walking through walls, no endless pushing.
@@ -154,7 +161,7 @@ func _patrol(delta: float) -> void:
 		return
 	_target %= route.size()  # the route may have been changed under us
 	var goal := route[_target]
-	match _go(goal, speed, delta):
+	match _go(goal, speed * Settings.pace("arin"), delta):
 		Go.ARRIVED:
 			_target = (_target + 1) % route.size()
 			_wait = GUARD_WAIT if goal == guard_point else 0.6  # pauses at corners, looking around

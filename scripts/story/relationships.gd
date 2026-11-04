@@ -32,6 +32,7 @@ const EVENTS := {
 	"lantern.workshop": "Found the workshop beneath the Archive.",
 	"lantern.wick": "Kept a spare festival wick from the workshop.",
 	"lantern.repaired": "Relit the service lantern; opened a route between the well and Archive.",
+	"lantern.named": "Wrote her own name on the fifth festival frame.",
 	"wren.service_light": "Wren noticed the service light and asked Rue to leave it burning.",
 	"wren.met": "Met Wren in the square.",
 	"wren.sheltered": "You hid beside Wren.",
@@ -89,6 +90,12 @@ const WREN_ESCORT := ["I'm right behind you. Don't stop for me. I'll keep up."]
 const WREN_SERVICE_LIGHT := [
 	"There's light between the stones now. By the well. Was that you?",
 	"...Leave it on. I like knowing there's another way out.",
+]
+## The same, once Rue has written her name on the fifth frame.
+const WREN_SERVICE_LIGHT_NAMED := [
+	"There's light between the stones now. By the well. Was that you?",
+	"...And you put your name on the fifth lantern. The one by the well. I won't tell. It suits you.",
+	"Leave it on. I like knowing there's another way out.",
 ]
 const WREN_AFTER_DEATH := [
 	"You came back. I saw them take you. Right there. I didn't know people could come back.",
@@ -309,7 +316,7 @@ const TOBBEN_GREETING_BOOK := "Two names, still. I check every morning. Welcome 
 
 ## Every line said from here (the voice manifest lists them).
 static func wren_lines() -> Array:
-	return WREN_SERVICE_LIGHT + WREN_ESCORT + WREN_AFTER_DEATH + [WREN_SAW_STATIC] + WREN_AFTER_RESTORE + WREN_AFTER_RESTORE_BROKEN \
+	return WREN_SERVICE_LIGHT + WREN_SERVICE_LIGHT_NAMED + WREN_ESCORT + WREN_AFTER_DEATH + [WREN_SAW_STATIC] + WREN_AFTER_RESTORE + WREN_AFTER_RESTORE_BROKEN \
 		+ [WREN_PROMISE_OPEN, WREN_PROMISE_BROKEN] + WREN_WELL + [WREN_GREETING] + WREN_MARKED + WREN_MARKED_SAW + WREN_FESTIVAL \
 		+ [WREN_WATCHED_OPEN, WREN_WATCHED_CLOSE] + WREN_WATCHED.values() + WREN_UNPLAYED + [WREN_CHALK_ASK] + WREN_CHALK_GIVEN \
 		+ WREN_CHALK_LATER + [WREN_CHALK_AGAIN] + WREN_SAW_NAME + WREN_CHALK_GIVEN_NO_MARK + WREN_SAW_NAME_NO_MARK + [WREN_MARKED_BESIDE] \
@@ -443,7 +450,7 @@ static func wren(_talk: int, ask_ready: bool, escorting: bool) -> Dictionary:
 			return told
 	# 3. Continuation: an open promise (she asks again: the ask flow follows).
 	if has("wren.met") and LanternRoute.repaired():
-		var light := _once("wren.service_light", WREN_SERVICE_LIGHT, ["wren.service_light"])
+		var light := _once("wren.service_light", WREN_SERVICE_LIGHT_NAMED if LanternRoute.named() else WREN_SERVICE_LIGHT, ["wren.service_light"])
 		if not light.is_empty():
 			return light
 	if has("wren.promised") and not has("wren.promise_kept") and ask_ready:

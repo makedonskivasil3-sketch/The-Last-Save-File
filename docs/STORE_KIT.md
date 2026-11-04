@@ -1,4 +1,4 @@
-# Store and demo kit (draft, 24 October 2026)
+# Store and demo kit (draft, 24 October 2026; feature claims corrected 3 November 2026)
 
 **Nothing here is published.** No store page, trailer or capsule exists
 outside this repository. Every image named below is a capture of the game
@@ -29,25 +29,40 @@ abandoned save, and the people who remember her.*
 
 ## Feature list (each item is in the build)
 
-- An interactive opening: two players, one routine, and the moment the
-  character moves with nobody holding her.
-- Seven connected places: Arin's room, the village square, the Archive,
-  Arin's house, out of bounds, the Recycle Bin and the Edge.
+- A playable prologue, the Lantern Festival: you play the second player
+  beside the first; both leave, and the fifth lantern is lit with nobody
+  holding a controller. One keyboard, controller or touchscreen: the two
+  players are part of the story, not local co-op.
+- Eight connected places: Arin's room, the village square, Arin's house,
+  under the well, the Archive, the lantern workshop, the Recycle Bin and
+  the Edge.
 - Stealth you can read: view cones, a lamp, the owner's cursor and the
   static. Each is telegraphed and each has shelter.
-- Glitch powers, each with a cost: PAUSE, FREEZE, UNLOCK, PHASE.
+- Ten glitch powers, each with a cost; memories unlock six of them.
 - Characters with memory. Relationship events persist across deaths and
   are shown in the journal as seen, said or unknown.
 - An owner that adapts to the routes, hiding spots and seams you used.
 - Five memories, a CHARACTER FILE, and six endings. One needs the truth;
   an ordinary escape doesn't.
 - Accessibility: text size and speed, auto-advance, reduced flashing and
-  motion, captions with speaker labels, remappable controls, touch
-  controls.
+  motion, captions with speaker labels, remappable keys and pad buttons,
+  an Owner pace setting. Touch controls exist in the browser build only,
+  as an experimental playtest feature.
+- No voice acting: dialogue is written, with procedural voice blips.
+  Optional system narration reads text aloud where the device offers it.
+- Platforms to claim: Windows only, once it has been run and finished on
+  real hardware. Linux, Steam Deck and browser only after their own tests.
 - Every graphic, sound and piece of music is made in code, with no
   third-party art.
 
 ## Is the demo endpoint enough? (evaluation)
+
+**Update, 3 November 2026:** there are two demo behaviours in the build.
+`?demo=1` / `--demo` ends under the Archive's arch. The candidate,
+`?demo=workshop` / `--demo=workshop`, ends after the workshop repair and
+Wren noticing the light. Its ways to the Archive, Bin and Edge stay shut
+with a line pointing back to the mission, so a wrong turn can't end it
+early. Choose one after a player round. The table below evaluates the arch.
 
 The demo ends under the Archive's arch (`COMMERCIAL_DIRECTION.md` §4).
 
@@ -69,6 +84,11 @@ the author (not built):**
   first act.
 
 ## Trailer storyboard (gameplay first, readable without sound)
+
+**Stale shots (3 November 2026):** shots that name the two-controller
+opening (`after_o1_two_players.jpg`, `after_o2b_saving.jpg`) show the
+discarded animatic. Recapture them from the festival prologue before any
+trailer cut. Screenshots must show the shipped game.
 
 Every shot is a scene that exists. On-screen words are the game's own text
 (cards, captions, the console). The trailer needs no voice-over and works
@@ -95,7 +115,26 @@ muted. Length target: 60–75 s. Not cut, and nothing rendered.
 Withheld from the trailer: the CHARACTER FILE, the truth, every ending,
 Slot 2's choice.
 
-## Screenshot shortlist (5, existing captures)
+## Refresh, 3 November 2026 (implementation brief §13)
+
+**Positioning hypothesis, to test with players, not assume:** a story-driven escape adventure about a forgotten character trying to survive in someone else's save. The commercial asset is the relationship between player, character and save, not graphics or volume of content.
+
+**One-sentence hook:** *You are the character someone left running. The save is being cleared.*
+
+**What the screenshots must show** (every one from the current build, `docs/review/calibration_2026-11-03/`, re-captured at 1920×1080 from a release export before any store use):
+1. Control: Rue in Arin's room, the first exit in view (`area_room.jpg`).
+2. Exploration: the Square around the well and the fifth lantern (`area_square.jpg`).
+3. A readable threat: the Edge unloading, the cursor and Slot 2 (`area_edge.jpg`).
+4. A character's response and a consequence: the workshop's repaired light running to the hatch (`cal_workshop_repaired_before_after.jpg`, right half).
+5. A colder system space: the Recycle Bin (`area_bin.jpg`).
+
+No identity truth or final choice in any image.
+
+**Demo to full game:** the workshop candidate ends after Wren notices the light (DM-2); its save is separate from the full game's. The full game starts its own save; nothing is carried over, so nobody replays the tutorial to buy, and nobody is told they will keep demo progress.
+
+**Price:** not set. It waits for measured human campaign length, finish quality and a current comparable list. Scenarios, when made, are low, base and high, with stated assumptions and net receipts after platform share, refunds and tax. No forecast is claimed.
+
+## Screenshot shortlist (5, existing captures; superseded by the refresh above)
 
 1. `docs/review/opening/after_o5_paused_she_walks.jpg`: the premise in one
    frame.

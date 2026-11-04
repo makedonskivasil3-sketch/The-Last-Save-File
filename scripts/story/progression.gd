@@ -19,6 +19,35 @@ enum Stage { MEMORIES, INVESTIGATE, FILE, KNOWN }
 const WITNESSES := ["mira", "wren", "tobben"]
 
 const HINT_INVESTIGATE := "Every memory is back. Someone who has watched you may have noticed something."
+## The same stage, named: who can still say it, and where (2026-11-04: the
+## unnamed "someone" left players wandering). Built by investigate_hint().
+const WHERE := {"wren": "Wren, in the square", "mira": "Mira, in Arin's room", "tobben": "Tobben, at his stall", "pip": "Pip's old ledge, under the well"}
+## Rue, when the fifth memory lands and the file isn't read yet.
+const ALL_MEMORIES := "(all five. it still doesn't say what i am. the archive keeps a file on me, and the people back in the square have been watching.)"
+const ALL_MEMORIES_READY := "(all five, and they've told me enough. the file on the archivist's desk should open now.)"
+## Rue, the moment she starts writing herself into Slot 2 with a lead open.
+const SLOT_LEAD_OPEN := "(if i finish writing, this run is over. the file in the archive is still unread. i can step out and go back. memories keep either way.)"
+
+
+## The ones who could still tell her something, as places to go.
+static func open_leads() -> Array[String]:
+	var out: Array[String] = []
+	for who in open_witnesses():
+		out.append(WHERE[who])
+	if "pip" not in OwnerMemory.truth_pieces and OwnerMemory.found_pip and not OwnerMemory.knows_truth:
+		out.append(WHERE.pip)
+	return out
+
+
+static func investigate_hint() -> String:
+	var leads := open_leads()
+	if leads.is_empty():
+		return HINT_INVESTIGATE
+	return "Every memory is back. Ask those who watched you: %s." % ", ".join(leads.slice(0, 2))
+
+
+static func all_memories_lead() -> String:
+	return ALL_MEMORIES_READY if stage() == Stage.FILE else ALL_MEMORIES
 const HINT_FILE := "Something on the Archivist's desk has your name on it now."
 const HINT_KNOWN := "You know what you are. Slot 2 is still north of the square."
 
@@ -46,7 +75,7 @@ static func open_witnesses() -> Array[String]:
 static func goal_hint() -> String:
 	match stage():
 		Stage.INVESTIGATE:
-			return HINT_INVESTIGATE
+			return investigate_hint()
 		Stage.FILE:
 			return HINT_FILE
 		Stage.KNOWN:
@@ -61,7 +90,10 @@ static func journal_summary() -> String:
 		Stage.INVESTIGATE:
 			var noticed := OwnerMemory.truth_pieces.size()
 			lines.append("Things others noticed about you: %d of %d needed." % [mini(noticed, Story.TRUTH_PIECES_NEEDED), Story.TRUTH_PIECES_NEEDED])
-			if open_witnesses().is_empty() and noticed < Story.TRUTH_PIECES_NEEDED:
+			var leads := open_leads()
+			if not leads.is_empty():
+				lines.append("Leads: " + "; ".join(leads) + ".")
+			elif noticed < Story.TRUTH_PIECES_NEEDED:
 				lines.append("Nobody has more to say yet. Some only notice after a kindness.")
 		Stage.FILE:
 			lines.append("The CHARACTER FILE in the Archive will read whole now.")

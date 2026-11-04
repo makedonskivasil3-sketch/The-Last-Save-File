@@ -47,6 +47,11 @@ const TRAIL_INTERVAL := 0.05
 @export var speed := 90.0
 
 var frozen := false
+## Dust at her feet (start, sharp stop, reversal): [global pos, age].
+var _dust: Array = []
+var _was_speed := 0.0
+var _was_dir := Vector2.ZERO
+const DUST_LIFE := 0.45
 ## Set by World while dialogue or a choice is open: idle_time holds.
 var reading := false
 ## A tip or a card is on screen: not standing still either, but Rue may walk.
@@ -221,12 +226,46 @@ func _physics_process(delta: float) -> void:
 	_drive = MoveFeel.drive(_drive, dir * speed, speed, delta)
 	velocity = _drive
 	move_and_slide()
+	_round_corner(dir, delta)
 	if get_real_velocity().length() < 0.5 and dir == Vector2.ZERO:
 		_drive = Vector2.ZERO
 	if dir != Vector2.ZERO:
 		idle_time = 0.0
 	elif not reading and not reading_card:
 		idle_time += delta
+
+
+## Corner assist (docs/prompts/PLAYER_EXPERIENCE_PASS_2026-11-02.md, C1):
+## walking straight into the corner of a table or a doorway's edge, a few
+## pixels off, used to stop Rue dead. If the way is clear within CORNER_NUDGE
+## px to one side, she slides round it instead, at walking speed, through
+## the ordinary collision (never into anything). A long wall stays a wall:
+## both sides are blocked there.
+const CORNER_NUDGE := 5
+var corner_assists := 0  # how often it helped (tests, playtest notes)
+
+
+func _round_corner(dir: Vector2, delta: float) -> void:
+	if dir == Vector2.ZERO:
+		return
+	var main := Vector2(signf(dir.x), 0.0) if absf(dir.x) > absf(dir.y) else Vector2(0.0, signf(dir.y))
+	if absf(dir.dot(main)) < 0.85:
+		return  # a real diagonal already slides along whatever it meets
+	var moved := get_real_velocity().dot(main)
+	if moved > speed * 0.25:
+		return  # not blocked
+	var step := main * 2.0
+	if not test_move(global_transform, step):
+		return  # nothing ahead: she stopped for another reason
+	var side := Vector2(-main.y, main.x)
+	for k in range(1, CORNER_NUDGE + 1):
+		for s: float in [1.0, -1.0]:
+			var shifted := global_transform.translated(side * s * k)
+			if test_move(global_transform, side * s * k) or test_move(shifted, step):
+				continue
+			move_and_collide(side * s * minf(float(k), speed * delta))
+			corner_assists += 1
+			return
 
 
 ## Play the end-of-life (or rescue) animation for this cause, or
@@ -264,9 +303,11 @@ func _process(delta: float) -> void:
 			_dissolve = ""
 	# What she actually travelled drives the gait (docs/production/MOVEMENT_SPEC.md);
 	# what the player asks for turns her, even against a wall.
-	_sprite.update(delta, get_real_velocity() if not frozen else Vector2.ZERO, false)
+	var moved := get_real_velocity() if not frozen else Vector2.ZERO
+	_sprite.update(delta, moved, false)
 	if not frozen:
 		_sprite.face(_intent)
+	_update_dust(delta, moved)
 	_update_mood(delta)
 	# Footsteps on the walk cycle's contact frames.
 	var step := _sprite.step_frame()
@@ -274,6 +315,38 @@ func _process(delta: float) -> void:
 		Sfx.play("step_%d" % (step >> 1), 0.0, 1.0, 0.1)
 	_last_step = step
 	queue_redraw()
+
+
+## A puff of dust at her feet when she sets off, stops sharply or turns
+## right round: the weight of a body on the ground. Not with reduced motion.
+func _update_dust(delta: float, moved: Vector2) -> void:
+	for d in _dust:
+		d[1] += delta
+	_dust = _dust.filter(func(d: Array) -> bool: return d[1] < DUST_LIFE)
+	var spd := moved.length()
+	var dir := moved.normalized() if spd > 1.0 else Vector2.ZERO
+	if not Settings.reduce_motion:
+		var started := _was_speed < 8.0 and spd > 40.0
+		var stopped := _was_speed > 60.0 and spd < 8.0
+		var reversed := _was_dir != Vector2.ZERO and dir != Vector2.ZERO and _was_dir.dot(dir) < -0.6
+		if started or stopped or reversed:
+			var back := -dir if dir != Vector2.ZERO else -_was_dir
+			_dust.append([global_position + Vector2(0, 7) + back * 2.0, 0.0])
+	_was_speed = spd
+	_was_dir = dir
+
+
+func dust_count() -> int:
+	return _dust.size()
+
+
+func _draw_dust() -> void:
+	for d in _dust:
+		var k: float = d[1] / DUST_LIFE
+		var at: Vector2 = (d[0] as Vector2) - global_position
+		for i in 3:
+			var off := Vector2((i - 1) * (2.0 + 4.0 * k), -1.5 * k - (i % 2) * 1.0)
+			draw_circle(at + off, 1.0 + 1.6 * k, Color(0.85, 0.82, 0.75, 0.35 * (1.0 - k)))
 
 
 ## Body language: glancing around, hugging yourself, ducking, flickering
@@ -312,6 +385,7 @@ func _draw() -> void:
 	if _dissolve != "":
 		_draw_dissolve()
 		return
+	_draw_dust()
 	_draw_trail()
 	if _phase_t < 1.0:
 		# The streak where you slipped through: frames smeared along the jump.

@@ -29,6 +29,7 @@ var _timeout := TEST_TIMEOUT
 
 var _failed := 0
 var _passed := 0
+var _skipped: Array[String] = []
 var _current := ""
 
 
@@ -101,6 +102,10 @@ func _run() -> void:
 	var secs := (Time.get_ticks_msec() - started) / 1000.0
 	print("")
 	print("==== %d passed, %d failed (%.1fs) ====" % [_passed, _failed, secs])
+	if not _skipped.is_empty():
+		print("SKIPPED (did not run, not counted as passed): %d" % _skipped.size())
+		for s in _skipped:
+			print("  - ", s)
 	_cleanup()
 	await root.get_node("OwnerMemory").prepare_quit()
 	quit(1 if _failed > 0 else 0)
@@ -108,6 +113,9 @@ func _run() -> void:
 
 func _run_one(script: GDScript, file: String, method: String) -> void:
 	_current = "%s.%s" % [file, method]
+	# tests/run.sh ties every engine error printed from here on to this case
+	# (tests/allowed_engine_errors.txt lists the ones a case causes on purpose).
+	print("  RUN   ", _current)
 	var test = script.new()
 	test.tree = self
 	# Watchdog: a test that errors out mid-coroutine never returns.
@@ -118,7 +126,10 @@ func _run_one(script: GDScript, file: String, method: String) -> void:
 	await test.call(method)
 	await test.after_each()
 	watchdog.timeout.disconnect(on_timeout)
-	if test.failures.is_empty():
+	if test.skipped != "" and test.failures.is_empty():
+		_skipped.append("%s (%s)" % [_current, test.skipped])
+		print("  SKIP  ", _current, " - ", test.skipped)
+	elif test.failures.is_empty():
 		_passed += 1
 		print("  PASS  ", _current)
 	else:

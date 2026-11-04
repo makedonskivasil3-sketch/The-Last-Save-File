@@ -229,6 +229,9 @@ func load_last_save(force := false) -> void:
 	world.fx.noise(0.9, 1.0)
 	world.fx.roll_slip(0.2 * flash)
 	world.player.frozen = true
+	# Trust contract: nothing kills her while she has no control, nor in the
+	# beat after (CI 41721851052: overwritten 0.4 s into a reload's drag).
+	_hold_threats(REWIND_TIME + GRACE)
 	var area := world.area
 	# Dragged back through every step you took.
 	var tw := create_tween()
@@ -253,6 +256,15 @@ func load_last_save(force := false) -> void:
 		world.hud.set_banner("")
 
 
+func _hold_threats(seconds: float) -> void:
+	var arin: Variant = world.area.get("arin")
+	if arin is OwnerAvatar:
+		arin.held = maxf(arin.held, seconds)
+	var cursor: Variant = world.area.get("cursor")
+	if cursor is OwnerCursor:
+		cursor.blind(seconds)
+
+
 func _end_rewind() -> void:
 	world.player.frozen = false
 	world.player.velocity = Vector2.ZERO
@@ -261,9 +273,11 @@ func _end_rewind() -> void:
 
 ## The oldest moment within reach that's safe to land in: never the eraser's
 ## void, never under the cursor or within Arin's reach. If no moment is
-## fully safe, the oldest one that isn't void.
+## fully safe, the one furthest from both (not merely the oldest: that could
+## be the one beside Arin).
 func _pick_snapshot() -> int:
 	var fallback := _history.size() - 1
+	var best_gap := -1.0
 	var safe := -1
 	for i in range(_history.size() - 1, -1, -1):
 		var s: Dictionary = _history[i]
@@ -273,10 +287,25 @@ func _pick_snapshot() -> int:
 			break  # never drag her back through a doorway
 		if _is_void(s.player):
 			continue
-		fallback = i
+		var gap := threat_gap(s)
+		if gap > best_gap:
+			best_gap = gap
+			fallback = i
 		if is_safe(s):
 			safe = i
 	return safe if safe >= 0 else fallback
+
+
+## How far a snapshot's Rue is from its nearest threat, each measured against
+## its own safe distance (> 1 is safe). INF with no threat recorded.
+static func threat_gap(s: Dictionary) -> float:
+	var p: Vector2 = s.player
+	var gap := INF
+	if s.has("cursor"):
+		gap = minf(gap, p.distance_to(s.cursor) / SAFE_FROM_CURSOR)
+	if s.has("arin"):
+		gap = minf(gap, p.distance_to(s.arin) / SAFE_FROM_ARIN)
+	return gap
 
 
 func _near_exit(p: Vector2) -> bool:
@@ -394,6 +423,8 @@ func _update_save(delta: float) -> void:
 
 func _update_wren(delta: float, aw: float) -> void:
 	var who := world.escort_id()
+	if world.bench_immune:
+		return  # a benchmark's escort stays for the whole measurement (PL-5)
 	# Wren: deleted (unless she's cut content now). Mira: reset, whenever
 	# she's out of her room, however calm the owner is.
 	if who == "" or (who == "wren" and OwnerMemory.wren_saved) or (who == "mira" and world.area.area_id == "room"):

@@ -158,12 +158,43 @@ func draw(ci: CanvasItem, opts: Dictionary = {}) -> void:
 	ci.draw_set_transform(offset + Vector2(0, FEET_Y).rotated(rot) * k, rot, Vector2(flip * unit, unit))
 	var src := Rect2(Vector2(at[1] * frame_size.x, at[0] * frame_size.y), frame_size)
 	var mod := Color(1, 1, 1, alpha)
+	var tex := texture
 	if solid != null:
+		# A silhouette, as the procedural rig draws it (rim light, shadow,
+		# the owner's colour split): the sheet's shape, one colour.
 		mod = Color(solid, (solid as Color).a * alpha)
+		tex = silhouette()
 	elif grey:
 		mod = Color(0.62, 0.62, 0.66, alpha)
-	ci.draw_texture_rect_region(texture, Rect2(-feet, frame_size), src, mod)
+	ci.draw_texture_rect_region(tex, Rect2(-feet, frame_size), src, mod)
 	if left_running and solid == null:
 		ci.draw_set_transform(offset + Vector2(0, FEET_Y).rotated(rot) * k, rot, Vector2(k, k))
 		_shimmer(ci, alpha)
 	ci.draw_set_transform(Vector2.ZERO)
+
+
+var _silhouette: Texture2D
+
+
+## The sheet with every opaque pixel white (alpha kept), built once: drawn
+## modulated by a colour, it is a true silhouette, not a tint (UI-5). Falls
+## back to the sheet itself where the renderer can't read pixels back.
+func silhouette() -> Texture2D:
+	if _silhouette:
+		return _silhouette
+	var img := texture.get_image() if texture else null
+	if img == null or img.is_empty():
+		_silhouette = texture
+		return _silhouette
+	img = img.duplicate()
+	if img.is_compressed():
+		img.decompress()
+	img.convert(Image.FORMAT_RGBA8)
+	for y in img.get_height():
+		for x in img.get_width():
+			var c := img.get_pixel(x, y)
+			if c.a > 0.0:
+				img.set_pixel(x, y, Color(1, 1, 1, c.a))
+	_silhouette = ImageTexture.create_from_image(img)
+	return _silhouette
+

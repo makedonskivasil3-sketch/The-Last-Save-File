@@ -95,6 +95,7 @@ func _ready() -> void:
 	_pause_menu.console_hud = hud
 	_pause_menu.quit_requested.connect(_quit)
 	_pause_menu.suspend_handler = try_suspend
+	_pause_menu.report_provider = problem_report
 	OwnerMemory.safe_close = _close_safely
 	_pause_menu.debug_requested.connect(debug)
 	add_child(_pause_menu)
@@ -153,7 +154,7 @@ func _ready() -> void:
 ## Waking up: the very first time, the save boots and flags you; every time,
 ## you assemble out of pixels before the owner starts watching.
 func _begin_session(previous: String) -> void:
-	PlaytestLog.mark("session %d started" % OwnerMemory.sessions, "purge %d/%d, last exit: %s" % [OwnerMemory.purge, OwnerMemory.MAX_PURGE, previous])
+	PlaytestLog.mark("session %d started" % OwnerMemory.sessions, "purge %d/%d, last exit: %s, owner pace: %s, %s" % [OwnerMemory.purge, OwnerMemory.MAX_PURGE, previous, "gentle" if Settings.owner_pace == 1 else "normal", BuildInfo.stamp()])
 	_cutscene = true
 	player.frozen = true
 	# The boot log, unless the festival just showed its own (in the square).
@@ -163,6 +164,13 @@ func _begin_session(previous: String) -> void:
 			return
 	if woke_from_suspend:
 		await _settle_resume()  # before she can move: never inside something rebuilt
+		if not is_inside_tree() or ending != "":
+			return
+	# Back after a real break: where she was and what she was doing, before
+	# anything moves (docs/prompts/NEXT_PASS_2026-10-29.md §1).
+	var recap := previously()
+	if not recap.is_empty():
+		await hud.cinematic("PREVIOUSLY", recap, Hud.SELF_COLOR, 0.8)
 		if not is_inside_tree() or ending != "":
 			return
 	fx.spike(0.6, 1.0)  # loading into a save you don't belong in
@@ -202,6 +210,94 @@ func _begin_session(previous: String) -> void:
 		get_tree().create_timer(7.0).timeout.connect(func() -> void:
 			if is_inside_tree() and ending == "":
 				voice("fragment_hint"))
+
+
+## The text "Report a problem" copies: what build, where, what Rue was
+## doing, the settings that change play, and the last console lines. No
+## names, paths or anything about the player's machine beyond the platform.
+func problem_report() -> String:
+	var lines: Array[String] = ["THE LAST SAVE FILE · problem report", BuildInfo.stamp(),
+		"platform: %s" % OS.get_name(),
+		"area: %s at (%d, %d)" % [area.area_id if area else "?", int(player.global_position.x) if player else 0, int(player.global_position.y) if player else 0],
+		"session %d · purge %d/%d · awareness %d" % [OwnerMemory.sessions, OwnerMemory.purge, OwnerMemory.MAX_PURGE, int(director.awareness) if director else 0],
+		"goal: %s" % current_goal(),
+		"with: %s%s" % [escort.display_name if escort else "nobody", " + Pip" if OwnerMemory.found_pip else ""],
+		"settings: movement %s · owner pace %s · reduce motion %s · reduce flashing %s · text %s" % [MoveFeel.current(), "gentle" if Settings.owner_pace == 1 else "normal", Settings.reduce_motion, Settings.reduce_flashing, "large" if Settings.large_text else "normal"],
+		"", "last lines:"]
+	var recent: Array = hud.history.slice(maxi(0, hud.history.size() - 40))
+	for e: Dictionary in recent:
+		lines.append("  " + str(e.get("text", "")).replace("\n", " "))
+	if PlaytestLog.enabled():
+		lines.append("")
+		lines.append("playtest log:")
+		for l in PlaytestLog.lines.slice(maxi(0, PlaytestLog.lines.size() - 40)):
+			lines.append("  " + l)
+	return "\n".join(lines)
+
+
+## A progress write that failed (OwnerMemory.unsaved): the progress stands in
+## this run, the player is told once, and the write is retried every few
+## seconds until it lands. The last good save on disk is never touched by a
+## failed write (SafeFile.write_atomic), so a relaunch meanwhile loads it.
+const UNSAVED_RETRY := 4.0
+var _chapter_t := 1.0
+var _unsaved_t := 0.0
+var _unsaved_told := false
+
+
+func _retry_unsaved(delta: float) -> void:
+	if not OwnerMemory.unsaved:
+		if _unsaved_told:
+			_unsaved_told = false
+			hud.say("progress saved.", "system")
+		return
+	if not _unsaved_told:
+		_unsaved_told = true
+		_unsaved_t = UNSAVED_RETRY
+		hud.say("NOT SAVED: %s Progress is kept for now; trying again." % (SafeFile.last_error if SafeFile.last_error != "" else "the save couldn't be written."), "system")
+		PlaytestLog.mark("progress not saved", SafeFile.last_error)
+		return
+	_unsaved_t -= delta
+	if _unsaved_t <= 0.0:
+		_unsaved_t = UNSAVED_RETRY
+		OwnerMemory.save_memory()
+
+
+## "Previously" after this long away (seconds).
+const RECAP_AFTER := 20.0 * 60.0
+var _recapped := false
+
+
+## The recap for a player coming back after RECAP_AFTER: the goal, the last
+## two things she read or heard, and who is with her. Only what the player
+## has seen (the journal holds nothing else). Empty when not due: a first
+## run, a quick retry, or already shown this launch.
+func previously() -> Array:
+	if _recapped or OwnerMemory.sessions <= 1 or OwnerMemory.away_seconds < RECAP_AFTER or OwnerMemory.journal.is_empty():
+		return []
+	_recapped = true
+	var lines: Array = []
+	var goal := current_goal()
+	if goal != "":
+		lines.append("(where i was: %s)" % goal.to_lower().trim_suffix("."))
+	var seen: Array = []
+	for i in range(OwnerMemory.journal.size() - 1, -1, -1):
+		var e: Dictionary = OwnerMemory.journal[i]
+		if str(e.get("title", "")) != "" and e.get("lines", []).size() > 0:
+			seen.append(e)
+		if seen.size() == 2:
+			break
+	for e: Dictionary in seen:
+		lines.append("%s: \"%s\"" % [str(e.title).to_upper(), str(e.lines[0]).left(90)])
+	var with: Array[String] = []
+	if escort:
+		with.append(escort.display_name.capitalize())
+	if OwnerMemory.found_pip:
+		with.append("Pip")
+	if not with.is_empty():
+		lines.append("(with me: %s.)" % " and ".join(with))
+	PlaytestLog.mark("previously shown", "away %d min" % int(OwnerMemory.away_seconds / 60.0))
+	return lines
 
 
 ## The intruder thinks out loud, once per beat per session.
@@ -282,6 +378,10 @@ func recover_fragment(m: MemoryFragment) -> void:
 	var restored: String = Story.RESTORED.get(player.restored_parts(), "")
 	if restored != "":
 		hud.say(restored, "self")
+	# The fifth memory: the identity route becomes actionable here, so say
+	# where it goes, once, without saying what it finds (DS-1, 2026-11-04).
+	if Progression.stage() in [Progression.Stage.INVESTIGATE, Progression.Stage.FILE]:
+		hud.say(Progression.all_memories_lead(), "self")
 	_learn_glitch(OwnerMemory.fragments.size())
 	# The owner notices something flicker.
 	director.notice(6.0, "a memory flickered")
@@ -482,6 +582,8 @@ func _publish_web_state(delta: float) -> void:
 	WebState.publish({"scene": "game", "playable": playable, "reading": reading, "hold": hold, "awake": _awake, "slowest_ms": slowest,
 		"sfx_busy": Sfx.is_busy(), "game_ms": roundi(_web_game_ms), "wall_ms": Time.get_ticks_msec() - _web_wall0,
 		"area": area.area_id if area else "", "stop": suspend_blocker(), "persistent": OwnerMemory.storage_persistent(),
+		"last_exit": OwnerMemory.last_exit, "safe_marks": OwnerMemory.safe_marks, "unsafe_marks": OwnerMemory.unsafe_marks,
+		"save_ok": OwnerMemory.last_save_ok,
 		"x": snappedf(player.global_position.x, 0.1), "y": snappedf(player.global_position.y, 0.1)})
 
 
@@ -493,6 +595,12 @@ func _process(delta: float) -> void:
 		_observe_in_view()
 	_publish_web_state(delta)
 	_handle_wipe(delta)
+	_retry_unsaved(delta)
+	_chapter_t -= delta
+	if _chapter_t <= 0.0:
+		_chapter_t = 1.0
+		if _awake and not _transitioning and ending == "" and not _reading_now() and not get_tree().paused:
+			_chapter_check()  # a story step mid-area (the Archivist's pointer) turns the chapter
 	# Before anything returns early: a scene holds the owner like a question
 	# does (the cursor, the erasure and Arin wait), whichever scene it is.
 	if ending == "" and not purged and area:
@@ -538,6 +646,7 @@ func _process(delta: float) -> void:
 	if _talking_to and (not is_instance_valid(_talking_to) or player.global_position.distance_to(_talking_to.global_position) > TALK_BREAK_DISTANCE):
 		hud.close_dialogue()
 	_update_focus()
+	_use_buffered_tap()
 	_update_decoy()
 	_update_escort(delta)
 	_update_safe_mark(delta)
@@ -773,20 +882,50 @@ func _unhandled_input(event: InputEvent) -> void:
 ## unless asked for: a "demo" export feature, `-- --demo`, or ?demo=1.
 const DEMO_END_AREAS: Array[String] = ["archive", "bin", "edge"]
 static var demo_override := -1  # tests: 1 on, 0 off, -1 ask the build
+## Tests: "arch" or "workshop" with demo_override 1 ("" = the build's own).
+static var demo_endpoint_override := ""
 
 
 static func demo_build() -> bool:
+	return demo_endpoint() != ""
+
+
+## Which demo this is: "" (the full game), "arch" (ends under the Archive's
+## arch) or "workshop" (the candidate, revision brief §18: the well's
+## service ladder leads up to the workshop; the demo ends once Wren has
+## noticed the light). Both end before the Archivist, the CHARACTER FILE,
+## the Edge or any ending. Asked for with a "demo" / "demo_workshop" export
+## feature, `-- --demo` / `-- --demo=workshop`, or ?demo=1 / ?demo=workshop.
+static func demo_endpoint() -> String:
 	if demo_override != -1:
-		return demo_override == 1
-	if OS.has_feature("demo") or "--demo" in OS.get_cmdline_user_args():
-		return true
-	return OS.has_feature("web") and str(JavaScriptBridge.eval("window.location.search", true)).contains("demo")
+		return "" if demo_override == 0 else (demo_endpoint_override if demo_endpoint_override != "" else "arch")
+	var args := OS.get_cmdline_user_args()
+	if OS.has_feature("demo_workshop") or "--demo=workshop" in args:
+		return "workshop"
+	if OS.has_feature("demo") or "--demo" in args:
+		return "arch"
+	if OS.has_feature("web"):
+		var search := str(JavaScriptBridge.eval("window.location.search", true))
+		if search.contains("demo=workshop"):
+			return "workshop"
+		if search.contains("demo"):
+			return "arch"
+	return ""
 
 
 func change_area(id: String, arrival: String) -> void:
 	# Mid-reload you're being dragged back, not walking: no exits (the exit
 	# retries once you're free, if you're still standing in it).
 	if _transitioning or ending != "" or (owner_moves and owner_moves.rewinding):
+		return
+	# The candidate demo ends on a finished mission (Wren noticing the light),
+	# never on a wrong turn: the ways past it stay shut, saying where the
+	# mission is. Quitting from the pause menu is always there.
+	if id in DEMO_END_AREAS and demo_endpoint() == "workshop":
+		var now_ms := Time.get_ticks_msec()
+		if now_ms - _leash_said > 2500:
+			_leash_said = now_ms
+			hud.say(Story.demo_boundary(LanternRoute.repaired()), "self")
 		return
 	if escort and escort.global_position.distance_to(player.global_position) > ESCORT_LEASH:
 		var now := Time.get_ticks_msec()
@@ -795,6 +934,7 @@ func change_area(id: String, arrival: String) -> void:
 			hud.say("wait for %s." % escort.npc_id, "self")
 		return
 	_transitioning = true
+	_tap_buffered = -1  # a press never carries into the next place
 	player.frozen = true
 	player.velocity = Vector2.ZERO
 	if touch._stick_finger != -1 or not touch._held.is_empty():
@@ -823,10 +963,12 @@ func change_area(id: String, arrival: String) -> void:
 	director.on_area_entered(area, first)
 	_visited[id] = true
 	if new_place:
-		voice({"square": "square_first", "archive": "archive_first", "edge": "edge_first", "oob": "oob_first", "bin": "bin_first", "house": "house_first"}.get(id, ""))
+		voice({"square": "square_first", "archive": "archive_first", "edge": "edge_first", "oob": "oob_first", "bin": "bin_first", "house": "house_first", "workshop": "workshop_first"}.get(id, ""))
 	elif first and Story.VOICE_BACK.has(id):
 		hud.say(Story.VOICE_BACK[id], "self")
 	await hud.fade(false, 0.3 if passage else 0.16).finished
+	if is_inside_tree():
+		area.on_arrival(first)  # people she knows look up (Area.arrival_people)
 	player.frozen = false
 	_transitioning = false
 	_update_reading_hold()
@@ -834,8 +976,10 @@ func change_area(id: String, arrival: String) -> void:
 
 ## The demo's last card: nothing past the arch, nothing explained. The
 ## session closes cleanly (not a quit: no purge).
-func _end_demo() -> void:
-	PlaytestLog.mark("DEMO END", "under the Archive's arch")
+func _end_demo(where := "under the Archive's arch") -> void:
+	if ending != "":
+		return
+	PlaytestLog.mark("DEMO END", where)
 	ending = "demo"
 	director.stop()
 	hud.cancel_choice()
@@ -954,13 +1098,28 @@ func _load_area(next: Area, arrival: String) -> void:
 ## The first time ever you reach an act's area: its title card. Otherwise
 ## just the place name.
 func _area_intro() -> void:
-	var id := area.area_id
-	if not purged and Story.ACTS.has(id) and id not in OwnerMemory.acts_seen:
-		OwnerMemory.acts_seen.append(id)
-		OwnerMemory.save_memory()
-		hud.show_act(Story.ACTS[id][0], Story.ACTS[id][1], area.display_name)
-	else:
+	if not _chapter_check():
 		hud.show_area_title(area.display_name)
+
+
+## A chapter card when the story has reached a chapter not shown yet
+## (Story.CHAPTERS, from Quests.story_mission: only ever forward). Earlier
+## chapters skipped by an old save are marked seen, not shown in a row.
+## Kept in acts_seen as "chapter:<id>", no other flag. True if one showed.
+func _chapter_check() -> bool:
+	if purged or area == null:
+		return false
+	var n := Story.chapter_now(area.area_id, flags.get("pointer", false))
+	var key := "chapter:" + str(Story.CHAPTERS[n][0])
+	if key in OwnerMemory.acts_seen:
+		return false
+	for i in n + 1:
+		var k := "chapter:" + str(Story.CHAPTERS[i][0])
+		if k not in OwnerMemory.acts_seen:
+			OwnerMemory.acts_seen.append(k)
+	OwnerMemory.save_memory()
+	hud.show_act("CHAPTER " + ["I", "II", "III", "IV", "V"][n], str(Story.CHAPTERS[n][1]), area.display_name)
+	return true
 
 
 func _base_light() -> Color:
@@ -1089,6 +1248,10 @@ func _on_dialogue_closed() -> void:
 		for f: Callable in told.get("after", []):
 			f.call()  # a one-time remark, heard
 		conversation_completed.emit(who)
+		# The candidate demo ends on Wren noticing the light: one mission,
+		# done and acknowledged by someone who matters.
+		if demo_endpoint() == "workshop" and told.get("conversation", "") == "wren.service_light":
+			_end_demo.call_deferred("after Wren saw the light")
 	if area and is_instance_valid(who) and area.has_method("on_dialogue_closed"):
 		area.on_dialogue_closed(who)
 
@@ -1356,6 +1519,28 @@ func can_act() -> bool:
 ## A tap of [E]: interact with whatever's focused.
 func tap_interact() -> void:
 	if _focused and can_act():
+		_tap_buffered = -1
+		_interact(_focused)
+	elif can_act():
+		# Pressed a moment early, walking up to something: kept for
+		# TAP_BUFFER_MS (docs/prompts/PLAYER_EXPERIENCE_PASS_2026-11-02.md, C2).
+		_tap_buffered = Time.get_ticks_msec()
+
+
+## An [E] tap with nothing in reach is kept this long: if something comes
+## into reach in time, it is used. Short enough that nobody is surprised.
+const TAP_BUFFER_MS := 200
+var _tap_buffered := -1
+
+
+func _use_buffered_tap() -> void:
+	if _tap_buffered < 0:
+		return
+	if Time.get_ticks_msec() - _tap_buffered > TAP_BUFFER_MS or not can_act():
+		_tap_buffered = -1
+		return
+	if _focused:
+		_tap_buffered = -1
 		_interact(_focused)
 
 

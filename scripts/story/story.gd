@@ -75,6 +75,7 @@ const VOICE := {
 	"wren_deleted": ["wren's corner is empty. she hid me, and they found out."],
 	"fragment_hint": ["something cyan, in the corner of my eye. it feels like mine."],
 	"well_look": ["i've been down there before. i know i have."],
+	"workshop_first": ["five lantern frames on the shelf. the festival had five.", "the fifth was the one i lit. nobody was holding the controller."],
 	"oob_first": ["the owner can't see me down here. nobody's ever looked."],
 	"bin_first": ["everything the owner deleted ends up here. for a while.", "so this is where they go."],
 	"house_first": ["arin's house. the real one. well. the one in the game.", "it smells like someone else's dinner."],
@@ -276,14 +277,33 @@ const OWNER_RECOGNITION := {
 }
 
 
-## The five acts. Each title card shows the first time you reach its area.
-const ACTS := {
-	"room": ["ACT I", "SOMEONE ELSE'S SAVE"],
-	"square": ["ACT II", "ASHVALE"],
-	"oob": ["ACT III", "OUT OF BOUNDS"],
-	"archive": ["ACT IV", "CUT CONTENT"],
-	"edge": ["ACT V", "THE LAST SAVE FILE"],
-}
+## Chapters follow the story, not the map (docs/production/ISSUE_REGISTER.md
+## UI-6): each is a stage of Quests.story_mission(), which only moves
+## forward, so the cards can't come out of order however the player
+## explores. The last is reaching the Edge. [id, title].
+const CHAPTERS := [
+	["fifth_lantern", "SOMEONE ELSE'S SAVE"],
+	["well_light", "THE LIGHT BY THE WELL"],
+	["who_kept", "WHO KEPT IT BURNING"],
+	["slot2", "WHAT'S LEFT OF SLOT 2"],
+	["finale", "THE LAST SAVE FILE"],
+]
+
+
+## The chapter the story is in (index into CHAPTERS).
+static func chapter_now(area_id: String, pointer := false) -> int:
+	if area_id == "edge":
+		return CHAPTERS.size() - 1
+	var m := Quests.story_mission(pointer)
+	for i in CHAPTERS.size():
+		if CHAPTERS[i][0] == m:
+			return i
+	return 0
+
+
+static func act_label(n: int) -> String:
+	return "ACT " + ["I", "II", "III", "IV", "V", "VI"][clampi(n, 1, 6) - 1]
+
 
 ## Pip, the first time you find them out of bounds.
 const PIP_MEETING := [
@@ -558,10 +578,21 @@ static func epilogue(ending: String, found: int, pip: bool, message := 0) -> Arr
 			]
 		_:
 			lines = ["you wrote yourself into the last save file.", "you load in somewhere the owner has never looked."]
+			lines.append(escape_lead(full))
 	lines.append_array(_epilogue_people(ending))
 	if pip and ending != "overwrite":
 		lines.append(EPILOGUE_PIP if ending != "wren" else "a small orange fox jumps into the new game after her. she'll need someone to hide behind.")
 	return lines
+
+
+## After an ordinary escape: a complete ending, with a quiet lead for the
+## next run (RUE needs every memory and what the people who watched her
+## noticed; docs/production/ISSUE_REGISTER.md DS-1). It never says what she is.
+const ESCAPE_LEAD_PIECES := "(some of me is still back there. memories survive this. i could go back for them.)"
+const ESCAPE_LEAD_PEOPLE := "(i remember all of it now. it still doesn't add up to a name. the ones who watched me might know the rest.)"
+## (Knowing the truth with every memory is RUE, never escape: World.win.)
+static func escape_lead(full: bool) -> String:
+	return ESCAPE_LEAD_PEOPLE if full else ESCAPE_LEAD_PIECES
 
 
 ## Wren's name on the well's rim (docs/production/WREN_ARC.md), after any
@@ -981,6 +1012,11 @@ const RELOAD_WARNING := "do that again and i'm loading the autosave."
 ## The demo build's last card (COMMERCIAL_DIRECTION.md §4: proposed, not
 ## approved). Spoiler-safe: it comes before the reveal.
 const DEMO_END := "still have my save?"
+## The candidate demo's boundary (World.change_area): where the mission is,
+## nothing about what lies past it.
+static func demo_boundary(repaired: bool) -> String:
+	return "not that way. not yet. wren should see the light first." if repaired \
+		else "not that way. not yet. the lantern by the well came from somewhere below it."
 
 const PURGED_TITLE := "PURGED"
 const PURGED_QUESTION := "Slot 1 is clean. There's nothing of you left to load."

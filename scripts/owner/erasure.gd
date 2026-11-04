@@ -43,6 +43,7 @@ var _protected: Dictionary = {}  # Vector2i -> true, cells the eraser can't touc
 ## (every rendered frame draws random static) can't change its path, and a
 ## run can be replayed with `rng.seed`.
 var rng := RandomNumberGenerator.new()
+var _pending: Array = []  # [Vector2i, seconds left]: seeds not started yet
 
 
 func setup(room_rect: Rect2, player: Node2D) -> void:
@@ -117,6 +118,25 @@ func seed_at(world_pos: Vector2) -> void:
 	_add(_to_cell(world_pos))
 
 
+## A seed that starts only after `delay` seconds of active erasure (the
+## death spots: shown first, then grown).
+func seed_after(world_pos: Vector2, delay: float) -> void:
+	_pending.append([_to_cell(world_pos), delay])
+
+
+## Seeds still waiting to start.
+func pending_seeds() -> int:
+	return _pending.size()
+
+
+func _start_pending(delta: float) -> void:
+	for i in range(_pending.size() - 1, -1, -1):
+		_pending[i][1] -= delta
+		if _pending[i][1] <= 0.0:
+			_add(_pending[i][0])
+			_pending.remove_at(i)
+
+
 func seed_on_edge() -> void:
 	match rng.randi() % 4:
 		0: _add(Vector2i(rng.randi() % _cols, 0))
@@ -133,7 +153,8 @@ func _process(delta: float) -> void:
 	_t += delta
 	_settle_cells()
 	if active:
-		_acc += delta
+		_start_pending(delta)
+		_acc += delta * Settings.pace("static")  # Owner pace: gentle spreads slower
 		while _acc >= interval:
 			_acc -= interval
 			for i in burst:

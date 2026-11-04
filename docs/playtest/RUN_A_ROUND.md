@@ -55,7 +55,14 @@ Add these to the address (web) or the command line (desktop):
 | 1. Camera, plain | `?playtest=1&camera=plain` | `-- --playtest --camera-plain` |
 | 2–5. Everything else | `?playtest=1` | `-- --playtest` |
 
-**A fresh profile** for sessions 1–3 and 5: the game keeps its save in the browser. Use a **private window** for each fresh player (the save goes when the window closes), or on desktop delete the folder named in the Godot docs for user data (`%APPDATA%\Godot\app_userdata\The Last Save File` on Windows). Session 4 needs a save **in progress**: let them continue in the same window as session 3.
+**A fresh profile** for sessions 1–3 and 5, without touching anyone's real progress (corrected 2026-11-03):
+- **Web:** give each new player a **new, regular browser profile** made for the session. In Chrome or Edge: profile menu → Add → "Playtest P1"; delete the profile after the round.
+  - **Not a private window.** Private storage is thrown away when the window closes and may refuse persistent storage, so it can't show whether saving works. Saving is one of the things being tested.
+  - Session 4 needs a save **in progress**: let them continue in the same profile as session 3.
+- **Desktop:** never delete a person's user-data folder. That is where their own progress lives (`%APPDATA%\Godot\app_userdata\The Last Save File` on Windows).
+  - Instead, use a separate Windows (or Linux) user account made for the playtest. Each account has its own user-data folder.
+  - If a folder has to be cleared, **copy it aside first** and restore it afterwards.
+- **Your own machine:** back up your own save the same way before a session.
 
 **Order variants with this table** (so no variant is always first):
 
@@ -142,3 +149,4 @@ Since the protocol was written, the supporting cast changed (`../production/CHAR
 - **The Archivist:** after the CHARACTER FILE, do they find his new file on the desk?
 - **The colours:** do they mention Rue's colours coming back? Ask afterwards: **"Did anything about how Rue looked change? What do you think that meant?"**
 - **The memory card:** ask **"Before the festival started, what did you think was going to happen? Who typed the last line?"**
+- **Travel (2026-10-30):** ask "Moving between places, did you know where you were going and why?" Watch whether they skip the passage card, and whether anyone leaves a map by accident.

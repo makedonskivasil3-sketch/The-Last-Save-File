@@ -201,7 +201,7 @@ func _ready() -> void:
 	_objective.modulate.a = 0.0
 	_objective.add_theme_stylebox_override("normal", _backing(0.82))
 	# A quieter line under it: where the story might lead (Progression).
-	_objective_hint = _make_label(_objective, Vector2(10, 14), Vector2(390, 12), 8, Color(SYSTEM_COLOR, 0.9))
+	_objective_hint = _make_label(_objective, Vector2(10, 14), Vector2(420, 12), 8, Color(SYSTEM_COLOR, 0.9))
 	_objective_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_objective.resized.connect(func() -> void: _objective_hint.position.y = _objective.size.y + 1.0)
 
@@ -955,13 +955,18 @@ func _show_dialogue_line() -> void:
 	_fit_dialogue()
 
 
+## Where dialogue text ends on a touch screen: left of the E button.
+const TOUCH_TEXT_RIGHT := 520.0
+
+
 ## With a portrait the text moves right to make room for it.
 func _layout_dialogue_face() -> void:
 	var x := PORTRAIT_SIZE + 14.0 if _dialogue_face else 8.0
 	_dialogue_portrait.visible = _dialogue_face != null
 	_dialogue_speaker.position.x = x
 	_dialogue_text.position.x = x
-	_dialogue_text.size.x = 568.0 - x
+	# On touch, the text stops short of the E button (UI-2, UX C11).
+	_dialogue_text.size.x = (568.0 if not Settings.using_touch else TOUCH_TEXT_RIGHT) - x
 
 
 ## The face talks (mouth frames) while the line types or the voice speaks,
@@ -1428,7 +1433,7 @@ func show_objective(text: String, hint := "") -> void:
 
 ## The goal's backing is as wide as its words (up to OBJECTIVE_W), not a
 ## fixed band: a short goal doesn't cover the room's wall notes beside it.
-const OBJECTIVE_W := 400.0
+const OBJECTIVE_W := 430.0  # under the map: up to the prompt corner (x 450)
 
 
 func _fit_objective() -> void:
@@ -1448,7 +1453,22 @@ func objective_text() -> String:
 	return _objective.text if _objective.visible and _objective.modulate.a > 0.05 else ""
 
 
+## The goal lives in the band under the playfield (every area's map ends
+## near y 300; measured in tour_calibration), just above the console, and
+## rises with it. At the top it covered the maps' top walls, exits and
+## signs whenever it wrapped (2026-11-03 calibration captures).
+func _place_objective() -> void:
+	var floor_y := 360.0 - SAFE.y
+	if _console_box.visible and _console_box.size.y > 0.0:
+		floor_y = _console_box.position.y
+	var h := _objective.size.y
+	if _objective_hint.visible:
+		h += _objective_hint.size.y + 1.0
+	_objective.position.y = floor_y - h - 3.0
+
+
 func _update_objective_priority() -> void:
+	_place_objective()
 	var bounds := _objective.get_global_rect()
 	if _objective_hint.visible:
 		bounds = bounds.merge(_objective_hint.get_global_rect())

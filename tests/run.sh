@@ -31,6 +31,17 @@ if grep -qE "SCRIPT ERROR|Parse Error" "$LOG"; then
 	grep -E -A2 "SCRIPT ERROR|Parse Error" "$LOG" | head -40
 	exit 1
 fi
+# Engine errors (freed lambda captures, failed calls, leaks reported as
+# ERROR) fail the run unless the case printing them causes them on purpose
+# (tests/allowed_engine_errors.txt). Each error belongs to the case whose
+# "RUN" line came last; one outside any case belongs to "(startup)".
+UNEXPECTED=$(tests/check_engine_errors.sh "$LOG")
+if [ -n "$UNEXPECTED" ]; then
+	echo ""
+	echo "FAILED: unexpected engine errors (tests/allowed_engine_errors.txt lists the deliberate ones):"
+	echo "$UNEXPECTED" | head -40
+	exit 1
+fi
 if ! grep -qE '^==== [1-9][0-9]* passed, 0 failed \([0-9.]+s\) ====$' "$LOG"; then
     echo "FAILED: no completed, non-empty successful test summary."
     exit 1

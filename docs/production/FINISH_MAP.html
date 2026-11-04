@@ -1,0 +1,727 @@
+<title>The Last Save File Finish Map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a save-file timeline. The story runs down the left; what happens alongside sits beside each stage; the road to 1.0 follows. Single dark look by choice: the game's own night palette. */
+:root {
+  color-scheme: dark;
+  --night: #0d1018;
+  --panel: #151a26;
+  --panel-2: #1b2232;
+  --line: #2a3346;
+  --text: #e6e9f0;
+  --muted: #9aa3b8;
+  --rue: #8cf2ff;
+  --lantern: #f3cd83;
+  --owner: #ff6a7a;
+  --lilac: #b89cf0;
+  --ok: #7fdca0;
+  --warn: #f3cd83;
+  --need: #ff9a6a;
+  --font-display: "Pixelify Sans", "Courier New", monospace;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--night);
+  color: var(--text);
+  font: 15px/1.55 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 64px;
+}
+.wrap { max-width: 1120px; margin: 0 auto; display: grid; gap: 56px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 700; text-wrap: balance; margin: 0; letter-spacing: 0.01em; }
+h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.05; }
+h2 { font-size: 24px; color: var(--lantern); }
+h3 { font-size: 18px; }
+p { margin: 0; }
+.eyebrow { font: 600 11px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.slot { font: 600 12px/1.4 var(--font-mono); color: var(--rue); letter-spacing: 0.08em; }
+.lede { color: var(--muted); max-width: 68ch; }
+header { display: grid; gap: 14px; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13px; color: var(--muted); }
+.chip { display: inline-flex; align-items: center; gap: 6px; font: 600 11px/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 8px; border-radius: 3px; border: 1px solid currentColor; white-space: nowrap; }
+.chip::before { content: ""; width: 7px; height: 7px; background: currentColor; }
+.built { color: var(--ok); }
+.polish { color: var(--warn); }
+.people { color: var(--need); }
+.open { color: var(--rue); }
+.author { color: var(--lilac); }
+
+/* Summary strip */
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.sum { background: var(--panel); border: 1px solid var(--line); padding: 16px 18px; display: grid; gap: 8px; align-content: start; }
+.sum ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.sum h3 { font-size: 16px; }
+
+/* Timeline */
+.timeline { display: grid; gap: 0; position: relative; }
+.stage { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 0 16px; }
+.rail { position: relative; display: flex; justify-content: center; }
+.rail::before { content: ""; position: absolute; top: 0; bottom: 0; width: 2px; background: var(--line); }
+.stage:first-child .rail::before { top: 22px; }
+.stage:last-child .rail::before { bottom: calc(100% - 22px); }
+.dot { position: relative; margin-top: 14px; width: 18px; height: 18px; background: var(--night); border: 2px solid var(--lantern); }
+.stage.opt .dot { border-color: var(--muted); border-style: dashed; }
+.stage.end .dot { border-color: var(--owner); }
+.card { background: var(--panel); border: 1px solid var(--line); margin-bottom: 18px; display: grid; }
+.card-head { padding: 14px 18px 12px; display: grid; gap: 6px; border-bottom: 1px solid var(--line); }
+.card-head .where { font: 13px/1.4 var(--font-mono); color: var(--muted); }
+.card-body { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+.col { padding: 14px 18px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.col + .col { border-left: 1px solid var(--line); background: var(--panel-2); }
+.col h4 { margin: 0; font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.beats { margin: 0; padding-left: 18px; display: grid; gap: 5px; }
+.threads { display: grid; gap: 8px; }
+.thread { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 8px; font-size: 14px; }
+.tag { font: 600 10px/1.6 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
+.t-owner { color: var(--owner); }
+.t-people { color: var(--lantern); }
+.t-memory { color: var(--rue); }
+.t-power { color: var(--lilac); }
+.finish { padding: 12px 18px 14px; border-top: 1px solid var(--line); display: grid; gap: 8px; }
+.todo { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.todo li { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; align-items: baseline; font-size: 14px; }
+.todo li .chip { justify-self: start; }
+q { color: var(--rue); font-style: italic; quotes: "\201C" "\201D"; }
+.owner-line { font-family: var(--font-mono); color: var(--owner); font-size: 13px; }
+
+/* Tables */
+.scroll { overflow-x: auto; border: 1px solid var(--line); background: var(--panel); }
+table { border-collapse: collapse; width: 100%; min-width: 680px; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+th { font: 600 11px/1.3 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); background: var(--panel-2); }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 700; white-space: nowrap; }
+
+/* Endings */
+.endings { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
+.ending { background: var(--panel); border: 1px solid var(--line); padding: 14px 16px; display: grid; gap: 6px; align-content: start; }
+.ending .name { font-family: var(--font-display); font-size: 17px; color: var(--lantern); }
+.ending .how { font-size: 14px; color: var(--muted); }
+.ending.hidden-end .name { color: var(--lilac); }
+.ending.bad .name { color: var(--owner); }
+
+/* Roadmap */
+.phases { display: grid; gap: 16px; }
+.phase { display: grid; grid-template-columns: 200px minmax(0, 1fr); background: var(--panel); border: 1px solid var(--line); }
+.phase-side { padding: 16px 18px; border-right: 1px solid var(--line); display: grid; gap: 6px; align-content: start; background: var(--panel-2); }
+.phase-side .when { font: 600 13px/1.4 var(--font-mono); color: var(--rue); }
+.phase-side .gate { font-size: 13px; color: var(--muted); }
+.phase-main { padding: 14px 18px; min-width: 0; }
+.tasks { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.tasks li { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.tasks li .chip { justify-self: start; }
+.date-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.date { border: 1px solid var(--line); background: var(--panel); padding: 12px 14px; display: grid; gap: 4px; }
+.date b { font: 700 15px/1.2 var(--font-mono); color: var(--lantern); }
+.date span { font-size: 13px; color: var(--muted); }
+.done-list { columns: 2 300px; column-gap: 28px; margin: 0; padding: 0; list-style: none; }
+.done-list li { break-inside: avoid; padding: 6px 0 6px 26px; position: relative; border-bottom: 1px dashed var(--line); }
+.done-list li::before { content: ""; position: absolute; left: 2px; top: 11px; width: 12px; height: 12px; border: 2px solid var(--muted); }
+.done-list li.y::before { border-color: var(--ok); background: var(--ok); }
+footer { color: var(--muted); font-size: 13px; display: grid; gap: 6px; }
+code { font-family: var(--font-mono); font-size: 0.9em; color: var(--rue); }
+a { color: var(--rue); }
+a:focus-visible, .chip:focus-visible { outline: 2px solid var(--lantern); outline-offset: 2px; }
+
+@media (max-width: 760px) {
+  .card-body { grid-template-columns: minmax(0, 1fr); }
+  .col + .col { border-left: 0; border-top: 1px solid var(--line); }
+  .phase { grid-template-columns: minmax(0, 1fr); }
+  .phase-side { border-right: 0; border-bottom: 1px solid var(--line); }
+  .stage { grid-template-columns: 22px minmax(0, 1fr); gap: 0 10px; }
+  .dot { width: 14px; height: 14px; }
+  .todo li, .tasks li { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .thread { grid-template-columns: minmax(0, 1fr); gap: 0; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .dot { transition: transform .2s ease; }
+  .stage:hover .dot { transform: rotate(45deg); }
+}
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="slot">SLOT 1 · ARIN · LV 7 · 14:22:00 &nbsp;/&nbsp; SLOT 2 · [DELETED 3 YEARS AGO]</div>
+  <h1>The Last Save File:<br>the finish map</h1>
+  <p class="lede">The whole game in play order, from the memory card to the last ending. Beside each stage: what runs alongside it (the Owner, the people, the memories and the powers), and what is still needed before that stage counts as finished. Then the road from today to a released 1.0. Read from the code at <code>f042ae9</code> on <code>claude/last-save-file-prototype-ljwuq4</code>, 3 November 2026.</p>
+  <div class="legend" aria-label="Status key">
+    <span class="chip built">Built</span><span>in the game and tested</span>
+    <span class="chip polish">Polish</span><span>works, needs a quality pass</span>
+    <span class="chip open">Open</span><span>Claude can do it next</span>
+    <span class="chip people">People</span><span>needs players or hardware</span>
+    <span class="chip author">Author</span><span>your decision, money or signature</span>
+  </div>
+</header>
+
+<section class="summary" aria-label="Where the game stands">
+  <div class="sum">
+    <span class="eyebrow">Content</span>
+    <h3>Complete, as designed</h3>
+    <ul>
+      <li>A playable festival prologue and a memory-card cold open</li>
+      <li>8 places: 7 maps plus the optional workshop</li>
+      <li>5 memories, 4 truth pieces, 7 secrets</li>
+      <li>6 endings, plus the Owner's purge</li>
+      <li>10 glitch powers, unlocked by memories</li>
+    </ul>
+  </div>
+  <div class="sum">
+    <span class="eyebrow">Proven by machine</span>
+    <h3>Machine-tested, not yet release-proven</h3>
+    <ul>
+      <li>842 test cases; the runner now also fails on unexpected engine errors</li>
+      <li>All six endings are tested; the bots play through three of them</li>
+      <li>Windows, Linux and web builds export</li>
+      <li>Saves are transactional; stopping at a calm moment is free</li>
+    </ul>
+  </div>
+  <div class="sum">
+    <span class="eyebrow">Not proven yet</span>
+    <h3>What blocks 1.0</h3>
+    <ul>
+      <li>No unfamiliar player has played it</li>
+      <li>The length is unmeasured (bots: about 2.5 min of travel; the rest is reading)</li>
+      <li>Code-drawn art; no capsule or key art</li>
+      <li>Never run on Windows hardware, a controller or a Deck</li>
+      <li>No store page, no demo out, no wishlists</li>
+    </ul>
+  </div>
+</section>
+
+<section aria-labelledby="story-h" style="display:grid; gap:20px">
+  <div style="display:grid; gap:6px">
+    <span class="eyebrow">Part 1</span>
+    <h2 id="story-h">The story, start to finish</h2>
+    <p class="lede">Main stages have solid markers and optional places dashed ones. Chapters come from story progress, not from places: whichever order a player explores in, chapters count up in order.</p>
+  </div>
+
+  <div class="timeline">
+
+    <article class="stage">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <div class="card-head">
+          <span class="eyebrow">Opening · first launch only</span>
+          <h3>The memory card</h3>
+          <span class="where">Title → cold open (skippable by holding Esc)</span>
+        </div>
+        <div class="card-body">
+          <div class="col">
+            <h4>What the player sees and does</h4>
+            <ul class="beats">
+              <li>An old memory card is read, line by line, at the reader's pace.</li>
+              <li>Two saves: SLOT 1 (Arin) and a deleted SLOT 2.</li>
+              <li>The last line is typed by someone in the present.</li>
+            </ul>
+            <p class="owner-line">&gt; one more go. then i'm cleaning it up.</p>
+          </div>
+          <div class="col">
+            <h4>Alongside</h4>
+            <div class="threads">
+              <div class="thread"><span class="tag t-owner">Owner</span><span>States his goal: tonight he cleans the save up. This drives every threat that follows.</span></div>
+              <div class="thread"><span class="tag t-memory">Journal</span><span>The card is kept in the journal.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="finish">
+          <h4 class="eyebrow">To finish</h4>
+          <ul class="todo">
+            <li><span class="chip built">Built</span><span>Card, skip, journal entry, reduced motion</span></li>
+            <li><span class="chip people">People</span><span>Playtest question: "Before the festival, what did you think would happen?"</span></li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <article class="stage">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <div class="card-head">
+          <span class="eyebrow">Prologue</span>
+          <h3>The Lantern Festival</h3>
+          <span class="where">A playable memory · Player 1 is Arin, the player is Player 2</span>
+        </div>
+        <div class="card-body">
+          <div class="col">
+            <h4>What the player sees and does</h4>
+            <ul class="beats">
+              <li>Light four lanterns with Arin. Each one teaches a verb: walk, interact, hide in a cone's blind side, time a spotlight.</li>
+              <li>The fifth lantern, by the well, needs both players to hold it. <b>Player 1 leaves.</b></li>
+              <li>First decision: light it alone, or stay beside Arin.</li>
+              <li><b>Player 2 leaves.</b> The session is never saved off.</li>
+              <li>Years pass on screen. The fifth lantern is lit, with nobody holding a controller: <b>the first impossible act</b>.</li>
+            </ul>
+            <p class="owner-line">&gt; ...who's in my save?</p>
+          </div>
+          <div class="col">
+            <h4>Alongside</h4>
+            <div class="threads">
+              <div class="thread"><span class="tag t-people">People</span><span>Mira watches from Arin's window. Wren and Tobben are at the festival. All three remember it later.</span></div>
+              <div class="thread"><span class="tag t-memory">Story</span><span>Sets up the game's question: who kept the fifth lantern burning?</span></div>
+              <div class="thread"><span class="tag t-owner">Owner</span><span>The load finds an unknown entity. SLOT 2: deleted 3 years ago.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="finish">
+          <h4 class="eyebrow">To finish</h4>
+          <ul class="todo">
+            <li><span class="chip built">Built</span><span>All beats, skip, replay from the title ("The Festival"), story pages kept in the journal</span></li>
+            <li><span class="chip people">People</span><span>Do players say "Rue" when asked who lit the last lantern? (playtest kit §8)</span></li>
+            <li><span class="chip polish">Polish</span><span>This is the trailer's hook and the store's first screenshot: give it the art pass first</span></li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <article class="stage">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <div class="card-head">
+          <span class="eyebrow">Chapter I · Someone else's save</span>
+          <h3>Arin's room</h3>
+          <span class="where">Rue wakes · mission: The fifth lantern</span>
+        </div>
+        <div class="card-body">
+          <div class="col">
+            <h4>What the player sees and does</h4>
+            <ul class="beats">
+              <li>Rue assembles out of pixels in a room that isn't hers: <q>this body isn't mine.</q></li>
+              <li>Meet Mira, who waits with two cups and a note she wants pinned in the square.</li>
+              <li>Find memory 1, <b>The Second Controller</b>.</li>
+              <li>Leave through the door. In later runs the door is gone, and the way out is a seam that tears when the Owner rewrites the room.</li>
+            </ul>
+          </div>
+          <div class="col">
+            <h4>Alongside</h4>
+            <div class="threads">
+              <div class="thread"><span class="tag t-owner">Owner</span><span>The awareness meter starts. This room is watched closely. Owner notes appear in the console; the save crystal teaches saving.</span></div>
+              <div class="thread"><span class="tag t-people">People</span><span>Mira's errand begins: carry her note, or walk her out, to the square's board.</span></div>
+              <div class="thread"><span class="tag t-power">Powers</span><span>From the start: PHASE, FREEZE, FALSIFY, UNLOCK. Each costs awareness.</span></div>
+              <div class="thread"><span class="tag t-memory">Memory</span><span>1 of 5. The journal starts filling.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="finish">
+          <h4 class="eyebrow">To finish</h4>
+          <ul class="todo">
+            <li><span class="chip built">Built</span><span>Room, Mira's corner and errand, seam puzzle, memory, tutorial tips</span></li>
+            <li><span class="chip people">People</span><span>Does anyone stay stuck over 2 minutes finding the seam? If 2 of 5 do, make the hint stronger</span></li>
+            <li><span class="chip open">Open</span><span>The goal bar sits over the top wall for a few seconds. Check that nothing the player needs is hidden there</span></li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <article class="stage">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <div class="card-head">
+          <span class="eyebrow">Chapter II · The light by the well</span>
+          <h3>The village square (Ashvale)</h3>
+          <span class="where">The hub · mission: Reach the fifth lantern by the well</span>
+        </div>
+        <div class="card-body">
+          <div class="col">
+            <h4>What the player sees and does</h4>
+            <ul class="beats">
+              <li><q>a whole town. someone built all of this for arin.</q></li>
+              <li>Arin patrols with a light cone when the Owner plays. Hide beside Wren, behind the stall, out of the light.</li>
+              <li><b>Wren</b> runs her chalk game, gives Rue chalk, and later asks to be taken to the Edge.</li>
+              <li><b>Tobben</b> reports Rue: he walks to the notice board and writes it there. Rue can catch him on the way.</li>
+              <li>Pin Mira's note on the board. The fifth lantern still burns by the well. Go down the well.</li>
+            </ul>
+          </div>
+          <div class="col">
+            <h4>Alongside</h4>
+            <div class="threads">
+              <div class="thread"><span class="tag t-owner">Owner</span><span>Arin's patrol, the save-over ring, rewinds. Awareness climbs from CALM towards HUNT.</span></div>
+              <div class="thread"><span class="tag t-people">People</span><span>Wren's arc starts: her game, her chalk mark at the well, drawings that change between sessions. Tobben's shame. Mira's note pinned or lost.</span></div>
+              <div class="thread"><span class="tag t-memory">Truth</span><span>Truth pieces from Mira, Wren and Tobben, each a line about who moves Rue.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="finish">
+          <h4 class="eyebrow">To finish</h4>
+          <ul class="todo">
+            <li><span class="chip built">Built</span><span>Square, cast behaviour, Wren's game, Tobben's report, hiding, checkpoint at the well</span></li>
+            <li><span class="chip people">People</span><span>Do players find Wren's game and name her as someone they care about? (the playtest gate)</span></li>
+            <li><span class="chip open">Open</span><span>A capture sheet of every hiding spot: can a player tell where it is safe?</span></li>
+            <li><span class="chip polish">Polish</span><span>This is the store's main screenshot ("the square at dusk"): give it the art pass first</span></li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <article class="stage opt">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <div class="card-head">
+          <span class="eyebrow">Optional · from the square</span>
+          <h3>Arin's house</h3>
+          <span class="where">Mission: What she left</span>
+        </div>
+        <div class="card-body">
+          <div class="col">
+            <h4>What the player sees and does</h4>
+            <ul class="beats">
+              <li>Look around the house where Player 2 sat in front of the screen.</li>
+              <li>When the door chimes, Arin is coming: step into a closet.</li>
+              <li>Under the couch: <b>the second controller</b> (a secret).</li>
+            </ul>
+          </div>
+          <div class="col">
+            <h4>Alongside</h4>
+            <div class="threads">
+              <div class="thread"><span class="tag t-owner">Owner</span><span>Arin visits: a timed stealth beat.</span></div>
+              <div class="thread"><span class="tag t-memory">Secret</span><span>1 of the 7 secrets in Records.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="finish">
+          <h4 class="eyebrow">To finish</h4>
+          <ul class="todo"><li><span class="chip built">Built</span><span>House, closets, the couch</span></li><li><span class="chip people">People</span><span>Is the door chime warning enough to reach a closet?</span></li></ul>
+        </div>
+      </div>
+    </article>
+
+    <article class="stage">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <div class="card-head">
+          <span class="eyebrow">Chapter II, continued</span>
+          <h3>Under the well (Out of Bounds)</h3>
+          <span class="where">Mission: Under the well · a floor that streams in and out</span>
+        </div>
+        <div class="card-body">
+          <div class="col">
+            <h4>What the player sees and does</h4>
+            <ul class="beats">
+              <li><q>the owner can't see me down here. nobody's ever looked.</q></li>
+              <li>Cross the streaming chunks of floor between solid anchors.</li>
+              <li>Find memory 2, <b>The Well</b>, and <b>Pip</b>, the fox nobody saved back in.</li>
+              <li>On Pip's ledge, the first hitbox: the shape Slot 2 was made with. It doesn't fit Rue.</li>
+              <li>Climb back up to the square.</li>
+            </ul>
+          </div>
+          <div class="col">
+            <h4>Alongside</h4>
+            <div class="threads">
+              <div class="thread"><span class="tag t-people">People</span><span>Pip joins: he follows, leads once, rests, and hides from Arin.</span></div>
+              <div class="thread"><span class="tag t-memory">Truth</span><span>Pip's truth piece (the first hitbox). Memory 2 of 5.</span></div>
+              <div class="thread"><span class="tag t-power">Powers</span><span>DECOY unlocks with the first memory, SCRUB with the second.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="finish">
+          <h4 class="eyebrow">To finish</h4>
+          <ul class="todo"><li><span class="chip built">Built</span><span>Streaming floor, Pip, memory, the hitbox, reduced flashing</span></li><li><span class="chip people">People</span><span>Do players wait for Pip? Do they notice him hide?</span></li></ul>
+        </div>
+      </div>
+    </article>
+
+    <article class="stage">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <div class="card-head">
+          <span class="eyebrow">Chapter III · Who kept it burning</span>
+          <h3>The Archive</h3>
+          <span class="where">East of the square · mission: Ask the Archivist</span>
+        </div>
+        <div class="card-body">
+          <div class="col">
+            <h4>What the player sees and does</h4>
+            <ul class="beats">
+              <li>The Archivist, cut before the game shipped, files every session.</li>
+              <li>Read the festival's session log and the Owner's notes about the house, the console and why.</li>
+              <li>Find memory 3, <b>New Game</b>: the girl typing RUE into Slot 2.</li>
+              <li><b>The CHARACTER FILE</b>: <q>player: moved away. character: still running.</q> Rue learns she is not the girl.</li>
+              <li>He gives the pointer to Slot 2, and the north road opens.</li>
+            </ul>
+          </div>
+          <div class="col">
+            <h4>Alongside</h4>
+            <div class="threads">
+              <div class="thread"><span class="tag t-memory">Truth</span><span>The truth comes together here. It is needed for the RUE ending.</span></div>
+              <div class="thread"><span class="tag t-people">People</span><span>The Archivist starts a new file on his desk: RUE, filed under PEOPLE, not CHARACTERS.</span></div>
+              <div class="thread"><span class="tag t-owner">Owner</span><span>The notes turn him from a threat into a person: <span class="owner-line">when i play arin i'm nine again.</span></span></div>
+              <div class="thread"><span class="tag t-power">Powers</span><span>BLIND unlocks with the third memory.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="finish">
+          <h4 class="eyebrow">To finish</h4>
+          <ul class="todo"><li><span class="chip built">Built</span><span>Archive pages, CHARACTER FILE, pointer, the Archivist's file</span></li><li><span class="chip people">People</span><span>The Archive is the most likely place for "too much text". Watch where players skim</span></li></ul>
+        </div>
+      </div>
+    </article>
+
+    <article class="stage opt">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <div class="card-head">
+          <span class="eyebrow">Optional · below the Archive</span>
+          <h3>The lantern workshop</h3>
+          <span class="where">Mission: A light kept burning · also the candidate demo's ending</span>
+        </div>
+        <div class="card-body">
+          <div class="col">
+            <h4>What the player sees and does</h4>
+            <ul class="beats">
+              <li>Five festival frames: <q>the fifth was the one i lit.</q></li>
+              <li>The lamp is cold and the hatch is too dark to find. Take the FIFTH LANTERN wick and fit it.</li>
+              <li>Decide whether to write RUE on the fifth frame's blank label.</li>
+              <li>The hatch opens a route to the well that avoids Arin's road.</li>
+            </ul>
+          </div>
+          <div class="col">
+            <h4>Alongside</h4>
+            <div class="threads">
+              <div class="thread"><span class="tag t-people">People</span><span>Wren notices the light, and the name if Rue wrote it.</span></div>
+              <div class="thread"><span class="tag t-memory">Journal</span><span>Each step is saved in one write; a failed write says so.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="finish">
+          <h4 class="eyebrow">To finish</h4>
+          <ul class="todo"><li><span class="chip built">Built</span><span>Mission, decision, Wren's variant, the demo candidate</span></li><li><span class="chip author">Author</span><span>Choose the demo ending: the Archive arch, or here after Wren notices</span></li></ul>
+        </div>
+      </div>
+    </article>
+
+    <article class="stage opt">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <div class="card-head">
+          <span class="eyebrow">Optional · east of the Archive</span>
+          <h3>The Recycle Bin</h3>
+          <span class="where">Mission: Bring them back</span>
+        </div>
+        <div class="card-body">
+          <div class="col">
+            <h4>What the player sees and does</h4>
+            <ul class="beats">
+              <li><q>everything the owner deleted ends up here. for a while.</q></li>
+              <li>When the bin empties, stand in a system file's shadow.</li>
+              <li>Between sweeps, restore someone the Owner deleted, and find Tobben's torn guest-book page.</li>
+              <li>The files of Slot 2 and the girl's last message, <q>still have my save?</q></li>
+            </ul>
+          </div>
+          <div class="col">
+            <h4>Alongside</h4>
+            <div class="threads">
+              <div class="thread"><span class="tag t-power">Powers</span><span>RESTORE unlocks with the fourth memory, PAUSE with the fifth.</span></div>
+              <div class="thread"><span class="tag t-people">People</span><span>Write RUE back into Tobben's book. He crosses out his own name on the board.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="finish">
+          <h4 class="eyebrow">To finish</h4>
+          <ul class="todo"><li><span class="chip built">Built</span><span>Sweeps, shadows, restore, guest book</span></li><li><span class="chip open">Open</span><span>Warning-time table for every threat, the bin sweep included (target: at least 0.7 s to react)</span></li></ul>
+        </div>
+      </div>
+    </article>
+
+    <article class="stage">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <div class="card-head">
+          <span class="eyebrow">Chapter IV · What's left of Slot 2 → Chapter V · The last save file</span>
+          <h3>The north road and the Edge</h3>
+          <span class="where">Mission: Take the north road · the finale</span>
+        </div>
+        <div class="card-body">
+          <div class="col">
+            <h4>What the player sees and does</h4>
+            <ul class="beats">
+              <li>Optionally keep Wren's promise and walk her to the Edge.</li>
+              <li><q>the world just... stops.</q> The static spreads, the cursor hunts, and the eraser leaves void.</li>
+              <li>Find memories 4 and 5: <b>The Last Time</b> (the argument) and <b>Delete Slot 2?</b></li>
+              <li>Lead the cursor away, stand in Slot 2, and see the recap of everything done.</li>
+              <li>Choose what to write into the last save file.</li>
+            </ul>
+          </div>
+          <div class="col">
+            <h4>Alongside</h4>
+            <div class="threads">
+              <div class="thread"><span class="tag t-owner">Owner</span><span>At his most direct: the cursor clicks whatever holds still. At high purge the static waits less.</span></div>
+              <div class="thread"><span class="tag t-people">People</span><span>Wren, if she came, gets her moment out of the Owner's reach.</span></div>
+              <div class="thread"><span class="tag t-memory">Memory</span><span>All 5 memories plus the truth unlock the RUE choice.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="finish">
+          <h4 class="eyebrow">To finish</h4>
+          <ul class="todo"><li><span class="chip built">Built</span><span>Edge, threats, Slot 2, recap, choice</span></li><li><span class="chip people">People</span><span>Late-purge difficulty: one human run at purge 4–5 (the Gentle pace setting exists)</span></li><li><span class="chip polish">Polish</span><span>This is the trailer's stakes shot: give it the art pass</span></li></ul>
+        </div>
+      </div>
+    </article>
+
+    <article class="stage end">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <div class="card-head">
+          <span class="eyebrow">After the choice</span>
+          <h3>Endings, epilogue and coming back</h3>
+          <span class="where">Six endings (details below) · the title changes with the last one</span>
+        </div>
+        <div class="card-body">
+          <div class="col">
+            <h4>What the player sees and does</h4>
+            <ul class="beats">
+              <li>An epilogue specific to the ending, remembering who Rue helped.</li>
+              <li>The title's tagline and slot card change. In the RUE ending, Rue wears a lilac clip she chose herself.</li>
+              <li>Records: ENDINGS n/6, MEMORIES n/5, SECRETS n/7, with a hint for each one not found.</li>
+            </ul>
+          </div>
+          <div class="col">
+            <h4>Alongside</h4>
+            <div class="threads">
+              <div class="thread"><span class="tag t-people">People</span><span>New sessions remember: Wren's drawings, Tobben's crossed-out name, the Archivist's file.</span></div>
+              <div class="thread"><span class="tag t-owner">Owner</span><span>The message ending is the only one that reaches the girl.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="finish">
+          <h4 class="eyebrow">To finish</h4>
+          <ul class="todo"><li><span class="chip built">Built</span><span>All six endings, each tested; bots play the escape, message and Wren routes to the end</span></li><li><span class="chip people">People</span><span>Measure minutes to a first ending (it sets the price), and whether anyone replays</span></li></ul>
+        </div>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<section aria-labelledby="threads-h" style="display:grid; gap:16px">
+  <div style="display:grid; gap:6px">
+    <span class="eyebrow">Part 2</span>
+    <h2 id="threads-h">The threads that run through the whole game</h2>
+    <p class="lede">These don't belong to one place. They carry over between places and between sessions.</p>
+  </div>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Thread</th><th>How it moves</th><th>Where it pays off</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td style="color:var(--owner)">The Owner</td><td>Awareness rises with being seen, using glitches, talking and standing still; it falls when hidden. His moves: Arin's patrol, rewinds, saving over Rue, the cursor, the static.</td><td>The Edge; the Archive's notes; the message ending</td><td><span class="chip built">Built</span></td></tr>
+        <tr><td style="color:var(--owner)">The purge</td><td>Deaths and quits in danger raise it across sessions. One step before the end, the death card warns. A quit at a calm moment costs nothing.</td><td>At the limit, the save is wiped (PURGED): the Owner wins</td><td><span class="chip built">Built</span> <span class="chip people">People</span></td></tr>
+        <tr><td style="color:var(--rue)">Memories</td><td>5 fragments: the room, under the well, the Archive, and two at the Edge. Each unlocks a glitch and a colour back on Rue.</td><td>The RUE ending needs all 5</td><td><span class="chip built">Built</span></td></tr>
+        <tr><td style="color:var(--rue)">The truth</td><td>Lines from Mira, Wren and Tobben, Pip's hitbox, then the CHARACTER FILE.</td><td>Rue knows what she is. The RUE ending</td><td><span class="chip built">Built</span></td></tr>
+        <tr><td style="color:var(--lantern)">Wren</td><td>Meeting, chalk game, chalk gift, a mark at the well, drawings between sessions, the ask to see the Edge, escort.</td><td>The Wren ending; her service-light line</td><td><span class="chip built">Built</span> <span class="chip people">People</span></td></tr>
+        <tr><td style="color:var(--lantern)">Mira</td><td>Her note: carried or walked to the board, then pinned or lost. Her table and window change to match.</td><td>"Mira saw the square" secret</td><td><span class="chip built">Built</span></td></tr>
+        <tr><td style="color:var(--lantern)">Tobben</td><td>He reports Rue, can be caught, and his guest-book page is in the Bin. Written back in, he crosses himself out.</td><td>"The guest book" secret; his truth line</td><td><span class="chip built">Built</span></td></tr>
+        <tr><td style="color:var(--lantern)">The Archivist</td><td>Meeting, the CHARACTER FILE, the pointer, the new file RUE.</td><td>Opens the Edge</td><td><span class="chip built">Built</span></td></tr>
+        <tr><td style="color:var(--lantern)">Pip</td><td>Found under the well. He follows, leads once, hides from Arin, rests.</td><td>The "Pip" secret; the epilogues</td><td><span class="chip built">Built</span></td></tr>
+        <tr><td style="color:var(--lilac)">Glitches</td><td>From the start: PHASE, FREEZE, FALSIFY, UNLOCK. Then one per memory: DECOY, SCRUB, BLIND, RESTORE, PAUSE. Each costs awareness.</td><td>Every threat has a counter-glitch, named on its death card</td><td><span class="chip built">Built</span> <span class="chip open">Open</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="lede" style="font-size:13px">Open for glitches: write the awareness budget down (what a careful player spends against what they have) before changing any cost.</p>
+</section>
+
+<section aria-labelledby="end-h" style="display:grid; gap:16px">
+  <div style="display:grid; gap:6px">
+    <span class="eyebrow">Part 3</span>
+    <h2 id="end-h">The six endings, and how to reach each</h2>
+  </div>
+  <div class="endings">
+    <div class="ending"><span class="name">Saved to Slot 2</span><span>Rue writes herself into the last save file.</span><span class="how">Reach Slot 2 and take it.</span></div>
+    <div class="ending"><span class="name">RUE</span><span>She takes the slot knowing what she is, with her name.</span><span class="how">All 5 memories, plus the truth (CHARACTER FILE).</span></div>
+    <div class="ending"><span class="name">A New Game for Wren</span><span>The last save goes to someone who asked for it.</span><span class="how">Walk Wren to the Edge.</span></div>
+    <div class="ending"><span class="name">A Message</span><span>The slot is left to the Owner, with something to read. The only ending that reaches the girl.</span><span class="how">Leave the slot to the Owner.</span></div>
+    <div class="ending hidden-end"><span class="name">Never Loaded</span><span>Rue walks off the map and the Owner never knew. Hidden.</span><span class="how">Be impossible to notice (never seen).</span></div>
+    <div class="ending hidden-end"><span class="name">Slot 1 Overwritten</span><span>Rue takes the Owner's save instead. Hidden.</span><span class="how">Be impossible to ignore (a reckless run).</span></div>
+    <div class="ending bad"><span class="name">Purged</span><span>Not one of the six. The Owner has learned enough, and the save is clean.</span><span class="how">Die or quit in danger too often, across sessions.</span></div>
+  </div>
+</section>
+
+<section aria-labelledby="road-h" style="display:grid; gap:18px">
+  <div style="display:grid; gap:6px">
+    <span class="eyebrow">Part 4 · updated 3 November 2026</span>
+    <h2 id="road-h">The road to a full PC release before Christmas</h2>
+    <p class="lede">The chosen target is a full Windows release with a working launch date of <b>10 December 2026</b>. The go/no-go decision is on <b>4 December</b>, made against evidence. It is a target, not a promise: Valve's onboarding and review must allow it. The game must not launch with unresolved progress loss, crashes, soft-locks or unusable controls.</p>
+  </div>
+
+  <div class="date-row" aria-label="Fixed and target dates">
+    <div class="date"><b>About 30 days</b><span>Steam Direct fee to release eligibility. Valve's pages say 21 or 30; plan on 30 and confirm in the dashboard</span></div>
+    <div class="date"><b>≥ 2 weeks</b><span>Coming Soon page live before release</span></div>
+    <div class="date"><b>3–5 business days</b><span>Typical page or build review; allow 7</span></div>
+    <div class="date"><b>17 Dec – 4 Jan</b><span>Steam Winter Sale 2026</span></div>
+  </div>
+
+  <div class="phases">
+    <div class="phase">
+      <div class="phase-side"><span class="eyebrow">3 – 6 Nov</span><h3>Red build and scope</h3><span class="when">Under way</span><span class="gate">Gate: CI green on the head; engine errors gated; scope, engine and platforms frozen</span></div>
+      <div class="phase-main"><ul class="tasks">
+        <li><span class="chip built">Done</span><span>Browser calm-save check: cause measured (IndexedDB sync on a slow runner), check fixed; engine-error gate; freed-lambda errors fixed</span></li>
+        <li><span class="chip built">Done</span><span>Honest coverage: skipped probes reported; overwrite ending played by a full route</span></li>
+        <li><span class="chip author">Author</span><span>Confirm the Steamworks account, fee, tax and bank status and the real release-eligibility date</span></li>
+      </ul></div>
+    </div>
+    <div class="phase">
+      <div class="phase-side"><span class="eyebrow">By 8 Nov</span><h3>First players and Windows</h3><span class="when">This week</span><span class="gate">Gate: 5 observed sessions on one build; a real Windows and controller run</span></div>
+      <div class="phase-main"><ul class="tasks">
+        <li><span class="chip people">People</span><span>Five unfamiliar players, keyboard and controller (<code>docs/playtest/RUN_A_ROUND.md</code>, now with safe profile instructions)</span></li>
+        <li><span class="chip people">People</span><span>The Windows build, first start to first ending, on a real PC</span></li>
+        <li><span class="chip author">Author</span><span>Choose the public demo behaviour</span></li>
+      </ul></div>
+    </div>
+    <div class="phase">
+      <div class="phase-side"><span class="eyebrow">9 – 20 Nov</span><h3>Fix, finish the look, the store page</h3><span class="when">Content freeze by 20 Nov</span><span class="gate">Gate: Coming Soon page live by 20 Nov for a 10 Dec launch</span></div>
+      <div class="phase-main"><ul class="tasks">
+        <li><span class="chip open">Open</span><span>Fix the three largest observed problems; approve one visual standard (the Square first)</span></li>
+        <li><span class="chip author">Author</span><span>Store assets and the full current Steam asset list; the page submitted for review with a buffer</span></li>
+        <li><span class="chip people">People</span><span>Second player round</span></li>
+      </ul></div>
+    </div>
+    <div class="phase">
+      <div class="phase-side"><span class="eyebrow">24 Nov – 4 Dec</span><h3>Release candidate</h3><span class="when">Go or no-go 4 Dec</span><span class="gate">Gate: RC1 by 1 Dec; every advertised feature and ending evidenced</span></div>
+      <div class="phase-main"><ul class="tasks">
+        <li><span class="chip open">Open</span><span>Build submitted for review by 24 Nov; RC1 with clean tests and exports, hashes and a rollback package by 1 Dec</span></li>
+        <li><span class="chip author">Author</span><span>Go or no-go on 4 Dec against the evidence</span></li>
+      </ul></div>
+    </div>
+    <div class="phase">
+      <div class="phase-side"><span class="eyebrow">10 – 24 Dec</span><h3>Launch and support</h3><span class="when">If approved and safe</span><span class="gate">Gate: no cosmetic patch that risks saves without migration and rollback tests</span></div>
+      <div class="phase-main"><ul class="tasks">
+        <li><span class="chip author">Author</span><span>Launch on 10 Dec. If Steam can't meet the date: a tested full release through another authorised store (for example itch.io), or a demo and a rescheduled paid release. Never a demo labelled as the full game</span></li>
+      </ul></div>
+    </div>
+  </div>
+  <p class="lede" style="font-size:13px"><b>Alternative, not chosen:</b> a store page and demo before Christmas, Next Fest (22 Feb – 1 Mar 2027), and launch in March–April 2027. This is commercially stronger if wishlists matter more than the date. It is kept here for comparison, but the owner chose a December release.</p>
+</section>
+
+<section aria-labelledby="done-h" style="display:grid; gap:14px">
+  <div style="display:grid; gap:6px">
+    <span class="eyebrow">Part 5</span>
+    <h2 id="done-h">"Finished" means all of these are true</h2>
+  </div>
+  <ul class="done-list">
+    <li class="y">Every place, memory, secret and ending is in the game and tested</li>
+    <li class="y">A failed save says so, keeps the last good save and retries; stopping at a calm moment is free</li>
+    <li>On the web, a save becomes durable only after the browser's storage sync (measured up to about 31 s on a very slow machine): proven on real low-end hardware</li>
+    <li class="y">Reduced motion, reduced flashing, Owner pace, large text and key and pad remapping</li>
+    <li class="y">Controls: corner assist and an early-press buffer</li>
+    <li>Ten or more unfamiliar players have played it, and their top problems are fixed</li>
+    <li>The first-ending time is measured, and the price is set from it</li>
+    <li>It runs on Windows hardware and a physical controller (a Deck if possible)</li>
+    <li>60 fps measured on a real, mid-range graphics card</li>
+    <li>Capsule and key art, with the rights assigned</li>
+    <li>The three store moments have had their art pass; one palette across all maps</li>
+    <li>Screenshots, trailer and honest store text</li>
+    <li>A public demo with its own save; Next Fest done</li>
+    <li>RC passes the full suite, bots, exports and browser checks</li>
+    <li>Valve review approved; launch and the first patch window planned</li>
+  </ul>
+</section>
+
+<footer>
+  <p>Sources in the repository: <code>scripts/story/quests.gd</code>, <code>story.gd</code>, <code>glitch.gd</code>, <code>docs/STORY_CHRONOLOGY.md</code>, <code>docs/production/ISSUE_REGISTER.md</code>, <code>docs/RELEASE_READINESS.md</code>, <code>docs/production/COMMERCIAL_PLAN_2026-10-31.md</code>, <code>docs/prompts/PLAYER_EXPERIENCE_PASS_2026-11-02.md</code>.</p>
+  <p>Steam dates come from Valve's Steamworks documentation, checked 31 October 2026. Recheck them before acting.</p>
+</footer>
+
+</div>

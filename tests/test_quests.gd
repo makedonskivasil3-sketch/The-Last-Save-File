@@ -160,3 +160,12 @@ func test_the_title_says_where_she_was_going() -> void:
 	tree.change_scene_to_file(TITLE_SCENE)
 	await frames(5)
 	check(scene().find_child("NextMission", true, false) == null, "a new profile doesn't: the festival tells it")
+
+
+## The festival shows Rue lighting the fifth lantern herself; what she
+## doesn't know is how it stayed lit for three years unsaved. No mission
+## may ask who LIT it (brief of 2026-11-03: stale wording, not amnesia).
+func test_no_mission_asks_who_lit_the_lantern_she_lit() -> void:
+	for text: String in [Quests.ROOM, Quests.WELL, Quests.OOB, Quests.OOB_DONE, Quests.ARCHIVE, Quests.EAST] + Quests.WHY.values():
+		check(not text.to_lower().contains("who lit"), "asks how it stayed lit, not who lit it: %s" % text)
+	check(Quests.ARCHIVE.contains("kept") and Quests.EAST.contains("kept"), "the Archive missions ask who kept it burning")

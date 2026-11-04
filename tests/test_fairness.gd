@@ -99,3 +99,59 @@ func test_charging_shows_the_price() -> void:
 	_act("interact", false)
 	await frames(3)
 	check_eq(w.hud.cost_preview(), 0.0, "the preview goes when you let go")
+
+
+## Trust contract (2026-11-04): a reload takes control away, so nothing may
+## kill Rue while she is being dragged back, nor in the beat after it.
+## CI 41721851052 (purge 5): "the owner reloaded" at 163.3 s, then "DIED:
+## arin in square" at 163.7 s, inside the 0.9 s drag.
+func test_arin_cannot_overwrite_her_while_she_is_dragged_back() -> void:
+	var w := await start_session()
+	await go_to(w, "square", "house")
+	var arin: OwnerAvatar = w.area.arin
+	var m: OwnerMoves = w.owner_moves
+	var died := [false]
+	arin.touched_player.connect(func() -> void: died[0] = true)
+	# Rue was at A two seconds ago, now at B; Arin stands still on the path
+	# between them, where the drag must pass.
+	var a := Vector2(200, 262)
+	var b := Vector2(320, 262)
+	arin.route = [Vector2(260, 262)] as Array[Vector2]
+	arin.global_position = Vector2(260, 262)
+	w.player.global_position = b
+	m._history.clear()
+	m._clock = 20.0
+	m._history.append({"t": 18.0, "player": a})
+	m._history.append({"t": 19.0, "player": Vector2(260, 262)})
+	m._history.append({"t": 19.8, "player": b})
+	m.load_last_save(true)
+	check(m.rewinding, "the owner reloads")
+	var until := Time.get_ticks_msec() + int((OwnerMoves.REWIND_TIME + OwnerMoves.GRACE - 0.1) * 1000.0)
+	while Time.get_ticks_msec() < until:
+		await frames(1)
+	check(not died[0], "no overwrite while she has no control, nor in the beat after")
+	check(not w.player.frozen, "and she can move again before Arin can touch her")
+
+
+func test_with_no_safe_moment_the_reload_lands_as_far_from_arin_as_it_can() -> void:
+	var w := await start_session()
+	var m: OwnerMoves = w.owner_moves
+	m._history.clear()
+	m._clock = 20.0
+	m._history.append({"t": 12.0, "player": Vector2(300, 200), "arin": Vector2(310, 200)})
+	m._history.append({"t": 14.0, "player": Vector2(300, 200), "arin": Vector2(334, 200)})
+	m._history.append({"t": 19.0, "player": Vector2(300, 200), "arin": Vector2(302, 200)})
+	check_eq(m._pick_snapshot(), 1, "every moment is near Arin: the one furthest from him")
+
+
+## The Edge's patience survives a death on the way back to it.
+func test_dying_elsewhere_keeps_the_edges_extra_patience() -> void:
+	memory().wipe()
+	memory().begin_session()
+	memory().record_death("edge", Vector2(300, 200), "eraser")
+	memory().begin_session()
+	var after_edge := TheEdge.grace_time()
+	memory().record_death("square", Vector2(300, 200), "arin")
+	check_eq(memory().edge_static_deaths, 1, "the square death keeps the count")
+	check_eq(TheEdge.grace_time(), after_edge, "so the static still waits longer at the Edge")
+	check(TheEdge.grace_time() <= TheEdge.MAX_GRACE, "and never past its cap")

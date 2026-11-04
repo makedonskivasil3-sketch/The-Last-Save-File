@@ -8,7 +8,7 @@ func test_the_well_leads_out_of_bounds() -> void:
 	await go_to(w, "square", "house")
 	await interact_with(w, w.area.well, Vector2(0, 6))
 	await wait_until(func() -> bool: return w.area.area_id == "oob" and not w._transitioning, 3.0, "climbing into the well")
-	check(w.hud.is_act_shown(), "Act III's title card shows the first time")
+	check(not w.hud.is_act_shown(), "a new place is named, not a new chapter: the story hasn't moved (chapters follow the story)")
 	check_eq(w.player.global_position, OutOfBounds.ENTRY, "you land on the first platform")
 
 
@@ -84,8 +84,8 @@ func test_pip_leads_the_way() -> void:
 func test_act_cards_show_once() -> void:
 	var w := await start_session()
 	await go_to(w, "square", "house", false)
-	check(w.hud.is_act_shown(), "Act II card on the first visit")
-	check("square" in memory().acts_seen, "remembered")
+	check(w.hud.is_act_shown(), "the square's first visit turns the chapter (the light by the well)")
+	check("chapter:well_light" in memory().acts_seen, "remembered")
 	await go_to(w, "archive", "west")
 	await go_to(w, "square", "east", false)
 	check(not w.hud.is_act_shown(), "just the place name after that")

@@ -1188,7 +1188,14 @@ func _story_break(id: String, pages: Array) -> void:
 	PlaytestLog.mark("prologue: story", id)
 
 
+## Pages acknowledged this visit, by story id: the browser check reads it
+## (WebState) to tell what the game kept from when the browser stored it.
+var _pages_read := {}
+
+
 func _remember_story(id: String, speaker: String, text: String) -> void:
+	_pages_read[id] = int(_pages_read.get(id, 0)) + 1
+	WebState.publish({"scene": "prologue", "playable": true, "story": id, "read": _pages_read[id]})
 	if not replay:
 		OwnerMemory.record_read("festival:" + id, "note", "Festival · " + id.replace("_", " "), "festival", [speaker + ": " + text])
 

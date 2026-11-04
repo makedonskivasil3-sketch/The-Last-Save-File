@@ -8,11 +8,16 @@ const MISSING: Array[Rect2] = [
 	Rect2(80, 180, 60, 30), Rect2(200, 90, 40, 110), Rect2(300, 150, 120, 24),
 	Rect2(470, 100, 30, 120), Rect2(380, 60, 60, 24), Rect2(540, 150, 50, 30),
 ]
+## What was meant to stand here, in the save's own words: one format
+## ("name · state"), each tag bracketed like a manifest entry. These used to
+## read as a developer's leftovers ("TODO: art"), which players can't tell
+## from an unfinished game (2026-11-04 visual contract). They name the world
+## that was cut, which is the Edge's story: Wren was cut content too.
 const LABELS := {
-	Vector2(60, 70): "tree_04.png (missing)",
-	Vector2(250, 250): "terrain_north.tscn: not loaded",
-	Vector2(430, 200): "npc_spawn_07 = null",
-	Vector2(120, 130): "TODO: art",
+	Vector2(60, 70): "orchard · cut before release",
+	Vector2(250, 250): "north fields · never drawn",
+	Vector2(430, 200): "villager_07 · cut content",
+	Vector2(120, 130): "lantern hill · planned",
 }
 const SLOT_POS := Vector2(580, 64)
 ## The cursor waits beside Slot 2: you have to draw it away before you can
@@ -186,10 +191,24 @@ func set_owner_paused(on: bool) -> void:
 		cursor.paused = true
 
 
+## Said once, when she starts writing with the identity lead still open:
+## the commitment is understandable before it is made (2026-11-04).
+var _lead_said := false
+
+
+func _note_open_lead() -> void:
+	if _lead_said or slot == null or not slot.is_writing():
+		return
+	if Progression.stage() in [Progression.Stage.INVESTIGATE, Progression.Stage.FILE]:
+		_lead_said = true
+		world.hud.say(Progression.SLOT_LEAD_OPEN, "self")
+
+
 func area_process(delta: float) -> void:
 	if world.is_owner_paused():
 		return  # reading, a question, PAUSE: transitions and countdown wait too
 	_update_fight(delta)
+	_note_open_lead()
 	if grace >= 0.0:
 		grace -= delta
 		var left := ceili(grace)
@@ -354,6 +373,26 @@ func _send_arin() -> void:
 	world.director.say(Story.FINAL_FIGHT.arin)
 
 
+## The square's cobbled road comes up through the south gap and runs out:
+## drawn stones, then outlines, then only the grid. The line between the
+## drawn world and the missing one is placed, not accidental.
+func _draw_drawn_world_fraying() -> void:
+	var top := bounds.end.y
+	for row in 7:
+		var y := top - 6.0 - row * 9.0
+		var fade := 1.0 - row / 7.0
+		for k in 4:
+			var x := SOUTH_GAP.x + 2.0 + k * 10.0 + (4.0 if row % 2 == 1 else 0.0)
+			if Decor.hash01(x, y) > fade + 0.15:
+				continue  # stones missing first at the far end
+			var stone := Rect2(x, y, 8, 6)
+			if row < 3:
+				draw_rect(stone, Color(0.36, 0.35, 0.33, 0.9 * fade))
+				draw_rect(stone, Color(0.2, 0.19, 0.18, fade), false, 1.0)
+			else:
+				draw_rect(stone, Color(0.55, 0.95, 1.0, 0.35 * fade), false, 1.0)  # outline only: not loaded
+
+
 func _draw() -> void:
 	var r := bounds
 	# Safe floor is a dark slate, clearly lighter than the erased void (pure
@@ -370,9 +409,19 @@ func _draw() -> void:
 	# kills: full saturation is kept for danger (cracks, static, the cursor).
 	for m in MISSING:
 		Decor.greybox(self, m, _t, m.position.x)
+	_draw_drawn_world_fraying()
 	for pos: Vector2 in LABELS:
-		var a := 0.13 + 0.04 * sin(_t * 1.5 + pos.x)  # decoration: quieter than anything that matters
-		draw_string(UiStyle.system_font(), pos, LABELS[pos], HORIZONTAL_ALIGNMENT_LEFT, -1, 7, Color(0.55, 0.95, 1.0, a))
+		var a := 0.16 + 0.04 * sin(_t * 1.5 + pos.x)  # decoration: quieter than anything that matters
+		var c := Color(0.55, 0.95, 1.0, a)
+		var w := UiStyle.system_font().get_string_size(LABELS[pos], HORIZONTAL_ALIGNMENT_LEFT, -1, 7).x
+		# A manifest bracket: corners, not a box, so it reads as a label.
+		var box := Rect2(pos + Vector2(-3, -8), Vector2(w + 6, 11))
+		for corner in [box.position, Vector2(box.end.x, box.position.y), Vector2(box.position.x, box.end.y), box.end]:
+			var dx := 3.0 if corner.x == box.position.x else -3.0
+			var dy := 3.0 if corner.y == box.position.y else -3.0
+			draw_line(corner, corner + Vector2(dx, 0), c, 1.0)
+			draw_line(corner, corner + Vector2(0, dy), c, 1.0)
+		draw_string(UiStyle.system_font(), pos, LABELS[pos], HORIZONTAL_ALIGNMENT_LEFT, -1, 7, c)
 	# Where the static will start: cracks that pulse harder as it nears.
 	if grace >= 0.0:
 		var k := 1.0 - clampf(grace / grace_time(), 0.0, 1.0)

@@ -259,3 +259,36 @@ func test_when_she_saw_rue_taken_the_scene_is_the_reunion() -> void:
 	await interact_with(w, w.area.wren)
 	check(w._talk_result.get("lines", []) != Relationships.WREN_AFTER_DEATH, "so the crates speech isn't said on top of it")
 	await finish_dialogue(w)
+
+
+func test_the_title_glitch_never_moves_the_menu() -> void:
+	# A glitched letter must not rewrap the title: with a space replaced,
+	# "LAST#SAVE" broke onto a second line and every button dropped 24 px
+	# for as long as the glitch lasted (found under slow frames).
+	for large in [false, true]:
+		settings().large_text = large
+		settings().opening_seen = true
+		tree.change_scene_to_file("res://scenes/title.tscn")
+		await wait(0.6)
+		var title: Node = scene()
+		title.set_process(false)  # the test sets the glitches itself
+		var buttons := title.find_children("*", "Button", true, false)
+		var where := func() -> Array: return buttons.map(func(b: Button) -> Vector2: return b.global_position)
+		title._title.text = title.TITLE
+		await frames(2)
+		var clean: Array = where.call()
+		var moved := 0
+		for i in title.TITLE.length():
+			for symbol: String in ["#", "_", "?", "0"]:
+				check_eq(title.glitched(i, symbol).count(" "), title.TITLE.count(" "), "a glitch never takes a space")
+				title.glitch_title(i, symbol)
+				await frames(1)
+				if where.call() != clean:
+					moved += 1
+		check_eq(moved, 0, "no glitch moves a button (large text: %s)" % large)
+		var shown := 0
+		for i in 15:
+			title.glitch_title(i, "_")
+			shown += int(title._title.text != title.TITLE)
+		check(shown > 10, "and the title still glitches (%d of 15 letters)" % shown)
+	settings().large_text = false

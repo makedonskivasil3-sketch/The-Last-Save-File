@@ -21,6 +21,9 @@ var _narration: CheckButton
 ## Control remapping: one button per action; the one waiting for a key.
 var _bind_buttons := {}
 var _binding := ""
+var _pad_buttons := {}
+var _pad_binding := ""
+var _pad_armed := false
 var _bind_note: Label
 
 
@@ -68,6 +71,8 @@ func _ready() -> void:
 	_section(right, "COMFORT")
 	_slider(right, "Glitch", Settings.glitch_intensity, func(v: float) -> void: Settings.set_value("glitch_intensity", v))
 	_check(right, "Reduce flashing", Settings.reduce_flashing, func(on: bool) -> void: Settings.set_value("reduce_flashing", on))
+	_cycler(right, "owner_pace", ["Owner pace: Normal", "Owner pace: Gentle"],
+		"Gentle: Arin and the cursor move slower, the static spreads slower, and where you died warns you longer. The story, saves and endings are the same.")
 	_check(right, "Reduce motion", Settings.reduce_motion, func(on: bool) -> void: Settings.set_value("reduce_motion", on))
 	_check(right, "Screen shake", Settings.screen_shake, func(on: bool) -> void: Settings.set_value("screen_shake", on))
 	_check(right, "Large text", Settings.large_text, func(on: bool) -> void: Settings.set_value("large_text", on))
@@ -98,7 +103,7 @@ func _ready() -> void:
 	# is hidden right after, like the title's, is never on screen and asks nothing.)
 	visibility_changed.connect(_refresh_narration)
 	_refresh_narration.call_deferred()
-	# Controls (keyboard): press a button, then the key. Arrows and Esc stay.
+	# Controls: press a button, then the key (or pad button). Arrows, Esc, Start and B stay.
 	_section(right, "CONTROLS")
 	for action: String in Settings.REBINDABLE:
 		var b := Button.new()
@@ -106,11 +111,18 @@ func _ready() -> void:
 		b.pressed.connect(_start_binding.bind(action))
 		right.add_child(b)
 		_bind_buttons[action] = b
+	# Gamepad: Interact and Pause (B, the d-pad and Start stay as they are).
+	for action: String in Settings.PAD_REBINDABLE:
+		var pb := Button.new()
+		pb.focus_mode = Control.FOCUS_ALL
+		pb.pressed.connect(_start_pad_binding.bind(action))
+		right.add_child(pb)
+		_pad_buttons[action] = pb
 	UiStyle.button(right, "Reset controls", func() -> void:
 		Settings.reset_binds()
 		_bind_note.text = "controls back to their defaults."
 		_label_binds())
-	_bind_note = UiStyle.note(right, "arrow keys and Esc always work too.", UiStyle.MUTED)
+	_bind_note = UiStyle.note(right, "arrow keys and Esc always work too; on a pad, Start and B.", UiStyle.MUTED)
 	_label_binds()
 	if show_reset:
 		_reset_button = UiStyle.button(right, "Reset owner memory", _on_reset)
@@ -122,6 +134,41 @@ func _label_binds() -> void:
 	for action: String in _bind_buttons:
 		var b: Button = _bind_buttons[action]
 		b.text = "%s: %s" % [Settings.ACTION_NAMES[action], "press a key..." if action == _binding else Settings.key_label(action)]
+	for action: String in _pad_buttons:
+		var pb: Button = _pad_buttons[action]
+		pb.text = "Pad %s: %s" % [Settings.ACTION_NAMES[action].to_lower(), "press a button..." if action == _pad_binding else Settings.pad_label(action)]
+
+
+func _start_pad_binding(action: String) -> void:
+	_binding = ""
+	_pad_binding = action
+	_pad_armed = false  # the press that opened this isn't the new button
+	_bind_note.text = "press the new pad button for %s (B cancels)." % Settings.ACTION_NAMES[action].to_lower()
+	_label_binds()
+
+
+## The pad button pressed next is the new binding (B cancels).
+func _pad_input(event: InputEvent) -> bool:
+	if _pad_binding == "" or not (event is InputEventJoypadButton):
+		return false
+	var jb := event as InputEventJoypadButton
+	get_viewport().set_input_as_handled()
+	if not jb.pressed:
+		_pad_armed = true
+		return true
+	if not _pad_armed:
+		return true
+	var action := _pad_binding
+	_pad_binding = ""
+	if jb.button_index == JOY_BUTTON_B:
+		_bind_note.text = "unchanged."
+	else:
+		var why := Settings.bind_pad(action, jb.button_index)
+		_bind_note.text = ("Pad %s: %s" % [Settings.ACTION_NAMES[action].to_lower(), Settings.pad_label(action)]) if why == "" else "not changed: " + why
+	_label_binds()
+	if _pad_buttons.has(action):
+		(_pad_buttons[action] as Button).grab_focus()
+	return true
 
 
 func _start_binding(action: String) -> void:
@@ -132,6 +179,14 @@ func _start_binding(action: String) -> void:
 
 ## The key that comes next is the new binding (Backspace cancels).
 func _input(event: InputEvent) -> void:
+	if _pad_input(event):
+		return
+	if _pad_binding != "" and event is InputEventKey and event.is_pressed():
+		_pad_binding = ""  # a key cancels a pad binding
+		_bind_note.text = "unchanged."
+		_label_binds()
+		get_viewport().set_input_as_handled()
+		return
 	if _binding == "" or not (event is InputEventKey) or not event.is_pressed() or event.is_echo():
 		return
 	get_viewport().set_input_as_handled()

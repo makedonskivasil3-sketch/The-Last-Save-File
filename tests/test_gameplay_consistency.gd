@@ -42,7 +42,11 @@ func test_progression_stages_follow_the_save() -> void:
 	check_eq(Progression.goal_hint(), "", "no truth hint while memories are missing")
 	_all_memories()
 	check_eq(Progression.stage(), Progression.Stage.INVESTIGATE, "every memory: others have noticed things")
-	check_eq(Progression.goal_hint(), Progression.HINT_INVESTIGATE, "the hint says so, without naming it")
+	# 2026-11-04: the hint names who to ask and where, never what they know.
+	var hint := Progression.goal_hint()
+	check(hint.begins_with("Every memory is back.") and hint.contains("in Arin's room"), "the hint names where to ask (%s)" % hint)
+	for word in ["character", "file", "played", "player"]:
+		check(not hint.to_lower().contains(word), "without naming the truth (%s)" % word)
 	check(Progression.open_witnesses().has("mira"), "Mira has something to say")
 	check(not Progression.open_witnesses().has("tobben"), "Tobben only notices once his guestbook has her name")
 	memory().truth_pieces.assign(["mira", "pip"])
@@ -65,7 +69,7 @@ func test_goal_keeps_the_way_out_and_adds_the_hint() -> void:
 	w.flags["pointer"] = true
 	var goal: String = w.current_goal()
 	check(goal.contains("north road"), "the ordinary way out is still the goal (%s)" % goal)
-	check(goal.contains(Progression.HINT_INVESTIGATE), "with the quiet truth hint under it")
+	check(goal.contains(Progression.goal_hint()) and Progression.goal_hint().begins_with("Every memory is back."), "with the quiet truth hint under it")
 
 
 func test_pip_leads_to_who_has_something_to_say() -> void:
@@ -315,3 +319,35 @@ func test_archive_records_look_like_records_and_the_file_pulses_when_relevant() 
 		if n is Readable and (n as Readable).look == Readable.Look.RECORD:
 			var p: Vector2 = (n as Readable).global_position + Vector2(0, 8)
 			check(w.husk_spot_ok(p, Vector2(-999, -999)), "%s has clear floor in front of it" % n.title)
+
+
+
+## DS-1 (2026-11-04): a lead that is still open is said at the commitment
+## point, once, and the fifth memory says where the route goes.
+func test_the_slot_says_a_lead_is_open_before_she_commits() -> void:
+	_all_memories()
+	var w := await start_session()
+	w.flags["pointer"] = true
+	await go_to(w, "edge", "south")
+	var edge: TheEdge = w.area
+	edge.slot.progress = 0.1
+	await frames(4)
+	var said: Array = (w.hud.history + w.hud._queue).map(func(h: Dictionary) -> String: return str(h.text))
+	check(said.has(Progression.SLOT_LEAD_OPEN), "writing with the file unread: she says she can step out")
+	var count := said.count(Progression.SLOT_LEAD_OPEN)
+	await frames(10)
+	said = (w.hud.history + w.hud._queue).map(func(h: Dictionary) -> String: return str(h.text))
+	check_eq(said.count(Progression.SLOT_LEAD_OPEN), count, "once")
+	check(Progression.all_memories_lead() == Progression.ALL_MEMORIES, "the fifth memory points at the archive and the square")
+
+
+func test_no_lead_line_once_she_knows() -> void:
+	_all_memories()
+	memory().knows_truth = true
+	var w := await start_session()
+	w.flags["pointer"] = true
+	await go_to(w, "edge", "south")
+	w.area.slot.progress = 0.1
+	await frames(4)
+	var said: Array = (w.hud.history + w.hud._queue).map(func(h: Dictionary) -> String: return str(h.text))
+	check(not said.has(Progression.SLOT_LEAD_OPEN), "nothing open: no line")

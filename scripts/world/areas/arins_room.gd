@@ -455,3 +455,8 @@ func _paint(ci: CanvasItem) -> void:
 	ci.draw_line(Vector2(WINDOW.get_center().x, WINDOW.position.y), Vector2(WINDOW.get_center().x, WINDOW.end.y), Decor.INK, 0.8)
 	ci.draw_rect(Rect2(372, 29, 14, 6), Decor.INK)
 	ci.draw_rect(Rect2(373, 30, 12, 4), Color("e8c48a"))
+
+
+## Arrival (Area.on_arrival): Mira turns from the window, if she's there.
+func arrival_people() -> Array:
+	return [[mira, "mira", "!"]] if OwnerMemory.mira_quest == "pinned" else []

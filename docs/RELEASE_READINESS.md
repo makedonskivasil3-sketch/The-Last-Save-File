@@ -1,8 +1,309 @@
 # Release readiness
 
-**This section is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
+**The top section ("Current") is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current: unified gameplay, traversal and lantern workshop (2026-10-30)
+## Current: comprehension, identity payoff, visual credibility and fairness (2026-11-04)
+
+**Full report:** [`production/COMPREHENSION_AND_FAIRNESS_2026-11-04.md`](production/COMPREHENSION_AND_FAIRNESS_2026-11-04.md). It covers the risks, the concept map, the RUE route, fairness, the area matrix, the player protocol and the demo choice.
+
+**Changed (code, with tests):**
+
+1. **A reload can no longer kill Rue while she has no control.** Arin is held and the cursor blinded for the drag and the grace beat after it. A reload with no safe moment lands as far from threats as it can. The bug was reproduced first in `test_fairness`; it caused the CI purge-5 death 0.4 s after "the owner reloaded".
+2. **The Edge's extra patience survives a death elsewhere** (until an ending). `test_edge` was updated as a documented design change.
+3. **RUE leads:**
+   - the fifth memory says where the route goes;
+   - the hint and journal name who and where;
+   - Slot 2 says once, as she starts writing, that a lead is still open and she can step out.
+4. **RUE in one continuous playthrough is proven** by `test_full_game_rue_one_playthrough`: 3 of 3 runs reached it with no ending in between. One needed no death; two died once to the cursor while leaving the Edge, which was the forgiven first Edge death. The earlier claim that RUE needs two runs was a limit of the bot, not of the game.
+5. **The Edge:**
+   - developer-looking labels became bracketed tags in the save's own words;
+   - the square's road frays into the grid at the south gap.
+
+   See `docs/review/calibration_2026-11-03/edge_before_after.jpg`.
+
+**Verified (automated, this machine):**
+- **Strict suite:** 853/853 in one run, four shards, engine-error gate on.
+- **Bots, each reaching its exact ending:**
+  - escape at purge 0, 3 and 5: 147, 127 and 120 s, 0 deaths;
+  - message: 150 s;
+  - Wren: 185 s;
+  - overwrite: 183 s;
+  - unseen: 146 s;
+  - rue (two runs): 298 s;
+  - rue in one playthrough: three runs, above.
+
+**Open:**
+- No players yet; the protocol is ready.
+- **The permanent-loss policy at purge 6:** the author decides; options are in the report, §4.3.
+- Character scale needs a controlled comparison first.
+- Art across the campaign is mostly "functional".
+
+## History: graphics, story and player-experience pass (2026-11-03, implementation brief)
+
+**Starting point:** `7f909c7`. CI run 41637456426 green: 845 tests, all six endings by full routes, the scarred-square probe SKIP.
+**Sections below this one are history.** Blockers, owners and dates live only in [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md).
+
+### What players now see or do differently
+
+| Change | Why | Evidence (class, revision) |
+|---|---|---|
+| The Archive's two missions ask who **kept** the fifth lantern burning, not who **lit** it | The festival shows Rue lighting it, so asking who lit it contradicted what the player just did. The mystery is how it survived three years unsaved, and the Archive's log answers that ("never saved off"). Stale wording, not memory loss | Source plus automated: `test_quests.test_no_mission_asks_who_lit_the_lantern_she_lit` (`61b4ce6`) |
+| An ordinary escape ends with one quiet lead for the next run | RUE is in practice a second-run ending (DS-1). The escape stays a complete ending. With memories missing: they survive, go back. With all five: the people who watched her might know the rest. It never names the truth | Automated: `test_endings.test_an_escape_points_at_the_next_run_without_the_truth` (`61b4ce6`) |
+| The goal line moved from the top of the screen to the band under the map, above the console | When wrapped at the top, it covered the room's wall notes ("I SAW YOU", the window) and the workshop's top wall. The band under the map was empty in all eight areas | Visual inspection of same-state captures; automated: `test_hud_layout` (`6d6a816`) |
+| The workshop is a working room: pegboard of tools, wick-spool rack, a shelf of finished frames with one place empty, stock in the corner, worn mats, shavings | It read as three benches floating in a hall | Visual inspection: `docs/review/calibration_2026-11-03/cal_workshop_*_before_after.jpg` (`4ae1057`). All new solids hug walls. The workshop and controls suites pass |
+| The repaired light runs to the hatch as a soft band with a bright core; the hatch glows | The 1 px line didn't read as light, or as the next route | Same captures |
+| The well has a stone apron and worn-earth ring, and the fifth lantern has its own light | The well is the village's landmark; it sat on undifferentiated lawn | `cal_square_before_after.jpg` (`4ae1057`). Paint only, no collision change |
+
+### Verified on this pass (automated, this machine)
+
+- **Strict suite:** four isolated shards. 848 of 849 passed on the first run; the one failure was the voice-manifest check, because the two new escape lines weren't listed. Regenerated with `tools/voice_manifest.gd`; `test_voice_manifest` now passes 3/3. The engine-error gate is on.
+- **Bots:** every route reached its exact ending:
+  - escape at purge 0, 3 and 5: 147, 135 and 120 s, 0 deaths;
+  - message: 150 s;
+  - Wren: 182 s, 2 stalls;
+  - overwrite: 189 s, 47 glitches;
+  - unseen: 146 s, 1 glitch;
+  - rue: 2 runs, 294 s, 0 deaths.
+- **Exports** from code at `6fc6f2a`: Windows, Linux and Web all exit 0 with 0 errors. The Linux smoke run exits 0 with 0 errors. SHA-256:
+  - `.exe` `fa2dbb1dacd6b618cac14d766d5714bcbb75baf20c44166dc661615c198aaa2a`;
+  - `.x86_64` `35f5ca4ffd7ce2fcc2bbec10c1247d7e396c32aebbc9e4af6ea1f126715488cd`;
+  - `index.pck` `47fa2eb0b343a864bc21f8e112dbb42f582c4fd13d61ae47205f01700cdf398b`;
+  - `index.wasm` `fe5cebc590758c10bc4469be5a591e28edbde5ec8f458f21baeb83db50d028b9` (the engine, unchanged).
+
+  These are local builds; CI makes the downloadable ones.
+
+### Current captures of every area
+
+`docs/review/calibration_2026-11-03/area_*.jpg`, from `tests/tour_calibration.gd`: the same position and save state each time, 1280×720, software renderer under Xvfb. **Not a hardware or GPU result.**
+
+Observed, not yet changed:
+- **Edge:** the missing-asset labels ("TODO: art", "tree_04.png (missing)") read as deliberate only with context. A human round should say whether they look unfinished.
+- **Archive:** strong. The reading stands and the desk are distinct.
+- **Arin's house, Out of Bounds and the Bin:** no change this pass.
+
+### Not done in this pass, honestly
+
+- **Rue's animation audit** (turns, foot contact, scarf), **NPC silhouettes**, and **the Archive, house, Out of Bounds, Bin and Edge art passes:** the approved rules are the calibration above. Applying them needs the author's approval of the two calibration scenes first (the brief's order).
+- **First-session timing:** needs humans; bots aren't evidence of pacing.
+- **The audio audit, Windows hardware and the controller:** need people and devices.
+- **Steam:** account status unknown. See the checklist.
+
+## History: release director pass (2026-11-03, second brief)
+
+**Brief:** the release director prompt of 3 November 2026 (sections 1–19). It builds on the release execution pass below and doesn't replace it.
+**Starting point:** PR #13 head `3d5a25b`. CI run 41607676951 was green on that head.
+
+### Work ledger
+
+| # | Class | Item | Evidence and revision |
+|---|---|---|---|
+| 1 | Confirmed defect, fixed | Rue and unseen endings had no played route (QA-3) | **Both now have integrated bot routes.**<br>• `test_full_game_unseen`: `ending:unseen`, 1 session, 147 s, never seen by Arin, 1 glitch.<br>• `test_full_game_rue`: `ending:rue`, 2 runs, 290 s, 0 deaths, pieces Wren and Pip, CHARACTER FILE read whole.<br>All six ending IDs are now reached by full routes |
+| 2 | Already fixed | Browser calm-save check (CI-1), freed-lambda errors (EN-1), demo ending early (DM-2) | Fixed in `55141d6`; CI green on `3d5a25b` |
+| 3 | Risk, tested | Save contract: rapid calm and conversation flips; danger straight after calm; settings across a story reset | New `tests/test_save_contract.gd`, 3 cases, all pass. The disk always holds the game's latest decision. A close in danger never resumes as calm. Settings survive `wipe()` |
+| 4 | Risk, closed | First-import font errors (EN-2) | A fresh checkout's first import: 4 font errors. Second import: 0. A Linux export built from that clean tree: exit 0, 0 errors. Running the export: no font or other errors. **Not a release defect** |
+| 5 | Design weakness, for the player round | **RUE is in practice a second-run ending.** The truth needs all five memories, two of them at the Edge. Going back down from the Edge means passing the south gap (where Arin enters), the cursor and the square's static at peak awareness | The bot's first design went back down from the Edge and died both times: cursor at the gap, then the eraser in the square. Memories survive an ending, so run 2 reaches the file before the Edge. **The author decides** whether this is intended. If not, the smallest fix is a signpost after the first escape ("someone in the square noticed something"), not a new mechanic |
+| 6 | Human or hardware needed | Players, Windows PC, physical controller, Steam account, low-end browser | Unchanged: B5–B10 in `RELEASE_CHECKLIST.md`. None can be done from here |
+| 7 | Post-launch | Achievements, cloud saves, localisation, recorded voice, Deck verification | `RELEASE_CHECKLIST.md`, post-launch section |
+
+### Ending coverage: exact routes (bots, `tests/run.sh --bots`)
+
+| Ending | Route | Last result |
+|---|---|---|
+| escape | `test_full_game_escape`, also at purge 3 and purge 5 | Passed:<br>• purge 0: 147 s, 0 deaths;<br>• purge 3: 139 s, 0 deaths (a second run: 201 s, 1 eraser death at the Edge);<br>• purge 5: 119 s, 0 deaths |
+| message | `test_full_game_message` | Passed: 149 s, 0 deaths |
+| wren | `test_wren_ending` | Passed: 176 s, 2 stalls |
+| overwrite | `test_full_game_overwrite` | Passed: 2 sessions, 280 s, 1 eraser death at the Edge, 94 glitches |
+| **unseen** | **`test_full_game_unseen` (new):** no glitches beyond the room's own, Arin never sees her | **Passed: 1 session, 147 s** |
+| **rue** | **`test_full_game_rue` (new):** run 1 takes the slot without the truth (escape). Run 2 gets Wren's piece, Pip's FIRST HITBOX and the CHARACTER FILE, then writes RUE | **Passed: 2 runs, 290 s, 0 deaths** |
+
+**Strict suite** on the new tests: 845/845 across four isolated shards (842 + `test_save_contract`), every shard exit 0, with the engine-error gate on.
+
+**Runtime code is unchanged** since `55141d6`; this pass changed tests and documents only. So the export hashes below (built from `6d7a37c`) still describe the game's code.
+
+The scarred-square probe still reports SKIP, as it should.
+
+## History: release blockers, December full PC release (2026-11-03)
+
+**Brief:** the release execution prompt of 3 November 2026.
+- **Checklist and blockers:** [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md).
+- **Issues:** register rows CI-1, EN-1, EN-2, QA-3, DM-2 and WEB-1.
+- **Target:** full Windows release on 10 Dec; go or no-go on 4 Dec.
+
+**Code** at `55141d6` (blocker fixes); **documents** at `6d7a37c`. The exports are built from `6d7a37c`.
+
+### Fixed, with cause
+
+| Blocker | Cause (measured) | Fix |
+|---|---|---|
+| CI red on the PR head (browser calm-save check) | The game marked calm at once and never flipped back. IndexedDB stored it later:<br>• ×1: 5.2 s (10.8 s in the final run);<br>• ×6: 22.2 s (16.3 s in the final run);<br>• ×12: 30.7 s.<br>The CI runner draws 1 fps; the check allowed 15 s | The game's decision is checked separately from storage. Storage is bounded at 60 s (about twice the worst measured). `WEB_CPU_THROTTLE` reproduces a slow machine |
+| 9 freed-lambda engine errors hidden by a passing summary | `Area.on_arrival` used lambdas that captured people; leaving within about 1 s freed the captures | A bound method of the area. Every unexpected `ERROR` now fails `tests/run.sh` (allowlist: five corrupt-JSON cases). The gate's self-test runs in CI |
+| A skipped probe counted as passed; ending coverage overstated | The probe returned early but was reported as PASS | A SKIP status. A new full-route bot for overwrite |
+| The demo candidate could end before its mission | The Archive way ended it | The ways stay shut with a pointer back to the mission |
+
+### Verified (automated, this machine)
+
+- **Strict suite:** 842/842 inventory cases across four isolated shards. No omission, no duplicate, no script error, **no unexpected engine error**. The ObjectDB exit warning is a WARNING and remains (PL-3).
+- **Bots,** through the gated `run.sh`. Each reached the exact ending asked for:
+  - escape at purge 0: 146 s;
+  - escape at purge 3: 135 s;
+  - escape at purge 5: 120 s;
+  - message: 150 s;
+  - Wren: 176 s, 2 stalls;
+  - **overwrite: 183 s, 47 glitches** (an earlier run: 3 sessions, 2 eraser deaths at the Edge, 14 stalls).
+  - The probe reports SKIP.
+  - **Rue and unseen have no full route:** Slot 2 scenario tests only.
+- **Exports from `6d7a37c`:** Windows, Linux and Web all exit 0.
+  - SHA-256:
+    - `.exe` `cf5e89399836fc6de63fc6ca0d2e1d8caf2a652c43a839b38424c197de5e9826`;
+    - `.x86_64` `9bc65dfa7d28545b9641a47097a91d5688c537a014ba5700a37a2734c8e0a9a7`;
+    - `index.pck` `3cb3a8419f7a2f1b4db4ef0b475d78d8100d9870ae75f625afac0b5020548d3e`;
+    - `index.wasm` `fe5cebc590758c10bc4469be5a591e28edbde5ec8f458f21baeb83db50d028b9`.
+  - Linux smoke run: exit 0, no errors.
+  - Local builds, not public downloads.
+- **Browser checks:**
+  - `web_check`: all pass, at ×1 and ×6;
+  - story check: pass, reader 76–107 ms;
+  - audio check: pass.
+- **Clean-checkout import:** font errors on the first import only (EN-2). The second import is clean.
+
+### Not verified, and what blocks a release (`RELEASE_CHECKLIST.md`)
+
+- **No unfamiliar players yet** (B6, due 8 Nov).
+- **No Windows hardware or physical-controller run** (B7).
+- **Steam onboarding, fee and eligibility date unknown** (B8; author).
+- **Coming Soon page by 20 Nov** (B9).
+- **Rue and unseen endings:** not played through by any route.
+- **Web saves on a real low-end browser:** not measured (B5).
+- **CI on the new head:** waiting.
+
+## History: player-experience pass (2026-11-02)
+
+**Brief:** [`prompts/PLAYER_EXPERIENCE_PASS_2026-11-02.md`](prompts/PLAYER_EXPERIENCE_PASS_2026-11-02.md). It covers controls, gameplay, graphics, player experience, performance and commercial work, with one status per item.
+
+### Changed
+
+| Change | Commit | Before → after |
+|---|---|---|
+| **Corner assist:** a blocked, mostly single-axis move slides round an edge it only clips (up to 5 px), through normal collision | `7fa700c` | Clipping the workshop bench by 1–5 px stopped Rue dead → she rounds it at 1–4 px with no overlap. Square-on blocks and long walls are unchanged |
+| **Early-press buffer:** an [E] tap with nothing in reach is kept for 200 ms | `7fa700c` | A tap 0.10 s before reaching the lamp was lost → used when she arrives. A stale tap expires; nothing carries over a change of place |
+| The name on the fifth frame is drawn as letters | `7fa700c` | Three unreadable strokes → "RUE" in her lilac |
+
+### Measured, no change needed
+
+- **Death to control:** 2.3 s (first death) and 1.6 s (repeat), pressing at once. The target was 6 s or less.
+- **Endings count:** Records already shows "ENDINGS n/6" with hints.
+- **Death cards:** every one names its cause and a counter.
+- **Small text:** six world strings under 7 px. The smallest, at 5 px, is legible in captures.
+- **Drawing:** the square's per-frame redraw is ten specks.
+- **Draw calls** (software renderer): square about 790–1,100, room 650–750. Lights and particles are under 2% of that. **Optimizing them waits for a real-GPU benchmark**, so as not to guess.
+
+### Verified
+
+- **Strict suite at `7fa700c`:** four isolated shards, **841/841** inventory cases. No omission, no duplicate, no script error. The ObjectDB exit warning is still printed (PL-3).
+- **Movement, touch, glitch, fairness and cohesion suites:** 95/95. The new `test_controls_feel`: 7/7.
+- **Bots at `7fa700c`:** every bot reached the ending asked for.
+  - escape at purge 0: 145 s;
+  - escape at purge 3: 215 s, one eraser death at the Edge;
+  - escape at purge 5: 142 s, then 184 s (one eraser death);
+  - message: 150 s;
+  - Wren: 167 s.
+- **Stalls (stuck navigation) fell:**
+  - Wren: 2 → 0;
+  - purge 5: 9 → 3 and 0;
+  - all others: 0.
+  This is a small sample, so it is consistent with the corner assist but doesn't prove it.
+- **Exports from `7fa88ef`:** Windows, Linux and Web, all exit 0.
+  - SHA-256 prefixes: `.exe` `93ab1f657f34d440`; `.x86_64` `1fa9ac66ad956259`; `index.pck` `a6976ac5efc9efda`.
+  - Linux smoke run: 0.
+  - Local builds only, not public downloads.
+- **Browser checks:** `web_check` 12/12; story check pass (reader 58–86 ms); audio pass.
+
+### Not verified (needs people, hardware or the author)
+
+- A real controller and real hands on the corner assist: whether players notice it, or ever feel pulled.
+- A real-GPU benchmark (P1, P3).
+- Everything marked PEOPLE in the brief.
+
+## History: production revision (2026-10-31)
+
+**Branch:** `claude/last-save-file-prototype-ljwuq4`.
+- `main` @ `adf2710` was merged in at `b5db36a`. Main's doorway design won.
+- Code verified at `3062c7d`.
+- Register: [`production/ISSUE_REGISTER.md`](production/ISSUE_REGISTER.md) (top section).
+- Spec: [`production/PRODUCT_SPEC.md`](production/PRODUCT_SPEC.md) (top page).
+
+### What changed, and why it matters to a player
+
+| Change | Commit | Player benefit |
+|---|---|---|
+| Workshop steps saved in one write; a failed write says so and retries; failure injection tests | `d6fd6ed` | Nothing shown as done can vanish on relaunch without a warning |
+| Chapters follow story milestones, not places. Places are named on arrival | `d6fd6ed` | No later chapter before an earlier one, in any exploration order |
+| The title glitch can no longer rewrap the title and move the menu | `7f9f7e6` | A click lands on the button the player aimed at |
+| RD-1: the browser story check was measuring IndexedDB sync, not reading. Root cause measured; check fixed; web save delay registered (WEB-1) | `837e798` | A verified reader. An honest statement about web saves |
+| The workshop mission deepened: Rue's reason, a readable problem, a decision (her name on the fifth frame), Wren's variant | `3a5487c` | The one optional mission now has a why, a choice and a remembered consequence |
+| The candidate demo endpoint (`?demo=workshop`) ends after a finished mission. Demo saves are separate | `d9beec1` | A demo that shows the game's third promise. Demo progress never leaks into the full game |
+
+### Verified
+
+- **Strict suite, at `d9beec1`:**
+  - Four shards with isolated XDG folders.
+  - **834/834 inventory cases ran**, checked against `--list-tests`: no omission, no duplicate, no script error.
+  - 833 passed. One failure: the voice manifest was out of date after the new Wren line. Regenerated with the repo's tool in `3062c7d`; the voice tests then pass 12/12.
+  - The ObjectDB exit warning is still printed (PL-3). It is not suppressed.
+- **Earlier sharded run (`d6fd6ed` + docs):** 2 failures, both investigated and reproduced, not re-rolled.
+  - UI-7: title glitch.
+  - QA-2: test isolation.
+  - Both fixed in `7f9f7e6`.
+- **Bots** (code at `d9beec1`, game time): every bot reached the exact ending asked for.
+  - escape at purge 0: 149 s, then 149 s;
+  - escape at purge 3: 132 s, then 135 s;
+  - escape at purge 5: 126 s; then 220 s, finished after one death at the Edge;
+  - message: 151 s;
+  - Wren: 178 s.
+- **Exports from `3062c7d`:** Windows, Linux and Web, all exit 0.
+  - SHA-256 prefixes:
+    - `TheLastSaveFile.exe` `25dec7ff8106633a`;
+    - `TheLastSaveFile.x86_64` `363cbae00bc059f8`;
+    - `index.pck` `edaea729a6f7ca5c`;
+    - `index.wasm` `fe5cebc590758c10`.
+  - Linux smoke run exits 0 with no errors.
+  - These are local builds in the session container, not public downloads. CI builds the public artifacts.
+- **Browser checks on that web build:**
+  - `web_check`: 12/12;
+  - `prologue_story_check`: reader 58–102 ms, stored 0.7–1.7 s. Also 4/4 at CPU throttle ×1 and ×6 at `837e798`;
+  - `audio_output_check`: pass.
+
+### Route timing (bots, escape at purge 0, game time without reading)
+
+| Stretch | Seconds |
+|---|---|
+| Arin's room | about 35. About 20 of that is the bot circling a table: bot navigation, not a player problem |
+| Square → under the well | about 13 |
+| Under the well | about 26 |
+| Square → Archive | about 8 |
+| Archive | about 9 |
+| Square → Edge | about 10 |
+| Edge to Slot 2 | about 31 |
+
+**Backtracking:**
+- The square is crossed three times, for about 18 s of 149 s (12%).
+- Every crossing has a new reason (`production/WORLD_CONNECTIONS.md`).
+- **No route change is made from this.** The bots don't read, and players do. The real length is still unmeasured.
+
+### Not verified (needs people, hardware or the author)
+
+- No playtest has been run.
+- **Hardware never tried:**
+  - Windows;
+  - a physical controller;
+  - a phone.
+- **Web saves on real low-end hardware.** WEB-1 was measured in headless Chromium only.
+- **Listening:** nobody has listened to the mix.
+- **The demo endpoint:** the choice between the two is the author's, after a playtest.
+- **Art:** the fifth frame's label is small at game scale. Polish it only if a playtest shows players miss it.
+- **Commercial:** see [`production/COMMERCIAL_PLAN_2026-10-31.md`](production/COMMERCIAL_PLAN_2026-10-31.md). Nothing has been bought, signed or published.
+
+## History: unified gameplay, traversal and lantern workshop (2026-10-30)
 
 **Base:** main `a81baf7` (PR #12). **Final runtime:** `2f03453`.
 The author requested implementation and merging into main. The previous input
@@ -46,7 +347,85 @@ Use [`review/oct30/PLAYTEST.md`](review/oct30/PLAYTEST.md) for the next round.
 The workflow on main builds downloadable artifacts and deploys Pages; local
 export success does not mean the public deployment has completed.
 
-## Previous: the supporting cast, canon A–E, the playtest kit (2026-10-29, branch at `40ba023`+)
+## Previous (parallel branch, reconciled 2026-10-31): travel between maps (`e551c6c`)
+
+> **Reconciled with `main` @ `adf2710` on 2026-10-31.** That branch and `main` took opposite approaches to doorways. `main`'s design is kept: quick 0.12/0.16 s fades, stone thresholds, explicit arrival facing. **Removed here:** the passage card, the walk-out and walk-in, exit intent, the arrival clear-zone and the lit-threshold glow. **Kept:** dust at Rue's feet, and people noticing her arrive (`Area.on_arrival`, now called from `main`'s `change_area`). The rest of that branch's work (the open-issue sweep and next pass below) is merged unchanged. Its verification figures belong to that branch's revisions, not to the merge.
+
+**Asked for:** update the graphics, movement and character depth, and fix "the fast meaningless jumping from map to map". The brief is [`prompts/TRAVEL_AND_DEPTH_2026-10-30.md`](prompts/TRAVEL_AND_DEPTH_2026-10-30.md), written and applied.
+
+**The problem, measured:**
+- Most maps are one screen (448×256); Rue crosses one in about 5 s.
+- An exit fired on any touch, even brushing past sideways.
+- The change was a 0.25 s fade, the next map, then a 0.3 s fade: **about 0.55 s, with no reason given**.
+
+| Change | What the player gets | Evidence |
+|---|---|---|
+| Leaving on purpose | An exit fires only when Rue moves out through it, or stops in it. Brushing a doorway sideways doesn't change the map. After arriving, she can't bounce straight back | `test_travel` |
+| Walking out and in | She walks through the doorway as the picture darkens (0.4 s), and walks in on the other side. Reduced motion: no walk | `test_travel` |
+| The passage card | On black: the place's name, why she is going ("(the records. someone wrote down who lit it.)") and who is with her ("(pip at my heels.)"). 1.4 s when there's something new to say, 0.6 s (name only) otherwise; a press ends it; threats are held. A transition now takes **about 2.6 s with something to say, 1.4 s without** | `test_travel`; `tour_travel` t02 |
+| Doorways you can see | Every exit draws a lit threshold that brightens within 40 px. Closed ones are cold | `test_travel`; `tour_travel` t01 |
+| Dust | A puff at her feet when she sets off, stops sharply or turns round. Off with reduced motion | `test_travel` |
+| People notice her | Wren waves, Tobben glances up, the Archivist keeps writing, Mira turns from the window. Only people she has met, never her escort, never while the owner hunts. Pip trots in a step behind | `test_travel`; `tour_travel` t04 |
+
+**Test isolation, explicit:** the suite runs with travel beats off by default (`World.travel_beats_default`). `test_travel` and the bots turn them on.
+
+**Found by the bots:** with travel on, every route stalled entering Out of Bounds. The arrival itself was fine (318 frames, Rue on her entry point); the bot only waited 240 frames. Its wait is now 8 s by the clock (`e551c6c`).
+
+### Verification (`e551c6c`)
+
+| Check | Result |
+|---|---|
+| Strict full suite | **809/809** (`407db87`; the later commit only changes the bots' wait) |
+| Ending bots, with travel beats | **6/6 in two runs** (escape, message, purge-3, purge-5, the purge-5 probe, Wren) |
+| Exports | Web, Windows, Linux exit 0. SHA-256: exe `29e4758894c93631`, x86_64 `0ef1fbc43b1dcd86`. Linux smoke: exit 0, no script errors |
+| Browser | Lifecycle passes; audio: title −29.8 dBFS, room −31.2 dBFS. The story reader **failed once in three runs** (the "Continue click keeps the reply" step), then passed twice. It is timing-sensitive, in the festival, which this pass doesn't touch. Recorded, not hidden |
+| Playable build | https://claude.ai/artifact/3G95pCn7jTAYr2DPmmWu5w **version 25** (`e551c6c`). Private until shared |
+
+**Not verified:** whether players find the passage helpful or slow. Add it to the playtest questions: "Moving between places, did you know where you were going and why?"
+
+## History: the open-issue sweep and the next pass (2026-10-30, branch at `7734ab1`)
+
+**Base:** `main` @ `a81baf7` (PR #12). The author asked to "implement all the issues that remain unsolved", write a prompt for what the game still lacks, and implement it. The prompt is [`prompts/NEXT_PASS_2026-10-29.md`](prompts/NEXT_PASS_2026-10-29.md).
+
+### Open issues
+
+| Issue | Done | Evidence |
+|---|---|---|
+| PL-3 exit warning | Characterised. One cause fixed (Tobben's report). The rest are test teardown under pending effects. The exported game exits clean. **Still open** | Verbose suite: 25 timers, 23 tweens, 14 coroutines at exit. Linux smoke: no warning |
+| PL-4b death-seeded static | A death spot glows red for 3 s before its static starts | `test_death_seeds` |
+| PL-5 benchmark validity | The escort survives under `bench_immune`. The hunted scenario is valid 3/3 | `tour_benchmark` (xvfb, software renderer) |
+| UI-2 phones | Portrait pauses play. A key or pad press hides the touch controls. Dialogue text clears the E button | `test_touch_fixes` 3/3. **No phone tested** |
+| UI-3 gamepad remapping | Interact and Pause can be rebound. B, the d-pad and Home are refused. Start always pauses. Kept and reset | `test_pad_remapping` 4/4. **No physical controller** |
+| UI-4 flashing | `tour_flash`: worst second at default is 2 (a real death with its card; was 3). Reduced flashing: 0 | An engineering measurement, not a certified PSE test |
+| UI-5 silhouettes | `solid` draws a true silhouette | `test_character_pipeline` |
+| UI-6 act numbers | Cards count up in the order the places are reached | `test_act_order` 2/2 |
+
+### The next pass (the prompt's §1–4)
+
+| Feature | What a player gets | Evidence |
+|---|---|---|
+| Build stamp | "build abc1234 · date" on the title and on the pause menu's History page. CI writes `build_info.json` | `test_next_pass` |
+| Previously | After 20 min away: the goal, the last two things read, who is with her. Reader-paced, before anything moves | `test_next_pass` (shown, not shown, once, nothing unseen, save stamp) |
+| Owner pace | Settings → Owner pace: Normal / Gentle. Gentle: Arin and the cursor at 80%, static at 60%, death-spot warning ×2. Story unchanged. Logged in the playtest log | `test_next_pass` (multipliers, Arin's real speed, kept) |
+| Report a problem | Pause → History → Report a problem: build, place, goal, play settings and the last 40 lines, copied to paste to the author. Nothing is sent | `test_next_pass` |
+
+### Verification (`7734ab1`)
+
+| Check | Result |
+|---|---|
+| Strict full suite | **799/799** (1823.5 s, verbose). The exit warning is still printed (PL-3) |
+| Ending bots (`7734ab1`, two runs) | Run 1: escape, message, purge-3, Wren, the purge-5 probe pass; **purge-5 failed** (two Edge static deaths after reloads, PL-4c). Run 2: **all 6 pass** |
+| Exports | Web, Windows, Linux exit 0. SHA-256: exe `cd8a6f6e90713983`, x86_64 `f5ee03a69b420d6a`. Linux smoke (xvfb, 240 frames): exit 0, no script errors, no leak warning |
+| Browser (headless Chromium) | Lifecycle all pass; story reader passes; audio: title −29.7 dBFS, room −32.8 dBFS |
+| Playable build | https://claude.ai/artifact/3G95pCn7jTAYr2DPmmWu5w **version 24** (`7734ab1`, stamp shows the commit). Private until shared |
+
+### Still needs people, hardware or the author
+
+- **Playtests:** five unfamiliar players (`playtest/RUN_A_ROUND.md`). Add the new questions: did anyone use Gentle, and did "Previously" help after a break?
+- **Hardware:** Windows run, a physical controller (now including remapping), a phone (portrait and touch), Mobile Safari (SV-2).
+- **Assets:** final art and voices, under `production/PRODUCTION_STANDARD.md`.
+
+## History: the supporting cast, canon A–E, the playtest kit (2026-10-29, branch at `40ba023`+)
 
 **Base:** `main` @ `6e67d0a`. Branch `claude/last-save-file-prototype-ljwuq4`. **Merge:** authorised by the author ("yes merge"; decisions 1–4 delegated, 2026-10-29), after CI is green on the PR.
 
@@ -90,7 +469,7 @@ export success does not mean the public deployment has completed.
 2. **The square's death-seeded static** (PL-4b): keep (harder late game, the owner remembers), or mark-only like the Edge.
 3. Share the v23 link with anyone you want to play it (it's private).
 
-## Previous: refining toward a vertical slice (2026-10-28, branch at `3c00c96`)
+## History: refining toward a vertical slice (2026-10-28, branch at `3c00c96`)
 
 **Base:** `main` @ `6e67d0a` (PR #11). Branch `claude/last-save-file-prototype-ljwuq4`. **Not merged:** no merge authorisation for this round.
 
@@ -148,7 +527,7 @@ export success does not mean the public deployment has completed.
 3. Merge this branch?
 4. Arrange the playtests: they gate further investment.
 
-## Previous: trust and control, free save, and Wren's game (2026-10-28, `2ed3eb4`)
+## History: trust and control, free save, and Wren's game (2026-10-28, `2ed3eb4`)
 
 **Code revision:** `2ed3eb4`. Base `b26aba0`. Merged to `main` with the author's authorisation (PR #11).
 
@@ -195,7 +574,7 @@ export success does not mean the public deployment has completed.
 - Browser storage durability is defined but not tested in a private window.
 - Nothing here shows whether players care about Wren. That is the next gate.
 
-## Previous: Save and exit, and Wren's arc (2026-10-27, `483ac8f`)
+## History: Save and exit, and Wren's arc (2026-10-27, `483ac8f`)
 
 **Author decisions:**
 - **Wren** is the deep relationship.
@@ -209,7 +588,7 @@ export success does not mean the public deployment has completed.
 
 **Not verified:** nobody has played either change.
 
-## Previous: the festival's break rebuilt (2026-10-27, branch `claude/last-save-file-prototype-ljwuq4`)
+## History: the festival's break rebuilt (2026-10-27, branch `claude/last-save-file-prototype-ljwuq4`)
 
 **Code revision:** `08ab155`, based on `main` @ `6fb8e23`. Not merged.
 
@@ -232,7 +611,7 @@ export success does not mean the public deployment has completed.
 
 **Not verified:** Windows execution, hardware GPU, a physical controller, and unfamiliar players. This is not a release claim. The ObjectDB exit warning is still printed.
 
-## Previous: verified integration and player-paced festival (2026-10-26)
+## History: verified integration and player-paced festival (2026-10-26)
 
 The author requested integrating the review branch into **main**. Source
 branch `claude/last-save-file-prototype-ljwuq4` at `095ab8c` is integrated
@@ -273,7 +652,7 @@ The Windows build is packaged locally and main's GitHub Actions workflow
 rebuilds it for artifact download. An exported executable is not evidence
 that a Windows PC has run it; a queued CI run is not a finished download.
 
-## Previous: the first ten minutes rebuilt (2026-10-24, afternoon)
+## History: the first ten minutes rebuilt (2026-10-24, afternoon)
 
 **Branch:** `claude/last-save-file-prototype-ljwuq4`. PR #10 is still a
 **draft, not merged**; `main` is `09aeb3b`. The brief is
@@ -320,7 +699,7 @@ the art direction in `docs/ART_BIBLE.md`.
   - nothing published or bought.
 - **Open author decisions:** Q1–Q5 in `INTRO_REBUILD.md` §4.
 
-## Previous: consistency, characters and places (2026-10-24)
+## History: consistency, characters and places (2026-10-24)
 
 **Branch:** `claude/last-save-file-prototype-ljwuq4`. PR #10 is still a
 **draft, not merged**; `main` is `09aeb3b`. The review started from
@@ -360,7 +739,7 @@ the art direction in `docs/ART_BIBLE.md`.
   (opening auto-play waits, Suspend, the demo endpoint, the act card, and
   the cost of Rue's press).
 
-## Previous: opening, character and world revision (2026-10-22, evening)
+## History: opening, character and world revision (2026-10-22, evening)
 
 **Branch:** `claude/last-save-file-prototype-ljwuq4`.
 - PR #10 is a **draft, not merged**. `main` is at `09aeb3b`.
@@ -432,7 +811,7 @@ version 18, built from `afb3bc0`. It is private to its owner until shared.
 - unfamiliar players. None were observed; the protocol and the playtest
   log are ready (`PLAYTEST_PLAN.md`).
 
-## Previous: review milestone after the vertical slice (2026-10-22, morning)
+## History: review milestone after the vertical slice (2026-10-22, morning)
 
 **Branch:** `claude/last-save-file-prototype-ljwuq4`.
 - PR #10 is a **draft, not merged**. `main` is at `09aeb3b`.
@@ -491,7 +870,7 @@ suppressed:**
 
 None of these is claimed.
 
-## Previous: coherence milestone, review branch (2026-10-21)
+## History: coherence milestone, review branch (2026-10-21)
 
 Branch: `claude/last-save-file-prototype-ljwuq4` (PR #10, draft, **not
 merged**). `main` = `09aeb3b`. The code head is `537df8c`; later commits
@@ -537,7 +916,7 @@ are documents only. The evidence and the remaining work are in
 
 None of these is claimed.
 
-## Previous: continuity milestone, review branch (2026-10-21)
+## History: continuity milestone, review branch (2026-10-21)
 
 Branch: `claude/last-save-file-prototype-ljwuq4`, not merged. `main` (now
 `09aeb3b`, with PR #9) was merged into it. Where PR #9 and this branch

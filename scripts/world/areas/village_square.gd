@@ -197,6 +197,7 @@ func build() -> void:
 	light_surfaces(0.82, 1.2)
 	add_light(Vector2(220, 70), Color(1.0, 0.86, 0.62), 0.75, 560.0, true)
 	add_light(WELL.get_center() + Vector2(0, 14), Color(1.0, 0.75, 0.45), 0.9, 70.0)
+	add_light(WELL.get_center() + Vector2(17, -1), Color(1.0, 0.72, 0.38), 0.6, 120.0)  # the fifth lantern itself
 	add_light(STALL.get_center() + Vector2(0, 30), Color(1.0, 0.8, 0.55), 0.8, 90.0)
 	add_light(Vector2(GATEHOUSE_N.get_center().x - 10, (EAST_GAP.x + EAST_GAP.y) * 0.5), Color(1.0, 0.82, 0.5), 0.9, 90.0)  # the gatehouse's lamp
 	add_dust(bounds.grow(-10), Color(1.0, 0.95, 0.75, 0.4), 30, Vector2(6, -1))  # pollen on the breeze
@@ -688,6 +689,7 @@ func area_process(delta: float) -> void:
 	_wren_nod()
 	_wren_doing()
 	_notice_doodles()
+	_tobben_before_walk(delta)
 	_walk_tobben(delta)
 	_well_process(delta)
 	_wren_beckon(delta)
@@ -1017,19 +1019,33 @@ func _tobben_reports() -> void:
 	if _report_pending or tobben.mute or not _report_cooled() or _tobben_errand != "":
 		return
 	_report_pending = true
-	await _story_clear()
-	if not is_inside_tree():
+	# Driven by area_process, not a coroutine: the area can be freed
+	# mid-report (a death, an exit), and a suspended wait would leak.
+	_tobben_errand = "wait"
+	_tobben_hesitate = TOBBEN_HESITATE
+
+
+## Before his walk: after the conversation (and any scene after it), pen in
+## hand, looking at her, then at the board; then he sets off.
+func _tobben_before_walk(delta: float) -> void:
+	if _tobben_errand not in ["wait", "hesitate"] or not is_instance_valid(tobben):
 		return
-	# Pen in hand, looking at her, then at the board.
-	tobben.doing = "pen in hand"
-	tobben.emote("...", TOBBEN_HESITATE)
-	await get_tree().create_timer(TOBBEN_HESITATE).timeout
-	await _story_clear()  # a scene that started meanwhile goes first
-	if not is_inside_tree() or not _report_pending:
+	if _story_busy():
+		return  # a scene goes first
+	if _tobben_errand == "wait":
+		_tobben_errand = "hesitate"
+		tobben.doing = "pen in hand"
+		tobben.emote("...", TOBBEN_HESITATE)
+		return
+	_tobben_hesitate -= delta
+	if _tobben_hesitate > 0.0:
 		return
 	_tobben_path = TOBBEN_TO_BOARD.duplicate()
 	_tobben_errand = "report"
 	tobben.doing = "going to the notice board"
+
+
+var _tobben_hesitate := 0.0
 
 
 ## Moves Tobben along his path; at the board, the report; then home.
@@ -1096,8 +1112,12 @@ func _report_cooled() -> bool:
 
 ## Waits until nobody is talking and no scene or question is on screen.
 func _story_clear() -> void:
-	while is_inside_tree() and (world.hud.is_dialogue_open() or world.hud.is_cinematic() or world.hud.is_choosing() or world._cutscene):
+	while is_inside_tree() and _story_busy():
 		await get_tree().process_frame
+
+
+func _story_busy() -> bool:
+	return world.hud.is_dialogue_open() or world.hud.is_cinematic() or world.hud.is_choosing() or world._cutscene
 
 
 func _tobben_report_lands() -> void:
@@ -1180,6 +1200,24 @@ func _draw() -> void:
 ## east and north, the well, Tobben's striped stall. Only the house, the
 ## well and the stall are solid, and only they have a front face; the trees
 ## are canopies overhead (Area.add_canopies).
+## The well is the Square's landmark (2026-11-03 calibration): a worn
+## earth ring and a stone apron around it, so the centre of the village
+## reads as a place people gathered, not more lawn. Flat paint only: the
+## well's collision is unchanged.
+const APRON_R := 34.0
+
+
+func _paint_well_apron(ci: CanvasItem) -> void:
+	var c := WELL.get_center() + Vector2(0, 4)
+	Decor.disc(ci, c, APRON_R + 8.0, PATH.darkened(0.08), 28)
+	Decor.disc(ci, c, APRON_R, STONE.darkened(0.05), 28)
+	for i in 20:
+		var a := TAU * i / 20.0
+		ci.draw_line(c + Vector2.from_angle(a) * (APRON_R - 12.0), c + Vector2.from_angle(a) * APRON_R, STONE.darkened(0.3), 1)
+	ci.draw_arc(c, APRON_R - 12.0, 0.0, TAU, 28, STONE.darkened(0.3), 1)
+	ci.draw_arc(c, APRON_R, 0.0, TAU, 32, STONE.darkened(0.4), 1.5)
+
+
 func _paint(ci: CanvasItem) -> void:
 	var r := bounds
 	Decor.grass(ci, r, GRASS.lightened(0.06), 3.0, 0.0035)
@@ -1199,6 +1237,7 @@ func _paint(ci: CanvasItem) -> void:
 	while fx < r.end.x - 4.0:
 		ci.draw_rect(Rect2(fx, fy - 3.0, 1.6, 4.0), Color("4a3828"))
 		fx += 14.0
+	_paint_well_apron(ci)
 	# Arin's house: roof, front wall, the door you came out of.
 	Decor.house(ci, HOUSE, Color("7a3a30"), Color("b8a088"), HOUSE_DOOR.get_center().x)
 	draw_well(ci, WELL, STONE)
@@ -1538,3 +1577,9 @@ func _on_well_heard() -> void:
 			world.hud.say(l, "self")
 	else:
 		world.hud.say(WellSequence.COMPARED_NOT_YET, "self")
+
+
+## Arrival (Area.on_arrival): Wren looks up and waves; Tobben glances up
+## from his stall, then quickly back down.
+func arrival_people() -> Array:
+	return [[wren, "wren", "o/"], [tobben, "tobben", "!"]]

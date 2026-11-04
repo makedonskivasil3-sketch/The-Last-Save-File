@@ -56,6 +56,7 @@ func test_full_game_escape_purge_5() -> void:
 ## sessions (ISSUE_REGISTER PL-4).
 func test_probe_purge_5_scarred_square() -> void:
 	if "--probe-scarred" not in OS.get_cmdline_user_args():
+		skip("a diagnostic probe; run with -- --probe-scarred")
 		return
 	await _playthrough("escape", 5, [Vector2(470, 108), Vector2(720, 96)])
 
@@ -64,10 +65,69 @@ func test_wren_ending() -> void:
 	await _playthrough("wren", 0)
 
 
+## The reckless hidden ending, played: every glitch the run can afford on
+## the way to the slot, until the owner is at full awareness with ten
+## glitches spent (World.is_reckless_run), then Slot 1 is overwritten.
+func test_full_game_overwrite() -> void:
+	await _playthrough("overwrite", 0)
+
+
+## RUE, played over two runs, the way the save is built: the truth needs
+## all five memories, and two of them are at the Edge, past the guard. Run 1
+## takes the slot without it (escape). Memories survive an ending, so run 2
+## starts knowing everything: Wren's piece in the square, Pip's FIRST HITBOX
+## out of bounds, the CHARACTER FILE read whole in the Archive, then the
+## slot again, written RUE. (Going back down from the Edge in run 1 was
+## tried first: the guard, the cursor and the static killed it 2 of 2 times,
+## see RELEASE_READINESS 2026-11-03.)
+func test_full_game_rue() -> void:
+	await _playthrough("rue", 0)
+
+
+## RUE in ONE continuous playthrough (no ending in between): after the
+## Edge's two memories, it refuses the slot and goes back south for the
+## truth. If the way back kills it, the save keeps every memory (the first
+## Edge death is forgiven) and the next session collects the truth before
+## the Edge. Fails if any ending is taken first.
+func test_full_game_rue_one_playthrough() -> void:
+	await _playthrough("rue_one", 0)
+
+
+## UNSEEN: no glitches of its own (the room's crack is the one allowed),
+## and Arin must never see her (World.is_unseen_run). The route is the
+## escape route's own lures; if Arin ever sees her the option is missing
+## and the case fails as "unavailable", never as a pass.
+func test_full_game_unseen() -> void:
+	await _playthrough("unseen", 0)
+
+
 # --- the run ---------------------------------------------------------------------
 
+## The overwrite route glitches at every chance (a reckless player).
+var _reckless := false
+
+
+## The ending this run is playing for.
+var _ending := ""
+
+
+## Runs ended so far (RUE plays a second one).
+var _runs := 0
+## RUE without an ending in between (test_full_game_rue_one_playthrough).
+var _one_playthrough := false
+
+
 func _playthrough(ending: String, purge: int, square_deaths: Array = []) -> void:
+	var asked := ending
+	if ending == "rue_one":
+		_one_playthrough = true
+		ending = "rue"
+	else:
+		_one_playthrough = false
+	_ending = ending
+	_runs = 0
 	_edge_returns = 0
+	_reckless = false  # the overwrite route turns reckless at the Edge (_be_reckless)
 	memory().wipe()
 	memory().last_exit = "death"  # skip the boot cinematic
 	if purge > 0:
@@ -87,8 +147,17 @@ func _playthrough(ending: String, purge: int, square_deaths: Array = []) -> void
 			break
 		result = await _play_session(w, ending)
 		_release_all()
+		if ending == "rue" and result == "ending:escape" and not memory().knows_truth and _runs < 2:
+			# Run 1 is over; the next one starts from the title, like a player's.
+			_runs += 1
+			_say("run %d ended in escape: playing again for the truth" % _runs)
+			if _reading:
+				await _watch_epilogue()
+			w = await start_session(true, false)
+			continue
 		if result != "death":
 			break
+		_reckless = false
 		_deaths.append(_death_note(w))
 		_say("DIED: %s" % _deaths[-1])
 		w = await wait_for_new_session(w)
@@ -96,8 +165,12 @@ func _playthrough(ending: String, purge: int, square_deaths: Array = []) -> void
 		ending, purge, result, _session, _now() - _t0, memory().fragments.size(), memory().found_pip,
 		_deaths.size(), str(_deaths), _glitches, _reloads, _stalls]
 	print(summary)
+	if _reading:
+		await _watch_epilogue()
 	# The ending asked for, exactly: a different ending is a failure, not a pass.
 	check_eq(result, "ending:" + ending, "the bot reached the %s ending" % ending)
+	if asked == "rue_one":
+		check_eq(_runs, 0, "and no ending was taken before it (one continuous playthrough)")
 
 
 ## One session; returns "ending:<id>", "death" or "stuck:<where>".
@@ -118,6 +191,11 @@ func _play_session(w: Node, ending: String) -> String:
 		if not await _down_the_well(w):
 			return _why(w, "out of bounds")
 		_step(w, "out of bounds done")
+	# RUE, a run that starts remembering everything: two of them have
+	# noticed what she is (Story.truth_ready), then the Archive's file.
+	if ending == "rue" and memory().fragments.size() >= Story.FRAGMENTS.size() and not memory().knows_truth:
+		if not await _truth_pieces(w):
+			return _why(w, "the truth pieces")
 	# Wren deleted for helping in an earlier run: bring her back from the bin
 	# like a player would, then fetch her again.
 	if not await _archive(w, ending != "wren" or memory().is_deleted("wren")):
@@ -189,7 +267,7 @@ func _take_wren(w: Node) -> bool:
 		if Relationships.has("wren.game") and not Relationships.has("wren.mark_ok") and VillageSquare.pending_mark() == "" \
 				and sq._wren_path.is_empty() and sq._wren_at_spot == "":
 			await _go(w, [VillageSquare.CHALK_SPOTS.recess + Vector2(-8, 0)], 12.0)
-			await press("interact")
+			await _read_press()
 			await frames(3)
 			_step(w, "chalked a mark under the awning")
 		if not sq._wren_path.is_empty():
@@ -197,14 +275,14 @@ func _take_wren(w: Node) -> bool:
 		# Across the square the way she walks it (the straight line is blocked).
 		var via: Array = [Vector2(400, 262)] if absf(w.player.global_position.x - wren.global_position.x) > 200.0 else []
 		await _go(w, via + [wren.global_position + Vector2(14, 0)], 14.0)
-		await press("interact")
+		await _read_press()
 		await frames(3)
 		var opened: bool = w.hud.is_dialogue_open()
 		await _read_dialogue(w)
 		await frames(3)
 		_say("talked to Wren (%d): opened %s, focus %s, asked %s, choosing %s" % [i, opened, w._focused, w.area._wren_asked, w.hud.is_choosing()])
 		if w.hud.is_choosing():
-			await press("interact")  # "Take her with you"
+			await _read_press()  # "Take her with you"
 			await frames(3)
 			await _read_dialogue(w)
 			return w.escort != null
@@ -226,10 +304,17 @@ func _down_the_well(w: Node) -> bool:
 		_step(w, "memory: the well")
 	if not memory().found_pip and w.pip == null:
 		await _go(w, [OutOfBounds.PIP_POS + Vector2(0, 14)], 6.0)
-		await press("interact")
+		await _read_press()
 		await _read_dialogue(w)
 		await frames(10)
 		_step(w, "pip found: %s" % memory().found_pip)
+	if _ending == "rue" and "pip" not in memory().truth_pieces and memory().fragments.size() >= Story.FRAGMENTS.size():
+		# Pip's ledge: the shape Slot 2 was made with (a piece of the truth,
+		# counted once its last line is read: World._on_line_revealed).
+		await _go(w, [OutOfBounds.FIRST_SHAPE_POS + Vector2(-6, 6)], 6.0)
+		await _read_press()
+		await _read_dialogue(w)
+		_step(w, "first hitbox read: pieces %s" % str(memory().truth_pieces))
 	if not await _oob_cross(w, false):
 		_say("couldn't get back across (at %s)" % w.player.global_position.round())
 		return false
@@ -267,7 +352,7 @@ func _oob_cross(w: Node, outbound: bool) -> bool:
 		var leg: Array = legs[i]
 		if not await _go(w, [leg[0]], 10.0):
 			_say("didn't reach the wait point %s (at %s)" % [leg[0], w.player.global_position.round()])
-			if _at_entry(w):
+			if _at_entry(w) or (not outbound and _on_landing(w)):
 				# Fell on the way: outbound, start over; on the way back, the
 				# fall put us next to the pillar anyway.
 				if not outbound:
@@ -290,7 +375,7 @@ func _oob_cross(w: Node, outbound: bool) -> bool:
 		if w.player.global_position.distance_to(end) > 12.0:
 			tries += 1
 			_say("fell out of bounds (try %d)" % tries)
-			if not outbound and _at_entry(w):
+			if not outbound and _on_landing(w):
 				return true
 			i = 0 if outbound else i
 			continue
@@ -300,6 +385,14 @@ func _oob_cross(w: Node, outbound: bool) -> bool:
 
 func _at_entry(w: Node) -> bool:
 	return w.player.global_position.distance_to(OutOfBounds.ENTRY) < 30.0
+
+
+## On the landing ledge (where a fall puts her, and the pillar is): on the
+## way back, that is home, wherever on the ledge she stands. (CI, 2026-11-03:
+## a fall on the return left her 31 px from ENTRY, and the bot walked all
+## the way out again.)
+func _on_landing(w: Node) -> bool:
+	return OutOfBounds.ANCHORS[0].grow(16.0).has_point(w.player.global_position)
 
 
 func _archive(w: Node, with_bin: bool) -> bool:
@@ -316,7 +409,7 @@ func _archive(w: Node, with_bin: bool) -> bool:
 	# bot still walks the same way past him, the route it knows is clear).
 	await _go(w, [Vector2(320, 172)], 8.0)
 	if not w.flags.get("pointer", false):
-		await press("interact")
+		await _read_press()
 		await frames(4)
 		await _read_dialogue(w)
 	for f in Story.fragments_in("archive"):
@@ -324,6 +417,8 @@ func _archive(w: Node, with_bin: bool) -> bool:
 			await _go(w, [Vector2(360, 170), Vector2(525, 170), Vector2(525, 100), f.pos], 14.0)
 			await _wait_cutscene(w)
 			_step(w, "memory: %s" % f.id)
+	if _ending == "rue" and Story.truth_ready() and not memory().knows_truth:
+		await _read_character_file(w)
 	if with_bin and not memory().npc_fates.is_empty():
 		await _bin(w)
 	await _go(w, [Vector2(525, 170), Vector2(300, 170), Vector2(110, 180), Vector2(80, 180)], 18.0)
@@ -342,7 +437,7 @@ func _bin(w: Node) -> void:
 			await _shelter_through_sweep(w, bin)
 			await _go(w, [f.global_position + Vector2(0, 14)], 6.0)
 			if f.can_interact():
-				await press("interact")
+				await _read_press()
 			while not f.done and w.ending == "" and bin.next_empty > RecycleBin.WARNING + 0.6 and bin.sweep_x < 0.0:
 				_steer(w, Vector2.ZERO)
 				await frames(1)
@@ -366,6 +461,68 @@ func _shelter_through_sweep(w: Node, bin: RecycleBin) -> void:
 	while w.ending == "" and (bin.sweep_x >= 0.0 or bin.next_empty <= RecycleBin.WARNING + 0.5):
 		_steer(w, Vector2.ZERO)
 		await frames(1)
+
+
+## Down through the south gap and out to the square, once Arin is clear of
+## it (he enters there and circles the slot).
+func _leave_edge_south(w: Node) -> bool:
+	var gap := Vector2(320, w.area.bounds.end.y - 8.0)
+	var waited := 0
+	while w.ending == "" and w.area.area_id == "edge" and waited < 60:
+		var arin: Node2D = w.area.get("arin")
+		if arin == null or arin.global_position.distance_to(gap) > 150.0:
+			break
+		await _go(w, [Vector2(140, 240 - (waited % 2) * 24)], 1.0)
+		waited += 1
+	_say("leaving the edge for the truth after %d waits" % waited)
+	await _go(w, [Vector2(320, 262), gap], 20.0)
+	if w.area.area_id == "edge" and w.ending == "":
+		await _nudge(w, Vector2.DOWN, 1.5)
+	return await _arrived(w, "square")
+
+
+## RUE's pieces, in a run that starts with every memory: Wren in the
+## square (all five memories make her say what she noticed), then, if one
+## more is needed, the FIRST HITBOX on Pip's ledge out of bounds.
+func _truth_pieces(w: Node) -> bool:
+	_say("for the truth: memories %d, pieces %s" % [memory().fragments.size(), str(memory().truth_pieces)])
+	for i in 6:
+		if Story.truth_ready() or "wren" in memory().truth_pieces or w.ending != "":
+			break
+		var wren: Npc = w.area.wren
+		if wren == null:
+			break
+		var via: Array = [Vector2(400, 262)] if absf(w.player.global_position.x - wren.global_position.x) > 200.0 else []
+		await _go(w, via + [wren.global_position + Vector2(14, 0)], 16.0)
+		await _read_press()
+		await frames(3)
+		await _read_dialogue(w)
+		if w.hud.is_choosing():
+			await press("ui_down")  # "Not now": this run goes alone
+			await _read_press()
+			await frames(3)
+			await _read_dialogue(w)
+		_say("talked to Wren for her piece (%d): pieces %s" % [i, str(memory().truth_pieces)])
+	if not Story.truth_ready() and w.ending == "":
+		if not await _down_the_well(w):
+			return false
+	_step(w, "truth pieces %s, the file opens: %s" % [str(memory().truth_pieces), Story.truth_ready()])
+	return Story.truth_ready()
+
+
+## The CHARACTER FILE on the Archive desk, read to its last line: the truth.
+func _read_character_file(w: Node) -> void:
+	var file := Vector2(ArchiveArea.DESK.end.x + 10.0, ArchiveArea.DESK.get_center().y)
+	await _go(w, [Vector2(525, 170), Vector2(file.x + 14.0, 172), file + Vector2(6, 14)], 14.0)
+	for i in 3:
+		if memory().knows_truth or w.ending != "":
+			break
+		await _read_press()
+		await frames(3)
+		await _read_dialogue(w)
+		await _wait_cutscene(w)
+	await _read_dialogue(w)
+	_step(w, "the CHARACTER FILE: knows the truth %s" % memory().knows_truth)
 
 
 func _north(w: Node) -> bool:
@@ -410,6 +567,18 @@ func _edge(w: Node, ending: String) -> String:
 		return "death"
 	if w.area.area_id != "edge":
 		return await _back_to_edge(w, ending)
+	if _one_playthrough and not memory().knows_truth:
+		# Every memory now: go back for the truth rather than take the slot.
+		if not await _leave_edge_south(w):
+			return "death" if w.ending == "death" else "stuck:leaving the edge"
+		if not await _truth_pieces(w):
+			return _why(w, "the truth pieces (one playthrough)")
+		if not await _archive(w, false):
+			return _why(w, "the archive (one playthrough)")
+		if not await _north(w):
+			return _why(w, "the north road (one playthrough)")
+		_edge_returns = 0
+		return await _edge(w, ending)
 	# Lure the cursor far from the slot, then sprint.
 	var cursor: OwnerCursor = w.area.cursor
 	var lure := 0
@@ -427,6 +596,8 @@ func _edge(w: Node, ending: String) -> String:
 	if w.ending == "" and w.area.area_id != "edge":
 		return await _back_to_edge(w, ending)
 	_step(w, "cursor lured (%d)" % lure)
+	if ending == "overwrite":
+		await _be_reckless(w)
 	await _go(w, [Vector2(250, 236), Vector2(420, 236), Vector2(520, 230), Vector2(520, 90), TheEdge.SLOT_POS], 15.0)
 	if w.ending == "" and w.area.area_id != "edge":
 		return await _back_to_edge(w, ending)
@@ -454,11 +625,14 @@ func _edge(w: Node, ending: String) -> String:
 		options.append(b.text)
 	var escort_note := "escort %s%s" % [w.escort.npc_id if w.escort else "none",
 		" (present)" if w.escort and w.escort.is_present() else ""]
-	_say("SLOT 2 options %s · %s · wren deleted %s · memories %d · truth %s" % [str(options), escort_note,
-		memory().is_deleted("wren"), memory().fragments.size(), memory().knows_truth])
+	_say("SLOT 2 options %s · %s · wren deleted %s · memories %d · truth %s · seen by arin %s · glitches this run %d" % [str(options), escort_note,
+		memory().is_deleted("wren"), memory().fragments.size(), memory().knows_truth,
+		w.flags.get("seen_by_arin", false), memory().session_glitches])
 	# By name: hidden options can shift the list. The option missing is a
 	# result of its own, never a quiet fallback to the first one.
-	var label: String = {"escape": "Write", "rue": "Write RUE", "wren": "Wren", "message": "message"}.get(ending, "Write")
+	var label: String = {"escape": "Write", "rue": Story.SLOT2_ESCAPE_NAMED, "unseen": Story.SLOT2_UNSEEN, "wren": "Wren", "message": "message", "overwrite": Story.SLOT2_OVERWRITE}.get(ending, "Write")
+	if ending == "rue" and not memory().knows_truth:
+		label = "Write"  # run 1: the slot without the truth (escape)
 	var want := -1
 	for i in options.size():
 		if str(options[i]).contains(label):
@@ -468,14 +642,14 @@ func _edge(w: Node, ending: String) -> String:
 		return "unavailable:%s (options %s, %s)" % [ending, str(options), escort_note]
 	for i in want:
 		await press("ui_down")
-	await press("interact")
+	await _read_press()
 	if ending == "message":
 		await frames(4)
-		await press("interact")
+		await _read_press()
 	for i in 120:
 		if w._win_card_shown:
 			break
-		await press("interact")
+		await _read_press()
 		await wait(0.25)
 	return "ending:" + memory().last_ending  # exactly as recorded: escape and rue are different endings
 
@@ -512,7 +686,7 @@ func _go(w: Node, points: Array, timeout := STEP_TIMEOUT) -> bool:
 				_steer(w, Vector2.ZERO)
 				# Read like a player: story text waits for a press (manual advance).
 				if w.hud.is_dialogue_open() or w.hud.is_cinematic():
-					await press("interact")
+					await _read_press()
 					await wait(0.1)
 				await frames(1)
 				cutscene_for += tree.root.get_process_delta_time()
@@ -656,7 +830,11 @@ func _avoid(w: Node, n: Vector2) -> Vector2:
 	# player would, instead of walking into it.
 	var e: Variant = w.area.get("erasure")
 	if e is Erasure and e.active:
-		var c: Vector2 = e.nearest_cell(p + n * 10.0, 20.0)
+		# Look further ahead when frames are long: on a slow runner (CI; or
+		# --max-fps 15 here) the static grew onto the bot between two looks
+		# (purge 5: "eraser in square", 3 CI runs and 1 of 4 throttled runs).
+		var ahead := 10.0 + clampf(w.get_physics_process_delta_time() * 600.0, 0.0, 30.0)
+		var c: Vector2 = e.nearest_cell(p + n * ahead, 20.0 + ahead * 0.5)
 		if c != Vector2.INF:
 			n = ((p - c).normalized() * 1.4 + n * 0.5).normalized()
 	# Dodging shouldn't carry us out of an exit we didn't mean to take
@@ -672,6 +850,10 @@ func _should_glitch(w: Node) -> bool:
 	var t: Dictionary = w.glitch.target
 	if t.is_empty():
 		return false
+	if _reckless:
+		return true  # the overwrite route: every glitch it can reach
+	if _ending == "unseen":
+		return false  # one glitch at most this run (World.is_unseen_run): none
 	if w.owner_moves.save_progress > 0.25 or w.owner_moves.wren_delete > 0.3:
 		return true
 	if t.id == "freeze" and t.node is OwnerAvatar:
@@ -679,6 +861,43 @@ func _should_glitch(w: Node) -> bool:
 	if t.id == "blind" and t.node is OwnerCursor:
 		return w.player.global_position.distance_to(t.node.global_position) < 45.0
 	return false
+
+
+## For the overwrite route: spend glitches at the Edge until the run counts
+## as reckless. Bounded; the result says if it never got there.
+func _be_reckless(w: Node) -> void:
+	_reckless = true  # from here to the slot, every glitch it can reach
+	var tries := 0
+	var dir := 1.0
+	var why := {"cannot_act": 0, "no_target": 0, "glitched": 0}
+	while w.ending == "" and not w.is_reckless_run() and tries < 300:
+		tries += 1
+		if w.area.area_id != "edge":
+			return
+		if not w.can_act():
+			why.cannot_act += 1
+			if w.hud.is_dialogue_open() or w.hud.is_cinematic():
+				await _read_press()  # story text holds play: read on, like a player
+			else:
+				await wait(0.25)
+			continue
+		elif w.glitch.target.is_empty():
+			why.no_target += 1
+		else:
+			why.glitched += 1
+			await _glitch(w)
+			continue
+		# Keep moving (DECOY needs a run) and drift towards the cursor (BLIND).
+		var cursor: Node2D = w.area.cursor
+		var to: Vector2 = cursor.global_position - w.player.global_position if cursor else Vector2.ZERO
+		var n := Vector2(dir, 0.0) if to.length() < 60.0 or to == Vector2.ZERO else to.normalized()
+		if tries % 6 == 0:
+			dir = -dir
+		_steer(w, n)
+		await wait(0.25)
+	_release_all()
+	_reckless = false  # reckless enough: now get to the slot
+	_step(w, "reckless: %s (glitches %d, awareness %.0f, tries %s)" % [w.is_reckless_run(), memory().session_glitches, w.director.awareness, str(why)])
 
 
 func _glitch(w: Node) -> void:
@@ -730,7 +949,10 @@ func _release_all() -> void:
 # --- waiting -------------------------------------------------------------------------
 
 func _arrived(w: Node, id: String) -> bool:
-	for i in 240:
+	# Time, not frames: a passage between maps takes ~2 s (World travel
+	# beats), more frames than a fast headless run used to allow.
+	var until := _now() + 8.0
+	while _now() < until:
 		if w.ending != "" or not is_instance_valid(w):
 			return false
 		if w.area.area_id == id and not w._transitioning:
@@ -744,7 +966,7 @@ func _wait_cutscene(w: Node) -> void:
 	var until := _now() + 30.0
 	while (w._cutscene or w.hud.is_cinematic()) and w.ending == "" and _now() < until:
 		if w.hud.is_cinematic():
-			await press("interact")  # read each line, then move on (manual advance)
+			await _read_press()  # read each line, then move on (manual advance)
 			await wait(0.15)
 		await frames(2)
 	await frames(3)
@@ -754,7 +976,7 @@ func _read_dialogue(w: Node) -> void:
 	for i in 60:
 		if not w.hud.is_dialogue_open():
 			return
-		await press("interact")
+		await _read_press()
 		await wait(0.05)
 
 
@@ -768,7 +990,7 @@ func _interact_until_gone(w: Node, from_area: String, spot := Vector2.INF) -> vo
 			await _read_dialogue(w)
 			if spot != Vector2.INF:
 				await _go(w, [spot], 3.0)
-		await press("interact")
+		await _read_press()
 		await wait(0.2)
 
 
@@ -799,6 +1021,43 @@ func _heartbeat(w: Node, goal: Vector2) -> void:
 	_beat = _now()
 	_say("... %s at %s -> %s  cutscene %s  dialogue %s  frozen %s" % [w.area.area_id, w.player.global_position.round(),
 			goal, w._cutscene, w.hud.is_dialogue_open(), w.player.frozen])
+
+## For a film an observer can follow (BOT_READ=1, tools/record_film.sh):
+## before pressing on, wait as long as a person needs for the text on
+## screen. Off by default: the bot suite reads at once.
+static var _reading := OS.get_environment("BOT_READ") != ""
+
+
+## For the film: read the epilogue through, then let the title show.
+func _watch_epilogue() -> void:
+	var t := 0.0
+	while t < 240.0:
+		var w: Node = scene()
+		if not (w is World):
+			await wait(5.0)
+			return
+		var hud: Node = (w as World).hud
+		if hud.is_cinematic() or hud.is_dialogue_open() or hud._overlay.visible:
+			await _read_press()
+			t += 2.0
+		else:
+			await wait(0.5)
+			t += 0.5
+
+
+func _read_press() -> void:
+	if _reading:
+		var w: Node = scene()
+		var text := ""
+		if w is World:
+			var hud: Node = (w as World).hud
+			if hud.is_dialogue_open():
+				text = str(hud._dialogue_text.text)
+			elif hud.is_cinematic():
+				text = str(hud._cine_text.text) if "_cine_text" in hud else ""
+		await wait(clampf(1.2 + text.length() / 16.0, 1.6, 7.0))
+	await press("interact")
+
 
 func _now() -> float:
 	return Time.get_ticks_msec() / 1000.0 * Engine.time_scale

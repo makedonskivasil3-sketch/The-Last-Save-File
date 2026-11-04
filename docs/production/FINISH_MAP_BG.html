@@ -1,0 +1,727 @@
+<title>Картата на The Last Save File</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=PT+Sans:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a save-file timeline. The story runs down the left; what happens alongside sits beside each stage; the road to 1.0 follows. Single dark look by choice: the game's own night palette. */
+:root {
+  color-scheme: dark;
+  --night: #0d1018;
+  --panel: #151a26;
+  --panel-2: #1b2232;
+  --line: #2a3346;
+  --text: #e6e9f0;
+  --muted: #9aa3b8;
+  --rue: #8cf2ff;
+  --lantern: #f3cd83;
+  --owner: #ff6a7a;
+  --lilac: #b89cf0;
+  --ok: #7fdca0;
+  --warn: #f3cd83;
+  --need: #ff9a6a;
+  --font-display: "Pixelify Sans", "Courier New", monospace;
+  --font-body: "PT Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--night);
+  color: var(--text);
+  font: 15px/1.55 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 64px;
+}
+.wrap { max-width: 1120px; margin: 0 auto; display: grid; gap: 56px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 700; text-wrap: balance; margin: 0; letter-spacing: 0.01em; }
+h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.05; }
+h2 { font-size: 24px; color: var(--lantern); }
+h3 { font-size: 18px; }
+p { margin: 0; }
+.eyebrow { font: 600 11px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.slot { font: 600 12px/1.4 var(--font-mono); color: var(--rue); letter-spacing: 0.08em; }
+.lede { color: var(--muted); max-width: 68ch; }
+header { display: grid; gap: 14px; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13px; color: var(--muted); }
+.chip { display: inline-flex; align-items: center; gap: 6px; font: 600 11px/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 8px; border-radius: 3px; border: 1px solid currentColor; white-space: nowrap; }
+.chip::before { content: ""; width: 7px; height: 7px; background: currentColor; }
+.built { color: var(--ok); }
+.polish { color: var(--warn); }
+.people { color: var(--need); }
+.open { color: var(--rue); }
+.author { color: var(--lilac); }
+
+/* Summary strip */
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.sum { background: var(--panel); border: 1px solid var(--line); padding: 16px 18px; display: grid; gap: 8px; align-content: start; }
+.sum ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.sum h3 { font-size: 16px; }
+
+/* Timeline */
+.timeline { display: grid; gap: 0; position: relative; }
+.stage { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 0 16px; }
+.rail { position: relative; display: flex; justify-content: center; }
+.rail::before { content: ""; position: absolute; top: 0; bottom: 0; width: 2px; background: var(--line); }
+.stage:first-child .rail::before { top: 22px; }
+.stage:last-child .rail::before { bottom: calc(100% - 22px); }
+.dot { position: relative; margin-top: 14px; width: 18px; height: 18px; background: var(--night); border: 2px solid var(--lantern); }
+.stage.opt .dot { border-color: var(--muted); border-style: dashed; }
+.stage.end .dot { border-color: var(--owner); }
+.card { background: var(--panel); border: 1px solid var(--line); margin-bottom: 18px; display: grid; }
+.card-head { padding: 14px 18px 12px; display: grid; gap: 6px; border-bottom: 1px solid var(--line); }
+.card-head .where { font: 13px/1.4 var(--font-mono); color: var(--muted); }
+.card-body { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+.col { padding: 14px 18px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.col + .col { border-left: 1px solid var(--line); background: var(--panel-2); }
+.col h4 { margin: 0; font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.beats { margin: 0; padding-left: 18px; display: grid; gap: 5px; }
+.threads { display: grid; gap: 8px; }
+.thread { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 8px; font-size: 14px; }
+.tag { font: 600 10px/1.6 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
+.t-owner { color: var(--owner); }
+.t-people { color: var(--lantern); }
+.t-memory { color: var(--rue); }
+.t-power { color: var(--lilac); }
+.finish { padding: 12px 18px 14px; border-top: 1px solid var(--line); display: grid; gap: 8px; }
+.todo { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.todo li { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; align-items: baseline; font-size: 14px; }
+.todo li .chip { justify-self: start; }
+q { color: var(--rue); font-style: italic; quotes: "\201C" "\201D"; }
+.owner-line { font-family: var(--font-mono); color: var(--owner); font-size: 13px; }
+
+/* Tables */
+.scroll { overflow-x: auto; border: 1px solid var(--line); background: var(--panel); }
+table { border-collapse: collapse; width: 100%; min-width: 680px; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+th { font: 600 11px/1.3 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); background: var(--panel-2); }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 700; white-space: nowrap; }
+
+/* Endings */
+.endings { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
+.ending { background: var(--panel); border: 1px solid var(--line); padding: 14px 16px; display: grid; gap: 6px; align-content: start; }
+.ending .name { font-family: var(--font-display); font-size: 17px; color: var(--lantern); }
+.ending .how { font-size: 14px; color: var(--muted); }
+.ending.hidden-end .name { color: var(--lilac); }
+.ending.bad .name { color: var(--owner); }
+
+/* Roadmap */
+.phases { display: grid; gap: 16px; }
+.phase { display: grid; grid-template-columns: 200px minmax(0, 1fr); background: var(--panel); border: 1px solid var(--line); }
+.phase-side { padding: 16px 18px; border-right: 1px solid var(--line); display: grid; gap: 6px; align-content: start; background: var(--panel-2); }
+.phase-side .when { font: 600 13px/1.4 var(--font-mono); color: var(--rue); }
+.phase-side .gate { font-size: 13px; color: var(--muted); }
+.phase-main { padding: 14px 18px; min-width: 0; }
+.tasks { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.tasks li { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.tasks li .chip { justify-self: start; }
+.date-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.date { border: 1px solid var(--line); background: var(--panel); padding: 12px 14px; display: grid; gap: 4px; }
+.date b { font: 700 15px/1.2 var(--font-mono); color: var(--lantern); }
+.date span { font-size: 13px; color: var(--muted); }
+.done-list { columns: 2 300px; column-gap: 28px; margin: 0; padding: 0; list-style: none; }
+.done-list li { break-inside: avoid; padding: 6px 0 6px 26px; position: relative; border-bottom: 1px dashed var(--line); }
+.done-list li::before { content: ""; position: absolute; left: 2px; top: 11px; width: 12px; height: 12px; border: 2px solid var(--muted); }
+.done-list li.y::before { border-color: var(--ok); background: var(--ok); }
+footer { color: var(--muted); font-size: 13px; display: grid; gap: 6px; }
+code { font-family: var(--font-mono); font-size: 0.9em; color: var(--rue); }
+a { color: var(--rue); }
+a:focus-visible, .chip:focus-visible { outline: 2px solid var(--lantern); outline-offset: 2px; }
+
+@media (max-width: 760px) {
+  .card-body { grid-template-columns: minmax(0, 1fr); }
+  .col + .col { border-left: 0; border-top: 1px solid var(--line); }
+  .phase { grid-template-columns: minmax(0, 1fr); }
+  .phase-side { border-right: 0; border-bottom: 1px solid var(--line); }
+  .stage { grid-template-columns: 22px minmax(0, 1fr); gap: 0 10px; }
+  .dot { width: 14px; height: 14px; }
+  .todo li, .tasks li { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .thread { grid-template-columns: minmax(0, 1fr); gap: 0; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .dot { transition: transform .2s ease; }
+  .stage:hover .dot { transform: rotate(45deg); }
+}
+</style>
+
+<div class="wrap" lang="bg">
+
+<header>
+  <div class="slot">SLOT 1 · ARIN · LV 7 · 14:22:00 &nbsp;/&nbsp; SLOT 2 · [DELETED 3 YEARS AGO]</div>
+  <h1>The Last Save File:<br>карта до финала</h1>
+  <p class="lede">Цялата игра в реда, в който се играе: от картата с паметта до последния край. До всеки етап стои какво се случва успоредно с него (Собственика, героите, спомените и силите) и какво остава, докато етапът се смята за завършен. След това е пътят от днес до издадена версия 1.0. Съставено по кода от 3 ноември 2026 г. Репликите от играта са на английски, както се появяват в нея.</p>
+  <div class="legend" aria-label="Легенда на състоянията">
+    <span class="chip built">Готово</span><span>в играта и тествано</span>
+    <span class="chip polish">Шлифовка</span><span>работи, иска довършване на качеството</span>
+    <span class="chip open">Предстои</span><span>Claude може да го направи следващо</span>
+    <span class="chip people">Хора</span><span>иска играчи или реален хардуер</span>
+    <span class="chip author">Автор</span><span>твое решение, пари или подпис</span>
+  </div>
+</header>
+
+<section class="summary" aria-label="Докъде е играта">
+  <div class="sum">
+    <span class="eyebrow">Съдържание</span>
+    <h3>Завършено по замисъл</h3>
+    <ul>
+      <li>Пролог, който се играе (Празникът на фенерите), и начало с карта с паметта</li>
+      <li>8 места: 7 карти и незадължителната работилница</li>
+      <li>5 спомена, 4 парчета истина, 7 тайни</li>
+      <li>6 края, плюс „чистката“ на Собственика</li>
+      <li>10 глич сили, които се отключват със спомените</li>
+    </ul>
+  </div>
+  <div class="sum">
+    <span class="eyebrow">Доказано от машината</span>
+    <h3>Тествана от машини, още не доказана за издаване</h3>
+    <ul>
+      <li>842 тестови случая; изпълнителят на тестовете вече отхвърля и неочаквани грешки на двигателя</li>
+      <li>И шестте края са тествани; ботовете изиграват три от тях докрай</li>
+      <li>Версиите за Windows, Linux и браузър се изграждат</li>
+      <li>Записите не губят прогрес; спирането в спокоен момент е безплатно</li>
+    </ul>
+  </div>
+  <div class="sum">
+    <span class="eyebrow">Още недоказано</span>
+    <h3>Какво спира 1.0</h3>
+    <ul>
+      <li>Нито един непознат човек не я е играл</li>
+      <li>Дължината не е измерена (ботовете: около 2,5 минути движение; останалото е четене)</li>
+      <li>Графиката е рисувана с код; няма капсула и основна илюстрация за магазина</li>
+      <li>Не е пускана на Windows компютър, с контролер или на Steam Deck</li>
+      <li>Няма страница в магазина, няма демо, няма списъци с желания</li>
+    </ul>
+  </div>
+</section>
+
+<section aria-labelledby="story-h" style="display:grid; gap:20px">
+  <div style="display:grid; gap:6px">
+    <span class="eyebrow">Част 1</span>
+    <h2 id="story-h">Историята от началото до края</h2>
+    <p class="lede">Плътните маркери са основните етапи, а прекъснатите са незадължителни места. Главите следват напредъка в историята, не местата: в какъвто и ред да изследва играчът, главите вървят по ред.</p>
+  </div>
+
+  <div class="timeline">
+
+    <article class="stage">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <div class="card-head">
+          <span class="eyebrow">Начало · само при първо пускане</span>
+          <h3>Картата с паметта</h3>
+          <span class="where">Начален екран → встъпителна сцена (пропуска се със задържан Esc)</span>
+        </div>
+        <div class="card-body">
+          <div class="col">
+            <h4>Какво вижда и прави играчът</h4>
+            <ul class="beats">
+              <li>Стара карта с памет се чете ред по ред, със скоростта на читателя.</li>
+              <li>Два записа: SLOT 1 (Арин) и изтрит SLOT 2.</li>
+              <li>Последния ред го пише някой в настоящето.</li>
+            </ul>
+            <p class="owner-line">&gt; one more go. then i'm cleaning it up.</p>
+          </div>
+          <div class="col">
+            <h4>Успоредно</h4>
+            <div class="threads">
+              <div class="thread"><span class="tag t-owner">Собственик</span><span>Казва целта си: тази нощ ще изчисти записа. От това идва всяка заплаха след това.</span></div>
+              <div class="thread"><span class="tag t-memory">Дневник</span><span>Картата остава в дневника.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="finish">
+          <h4 class="eyebrow">За да е завършено</h4>
+          <ul class="todo">
+            <li><span class="chip built">Готово</span><span>Картата, пропускането, записът в дневника, намалено движение</span></li>
+            <li><span class="chip people">Хора</span><span>Въпрос за тестовете: „Преди празника, какво мислеше, че ще се случи?“</span></li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <article class="stage">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <div class="card-head">
+          <span class="eyebrow">Пролог</span>
+          <h3>Празникът на фенерите</h3>
+          <span class="where">Спомен, който се играе · Играч 1 е Арин, играчът е Играч 2</span>
+        </div>
+        <div class="card-body">
+          <div class="col">
+            <h4>Какво вижда и прави играчът</h4>
+            <ul class="beats">
+              <li>Запалва четири фенера заедно с Арин. Всеки учи едно действие: ходене, взаимодействие, скриване извън светлинен конус, улучване на прожектор.</li>
+              <li>Петият фенер, до кладенеца, иска двамата играчи да го държат заедно. <b>Играч 1 си тръгва.</b></li>
+              <li>Първо решение: да го запали сама или да остане до Арин.</li>
+              <li><b>Играч 2 си тръгва.</b> Сесията никога не е записана.</li>
+              <li>На екрана минават години. Петият фенер свети, без никой да държи контролер: <b>първото невъзможно действие</b>.</li>
+            </ul>
+            <p class="owner-line">&gt; ...who's in my save?</p>
+          </div>
+          <div class="col">
+            <h4>Успоредно</h4>
+            <div class="threads">
+              <div class="thread"><span class="tag t-people">Хора</span><span>Мира гледа от прозореца на Арин. Рен и Тобен са на празника. И тримата го помнят по-късно.</span></div>
+              <div class="thread"><span class="tag t-memory">История</span><span>Поставя въпроса на играта: кой е поддържал петия фенер запален?</span></div>
+              <div class="thread"><span class="tag t-owner">Собственик</span><span>Зареждането намира непознат обект. SLOT 2: изтрит преди 3 години.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="finish">
+          <h4 class="eyebrow">За да е завършено</h4>
+          <ul class="todo">
+            <li><span class="chip built">Готово</span><span>Всички моменти, пропускане, повторение от началния екран („The Festival“), страниците остават в дневника</span></li>
+            <li><span class="chip people">Хора</span><span>Казват ли играчите „Рю“, когато ги питаш кой е запалил последния фенер?</span></li>
+            <li><span class="chip polish">Шлифовка</span><span>Това е куката на трейлъра и първата снимка в магазина: първо тук да мине графичната шлифовка</span></li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <article class="stage">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <div class="card-head">
+          <span class="eyebrow">Глава I · Someone else's save (Чужд запис)</span>
+          <h3>Стаята на Арин</h3>
+          <span class="where">Рю се събужда · мисия: Петият фенер</span>
+        </div>
+        <div class="card-body">
+          <div class="col">
+            <h4>Какво вижда и прави играчът</h4>
+            <ul class="beats">
+              <li>Рю се сглобява от пиксели в стая, която не е нейна: <q>this body isn't mine.</q></li>
+              <li>Среща Мира, която чака с две чаши и бележка, която иска да бъде закачена на площада.</li>
+              <li>Намира спомен 1, <b>Вторият контролер</b>.</li>
+              <li>Излиза през вратата. В следващите игри вратата я няма, а изходът е цепнатина в стената, която се разкъсва, когато Собственика пренапише стаята.</li>
+            </ul>
+          </div>
+          <div class="col">
+            <h4>Успоредно</h4>
+            <div class="threads">
+              <div class="thread"><span class="tag t-owner">Собственик</span><span>Започва уредът за внимание. Тази стая е под зорко наблюдение. Бележките на Собственика излизат в конзолата; кристалът за запис учи как се записва.</span></div>
+              <div class="thread"><span class="tag t-people">Хора</span><span>Започва задачата на Мира: да занесеш бележката ѝ или да я изведеш до таблото на площада.</span></div>
+              <div class="thread"><span class="tag t-power">Сили</span><span>От самото начало: PHASE, FREEZE, FALSIFY, UNLOCK. Всяка струва внимание.</span></div>
+              <div class="thread"><span class="tag t-memory">Спомен</span><span>1 от 5. Дневникът започва да се пълни.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="finish">
+          <h4 class="eyebrow">За да е завършено</h4>
+          <ul class="todo">
+            <li><span class="chip built">Готово</span><span>Стаята, ъгълът и задачата на Мира, загадката с цепнатината, спомена, съветите</span></li>
+            <li><span class="chip people">Хора</span><span>Заседнал ли е някой над 2 минути в търсене на цепнатината? Ако двама от петима заседнат, подсказката става по-силна</span></li>
+            <li><span class="chip open">Предстои</span><span>Лентата с целта стои за няколко секунди над горната стена. Да се провери, че не скрива нищо нужно</span></li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <article class="stage">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <div class="card-head">
+          <span class="eyebrow">Глава II · The light by the well (Светлината до кладенеца)</span>
+          <h3>Площадът на селото (Ашвейл)</h3>
+          <span class="where">Центърът · мисия: Стигни петия фенер до кладенеца</span>
+        </div>
+        <div class="card-body">
+          <div class="col">
+            <h4>Какво вижда и прави играчът</h4>
+            <ul class="beats">
+              <li><q>a whole town. someone built all of this for arin.</q></li>
+              <li>Когато Собственика играе, Арин патрулира със светлинен конус. Криеш се до Рен, зад сергията, извън светлината.</li>
+              <li><b>Рен</b> води играта си с тебешир, дава тебешир на Рю и по-късно моли да я заведеш до Ръба.</li>
+              <li><b>Тобен</b> докладва за Рю: отива до таблото за обяви и го пише там. Рю може да го хване по пътя.</li>
+              <li>Закачаш бележката на Мира на таблото. Петият фенер още гори до кладенеца. Слизаш в кладенеца.</li>
+            </ul>
+          </div>
+          <div class="col">
+            <h4>Успоредно</h4>
+            <div class="threads">
+              <div class="thread"><span class="tag t-owner">Собственик</span><span>Патрулът на Арин, кръгът, с който записва върху теб, превъртанията назад. Вниманието се качва от CALM към HUNT.</span></div>
+              <div class="thread"><span class="tag t-people">Хора</span><span>Започва историята на Рен: играта ѝ, знакът с тебешир на кладенеца, рисунки, които се сменят между игрите. Срамът на Тобен. Бележката на Мира, закачена или изгубена.</span></div>
+              <div class="thread"><span class="tag t-memory">Истина</span><span>Парчета истина от Мира, Рен и Тобен: по една реплика за това кой движи Рю.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="finish">
+          <h4 class="eyebrow">За да е завършено</h4>
+          <ul class="todo">
+            <li><span class="chip built">Готово</span><span>Площадът, поведението на героите, играта на Рен, доклада на Тобен, криенето, контролната точка при кладенеца</span></li>
+            <li><span class="chip people">Хора</span><span>Намират ли играчите играта на Рен и назовават ли я като някого, който им е скъп? (основният праг на тестовете)</span></li>
+            <li><span class="chip open">Предстои</span><span>Лист със снимки на всяко скривалище: личи ли къде е безопасно?</span></li>
+            <li><span class="chip polish">Шлифовка</span><span>Това е главната снимка за магазина („площадът по здрач“): първо тук да мине графичната шлифовка</span></li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <article class="stage opt">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <div class="card-head">
+          <span class="eyebrow">Незадължително · от площада</span>
+          <h3>Къщата на Арин</h3>
+          <span class="where">Мисия: Какво остави тя</span>
+        </div>
+        <div class="card-body">
+          <div class="col">
+            <h4>Какво вижда и прави играчът</h4>
+            <ul class="beats">
+              <li>Разглеждаш къщата, където Играч 2 седеше пред екрана.</li>
+              <li>Когато звънецът на вратата иззвъни, Арин идва: влизаш в гардероб.</li>
+              <li>Под дивана: <b>вторият контролер</b> (тайна).</li>
+            </ul>
+          </div>
+          <div class="col">
+            <h4>Успоредно</h4>
+            <div class="threads">
+              <div class="thread"><span class="tag t-owner">Собственик</span><span>Арин идва на посещение: момент на промъкване с ограничено време.</span></div>
+              <div class="thread"><span class="tag t-memory">Тайна</span><span>1 от 7-те тайни в Records.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="finish">
+          <h4 class="eyebrow">За да е завършено</h4>
+          <ul class="todo"><li><span class="chip built">Готово</span><span>Къщата, гардеробите, диванът</span></li><li><span class="chip people">Хора</span><span>Стига ли звънецът като предупреждение, за да се стигне гардероб?</span></li></ul>
+        </div>
+      </div>
+    </article>
+
+    <article class="stage">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <div class="card-head">
+          <span class="eyebrow">Глава II, продължение</span>
+          <h3>Под кладенеца (извън картата)</h3>
+          <span class="where">Мисия: Под кладенеца · под, който се появява и изчезва на парчета</span>
+        </div>
+        <div class="card-body">
+          <div class="col">
+            <h4>Какво вижда и прави играчът</h4>
+            <ul class="beats">
+              <li><q>the owner can't see me down here. nobody's ever looked.</q></li>
+              <li>Преминаваш по парчетата под, които идват и си отиват, между стабилни опори.</li>
+              <li>Намираш спомен 2, <b>Кладенецът</b>, и <b>Пип</b>, лисичето, което никой не е записал обратно в играта.</li>
+              <li>На площадката на Пип: първата форма за сблъсък (хитбокс), с която е направен SLOT 2. Не пасва на Рю.</li>
+              <li>Качваш се обратно на площада.</li>
+            </ul>
+          </div>
+          <div class="col">
+            <h4>Успоредно</h4>
+            <div class="threads">
+              <div class="thread"><span class="tag t-people">Хора</span><span>Пип се присъединява: следва те, веднъж води, почива си и се крие от Арин.</span></div>
+              <div class="thread"><span class="tag t-memory">Истина</span><span>Парчето истина на Пип (първият хитбокс). Спомен 2 от 5.</span></div>
+              <div class="thread"><span class="tag t-power">Сили</span><span>DECOY се отключва с първия спомен, SCRUB с втория.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="finish">
+          <h4 class="eyebrow">За да е завършено</h4>
+          <ul class="todo"><li><span class="chip built">Готово</span><span>Подвижният под, Пип, спомена, хитбокса, намалено мигане</span></li><li><span class="chip people">Хора</span><span>Чакат ли играчите Пип? Забелязват ли кога се крие?</span></li></ul>
+        </div>
+      </div>
+    </article>
+
+    <article class="stage">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <div class="card-head">
+          <span class="eyebrow">Глава III · Who kept it burning (Кой го е поддържал запален)</span>
+          <h3>Архивът</h3>
+          <span class="where">На изток от площада · мисия: Попитай Архиваря</span>
+        </div>
+        <div class="card-body">
+          <div class="col">
+            <h4>Какво вижда и прави играчът</h4>
+            <ul class="beats">
+              <li>Архиварят, изрязан от играта преди тя да излезе, архивира всяка сесия.</li>
+              <li>Чете се дневникът на сесията от празника и бележките на Собственика за къщата, конзолата и защо.</li>
+              <li>Намираш спомен 3, <b>Нова игра</b>: момичето пише RUE в SLOT 2.</li>
+              <li><b>Досието на героя</b> (CHARACTER FILE): <q>player: moved away. character: still running.</q> Рю разбира, че не е момичето.</li>
+              <li>Той дава насоката към SLOT 2 и северният път се отваря.</li>
+            </ul>
+          </div>
+          <div class="col">
+            <h4>Успоредно</h4>
+            <div class="threads">
+              <div class="thread"><span class="tag t-memory">Истина</span><span>Истината се сглобява тук. Тя е нужна за края RUE.</span></div>
+              <div class="thread"><span class="tag t-people">Хора</span><span>Архиварят започва ново досие на бюрото си: RUE, архивирано под PEOPLE (хора), не под CHARACTERS (герои).</span></div>
+              <div class="thread"><span class="tag t-owner">Собственик</span><span>Бележките му го превръщат от заплаха в човек: <span class="owner-line">when i play arin i'm nine again.</span></span></div>
+              <div class="thread"><span class="tag t-power">Сили</span><span>BLIND се отключва с третия спомен.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="finish">
+          <h4 class="eyebrow">За да е завършено</h4>
+          <ul class="todo"><li><span class="chip built">Готово</span><span>Страниците на архива, досието, насоката, новото досие на Архиваря</span></li><li><span class="chip people">Хора</span><span>Архивът е най-вероятното място за „твърде много текст“. Да се види къде играчите прелистват</span></li></ul>
+        </div>
+      </div>
+    </article>
+
+    <article class="stage opt">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <div class="card-head">
+          <span class="eyebrow">Незадължително · под Архива</span>
+          <h3>Работилницата за фенери</h3>
+          <span class="where">Мисия: Светлина, оставена да гори · и възможният край на демото</span>
+        </div>
+        <div class="card-body">
+          <div class="col">
+            <h4>Какво вижда и прави играчът</h4>
+            <ul class="beats">
+              <li>Пет рамки от празника: <q>the fifth was the one i lit.</q></li>
+              <li>Лампата е студена, а люкът е твърде тъмен, за да се намери. Взимаш фитила FIFTH LANTERN и го поставяш.</li>
+              <li>Решаваш дали да напишеш RUE на празния етикет на петата рамка.</li>
+              <li>Люкът отваря път до кладенеца, който заобикаля пътя на Арин.</li>
+            </ul>
+          </div>
+          <div class="col">
+            <h4>Успоредно</h4>
+            <div class="threads">
+              <div class="thread"><span class="tag t-people">Хора</span><span>Рен забелязва светлината, и името, ако Рю го е написала.</span></div>
+              <div class="thread"><span class="tag t-memory">Дневник</span><span>Всяка стъпка се записва наведнъж; ако записът не стане, играта го казва.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="finish">
+          <h4 class="eyebrow">За да е завършено</h4>
+          <ul class="todo"><li><span class="chip built">Готово</span><span>Мисията, решението, репликата на Рен, вариантът на демото</span></li><li><span class="chip author">Автор</span><span>Избор на края на демото: при арката на Архива или тук, след като Рен забележи</span></li></ul>
+        </div>
+      </div>
+    </article>
+
+    <article class="stage opt">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <div class="card-head">
+          <span class="eyebrow">Незадължително · на изток от Архива</span>
+          <h3>Кошчето</h3>
+          <span class="where">Мисия: Върни ги обратно</span>
+        </div>
+        <div class="card-body">
+          <div class="col">
+            <h4>Какво вижда и прави играчът</h4>
+            <ul class="beats">
+              <li><q>everything the owner deleted ends up here. for a while.</q></li>
+              <li>Когато кошчето се изпразва, заставаш в сянката на системен файл.</li>
+              <li>Между изпразванията връщаш някого, когото Собственика е изтрил, и намираш скъсаната страница от книгата за гости на Тобен.</li>
+              <li>Файловете на SLOT 2 и последното съобщение на момичето: <q>still have my save?</q></li>
+            </ul>
+          </div>
+          <div class="col">
+            <h4>Успоредно</h4>
+            <div class="threads">
+              <div class="thread"><span class="tag t-power">Сили</span><span>RESTORE се отключва с четвъртия спомен, PAUSE с петия.</span></div>
+              <div class="thread"><span class="tag t-people">Хора</span><span>Пишеш RUE обратно в книгата на Тобен. Той задрасква собственото си име на таблото.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="finish">
+          <h4 class="eyebrow">За да е завършено</h4>
+          <ul class="todo"><li><span class="chip built">Готово</span><span>Изпразванията, сенките, връщането, книгата за гости</span></li><li><span class="chip open">Предстои</span><span>Таблица с времето за предупреждение при всяка заплаха, включително кошчето (цел: поне 0,7 s за реакция)</span></li></ul>
+        </div>
+      </div>
+    </article>
+
+    <article class="stage">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <div class="card-head">
+          <span class="eyebrow">Глава IV · What's left of Slot 2 → Глава V · The last save file</span>
+          <h3>Северният път и Ръбът</h3>
+          <span class="where">Мисия: Поеми по северния път · финалът</span>
+        </div>
+        <div class="card-body">
+          <div class="col">
+            <h4>Какво вижда и прави играчът</h4>
+            <ul class="beats">
+              <li>По желание удържаш обещанието си към Рен и я извеждаш до Ръба.</li>
+              <li><q>the world just... stops.</q> Шумът се разпростира, курсорът ловува, гумата оставя празнота.</li>
+              <li>Намираш спомени 4 и 5: <b>Последният път</b> (караницата) и <b>Изтриване на SLOT 2?</b></li>
+              <li>Отвличаш курсора, заставаш в SLOT 2 и виждаш обобщение на всичко направено.</li>
+              <li>Избираш какво да запишеш в последния запис.</li>
+            </ul>
+          </div>
+          <div class="col">
+            <h4>Успоредно</h4>
+            <div class="threads">
+              <div class="thread"><span class="tag t-owner">Собственик</span><span>Най-пряк е тук: курсорът щраква върху всичко, което стои неподвижно. При висока „чистка“ шумът чака по-малко.</span></div>
+              <div class="thread"><span class="tag t-people">Хора</span><span>Ако Рен е дошла, тя получава своя момент извън обсега на Собственика.</span></div>
+              <div class="thread"><span class="tag t-memory">Спомен</span><span>Всичките 5 спомена плюс истината отключват избора RUE.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="finish">
+          <h4 class="eyebrow">За да е завършено</h4>
+          <ul class="todo"><li><span class="chip built">Готово</span><span>Ръбът, заплахите, SLOT 2, обобщението, изборът</span></li><li><span class="chip people">Хора</span><span>Трудността при висока „чистка“: една игра от човек на ниво 4–5 (има настройка за по-спокойно темпо)</span></li><li><span class="chip polish">Шлифовка</span><span>Това е кадърът със залога в трейлъра: тук да мине графичната шлифовка</span></li></ul>
+        </div>
+      </div>
+    </article>
+
+    <article class="stage end">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <div class="card-head">
+          <span class="eyebrow">След избора</span>
+          <h3>Краищата, епилогът и завръщането</h3>
+          <span class="where">Шест края (подробно по-долу) · началният екран се сменя според последния</span>
+        </div>
+        <div class="card-body">
+          <div class="col">
+            <h4>Какво вижда и прави играчът</h4>
+            <ul class="beats">
+              <li>Епилог според края, който помни на кого е помогнала Рю.</li>
+              <li>Подзаглавието и картата на записа на началния екран се сменят. В края RUE Рю носи лилава шнола, която сама е избрала.</li>
+              <li>Records (Записи): ENDINGS n/6, MEMORIES n/5, SECRETS n/7, с подсказка за всеки ненамерен.</li>
+            </ul>
+          </div>
+          <div class="col">
+            <h4>Успоредно</h4>
+            <div class="threads">
+              <div class="thread"><span class="tag t-people">Хора</span><span>Новите игри помнят: рисунките на Рен, задрасканото име на Тобен, досието на Архиваря.</span></div>
+              <div class="thread"><span class="tag t-owner">Собственик</span><span>Краят със съобщението е единственият, който стига до момичето.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="finish">
+          <h4 class="eyebrow">За да е завършено</h4>
+          <ul class="todo"><li><span class="chip built">Готово</span><span>И шестте края, всеки тестван; ботовете изиграват докрай бягството, съобщението и края на Рен</span></li><li><span class="chip people">Хора</span><span>Да се измерят минутите до първия край (от тях зависи цената) и дали някой играе отново</span></li></ul>
+        </div>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<section aria-labelledby="threads-h" style="display:grid; gap:16px">
+  <div style="display:grid; gap:6px">
+    <span class="eyebrow">Част 2</span>
+    <h2 id="threads-h">Нишките, които минават през цялата игра</h2>
+    <p class="lede">Те не принадлежат на едно място. Продължават между местата и между отделните игри.</p>
+  </div>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Нишка</th><th>Как се движи</th><th>Къде се отплаща</th><th>Състояние</th></tr></thead>
+      <tbody>
+        <tr><td style="color:var(--owner)">Собственикът</td><td>Вниманието расте, когато те видят, когато ползваш глич, говориш или стоиш неподвижно; пада, когато се криеш. Ходовете му: патрулът на Арин, превъртането назад, записът върху Рю, курсорът, шумът.</td><td>Ръбът; бележките в Архива; краят със съобщението</td><td><span class="chip built">Готово</span></td></tr>
+        <tr><td style="color:var(--owner)">„Чистката“</td><td>Смъртите и излизанията в опасност я качват от игра на игра. Една стъпка преди края картата на смъртта предупреждава. Излизане в спокоен момент не струва нищо.</td><td>На границата записът се изтрива (PURGED): Собственика печели</td><td><span class="chip built">Готово</span> <span class="chip people">Хора</span></td></tr>
+        <tr><td style="color:var(--rue)">Спомените</td><td>5 фрагмента: стаята, под кладенеца, Архивът и два на Ръба. Всеки отключва глич и връща цвят на Рю.</td><td>Краят RUE иска всичките 5</td><td><span class="chip built">Готово</span></td></tr>
+        <tr><td style="color:var(--rue)">Истината</td><td>Реплики от Мира, Рен и Тобен, хитбоксът на Пип, после досието на героя.</td><td>Рю знае какво е. Краят RUE</td><td><span class="chip built">Готово</span></td></tr>
+        <tr><td style="color:var(--lantern)">Рен</td><td>Запознанство, играта с тебешир, подаръкът тебешир, знак на кладенеца, рисунки между игрите, молбата да види Ръба, придружаването.</td><td>Краят на Рен; репликата ѝ за светлината</td><td><span class="chip built">Готово</span> <span class="chip people">Хора</span></td></tr>
+        <tr><td style="color:var(--lantern)">Мира</td><td>Бележката ѝ: занесена или придружена до таблото, после закачена или изгубена. Масата и прозорецът ѝ се променят според това.</td><td>Тайната „Мира видя площада“</td><td><span class="chip built">Готово</span></td></tr>
+        <tr><td style="color:var(--lantern)">Тобен</td><td>Докладва за Рю, може да бъде хванат, страницата от книгата му е в Кошчето. Щом го впишеш обратно, той задрасква себе си.</td><td>Тайната „Книгата за гости“; неговата реплика на истината</td><td><span class="chip built">Готово</span></td></tr>
+        <tr><td style="color:var(--lantern)">Архиварят</td><td>Среща, досието на героя, насоката, новото досие RUE.</td><td>Отваря пътя към Ръба</td><td><span class="chip built">Готово</span></td></tr>
+        <tr><td style="color:var(--lantern)">Пип</td><td>Намерен под кладенеца. Следва, води веднъж, крие се от Арин, почива.</td><td>Тайната „Пип“; епилозите</td><td><span class="chip built">Готово</span></td></tr>
+        <tr><td style="color:var(--lilac)">Гличовете</td><td>От самото начало: PHASE, FREEZE, FALSIFY, UNLOCK. После по един за всеки спомен: DECOY, SCRUB, BLIND, RESTORE, PAUSE. Всеки струва внимание.</td><td>Всяка заплаха има глич срещу себе си, назован на картата на смъртта</td><td><span class="chip built">Готово</span> <span class="chip open">Предстои</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="lede" style="font-size:13px">Предстои за гличовете: да се запише бюджетът на вниманието (колко харчи внимателният играч спрямо колко има), преди да се променя която и да е цена.</p>
+</section>
+
+<section aria-labelledby="end-h" style="display:grid; gap:16px">
+  <div style="display:grid; gap:6px">
+    <span class="eyebrow">Част 3</span>
+    <h2 id="end-h">Шестте края и как се стига до всеки</h2>
+  </div>
+  <div class="endings">
+    <div class="ending"><span class="name">Saved to Slot 2</span><span>Рю се вписва в последния запис.</span><span class="how">Стигни SLOT 2 и го вземи.</span></div>
+    <div class="ending"><span class="name">RUE</span><span>Взима слота, като знае какво е, и с името си.</span><span class="how">Всичките 5 спомена, плюс истината (досието на героя).</span></div>
+    <div class="ending"><span class="name">A New Game for Wren</span><span>Последният запис отива при някого, който го е поискал.</span><span class="how">Изведи Рен до Ръба.</span></div>
+    <div class="ending"><span class="name">A Message</span><span>Слотът остава на Собственика, с нещо за прочитане. Единственият край, който стига до момичето.</span><span class="how">Остави слота на Собственика.</span></div>
+    <div class="ending hidden-end"><span class="name">Never Loaded</span><span>Рю излиза от картата, без Собственика изобщо да разбере. Таен.</span><span class="how">Бъди невъзможна за забелязване (никой да не те види).</span></div>
+    <div class="ending hidden-end"><span class="name">Slot 1 Overwritten</span><span>Рю взима записа на Собственика вместо празния. Таен.</span><span class="how">Бъди невъзможна за пренебрегване (безразсъдна игра).</span></div>
+    <div class="ending bad"><span class="name">Purged</span><span>Не е от шестте. Собственика е научил достатъчно и записът е чист.</span><span class="how">Умирай или излизай в опасност твърде често, през няколко игри.</span></div>
+  </div>
+</section>
+
+<section aria-labelledby="road-h" style="display:grid; gap:18px">
+  <div style="display:grid; gap:6px">
+    <span class="eyebrow">Част 4 · обновено на 3 ноември 2026</span>
+    <h2 id="road-h">Пътят до пълно издаване за PC преди Коледа</h2>
+    <p class="lede">Избраната цел е пълна версия за Windows с работна дата на излизане <b>10 декември 2026</b>. Решението „да или не“ е на <b>4 декември</b>, по доказателства. Това е цел, не обещание: процедурите и проверката на Valve трябва да го позволят. Играта не излиза с неразрешена загуба на прогрес, сривове, заклещвания или неизползваемо управление.</p>
+  </div>
+
+  <div class="date-row" aria-label="Фиксирани и целеви дати">
+    <div class="date"><b>около 30 дни</b><span>От таксата в Steam Direct до право на издаване. Страниците на Valve казват 21 или 30; планирай 30 и провери в таблото</span></div>
+    <div class="date"><b>≥ 2 седмици</b><span>Страница „Очаквайте скоро“ преди излизането</span></div>
+    <div class="date"><b>3–5 работни дни</b><span>Обичайна проверка на страница или версия; предвиди 7</span></div>
+    <div class="date"><b>17 дек. – 4 ян.</b><span>Зимната разпродажба на Steam 2026</span></div>
+  </div>
+
+  <div class="phases">
+    <div class="phase">
+      <div class="phase-side"><span class="eyebrow">3 – 6 ноем.</span><h3>Червената компилация и обхватът</h3><span class="when">В ход</span><span class="gate">Праг: зелен CI на последната версия; грешките на двигателя са под контрол; обхват, двигател и платформи са замразени</span></div>
+      <div class="phase-main"><ul class="tasks">
+        <li><span class="chip built">Готово</span><span>Проверката за запис в спокоен момент в браузъра: причината е измерена (синхронизация на IndexedDB на бавна машина), проверката е поправена; контрол на грешките на двигателя; поправени грешки с освободени ламбди</span></li>
+        <li><span class="chip built">Готово</span><span>Честно покритие: пропуснатите проверки се отчитат; краят „overwrite“ е изигран по пълен маршрут</span></li>
+        <li><span class="chip author">Автор</span><span>Потвърждение на акаунта в Steamworks, таксата, данъчните и банковите данни и реалната дата на право на издаване</span></li>
+      </ul></div>
+    </div>
+    <div class="phase">
+      <div class="phase-side"><span class="eyebrow">До 8 ноем.</span><h3>Първи играчи и Windows</h3><span class="when">Тази седмица</span><span class="gate">Праг: 5 наблюдавани сесии на една версия; реално изиграване на Windows с контролер</span></div>
+      <div class="phase-main"><ul class="tasks">
+        <li><span class="chip people">Хора</span><span>Петима непознати играчи, с клавиатура и контролер (<code>docs/playtest/RUN_A_ROUND.md</code>, вече с безопасни указания за профилите)</span></li>
+        <li><span class="chip people">Хора</span><span>Версията за Windows, от първото пускане до първия край, на истински компютър</span></li>
+        <li><span class="chip author">Автор</span><span>Избор на поведението на публичното демо</span></li>
+      </ul></div>
+    </div>
+    <div class="phase">
+      <div class="phase-side"><span class="eyebrow">9 – 20 ноем.</span><h3>Поправки, визия, страница в магазина</h3><span class="when">Замразяване на съдържанието до 20 ноем.</span><span class="gate">Праг: страницата „Очаквайте скоро“ е публикувана до 20 ноем. за излизане на 10 дек.</span></div>
+      <div class="phase-main"><ul class="tasks">
+        <li><span class="chip open">Предстои</span><span>Поправка на трите най-големи наблюдавани проблема; одобряване на един визуален стандарт (първо площадът)</span></li>
+        <li><span class="chip author">Автор</span><span>Материали за магазина по пълния актуален списък на Steam; страницата подадена за проверка с резерв</span></li>
+        <li><span class="chip people">Хора</span><span>Втори кръг с играчи</span></li>
+      </ul></div>
+    </div>
+    <div class="phase">
+      <div class="phase-side"><span class="eyebrow">24 ноем. – 4 дек.</span><h3>Кандидат-версия</h3><span class="when">Решение на 4 дек.</span><span class="gate">Праг: RC1 до 1 дек.; всяка обявена функция и всеки край са доказани</span></div>
+      <div class="phase-main"><ul class="tasks">
+        <li><span class="chip open">Предстои</span><span>Версията подадена за проверка до 24 ноем.; RC1 с чисти тестове и изграждания, хешове и пакет за връщане назад до 1 дек.</span></li>
+        <li><span class="chip author">Автор</span><span>Решение „да или не“ на 4 дек. по доказателствата</span></li>
+      </ul></div>
+    </div>
+    <div class="phase">
+      <div class="phase-side"><span class="eyebrow">10 – 24 дек.</span><h3>Излизане и поддръжка</h3><span class="when">Ако е одобрено и безопасно</span><span class="gate">Праг: никаква козметична кръпка, която рискува записите без тестове за миграция и връщане</span></div>
+      <div class="phase-main"><ul class="tasks">
+        <li><span class="chip author">Автор</span><span>Излизане на 10 дек. Ако Steam не стигне датата: тествано пълно издаване през друг одобрен магазин (например itch.io) или демо и отложено платено издаване. Никога демо, наречено пълна игра</span></li>
+      </ul></div>
+    </div>
+  </div>
+  <p class="lede" style="font-size:13px"><b>Алтернатива, неизбрана:</b> страница в магазина и демо преди Коледа, Next Fest (22 февр. – 1 март 2027) и излизане март–април 2027. Търговски по-силна е, ако списъците с желания тежат повече от датата. Оставена е за сравнение; собственикът избра декемврийско излизане.</p>
+</section>
+
+<section aria-labelledby="done-h" style="display:grid; gap:14px">
+  <div style="display:grid; gap:6px">
+    <span class="eyebrow">Част 5</span>
+    <h2 id="done-h">„Завършена“ значи, че всичко това е вярно</h2>
+  </div>
+  <ul class="done-list">
+    <li class="y">Всяко място, спомен, тайна и край е в играта и е тествано</li>
+    <li class="y">Неуспешен запис го казва, пази последния добър запис и опитва отново; спирането в спокоен момент е безплатно</li>
+    <li>В браузъра записът става траен едва след синхронизацията на хранилището (измерено до около 31 s на много бавна машина): да се докаже на реален слаб хардуер</li>
+    <li class="y">Намалено движение, намалено мигане, темпо на Собственика, едър текст, пренастройване на клавиши и контролер</li>
+    <li class="y">Управлението: заобикаляне на ъгли и запомняне на ранно натискане</li>
+    <li>Десет или повече непознати играчи са я изиграли, и главните им проблеми са поправени</li>
+    <li>Времето до първия край е измерено, и цената е определена по него</li>
+    <li>Работи на Windows компютър и с истински контролер (ако може, и на Steam Deck)</li>
+    <li>60 кадъра в секунда, измерени на истинска видеокарта от среден клас</li>
+    <li>Капсула и основна илюстрация с прехвърлени права</li>
+    <li>Трите момента за магазина са шлифовани графично; една палитра за всички карти</li>
+    <li>Снимки, трейлър и честен текст за магазина</li>
+    <li>Публично демо с отделен запис; Next Fest е минал</li>
+    <li>Кандидат-версията минава всички тестове, ботове, изграждания и браузърни проверки</li>
+    <li>Проверката на Valve е одобрена; излизането и прозорецът за първата кръпка са планирани</li>
+  </ul>
+</section>
+
+<footer>
+  <p>Източници в хранилището: <code>scripts/story/quests.gd</code>, <code>story.gd</code>, <code>glitch.gd</code>, <code>docs/STORY_CHRONOLOGY.md</code>, <code>docs/production/ISSUE_REGISTER.md</code>, <code>docs/RELEASE_READINESS.md</code>, <code>docs/production/COMMERCIAL_PLAN_2026-10-31.md</code>.</p>
+  <p>Датите на Steam са от документацията на Valve за Steamworks, проверени на 31 октомври 2026 г. Провери ги отново, преди да действаш по тях.</p>
+</footer>
+
+</div>
