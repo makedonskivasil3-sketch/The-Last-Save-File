@@ -2,7 +2,34 @@
 
 **The top section ("Current") is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current: graphics, story and player-experience pass (2026-11-03, implementation brief)
+## Current: comprehension, identity payoff, visual credibility and fairness (2026-11-04)
+
+**Full report:** [`production/COMPREHENSION_AND_FAIRNESS_2026-11-04.md`](production/COMPREHENSION_AND_FAIRNESS_2026-11-04.md). It covers the risks, the concept map, the RUE route, fairness, the area matrix, the player protocol and the demo choice.
+
+**Changed (code, with tests):**
+
+1. **A reload can no longer kill Rue while she has no control.** Arin is held and the cursor blinded for the drag and the grace beat after it. A reload with no safe moment lands as far from threats as it can. The bug was reproduced first in `test_fairness`; it caused the CI purge-5 death 0.4 s after "the owner reloaded".
+2. **The Edge's extra patience survives a death elsewhere** (until an ending). `test_edge` was updated as a documented design change.
+3. **RUE leads:**
+   - the fifth memory says where the route goes;
+   - the hint and journal name who and where;
+   - Slot 2 says once, as she starts writing, that a lead is still open and she can step out.
+4. **RUE in one continuous playthrough is proven** by `test_full_game_rue_one_playthrough`: 1 session, 277 s, no deaths. The earlier claim that RUE needs two runs was a limit of the bot, not of the game.
+5. **The Edge:**
+   - developer-looking labels became bracketed tags in the save's own words;
+   - the square's road frays into the grid at the south gap.
+
+   See `docs/review/calibration_2026-11-03/edge_before_after.jpg`.
+
+**Verified:** strict suite 853/853 in one run, four shards, engine-error gate on. The bot results are in the commit after this one.
+
+**Open:**
+- No players yet; the protocol is ready.
+- **The permanent-loss policy at purge 6:** the author decides; options are in the report, §4.3.
+- Character scale needs a controlled comparison first.
+- Art across the campaign is mostly "functional".
+
+## History: graphics, story and player-experience pass (2026-11-03, implementation brief)
 
 **Starting point:** `7f909c7`. CI run 41637456426 green: 845 tests, all six endings by full routes, the scarred-square probe SKIP.
 **Sections below this one are history.** Blockers, owners and dates live only in [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md).
