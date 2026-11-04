@@ -14,14 +14,23 @@
    - the fifth memory says where the route goes;
    - the hint and journal name who and where;
    - Slot 2 says once, as she starts writing, that a lead is still open and she can step out.
-4. **RUE in one continuous playthrough is proven** by `test_full_game_rue_one_playthrough`: 1 session, 277 s, no deaths. The earlier claim that RUE needs two runs was a limit of the bot, not of the game.
+4. **RUE in one continuous playthrough is proven** by `test_full_game_rue_one_playthrough`: 3 of 3 runs reached it with no ending in between. One needed no death; two died once to the cursor while leaving the Edge, which was the forgiven first Edge death. The earlier claim that RUE needs two runs was a limit of the bot, not of the game.
 5. **The Edge:**
    - developer-looking labels became bracketed tags in the save's own words;
    - the square's road frays into the grid at the south gap.
 
    See `docs/review/calibration_2026-11-03/edge_before_after.jpg`.
 
-**Verified:** strict suite 853/853 in one run, four shards, engine-error gate on. The bot results are in the commit after this one.
+**Verified (automated, this machine):**
+- **Strict suite:** 853/853 in one run, four shards, engine-error gate on.
+- **Bots, each reaching its exact ending:**
+  - escape at purge 0, 3 and 5: 147, 127 and 120 s, 0 deaths;
+  - message: 150 s;
+  - Wren: 185 s;
+  - overwrite: 183 s;
+  - unseen: 146 s;
+  - rue (two runs): 298 s;
+  - rue in one playthrough: three runs, above.
 
 **Open:**
 - No players yet; the protocol is ready.
