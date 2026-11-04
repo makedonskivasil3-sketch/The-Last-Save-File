@@ -263,6 +263,9 @@ func _hold_threats(seconds: float) -> void:
 	var cursor: Variant = world.area.get("cursor")
 	if cursor is OwnerCursor:
 		cursor.blind(seconds)
+	var e: Erasure = world.area.erasure
+	if e != null:
+		e.held = maxf(e.held, seconds)  # the drag can cross static (CI 41811987936)
 
 
 func _end_rewind() -> void:

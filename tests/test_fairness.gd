@@ -155,3 +155,34 @@ func test_dying_elsewhere_keeps_the_edges_extra_patience() -> void:
 	check_eq(memory().edge_static_deaths, 1, "the square death keeps the count")
 	check_eq(TheEdge.grace_time(), after_edge, "so the static still waits longer at the Edge")
 	check(TheEdge.grace_time() <= TheEdge.MAX_GRACE, "and never past its cap")
+
+
+## The static can't take her during a reload's drag either (CI 41811987936,
+## purge 5: "the owner reloaded" at 85.3 s, "DIED: eraser in square" at
+## 85.4 s: the drag crossed static that had grown on her path).
+func test_the_static_cannot_take_her_while_she_is_dragged_back() -> void:
+	var w := await start_session()
+	await go_to(w, "square", "house")
+	w.area.arin.position = Vector2(860, 280)
+	w.area.arin.route = [Vector2(860, 280)] as Array[Vector2]
+	var m: OwnerMoves = w.owner_moves
+	var e: Erasure = w.area.erasure
+	var died := [false]
+	e.caught_player.connect(func() -> void: died[0] = true)
+	var a := Vector2(200, 262)
+	var b := Vector2(360, 262)
+	w.player.global_position = b
+	e.active = true
+	e.interval = 999.0  # no spreading: only the cells placed here
+	e.seed_at(Vector2(280, 262))  # on the path back, not where she lands
+	await wait(1.5)  # let the cell mature (young cells never catch)
+	m._history.clear()
+	m._clock = 20.0
+	m._history.append({"t": 18.0, "player": a})
+	m._history.append({"t": 19.0, "player": Vector2(280, 262)})
+	m._history.append({"t": 19.8, "player": b})
+	m.load_last_save(true)
+	var until := Time.get_ticks_msec() + int((OwnerMoves.REWIND_TIME + OwnerMoves.GRACE - 0.1) * 1000.0)
+	while Time.get_ticks_msec() < until:
+		await frames(1)
+	check(not died[0], "dragged through static, she is not erased while she has no control")

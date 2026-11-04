@@ -8,6 +8,9 @@ extends Node2D
 ## added, so a room full of erasure costs almost nothing per frame.
 
 signal caught_player
+## A reload's hold (OwnerMoves): while Rue is dragged back with no control,
+## and for the beat after, the static can't take her. It keeps spreading.
+var held := 0.0
 
 const CELL := 8
 const MATURE_TIME := 0.8
@@ -151,6 +154,7 @@ func cell_count() -> int:
 
 func _process(delta: float) -> void:
 	_t += delta
+	held = maxf(0.0, held - delta)
 	_settle_cells()
 	if active:
 		_start_pending(delta)
@@ -229,7 +233,7 @@ func _refresh_frontier(c: Vector2i) -> void:
 
 
 func _check_target() -> void:
-	if _caught or not is_instance_valid(target):
+	if _caught or not is_instance_valid(target) or held > 0.0:
 		return
 	# Matches the player's 8x8 collider, shrunk a pixel for fairness.
 	var p := target.global_position + Vector2(0, 2)
