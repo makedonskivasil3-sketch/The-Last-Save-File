@@ -277,17 +277,6 @@ const OWNER_RECOGNITION := {
 }
 
 
-## The five acts, as places (kept for the place titles some screens use).
-## Arriving somewhere only names it now; chapters follow the story
-## (CHAPTERS, below).
-const ACTS := {
-	"room": ["ACT I", "SOMEONE ELSE'S SAVE"],
-	"square": ["ACT II", "ASHVALE"],
-	"oob": ["ACT III", "OUT OF BOUNDS"],
-	"archive": ["ACT IV", "CUT CONTENT"],
-	"edge": ["ACT V", "THE LAST SAVE FILE"],
-}
-
 ## Chapters follow the story, not the map (docs/production/ISSUE_REGISTER.md
 ## UI-6): each is a stage of Quests.story_mission(), which only moves
 ## forward, so the cards can't come out of order however the player

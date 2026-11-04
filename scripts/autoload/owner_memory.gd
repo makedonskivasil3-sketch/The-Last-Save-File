@@ -91,7 +91,7 @@ var endings_seen: Array[String] = []
 var route_memory: Array[Dictionary] = []
 ## This session only: spots the owner noticed you at ({"area", "pos"}).
 var session_spots: Array[Dictionary] = []
-## Story acts whose title card has been shown (Story.ACTS ids).
+## Story chapters whose title card has been shown (Story.CHAPTERS ids).
 var acts_seen: Array[String] = []
 ## Memory fragments the intruder has recovered (Story.FRAGMENTS ids). These
 ## are YOUR memories, not the owner's: they survive deaths and purges, and

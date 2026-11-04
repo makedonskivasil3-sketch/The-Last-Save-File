@@ -378,6 +378,10 @@ func recover_fragment(m: MemoryFragment) -> void:
 	var restored: String = Story.RESTORED.get(player.restored_parts(), "")
 	if restored != "":
 		hud.say(restored, "self")
+	# The fifth memory: the identity route becomes actionable here, so say
+	# where it goes, once, without saying what it finds (DS-1, 2026-11-04).
+	if Progression.stage() in [Progression.Stage.INVESTIGATE, Progression.Stage.FILE]:
+		hud.say(Progression.all_memories_lead(), "self")
 	_learn_glitch(OwnerMemory.fragments.size())
 	# The owner notices something flicker.
 	director.notice(6.0, "a memory flickered")

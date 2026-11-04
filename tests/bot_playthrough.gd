@@ -84,6 +84,15 @@ func test_full_game_rue() -> void:
 	await _playthrough("rue", 0)
 
 
+## RUE in ONE continuous playthrough (no ending in between): after the
+## Edge's two memories, it refuses the slot and goes back south for the
+## truth. If the way back kills it, the save keeps every memory (the first
+## Edge death is forgiven) and the next session collects the truth before
+## the Edge. Fails if any ending is taken first.
+func test_full_game_rue_one_playthrough() -> void:
+	await _playthrough("rue_one", 0)
+
+
 ## UNSEEN: no glitches of its own (the room's crack is the one allowed),
 ## and Arin must never see her (World.is_unseen_run). The route is the
 ## escape route's own lures; if Arin ever sees her the option is missing
@@ -104,9 +113,17 @@ var _ending := ""
 
 ## Runs ended so far (RUE plays a second one).
 var _runs := 0
+## RUE without an ending in between (test_full_game_rue_one_playthrough).
+var _one_playthrough := false
 
 
 func _playthrough(ending: String, purge: int, square_deaths: Array = []) -> void:
+	var asked := ending
+	if ending == "rue_one":
+		_one_playthrough = true
+		ending = "rue"
+	else:
+		_one_playthrough = false
 	_ending = ending
 	_runs = 0
 	_edge_returns = 0
@@ -152,6 +169,8 @@ func _playthrough(ending: String, purge: int, square_deaths: Array = []) -> void
 		await _watch_epilogue()
 	# The ending asked for, exactly: a different ending is a failure, not a pass.
 	check_eq(result, "ending:" + ending, "the bot reached the %s ending" % ending)
+	if asked == "rue_one":
+		check_eq(_runs, 0, "and no ending was taken before it (one continuous playthrough)")
 
 
 ## One session; returns "ending:<id>", "death" or "stuck:<where>".
@@ -444,6 +463,24 @@ func _shelter_through_sweep(w: Node, bin: RecycleBin) -> void:
 		await frames(1)
 
 
+## Down through the south gap and out to the square, once Arin is clear of
+## it (he enters there and circles the slot).
+func _leave_edge_south(w: Node) -> bool:
+	var gap := Vector2(320, w.area.bounds.end.y - 8.0)
+	var waited := 0
+	while w.ending == "" and w.area.area_id == "edge" and waited < 60:
+		var arin: Node2D = w.area.get("arin")
+		if arin == null or arin.global_position.distance_to(gap) > 150.0:
+			break
+		await _go(w, [Vector2(140, 240 - (waited % 2) * 24)], 1.0)
+		waited += 1
+	_say("leaving the edge for the truth after %d waits" % waited)
+	await _go(w, [Vector2(320, 262), gap], 20.0)
+	if w.area.area_id == "edge" and w.ending == "":
+		await _nudge(w, Vector2.DOWN, 1.5)
+	return await _arrived(w, "square")
+
+
 ## RUE's pieces, in a run that starts with every memory: Wren in the
 ## square (all five memories make her say what she noticed), then, if one
 ## more is needed, the FIRST HITBOX on Pip's ledge out of bounds.
@@ -530,6 +567,18 @@ func _edge(w: Node, ending: String) -> String:
 		return "death"
 	if w.area.area_id != "edge":
 		return await _back_to_edge(w, ending)
+	if _one_playthrough and not memory().knows_truth:
+		# Every memory now: go back for the truth rather than take the slot.
+		if not await _leave_edge_south(w):
+			return "death" if w.ending == "death" else "stuck:leaving the edge"
+		if not await _truth_pieces(w):
+			return _why(w, "the truth pieces (one playthrough)")
+		if not await _archive(w, false):
+			return _why(w, "the archive (one playthrough)")
+		if not await _north(w):
+			return _why(w, "the north road (one playthrough)")
+		_edge_returns = 0
+		return await _edge(w, ending)
 	# Lure the cursor far from the slot, then sprint.
 	var cursor: OwnerCursor = w.area.cursor
 	var lure := 0
