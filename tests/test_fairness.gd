@@ -186,3 +186,21 @@ func test_the_static_cannot_take_her_while_she_is_dragged_back() -> void:
 	while Time.get_ticks_msec() < until:
 		await frames(1)
 	check(not died[0], "dragged through static, she is not erased while she has no control")
+
+
+## Nor a moment the static has grown up to since (bot trace, purge 5: the
+## reload landed her 2 px from a young cell, which settled under her).
+func test_reload_skips_moments_the_static_has_reached() -> void:
+	var w := await start_session()
+	await go_to(w, "square", "house")
+	var m: OwnerMoves = w.owner_moves
+	var e: Erasure = w.area.erasure
+	e.active = true
+	e.interval = 999.0
+	e.seed_at(Vector2(400, 200))
+	m._history.clear()
+	m._clock = 20.0
+	m._history.append({"t": 11.0, "player": Vector2(402, 200)})
+	m._history.append({"t": 13.0, "player": Vector2(300, 200)})
+	m._history.append({"t": 19.0, "player": Vector2(320, 200)})
+	check_eq(m._pick_snapshot(), 1, "the oldest moment clear of the static, not the one beside it")
