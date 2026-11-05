@@ -16,7 +16,10 @@ env:
 
 jobs:
   export:
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest moved to 26.04, where Playwright 1.56.1 can't
+    # install Chromium's dependencies (the audible-web-build check failed
+    # before any game check: "Cannot install dependencies for ubuntu26.04").
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
