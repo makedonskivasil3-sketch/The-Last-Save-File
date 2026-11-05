@@ -160,6 +160,9 @@ func _playthrough(ending: String, purge: int, square_deaths: Array = []) -> void
 		_reckless = false
 		_deaths.append(_death_note(w))
 		_say("DIED: %s" % _deaths[-1])
+		for line in _trace:
+			_say("   trace " + line)
+		_trace.clear()
 		w = await wait_for_new_session(w)
 	var summary := "BOT SUMMARY %s purge %d: %s after %d session(s), %.0f s of game time · memories %d/5 · pip %s · deaths %d %s · glitches %d · reloads %d · stalls %d" % [
 		ending, purge, result, _session, _now() - _t0, memory().fragments.size(), memory().found_pip,
@@ -713,6 +716,7 @@ func _go(w: Node, points: Array, timeout := STEP_TIMEOUT) -> bool:
 					side = -side
 				n = (n + side).normalized()
 			_steer(w, n)
+			_trace_step(w, n)
 			if _should_glitch(w):
 				await _glitch(w)
 			_track_rewinds(w)
@@ -898,6 +902,24 @@ func _be_reckless(w: Node) -> void:
 	_release_all()
 	_reckless = false  # reckless enough: now get to the slot
 	_step(w, "reckless: %s (glitches %d, awareness %.0f, tries %s)" % [w.is_reckless_run(), memory().session_glitches, w.director.awareness, str(why)])
+
+
+## The last 1.5 s of walking, printed when the bot dies, so a CI death
+## says where the static was and which way the bot was going.
+var _trace: Array[String] = []
+
+
+func _trace_step(w: Node, n: Vector2) -> void:
+	var p: Vector2 = w.player.global_position
+	var e: Variant = w.area.get("erasure")
+	var near := "-"
+	if e is Erasure and e.active:
+		var c: Vector2 = e.nearest_cell(p, 48.0)
+		if c != Vector2.INF:
+			near = "%s at %.0f px (void %s)" % [c.round(), c.distance_to(p), e.is_void(c)]
+	_trace.append("%.2fs %s pos %s dir %s static %s%s" % [_now(), w.area.area_id, p.round(), (n * 10.0).round() / 10.0, near, " REWIND" if w.owner_moves.rewinding else ""])
+	if _trace.size() > 45:
+		_trace.pop_front()
 
 
 ## The last direction the bot steered, kept while it charges a glitch.
