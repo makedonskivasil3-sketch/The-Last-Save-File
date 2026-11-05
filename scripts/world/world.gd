@@ -1185,9 +1185,12 @@ var _goal_check := 0.0
 
 
 func _update_objective() -> void:
+	if player:
+		hud.player_world = player.global_position
 	_goal_check -= get_process_delta_time()
 	if _goal_check > 0.0:
 		return
+	_update_checklist()
 	_goal_check = 0.5  # goals change on events, not every frame
 	# The goal, and under it the quiet truth-route hint (Progression), if any.
 	var goal := current_goal().get_slice("\n", 0)
@@ -1195,6 +1198,22 @@ func _update_objective() -> void:
 	if goal + hint != _shown_goal and not hud.is_dialogue_open() and not hud.is_cinematic() and not hud.is_choosing():
 		_shown_goal = goal + hint
 		hud.show_objective(goal, hint)
+
+
+## The side checklist: the active mission's title and its steps, from the
+## save (Quests.steps). Optional identity leads appear as one more line once
+## they are open (Progression), never before.
+func _update_checklist() -> void:
+	if area == null or ending != "" or purged:
+		hud.set_checklist("", [])
+		return
+	var pointer: bool = flags.get("pointer", false)
+	var id := Quests.active(area.area_id, pointer)
+	var steps: Array = Quests.steps(area.area_id, pointer)
+	var lead := Progression.goal_hint()
+	if lead != "":
+		steps = steps + [["(optional) " + lead, false]]
+	hud.set_checklist(Quests.TITLES.get(id, ""), steps)
 
 
 func current_goal() -> String:
@@ -1811,8 +1830,30 @@ static func object_name(node: Node) -> String:
 	return ""
 
 
+## First meetings get a short introduction card (Story.INTRODUCTIONS).
+## Tests switch it off so they reach the conversation itself at once.
+static var introductions := true
+
+
 func _interact(node: Node2D) -> void:
+	if introductions and node is Npc and Story.INTRODUCTIONS.has(node.npc_id) \
+			and not OwnerMemory.has_met(node.npc_id) and not _cutscene and ending == "":
+		var intro: Array = Story.INTRODUCTIONS[node.npc_id]
+		_cutscene = true
+		player.frozen = true
+		await hud.cinematic(intro[0], intro[1], Hud.SELF_COLOR, 0.45, "intro." + node.npc_id, CharacterArt.for_npc(node))
+		if not is_inside_tree() or ending != "" or not is_instance_valid(node):
+			return
+		player.frozen = false
+		_cutscene = false
 	var result: Variant = node.interact()
+	if result is Dictionary and result.get("shock", false) and node is Npc:
+		# Wren sees it: a sting, she flinches back, and Rue notices after.
+		Sfx.play("spotted", -6.0, 0.8)
+		(node as Npc).emote("!", 2.0)
+		var after: Array = result.get("after", []).duplicate()
+		after.append(func() -> void: hud.say(Story.WREN_SEES_AFTER, "self"))
+		result["after"] = after
 	if result is Dictionary:
 		var face: CharacterArt.Portrait = CharacterArt.for_npc(node) if node is Npc else null
 		hud.show_dialogue(result.speaker, result.color, result.lines, dialogue_voice_prefix(node, result), face, expressions_for(node, result.lines),

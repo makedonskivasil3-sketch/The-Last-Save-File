@@ -13,8 +13,14 @@ extends Node2D
 ## target tears (GlitchBurst), the screen jolts, the cost flies up to the
 ## awareness meter, and the owner says something the first time.
 
-## Holding shorter than this is a tap (interact).
-const HOLD_START := 0.22
+## Holding shorter than this is a tap (interact). Was 0.22: playtesters
+## (2026-11-05, "E not working or buggy") pressed a little long, which
+## started a charge instead of talking.
+const HOLD_START := 0.35
+## Glitching someone (a person in the save) needs a deliberate hold:
+## a slightly long press on Mira must talk, not FREEZE her for awareness.
+## Threats (Arin, the cursor) keep their quick holds.
+const FRIENDLY_HOLD := 1.0
 const COOLDOWN := 0.6
 const MAGENTA := Color(1.0, 0.25, 0.6)
 const CYAN := Color(0.55, 0.95, 1.0)
@@ -103,9 +109,11 @@ func _process(delta: float) -> void:
 			# Released: a short press (or a hold with nothing to glitch) is a tap.
 			# Let go early in a charge and it's still a tap (it was a long-ish
 			# press, not a glitch); later, a soft "cancelled" so it's never silent.
-			if _charge <= 0.0:
+			# Let go before the glitch fires with something in reach: that was
+			# a press, so it interacts (never a silent "denied" next to Wren).
+			if _charge <= 0.0 or world._focused != null:
 				world.tap_interact()
-			elif not target.is_empty() and _charge < Glitch.hold_time(target.id) * TAP_FRACTION:
+			elif not target.is_empty() and _charge < hold_need(target) * TAP_FRACTION:
 				world.tap_interact()
 			else:
 				Sfx.play("denied", -10.0, 1.3)
@@ -165,13 +173,23 @@ func _charge_up(delta: float) -> void:
 		_fizzle()
 		return
 	_charge += delta
-	var need: float = Glitch.hold_time(target.id)
+	var need: float = hold_need(target)
 	var k := clampf(_charge / need, 0.0, 1.0)
 	_loop.volume_db = Sfx.LEVEL["glitch_charge"] + linear_to_db(maxf(0.25 + 0.75 * k, 0.001) * Sfx.harshness())
 	_loop.pitch_scale = 0.7 + 0.9 * k
 	world.fx.noise(0.15 + 0.35 * k, 0.1)
 	if _charge >= need:
 		_fire(target)
+
+
+## How long this target's glitch must be held: its own time, or longer for
+## a person who isn't a threat (FRIENDLY_HOLD).
+static func hold_need(t: Dictionary) -> float:
+	var base: float = Glitch.hold_time(str(t.get("id", "")))
+	var node: Variant = t.get("node")
+	if node is Npc:
+		return maxf(base, FRIENDLY_HOLD)
+	return base
 
 
 func _cancel() -> void:
@@ -409,7 +427,7 @@ func _update_prompt() -> void:
 	if _charge_label:
 		_charge_label.visible = charging
 		if charging:
-			var percent := mini(99, floori(_charge / Glitch.hold_time(target.id) * 100.0))
+			var percent := mini(99, floori(_charge / hold_need(target) * 100.0))
 			_charge_label.text = "%s %d%%" % [Glitch.SHED.name if target.id == "shed" else Glitch.DEFS[target.id].name, percent]
 			_charge_label.add_theme_font_size_override("font_size", roundi(9 * Settings.text_scale()))
 			_charge_label.reset_size()
@@ -434,7 +452,7 @@ func _draw() -> void:
 		return
 	var p: Vector2 = world.player.global_position + Vector2(0, -6)
 	var charging := _charge > 0.0
-	var k := clampf(_charge / Glitch.hold_time(target.id), 0.0, 1.0) if charging else 0.0
+	var k := clampf(_charge / hold_need(target), 0.0, 1.0) if charging else 0.0
 	# Brackets on the target (not on yourself).
 	if not (target.id in ["decoy", "pause"]):
 		var tp: Vector2 = target.pos if target.id in ["phase", "scrub"] or target.node == null else target.node.global_position

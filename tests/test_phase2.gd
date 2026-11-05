@@ -21,7 +21,7 @@ func test_a_glitch_leaves_a_scar_and_shakes_the_world() -> void:
 	var w := await start_session(true, true)
 	w.player.global_position = w.area.note.global_position + Vector2(0, 20)
 	await frames(2)
-	await hold("interact", 0.8)
+	await hold("interact", 1.0)
 	var scars: Array = w.area.get_children().filter(func(n: Node) -> bool: return n is GlitchScar)
 	check(scars.size() == 1, "a scar where it fired")
 

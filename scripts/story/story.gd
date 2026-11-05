@@ -305,6 +305,42 @@ static func act_label(n: int) -> String:
 	return "ACT " + ["I", "II", "III", "IV", "V", "VI"][clampi(n, 1, 6) - 1]
 
 
+## First meetings (2026-11-05 playtest: "dialogues appear too sudden,
+## without any introduction to where we are"; "a slower introduction to the
+## characters"). Before the first word with each of them, ever: a short
+## card with their name, what Rue sees, and where she is. Observation, not
+## exposition: who they really are is left to them.
+const INTRODUCTIONS := {
+	"mira": ["MIRA", [
+		"(arin's room. somebody's sitting on the end of the bed, holding a cup with both hands, like it's still warm.)",
+		"(she looks up as if she's been waiting for whoever wakes up in here. she smiles. not at me. at who she thinks i am.)",
+	]],
+	"wren": ["WREN", [
+		"(the village square. a girl in a yellow raincoat is kneeling on the stones with a stick of chalk, humming.)",
+		"(she's drawn the same little face over and over. two dots, a smile. she hasn't seen me yet.)",
+	]],
+	"tobben": ["TOBBEN", [
+		"(a fruit stall at the edge of the square. a man in an apron is straightening apples that are already straight.)",
+		"(he sees me. his smile arrives a moment late, like it had to be loaded from somewhere.)",
+	]],
+	"archivist": ["THE ARCHIVIST", [
+		"(the archive. shelves taller than the village, and the quiet of a place nobody visits.)",
+		"(a tall figure in a robe is filing a card by hand, very slowly, as if it matters which way it faces.)",
+	]],
+}
+
+
+## Wren, the moment she sees what Rue is (2026-11-05: "the moment of shock
+## for Wren"). Her truth line stays the last line, so the piece still
+## counts on its reveal (World._on_line_revealed).
+const WREN_SEES := [
+	"...Wait. Stay there. Don't move.",
+	"When Arin walks, there's a thin line going up from him. Up into the sky. To whoever's holding him.",
+	"You don't have one. There's nothing above you. There's nothing above you at all.",
+]
+const WREN_SEES_AFTER := "(she took a step back. she has never stepped back from me before.)"
+
+
 ## Pip, the first time you find them out of bounds.
 const PIP_MEETING := [
 	"...rue?",

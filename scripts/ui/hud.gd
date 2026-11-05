@@ -195,6 +195,12 @@ func _ready() -> void:
 	_meter.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_meter)
 
+	# The side checklist: the active mission's steps, always there in play.
+	_checklist = _make_label(root, Vector2(640 - SAFE.x - CHECKLIST_W, SAFE.y + 50), Vector2(CHECKLIST_W, 12), 8, Color("d8ccb4"))
+	_checklist.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_checklist.add_theme_stylebox_override("normal", _backing(0.6))
+	_checklist.visible = false
+
 	# The current goal, under the save header (World shows it when it changes).
 	_objective = _make_label(root, SAFE + Vector2(0, 15), Vector2(400, 12), 9, Color("c8b8a0"))
 	_objective.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1410,6 +1416,52 @@ static func first_thought(goal: String) -> String:
 	return ("TRUCE  ·  " + first) if truce else first
 
 
+## The side checklist (2026-11-05 playtest: "a list to the side of what
+## we should be looking for"): the mission's title, then each step ticked
+## or open. World sets it from Quests.steps(); hidden while a conversation,
+## a choice, a scene or a card has the screen, and faded when Rue walks
+## underneath it.
+const CHECKLIST_W := 118.0
+var _checklist: Label
+var _checklist_text := ""
+
+
+func set_checklist(title: String, steps: Array) -> void:
+	var lines: Array[String] = []
+	if title != "" and not steps.is_empty():
+		lines.append(title)
+		for st in steps:
+			lines.append(("✓ " if st[1] else "○ ") + str(st[0]))
+	_checklist_text = "\n".join(lines)
+	if _checklist.text != _checklist_text:
+		_checklist.text = _checklist_text
+		_checklist.size = Vector2(CHECKLIST_W, 0)
+
+
+## Where Rue stands (World keeps it current), for fading the checklist.
+var player_world := Vector2.INF
+
+
+func player_screen_pos() -> Vector2:
+	if player_world == Vector2.INF:
+		return Vector2(-1000, -1000)
+	return get_viewport().canvas_transform * player_world
+
+
+func checklist_text() -> String:
+	return _checklist.text if _checklist.visible else ""
+
+
+func _update_checklist(player_screen := Vector2(-1000, -1000)) -> void:
+	var busy := _cinematic or _dialogue.visible or _choice.visible or is_act_shown() or _overlay.visible
+	_checklist.visible = _checklist_text != "" and not busy
+	if _checklist.visible:
+		var r := _checklist.get_global_rect().grow(16)
+		var focus_screen := get_viewport().canvas_transform * _prompt_at if _prompt_at != Vector2.INF else Vector2(-1000, -1000)
+		var near := r.has_point(player_screen) or r.has_point(focus_screen)
+		_checklist.modulate.a = move_toward(_checklist.modulate.a, 0.3 if near else 0.95, 0.08)
+
+
 func show_objective(text: String, hint := "") -> void:
 	text = first_thought(text)
 	if _objective_tween:
@@ -1581,6 +1633,7 @@ func _process(delta: float) -> void:
 	_playtime += delta
 	_place_prompt()
 	_update_objective_priority()
+	_update_checklist(player_screen_pos())
 	_glitch_prompt.position.x = _prompt_corner().x + 176 - 220
 	# The current interaction outranks a tip: a tip over the prompt steps back.
 	var over := _tip.visible and _prompt.visible and _prompt.text != "" and _tip.get_global_rect().intersects(_prompt.get_global_rect())

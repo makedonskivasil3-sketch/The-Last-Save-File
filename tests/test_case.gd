@@ -62,6 +62,7 @@ func before_each() -> void:
 	s.subtitle_bg = 0.75
 	s.speaker_labels = true
 	s.pause_on_focus_loss = true
+	World.introductions = false  # test_introductions turns them on
 	VoiceOver.clear_registered()
 	VoiceOver.stop()
 	tree.paused = false

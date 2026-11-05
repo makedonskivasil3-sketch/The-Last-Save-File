@@ -79,7 +79,7 @@ func test_first_room_teaches_phase() -> void:
 	w.player._sprite.facing = Vector2.UP
 	await frames(2)
 	check_eq(w.glitch.target.get("id", ""), "phase", "the crack can be phased through")
-	await hold("interact", 0.9)
+	await hold("interact", 1.1)
 	check(w.player.global_position.y < 116.0, "Rue slips through (%s)" % w.player.global_position)
 	# The memory brings the wall down so you're never shut in.
 	memory().add_fragment(wall.fragment_id)
@@ -93,7 +93,7 @@ func test_charging_shows_the_price() -> void:
 	await frames(2)
 	check(w.hud.glitch_prompt_text().contains("+%d" % int(Glitch.cost("falsify"))), "the prompt names the cost")
 	_act("interact", true)
-	await wait(0.3)
+	await wait(GlitchController.HOLD_START + 0.15)
 	check(w.hud.cost_preview() > 0.0, "while charging, the meter shows what it will cost")
 	check(w.touch.hold_label != "", "and the phone's E button says HOLD")
 	_act("interact", false)

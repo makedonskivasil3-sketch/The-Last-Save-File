@@ -901,8 +901,9 @@ func _be_reckless(w: Node) -> void:
 
 
 func _glitch(w: Node) -> void:
+	var need: float = GlitchController.hold_need(w.glitch.target) if not w.glitch.target.is_empty() else 0.5
 	_act("interact", true)
-	await wait(0.8)
+	await wait(GlitchController.HOLD_START + need + 0.15)
 	_act("interact", false)
 	await frames(2)
 	_glitches += 1

@@ -459,7 +459,8 @@ static func wren(_talk: int, ask_ready: bool, escorting: bool) -> Dictionary:
 	# 4. New topics: what she noticed about Rue; the well, once Rue has heard it.
 	var truth := Story.truth_line("wren")
 	if truth != "":
-		return {"lines": [truth], "id": "", "commit": []}
+		# Her shock (Story.WREN_SEES): she sees it before she says it.
+		return {"lines": Story.WREN_SEES + [truth], "id": "", "commit": [], "shock": true}
 	# Her own story waits while her ask is due and unanswered: the Edge first.
 	var own := _wren_own() if not (ask_ready and not has("wren.promised")) else {}
 	if not own.is_empty():

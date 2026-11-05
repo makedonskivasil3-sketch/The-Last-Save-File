@@ -24,7 +24,7 @@ func test_unlock_opens_arins_front_door() -> void:
 	w.player._sprite.facing = Vector2.UP
 	await frames(3)
 	check_eq(w.glitch.target.get("id", ""), "unlock", "facing it offers UNLOCK")
-	await hold("interact", 0.9)
+	await hold("interact", 1.1)
 	# Shorter ordinary crossings can already have entered the house by the
 	# time the hold helper returns. Do not dereference the old Square here.
 	check(w.area is ArinsHouse or (w.area is VillageSquare and w.area.door.is_forced_open()), "the lock opens and permits the crossing")
