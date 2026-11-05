@@ -900,10 +900,24 @@ func _be_reckless(w: Node) -> void:
 	_step(w, "reckless: %s (glitches %d, awareness %.0f, tries %s)" % [w.is_reckless_run(), memory().session_glitches, w.director.awareness, str(why)])
 
 
+## The last direction the bot steered, kept while it charges a glitch.
+var _last_n := Vector2.ZERO
+
+
 func _glitch(w: Node) -> void:
 	var need: float = GlitchController.hold_need(w.glitch.target) if not w.glitch.target.is_empty() else 0.5
 	_act("interact", true)
-	await wait(GlitchController.HOLD_START + need + 0.15)
+	# Keep dodging while E is held, as a player does: the charge is long
+	# enough (HOLD_START + the glitch's hold, about 0.9 s) for the static to
+	# grow onto a walk that is never re-aimed (CI 42024818254, purge 5:
+	# "eraser in square" with no reload).
+	var dir := _last_n
+	var until := _now() + GlitchController.HOLD_START + need + 0.15
+	while _now() < until:
+		if dir != Vector2.ZERO and not w.owner_moves.rewinding:
+			_steer(w, _avoid(w, dir))
+			_last_n = dir
+		await frames(1)
 	_act("interact", false)
 	await frames(2)
 	_glitches += 1
@@ -926,6 +940,7 @@ func _track_rewinds(w: Node) -> void:
 
 
 func _steer(_w: Node, n: Vector2) -> void:
+	_last_n = n
 	_axis("move_right", "move_left", n.x)
 	_axis("move_down", "move_up", n.y)
 
