@@ -221,6 +221,9 @@ func load_last_save(force := false) -> void:
 	for i in range(_history.size() - 1, target - 1, -1):
 		path.append(_history[i].player)
 	var snap: Dictionary = _history[target]
+	# The save she's loaded into is from before the static grew this far.
+	if world.area.erasure and world.area.erasure.active:
+		world.area.erasure.rewind(_clock - float(snap.t))
 	world.director.warn(["no. loading autosave.", "let's try that again.", "rewind."].pick_random())
 	world.hud.set_banner("◀◀  LOADING AUTOSAVE  ·  00:%02d AGO" % int(_clock - float(snap.t)))
 	Sfx.play("unload", -2.0, 1.6)

@@ -9,7 +9,9 @@ extends Node2D
 
 signal caught_player
 ## A reload's hold (OwnerMoves): while Rue is dragged back with no control,
-## and for the beat after, the static can't take her. It keeps spreading.
+## and for the beat after, the static can't take her, and it doesn't grow:
+## growing while she can't move closed the pocket she landed in (bot trace,
+## purge 5: landed clear, static 4 px away when the hold ended).
 var held := 0.0
 
 const CELL := 8
@@ -33,6 +35,7 @@ var burst := 1
 
 var _cells: Dictionary = {}     # Vector2i -> true, every erased cell
 var _young: Dictionary = {}     # Vector2i -> birth time, still flickering
+var _born: Dictionary = {}      # Vector2i -> birth time, every erased cell
 var _mature: Array[Vector2i] = []
 var _frontier: Dictionary = {}  # Vector2i -> true, erased cells with a free neighbour
 var _cols := 0
@@ -103,18 +106,37 @@ func scrub(world_pos: Vector2, radius: float) -> int:
 			var c := Vector2i(x, y)
 			if _cells.has(c) and _cell_rect(c).get_center().distance_to(world_pos) <= radius:
 				removed.append(c)
+	_remove(removed)
+	return removed.size()
+
+
+## A reload rewinds the static too: cells grown in the last `seconds` are
+## gone, as they were in the save she is loaded back into (bot trace,
+## purge 5: dragged back east into static that had grown since, then
+## outrun by it). Returns how many cells went.
+func rewind(seconds: float) -> int:
+	var since := _t - seconds
+	var removed: Array[Vector2i] = []
+	for c: Vector2i in _born:
+		if float(_born[c]) > since:
+			removed.append(c)
+	_remove(removed)
+	return removed.size()
+
+
+func _remove(removed: Array[Vector2i]) -> void:
 	for c in removed:
 		_cells.erase(c)
 		_young.erase(c)
+		_born.erase(c)
 		_frontier.erase(c)
 		_mature.erase(c)
 	for c in removed:
 		for dir in DIRS:
 			if _cells.has(c + dir):
 				_refresh_frontier(c + dir)
-	if not removed.is_empty():
+	if not removed.is_empty() and _mature_layer:
 		_mature_layer.queue_redraw()
-	return removed.size()
 
 
 func seed_at(world_pos: Vector2) -> void:
@@ -156,7 +178,7 @@ func _process(delta: float) -> void:
 	_t += delta
 	held = maxf(0.0, held - delta)
 	_settle_cells()
-	if active:
+	if active and held <= 0.0:
 		_start_pending(delta)
 		_acc += delta * Settings.pace("static")  # Owner pace: gentle spreads slower
 		while _acc >= interval:
@@ -215,6 +237,7 @@ func _add(c: Vector2i) -> void:
 		return
 	_cells[c] = true
 	_young[c] = _t
+	_born[c] = _t
 	if active:
 		Sfx.erase_tick()
 	_refresh_frontier(c)

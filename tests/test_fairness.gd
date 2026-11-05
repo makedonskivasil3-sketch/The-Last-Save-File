@@ -204,3 +204,29 @@ func test_reload_skips_moments_the_static_has_reached() -> void:
 	m._history.append({"t": 13.0, "player": Vector2(300, 200)})
 	m._history.append({"t": 19.0, "player": Vector2(320, 200)})
 	check_eq(m._pick_snapshot(), 1, "the oldest moment clear of the static, not the one beside it")
+
+
+## A reload rewinds the static with her: what grew since the moment she is
+## loaded into is gone; what was there before stays.
+func test_a_reload_rewinds_the_static_too() -> void:
+	var w := await start_session()
+	await go_to(w, "square", "house")
+	w.area.arin.position = Vector2(860, 280)
+	w.area.arin.route = [Vector2(860, 280)] as Array[Vector2]
+	var m: OwnerMoves = w.owner_moves
+	var e: Erasure = w.area.erasure
+	e.active = true
+	e.interval = 999.0
+	e.seed_at(Vector2(160, 200))  # old static, far from her
+	await wait(3.0)
+	e.seed_at(Vector2(560, 200))  # new static, grown after the moment she's loaded into
+	await frames(2)
+	check(e.nearest_cell(Vector2(160, 200), 6.0) != Vector2.INF and e.nearest_cell(Vector2(560, 200), 6.0) != Vector2.INF, "both are there before the reload")
+	m._history.clear()
+	m._clock = 20.0
+	m._history.append({"t": 18.5, "player": Vector2(300, 262)})
+	m._history.append({"t": 19.8, "player": Vector2(320, 262)})
+	w.player.global_position = Vector2(320, 262)
+	m.load_last_save(true)
+	check(e.nearest_cell(Vector2(560, 200), 6.0) == Vector2.INF, "the static grown since that moment is gone")
+	check(e.nearest_cell(Vector2(160, 200), 6.0) != Vector2.INF, "the older static stays")

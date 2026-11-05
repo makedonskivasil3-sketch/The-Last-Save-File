@@ -163,6 +163,7 @@ func _playthrough(ending: String, purge: int, square_deaths: Array = []) -> void
 		for line in _trace:
 			_say("   trace " + line)
 		_trace.clear()
+		_say_map(w)
 		w = await wait_for_new_session(w)
 	var summary := "BOT SUMMARY %s purge %d: %s after %d session(s), %.0f s of game time · memories %d/5 · pip %s · deaths %d %s · glitches %d · reloads %d · stalls %d" % [
 		ending, purge, result, _session, _now() - _t0, memory().fragments.size(), memory().found_pip,
@@ -909,6 +910,32 @@ func _be_reckless(w: Node) -> void:
 var _trace: Array[String] = []
 
 
+## The area's static as text, 16 px a character: # settled, + young,
+## R Rue, A Arin. Printed on a death by the static.
+func _say_map(w: Node) -> void:
+	var e: Variant = w.area.get("erasure")
+	if not (e is Erasure):
+		return
+	var er: Erasure = e
+	var arin: Variant = w.area.get("arin")
+	var rp: Vector2 = w.player.global_position
+	for y in range(int(er.bounds.position.y), int(er.bounds.end.y), 16):
+		var row := ""
+		for x in range(int(er.bounds.position.x), int(er.bounds.end.x), 16):
+			var q := Vector2(x + 8, y + 8)
+			if q.distance_to(rp) < 9.0:
+				row += "R"
+			elif arin is Node2D and q.distance_to(arin.global_position) < 9.0:
+				row += "A"
+			elif er.is_void(q):
+				row += "#"
+			elif er.nearest_cell(q, 6.0) != Vector2.INF:
+				row += "+"
+			else:
+				row += "."
+		_say("   map %4d %s" % [y, row])
+
+
 func _trace_step(w: Node, n: Vector2) -> void:
 	var p: Vector2 = w.player.global_position
 	var e: Variant = w.area.get("erasure")
@@ -922,23 +949,16 @@ func _trace_step(w: Node, n: Vector2) -> void:
 		_trace.pop_front()
 
 
-## The last direction the bot steered, kept while it charges a glitch.
-var _last_n := Vector2.ZERO
-
-
 func _glitch(w: Node) -> void:
 	var need: float = GlitchController.hold_need(w.glitch.target) if not w.glitch.target.is_empty() else 0.5
 	_act("interact", true)
-	# Keep dodging while E is held, as a player does: the charge is long
-	# enough (HOLD_START + the glitch's hold, about 0.9 s) for the static to
-	# grow onto a walk that is never re-aimed (CI 42024818254, purge 5:
-	# "eraser in square" with no reload).
-	var dir := _last_n
-	var until := _now() + GlitchController.HOLD_START + need + 0.15
-	while _now() < until:
-		if dir != Vector2.ZERO and not w.owner_moves.rewinding:
-			_steer(w, _avoid(w, dir))
-			_last_n = dir
+	# Let go when it fires, as a player does (the cooldown starts then), or
+	# after the hold plus a margin if it never does. Holding a fixed margin
+	# past the fire cost purge 5 its run: each glitch held 0.13 s longer
+	# than before the tap window grew, the owner's awareness crossed SILENCE
+	# 0.1 earlier and could no longer cool under it.
+	var until := _now() + GlitchController.HOLD_START + need + 0.3
+	while _now() < until and w.glitch._cooldown <= 0.0:
 		await frames(1)
 	_act("interact", false)
 	await frames(2)
@@ -962,7 +982,6 @@ func _track_rewinds(w: Node) -> void:
 
 
 func _steer(_w: Node, n: Vector2) -> void:
-	_last_n = n
 	_axis("move_right", "move_left", n.x)
 	_axis("move_down", "move_up", n.y)
 
