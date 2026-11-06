@@ -131,6 +131,9 @@ func _touch_up(finger: int, canceled := false) -> void:
 				canceled_interact_serial = interact_serial
 			for action in BUTTONS[name].actions:
 				_send(action, false)
+				# action_press reasserts held touches each frame; clear that
+				# override synchronously too, including focus-loss callbacks.
+				Input.action_release(action)
 	if finger == _stick_finger:
 		_stick_finger = -1
 		_stick = Vector2.ZERO
