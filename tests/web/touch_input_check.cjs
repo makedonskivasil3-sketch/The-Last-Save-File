@@ -23,7 +23,9 @@ const throttle = Number(process.env.TOUCH_CPU_THROTTLE || 1);
   const pass = (m) => { results.push('PASS: ' + m); console.log('PASS: ' + m); };
   let page;
   try {
-    const context = await browser.newContext({viewport: {width: 844, height: 390}, hasTouch: true, isMobile: true, deviceScaleFactor: 2});
+    const video = process.env.TOUCH_VIDEO_DIR;
+    const context = await browser.newContext({viewport: {width: 844, height: 390}, hasTouch: true, isMobile: true, deviceScaleFactor: 2,
+      ...(video ? {recordVideo: {dir: video, size: {width: 844, height: 390}}} : {})});
     page = await context.newPage();
     const errors = [];
     page.on('pageerror', e => errors.push(String(e)));
@@ -87,6 +89,30 @@ const throttle = Number(process.env.TOUCH_CPU_THROTTLE || 1);
     if (!(ready.scene === 'game' && ready.playable && !ready.reading)) throw Error('boot not read by touch: ' + JSON.stringify(ready));
     pass(`the boot was read with ${taps} taps of the on-screen E (30-250 ms)`);
     await page.screenshot({path: path.join(output, '3_room.png')});
+
+    // 4b. Hold E to charge a glitch: walk up to the room's cracked wall with
+    // the stick, then hold E (informational: the exact spot is approximate).
+    await page.waitForTimeout(4000);  // the room's opening beat holds her first
+    const stick = async (dx, dy, ms) => {
+      await touch('touchStart', [[1, 120, 250]]);
+      for (let i = 1; i <= 6; i++) { await touch('touchMove', [[1, 120 + dx * i / 6, 250 + dy * i / 6]]); await page.waitForTimeout(60); }
+      await page.waitForTimeout(ms);
+      await touch('touchEnd', []);
+      await page.waitForTimeout(300);
+    };
+    await stick(30, -19, 2200);  // up and right, towards the crack (ArinsRoom.CRACK 500,118)
+    await stick(0, -30, 500);    // face it
+    await page.waitForTimeout(500);
+    await touch('touchStart', [[4, E[0], E[1]]]);
+    await page.waitForTimeout(600);
+    await page.screenshot({path: path.join(output, '4_holding_e.png')});
+    await page.waitForTimeout(1400);
+    await touch('touchEnd', []);
+    await page.waitForTimeout(1500);
+    const held = ((await state()).trace || []).filter(l => l.includes(' hold ') || l.includes('charging'));
+    console.log(held.length ? 'PASS: holding E started a glitch charge (traced: ' + held[held.length - 1].trim() + ')' : 'INFO: no glitch target in reach for the hold step (position approximate)');
+    if (held.length) results.push('PASS: holding E started a glitch charge');
+    for (let i = 0; i < 40; i++) { const s = await state(); if (!s.reading) break; await tap(E[0], E[1]); await page.waitForTimeout(500); }
 
     // 5. Pause and resume with II (a 120 ms tap; at 3-6 FPS give it time).
     await page.waitForTimeout(3000);

@@ -72,6 +72,10 @@ var _console_box: PanelContainer
 var _status: Label
 ## Tutorial tip card.
 var _tip: PanelContainer
+## The tip card's row: moved left of the on-screen E on touch screens (the
+## button covered its text, 2026-11-06 browser capture).
+var _tip_row: VBoxContainer
+const TOUCH_E_CLEARANCE := 84.0
 const TIP_WIDTH := 220.0
 var _tip_title: Label
 var _tip_body: Label
@@ -318,6 +322,7 @@ func _ready() -> void:
 	tip_row.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	tip_row.offset_right = -SAFE.x
 	tip_row.offset_bottom = -SAFE.y - 18  # above the control hint
+	_tip_row = tip_row
 	tip_row.alignment = BoxContainer.ALIGNMENT_END
 	tip_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(tip_row)
@@ -1484,6 +1489,11 @@ func checklist_text() -> String:
 
 
 func _update_checklist(player_screen := Vector2(-1000, -1000)) -> void:
+	# On touch screens the II pause button sits where the list starts:
+	# the list goes below it (and the tip card left of E).
+	_checklist.position.y = 112.0 if Settings.using_touch else SAFE.y + 50
+	if _tip_row:
+		_tip_row.offset_right = -SAFE.x - (TOUCH_E_CLEARANCE if Settings.using_touch else 0.0)
 	var busy := _cinematic or _dialogue.visible or _choice.visible or is_act_shown() or _overlay.visible
 	_checklist.visible = _checklist_text != "" and not busy
 	if _checklist.visible:

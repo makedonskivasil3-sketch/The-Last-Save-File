@@ -1,6 +1,25 @@
 # Issue register
 
-## Register of 2026-10-31 (current)
+## Phone input, 2026-11-06 (current)
+
+Reproduced on `main` `8112117`, on the Pages build `adf2710` and on the Claude artifact build `e551c6c`. Repaired on `claude/last-save-file-prototype-ljwuq4`. Detail in [`PHONE_INPUT_PASS_2026-11-06.md`](PHONE_INPUT_PASS_2026-11-06.md), policy in [`../INPUT_POLICY.md`](../INPUT_POLICY.md).
+
+| ID | Class | Sev | Problem | Evidence/revision | Player impact | Fix | Verification |
+|---|---|---|---|---|---|---|---|
+| PI-1 | D | S2 | A new tap one frame after a line closes is discarded as "the press the HUD just used" | `GlitchController`: `get_process_frames() - hud.interact_used_frame > 1` @ `8112117` | "E doesn't respond", worst at low FPS (two taps 130 ms apart at 8 FPS) | **Done:** `PressGate` press ids and one owner per press; modals claim held presses; no frame-distance guard | `test_phone_input` (A tests); fails on `8112117` |
+| PI-2 | D | **S1 (touch)** | The on-screen E never holds `interact`: Godot 4.3 releases the first parsed action when `confirm` follows | `TouchControls.BUTTONS.interact.actions = ["interact", "confirm"]` | No glitch can be charged by touch; every press reads as a tap | **Done:** E sends `interact` only; end cards accept it | `test_holding_the_on_screen_e_charges_a_glitch`; fails on `8112117` |
+| PI-3 | D | S2 | Lifting one of two fingers on E releases it | `_touch_up` released every action of the button | A second thumb drops the hold | **Done:** buttons owned by every finger; released with the last | `test_e_stays_held...`, `test_release_order...` |
+| PI-4 | D | S2 | Cancelled touches act: focus loss, rotation, OS cancel and slide-off sent an ordinary release, which the glitch controller treats as a tap | `cancel_touches` → `_touch_up` | Switching apps or rotating mid-press talks or uses something | **Done:** `PressGate.cancel`; nothing acts on release; 56 px slide-off rule; "cancelled" notice | 4 tests in `test_phone_input`; fail on `8112117` |
+| PI-5 | D | S2 | The festival skip chip reads the emulated mouse | `Prologue._skip_held` @ `8112117` | Fails without touch-to-mouse emulation and while a thumb is on the stick | **Done:** a TouchControls zone owned by its finger, above story panels, with a fill; long frames capped | 3 tests + `touch_input_check.cjs` |
+| PI-6 | D | S2 | The memory card has no touch interface | `cold_open.gd` @ `8112117` | Touch players can't skip it; reading on needs emulated clicks | **Done:** Continue + hold-Skip chips, per-finger touch, latched quick taps | 2 tests + `touch_input_check.cjs` |
+| PI-7 | R | S3 | Enter is both `ui_accept` and `confirm`, so a choice could be answered twice | `Hud.choose` | A double answer, or the next question answered | **Done:** `Hud._pick` takes one answer per question | `test_one_press_answers_one_question` |
+| PI-8 | W | S3 | The touch E gives no press feedback and no reason when nothing happens | `TouchControls._on_draw` | A tap inside one frame never looks pressed | **Done:** flash, contextual label, "nothing in reach" | Visual: browser capture |
+| PI-9 | D | S3 | On touch, the side checklist overlaps II and the tip card sits under E | 2026-11-06 browser capture | Covered text and controls | **Done:** the checklist moves below II, the tip card left of E | Browser capture `4_holding_e.png` |
+| PI-10 | P | S2 | No way to diagnose a friend's "E didn't work" | — | Unreproducible reports | **Done:** a bounded playtest-only input trace in the Playtest log | `touch_input_check.cjs` reads it |
+| PI-11 | H | S1 | Not run on a physical iPhone or Android | — | Unknown device-specific defects (safe areas, Safari gestures) | Device checklist in the pass doc §6 | **Needs hardware** |
+| PI-12 | P | S2 | The Claude artifact copy (`e551c6c`) and Pages (`adf2710`) still serve the old input code | §1 of the pass doc | Players keep the broken build until each is replaced | Redeploy both after merge, naming the revision | Owner action |
+
+## Register of 2026-10-31
 
 **Baseline:** `main` @ `adf2710` (runtime `2f03453`; test fixture `335a5f3`), all three verified to exist. Reconciled into `claude/last-save-file-prototype-ljwuq4` by merge `b5db36a`: where this branch and `main` disagreed on doorways, `main` won.
 
