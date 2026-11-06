@@ -72,6 +72,10 @@ var _console_box: PanelContainer
 var _status: Label
 ## Tutorial tip card.
 var _tip: PanelContainer
+## The tip card's row: moved left of the on-screen E on touch screens (the
+## button covered its text, 2026-11-06 browser capture).
+var _tip_row: VBoxContainer
+const TOUCH_E_CLEARANCE := 84.0
 const TIP_WIDTH := 220.0
 var _tip_title: Label
 var _tip_body: Label
@@ -195,6 +199,12 @@ func _ready() -> void:
 	_meter.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_meter)
 
+	# The side checklist: the active mission's steps, always there in play.
+	_checklist = _make_label(root, Vector2(640 - SAFE.x - CHECKLIST_W, SAFE.y + 50), Vector2(CHECKLIST_W, 12), 8, Color("d8ccb4"))
+	_checklist.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_checklist.add_theme_stylebox_override("normal", _backing(0.6))
+	_checklist.visible = false
+
 	# The current goal, under the save header (World shows it when it changes).
 	_objective = _make_label(root, SAFE + Vector2(0, 15), Vector2(400, 12), 9, Color("c8b8a0"))
 	_objective.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -312,6 +322,7 @@ func _ready() -> void:
 	tip_row.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	tip_row.offset_right = -SAFE.x
 	tip_row.offset_bottom = -SAFE.y - 18  # above the control hint
+	_tip_row = tip_row
 	tip_row.alignment = BoxContainer.ALIGNMENT_END
 	tip_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(tip_row)
@@ -542,6 +553,7 @@ func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: floa
 		narrator.stop()
 	_clear_title()
 	_cinematic = true
+	PressGate.claim("cinematic opened")
 	_skip_requested = false
 	_skip_armed = false
 	_skip_hold = 0.0
@@ -730,8 +742,20 @@ func _fit_cinematic() -> void:
 	_cine_backing.size = _cine_text.size + Vector2(16, 12)
 
 
+## The HUD's press this frame (dialogue reveal/advance, cinematics, choices):
+## taken from PressGate once per frame, so asking twice in one frame (skip
+## arming, then the line) gives the same answer, and a press the world
+## already used (the one that opened this box) is never the HUD's too.
+var _adv_frame := -1
+var _adv_took := false
+
+
 func _advance_pressed() -> bool:
-	return Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("confirm")
+	var f := Engine.get_process_frames()
+	if f != _adv_frame:
+		_adv_frame = f
+		_adv_took = PressGate.take("hud")
+	return _adv_took
 
 
 ## Opens the dialogue box. lines: Array of Strings, advanced with interact
@@ -762,6 +786,7 @@ func show_dialogue(speaker: String, color: Color, lines: Array, voice_prefix := 
 	_dialogue_index = 0
 	_dialogue_typed = 0.0
 	_dialogue_opened_frame = Engine.get_process_frames()
+	PressGate.claim("dialogue opened")  # a press still held from play doesn't advance it
 	_dialogue_speaker.text = speaker
 	_dialogue_speaker.add_theme_color_override("font_color", color)
 	_dialogue.visible = true
@@ -808,7 +833,7 @@ func choose(question: String, options: Array, focus := 0) -> int:
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.pressed.connect(func() -> void:
 			if Time.get_ticks_msec() >= _choice_ready_ms:  # not the press that ended the dialogue
-				_chosen.emit(i))
+				_pick(i))
 		b.focus_entered.connect(func() -> void: Sfx.ui("ui_move"))
 		_choice_list.add_child(b)
 		if first == null or i == focus:
@@ -817,6 +842,8 @@ func choose(question: String, options: Array, focus := 0) -> int:
 	_choice_ready_ms = Time.get_ticks_msec() + CHOICE_GRACE_MS
 	_choice.move_to_front()  # above an end card's dimming overlay, if one is up
 	_choice_frame = Engine.get_process_frames()
+	_choice_picked = false
+	PressGate.claim("choice opened")
 	_console_box.visible = false
 	_prompt.visible = false
 	first.grab_focus()
@@ -847,11 +874,26 @@ func _update_choice() -> void:
 		if n > 0:
 			var i := focused.get_index() if focused is Button and focused.get_parent() == _choice_list else 0
 			(_choice_list.get_child((i + step + n) % n) as Button).grab_focus()
-	if Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("confirm"):
+	if _advance_pressed():
 		var focused := get_viewport().gui_get_focus_owner()
 		if focused is Button and focused.get_parent() == _choice_list:
 			interact_used_frame = Engine.get_process_frames()
-			_chosen.emit(focused.get_index())
+			_pick(focused.get_index())
+
+
+## One answer per question: Enter is both ui_accept (the focused button
+## presses itself) and confirm (_update_choice), and a tap can arrive as a
+## touch and an emulated click. Only the first counts.
+var _choice_picked := false
+
+
+func _pick(i: int) -> void:
+	if _choice_picked or not _choice.visible:
+		InputTrace.add("refused", "choice", "hud", "answer %d: already answered" % i, false)
+		return
+	_choice_picked = true
+	InputTrace.add("taken", "choice", "hud", "answer %d" % i, true)
+	_chosen.emit(i)
 
 
 func is_dialogue_open() -> bool:
@@ -1410,6 +1452,57 @@ static func first_thought(goal: String) -> String:
 	return ("TRUCE  ·  " + first) if truce else first
 
 
+## The side checklist (2026-11-05 playtest: "a list to the side of what
+## we should be looking for"): the mission's title, then each step ticked
+## or open. World sets it from Quests.steps(); hidden while a conversation,
+## a choice, a scene or a card has the screen, and faded when Rue walks
+## underneath it.
+const CHECKLIST_W := 118.0
+var _checklist: Label
+var _checklist_text := ""
+
+
+func set_checklist(title: String, steps: Array) -> void:
+	var lines: Array[String] = []
+	if title != "" and not steps.is_empty():
+		lines.append(title)
+		for st in steps:
+			lines.append(("✓ " if st[1] else "○ ") + str(st[0]))
+	_checklist_text = "\n".join(lines)
+	if _checklist.text != _checklist_text:
+		_checklist.text = _checklist_text
+		_checklist.size = Vector2(CHECKLIST_W, 0)
+
+
+## Where Rue stands (World keeps it current), for fading the checklist.
+var player_world := Vector2.INF
+
+
+func player_screen_pos() -> Vector2:
+	if player_world == Vector2.INF:
+		return Vector2(-1000, -1000)
+	return get_viewport().canvas_transform * player_world
+
+
+func checklist_text() -> String:
+	return _checklist.text if _checklist.visible else ""
+
+
+func _update_checklist(player_screen := Vector2(-1000, -1000)) -> void:
+	# On touch screens the II pause button sits where the list starts:
+	# the list goes below it (and the tip card left of E).
+	_checklist.position.y = 112.0 if Settings.using_touch else SAFE.y + 50
+	if _tip_row:
+		_tip_row.offset_right = -SAFE.x - (TOUCH_E_CLEARANCE if Settings.using_touch else 0.0)
+	var busy := _cinematic or _dialogue.visible or _choice.visible or is_act_shown() or _overlay.visible
+	_checklist.visible = _checklist_text != "" and not busy
+	if _checklist.visible:
+		var r := _checklist.get_global_rect().grow(16)
+		var focus_screen := get_viewport().canvas_transform * _prompt_at if _prompt_at != Vector2.INF else Vector2(-1000, -1000)
+		var near := r.has_point(player_screen) or r.has_point(focus_screen)
+		_checklist.modulate.a = move_toward(_checklist.modulate.a, 0.3 if near else 0.95, 0.08)
+
+
 func show_objective(text: String, hint := "") -> void:
 	text = first_thought(text)
 	if _objective_tween:
@@ -1581,6 +1674,7 @@ func _process(delta: float) -> void:
 	_playtime += delta
 	_place_prompt()
 	_update_objective_priority()
+	_update_checklist(player_screen_pos())
 	_glitch_prompt.position.x = _prompt_corner().x + 176 - 220
 	# The current interaction outranks a tip: a tip over the prompt steps back.
 	var over := _tip.visible and _prompt.visible and _prompt.text != "" and _tip.get_global_rect().intersects(_prompt.get_global_rect())

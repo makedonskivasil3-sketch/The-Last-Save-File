@@ -2,8 +2,10 @@ class_name Glitch
 extends RefCounted
 ## Rue's power: hold [E] on something to corrupt it. Every glitch is loud:
 ## it costs awareness (the owner feels the save twitch), more for stronger
-## glitches. Four are there from the start; each memory you recover unlocks
-## one more, stronger one.
+## glitches. In play they open gradually (Pacing.GLITCH_NEEDS: only PHASE in
+## Arin's room, FREEZE with the first memory, the rest one or two per memory
+## after it). "needs" below is the flat rule (four from the start, one per
+## memory), used when staging is off (tests).
 ##
 ## Targets are picked by GlitchController: the nearest glitchable thing in
 ## range, else the wall in front of you (phase), else yourself (decoy while
@@ -70,15 +72,13 @@ const OWNER_REACTION := {
 
 
 static func is_unlocked(id: String, memories: int, all := false) -> bool:
-	return all or memories >= int(DEFS[id].needs)
+	return all or memories >= Pacing.glitch_needs(id)  # staged in a first act (Pacing)
 
 
 ## The glitch that recovering memory number `count` unlocks ("" if none).
 static func unlocked_by(count: int) -> String:
-	for id: String in DEFS:
-		if int(DEFS[id].needs) == count and count > 0:
-			return id
-	return ""
+	var opened := Pacing.glitches_opened_by(count)
+	return opened[0] if not opened.is_empty() else ""
 
 
 static func cost(id: String) -> float:

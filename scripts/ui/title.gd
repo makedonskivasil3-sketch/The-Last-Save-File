@@ -107,6 +107,11 @@ func _ready() -> void:
 	_menu.add_child(_spacer(4))
 	_build_slot_card()
 	_load = UiStyle.button(_menu, "Load Slot 1", _start)
+	# Where the start button is (640x360), for the touch-only browser check.
+	get_tree().create_timer(0.5).timeout.connect(func() -> void:
+		if is_instance_valid(_load) and _load.is_inside_tree():
+			var c := _load.get_global_rect().get_center()
+			WebState.publish({"scene": "title", "playable": false, "start": [c.x, c.y]}))
 	if OwnerMemory.sessions == 0:
 		# Nobody has played this "new" save yet. Someone is listening anyway.
 		_owner_line = UiStyle.note(_menu, "", UiStyle.OWNER)

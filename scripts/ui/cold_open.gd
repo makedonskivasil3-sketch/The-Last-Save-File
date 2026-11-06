@@ -6,8 +6,15 @@ extends Control
 ## that its last two-player session never closed, and what the owner means
 ## to do tonight. The festival then plays with that hanging over it. It
 ## explains nothing the festival shows; it only says what's at stake.
-## Hold Esc (or the skip chip) to go straight to the festival. Kept in the
-## journal either way, so skipping loses nothing.
+## Hold Esc (or the on-screen Skip, by touch or mouse) to go straight to the
+## festival; tap anywhere, or the on-screen Continue, to read on. Kept in
+## the journal either way, so skipping loses nothing (OPENING_BEATS.md:
+## "kept in the journal even if skipped"; the skip is logged as one).
+##
+## Touch is handled here directly, per finger (docs/INPUT_POLICY.md): the
+## finger that lands on Skip owns the skip hold; any other finger is a
+## reading press. Nothing depends on touch-to-mouse emulation, and a thumb
+## on Skip is never also a press that reads on.
 ##
 ## Dressing (drawn, no assets): an old television's glass (a soft glow
 ## from the middle, faint scanlines, darker corners), the memory card
@@ -28,6 +35,10 @@ const SYSTEM := Color("8cf2ff")
 const OWNER := Color("e0704f")
 const TYPE_RATE := 32.0
 const SKIP_HOLD := 0.7
+## On-screen controls (640x360): Skip bottom left, Continue bottom right,
+## clear of each other and of the text.
+const SKIP_RECT := Rect2(16, 316, 150, 30)
+const CONTINUE_RECT := Rect2(474, 316, 150, 30)
 
 ## Tests: true plays every line without waiting for a press.
 var autoplay := false
@@ -43,6 +54,15 @@ var _done := false
 var _art: Control
 var _t := 0.0
 var _focused := true
+## The on-screen controls (drawn chips; touch and mouse hit-test them here).
+var skip_button: Control
+var continue_button: Control
+var _skip_finger := -1
+var _read_fingers: Dictionary = {}
+var _touched := false
+## A reading tap seen since the last frame (a tap's down and up can land in
+## one frame: it still counts once).
+var _read_tap := false
 
 
 func _ready() -> void:
@@ -80,6 +100,72 @@ func _ready() -> void:
 	UiStyle.sized(_hint, 8)
 	_hint.add_theme_color_override("font_color", Color(0.75, 0.77, 0.8, 0.8))
 	add_child(_hint)
+	skip_button = _chip(SKIP_RECT, "hold: skip to festival")
+	continue_button = _chip(CONTINUE_RECT, "continue  ▸")
+
+
+## A drawn chip: a label on a dark plate, with a fill (Skip's hold progress).
+func _chip(r: Rect2, text: String) -> Label:
+	var l := Label.new()
+	l.position = r.position
+	l.size = r.size
+	l.text = text
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	UiStyle.sized(l, 9)
+	l.add_theme_color_override("font_color", Color(SYSTEM, 0.85))
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = Color(0, 0, 0, 0.55)
+	bg.border_color = Color(SYSTEM, 0.35)
+	bg.set_border_width_all(1)
+	bg.set_corner_radius_all(4)
+	l.add_theme_stylebox_override("normal", bg)
+	var fill := ColorRect.new()
+	fill.name = "Fill"
+	fill.color = Color(SYSTEM, 0.4)
+	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fill.position = Vector2(0, r.size.y - 3)
+	fill.size = Vector2(0, 3)
+	l.add_child(fill)
+	add_child(l)
+	return l
+
+
+## Touch, per finger. Events reach _input in the 640x360 space.
+func _input(event: InputEvent) -> void:
+	if _done:
+		return
+	if event is InputEventScreenTouch:
+		_touched = true
+		var at: Vector2 = event.position
+		if event.canceled or not event.pressed:
+			if event.index == _skip_finger:
+				_skip_finger = -1
+			_read_fingers.erase(event.index)
+			InputTrace.add("touch-up" if not event.canceled else "cancel", "touch#%d" % event.index, "cold_open")
+		elif SKIP_RECT.grow(6.0).has_point(at):
+			_skip_finger = event.index
+			InputTrace.add("touch-down", "touch#%d" % event.index, "cold_open skip", "", true)
+		else:
+			_read_fingers[event.index] = true
+			_read_tap = true
+			InputTrace.add("touch-down", "touch#%d" % event.index, "cold_open read", "continue" if CONTINUE_RECT.grow(6.0).has_point(at) else "anywhere", true)
+		get_viewport().set_input_as_handled()
+	elif event is InputEventScreenDrag and event.index == _skip_finger:
+		if not SKIP_RECT.grow(14.0).has_point(event.position):
+			_skip_finger = -1  # slid off Skip: the hold stops
+			InputTrace.add("drag-off", "touch#%d" % event.index, "cold_open skip", "slid off")
+
+
+## A real mouse (not a touch turned into a click): left button held, and
+## where. Touch-generated clicks are ignored; touches are handled per finger.
+func _mouse_on(r: Rect2) -> bool:
+	return not _touched and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and r.has_point(get_local_mouse_position())
+
+
+func _mouse_reading() -> bool:
+	return not _touched and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and not SKIP_RECT.has_point(get_local_mouse_position())
 
 
 ## Every line, for the journal (and tests).
@@ -95,6 +181,8 @@ func _notification(what: int) -> void:
 		_focused = false
 		_armed = false
 		_skip_t = 0.0
+		_skip_finger = -1  # fingers are forgotten: a touch can't outlive the focus
+		_read_fingers.clear()
 	elif what == NOTIFICATION_APPLICATION_FOCUS_IN:
 		_focused = true
 
@@ -106,17 +194,24 @@ func _process(delta: float) -> void:
 	_art.queue_redraw()
 	if _done:
 		return
-	# Skip: a held Esc, never a tap (so nobody skips it by accident).
-	if Input.is_action_pressed("ui_cancel") or Input.is_action_pressed("pause"):
-		_skip_t += delta
+	# Skip: a held Esc or Skip, never a tap (so nobody skips it by accident).
+	if Input.is_action_pressed("ui_cancel") or Input.is_action_pressed("pause") \
+			or _skip_finger != -1 or _mouse_on(SKIP_RECT):
+		_skip_t += minf(delta, 0.1)  # one long frame (or time away) can't finish it
 		if _skip_t >= SKIP_HOLD:
 			PlaytestLog.mark("cold open skipped", "line %d" % _line)
+			InputTrace.add("taken", "skip", "cold_open", "to the festival", true)
 			_finish()
 			return
 	else:
 		_skip_t = 0.0
-	var pressing := Input.is_action_pressed("interact") or Input.is_action_pressed("confirm") \
-		or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+	(skip_button.get_node("Fill") as ColorRect).size.x = SKIP_RECT.size.x * clampf(_skip_t / SKIP_HOLD, 0.0, 1.0)
+	# A quick E/Space/Enter tap (down and up in one frame) counts through
+	# PressGate's edge; touches through the latch above.
+	var tapped := PressGate.take("cold_open") or _read_tap
+	_read_tap = false
+	var pressing := tapped or Input.is_action_pressed("interact") or Input.is_action_pressed("confirm") \
+		or not _read_fingers.is_empty() or _mouse_reading()
 	if not pressing:
 		_armed = true
 	var l := _labels[_line]
@@ -137,7 +232,8 @@ func _process(delta: float) -> void:
 		_hint.text = ""
 		return
 	_held += delta
-	_hint.text = "[%s] continue   ·   hold Esc to skip" % Settings.glyph("interact") if _held > 0.6 else ""
+	var touchy := _touched or Settings.using_touch
+	_hint.text = ("tap to continue   ·   hold Skip to skip" if touchy else "[%s] continue   ·   hold Esc to skip" % Settings.glyph("interact")) if _held > 0.6 else ""
 	var read_on := (autoplay and _held >= 0.4) or (_armed and _held >= 0.25 and pressing)
 	if read_on:
 		_armed = false
@@ -217,6 +313,8 @@ func _finish() -> void:
 	if _done:
 		return
 	_done = true
+	skip_button.visible = false
+	continue_button.visible = false
 	OwnerMemory.record_read("festival:cold_open", "note", "The memory card", "festival", journal_lines())
 	finished.emit()
 	var tw := create_tween()

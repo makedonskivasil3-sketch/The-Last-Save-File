@@ -589,6 +589,8 @@ func _publish_web_state(delta: float) -> void:
 
 func _process(delta: float) -> void:
 	update_camera(delta)
+	if touch and touch.active:
+		touch.context_label = touch_action_label()
 	_observe_t -= delta
 	if _observe_t <= 0.0:
 		_observe_t = OBSERVE_EVERY
@@ -654,6 +656,27 @@ func _process(delta: float) -> void:
 	# [E] itself is read by the GlitchController: a tap comes back as tap_interact().
 
 
+## What the on-screen E does right now, in one word (docs/INPUT_POLICY.md):
+## the button says it instead of a bare "E" (the small E above it still
+## teaches the key). "" while a glitch hold is offered: the HOLD ring says it.
+func touch_action_label() -> String:
+	if get_tree().paused:
+		return ""
+	if hud.is_choosing():
+		return "OK"
+	if hud.is_cinematic() or hud.is_dialogue_open():
+		return "NEXT"
+	if not can_act():
+		return ""
+	if _focused is Npc:
+		return "TALK"
+	if _focused is Note or _focused is Readable or _focused is MemoryFragment or _focused is BinFile:
+		return "READ"
+	if _focused != null:
+		return "USE"
+	return ""
+
+
 ## Open the pause menu with what it shows (goal, map, debug).
 func open_pause() -> void:
 	_pause_menu.debug_available = debug_enabled()
@@ -664,12 +687,13 @@ func open_pause() -> void:
 	_pause_menu.visited_areas = map.visited
 	_pause_menu.discovered_areas = map.discovered
 	_pause_menu.closed_areas = map.closed
+	PressGate.cancel("paused")  # a held E does nothing when play resumes
 	_pause_menu.open()
 
 
 func _orientation_changed(portrait: bool) -> void:
 	if portrait and not get_tree().paused:
-		touch.cancel_touches()
+		touch.cancel_touches("rotated to portrait")
 		open_pause()
 	# Landscape only removes the notice. The player explicitly resumes;
 	# an existing menu/focus/controller hold is never cleared by rotation.
@@ -867,10 +891,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		"win":
 			if not _win_card_shown:
 				return  # the epilogue is still playing
-			if event.is_action_pressed("confirm") or event.is_action_pressed("pause"):
+			if event.is_action_pressed("confirm") or event.is_action_pressed("interact") or event.is_action_pressed("pause"):
 				get_tree().change_scene_to_file(TITLE_SCENE)
 		"demo":
-			if event.is_action_pressed("confirm") or event.is_action_pressed("pause"):
+			if event.is_action_pressed("confirm") or event.is_action_pressed("interact") or event.is_action_pressed("pause"):
 				get_tree().change_scene_to_file(TITLE_SCENE)
 
 
@@ -934,11 +958,12 @@ func change_area(id: String, arrival: String) -> void:
 			hud.say("wait for %s." % escort.npc_id, "self")
 		return
 	_transitioning = true
+	PressGate.claim("passage")  # a press held through a doorway doesn't act on the other side
 	_tap_buffered = -1  # a press never carries into the next place
 	player.frozen = true
 	player.velocity = Vector2.ZERO
 	if touch._stick_finger != -1 or not touch._held.is_empty():
-		touch.cancel_touches()
+		touch.cancel_touches("passage")
 	_update_reading_hold()
 	var passage := area.area_id == "oob" or id == "oob"
 	Sfx.play("transition" if passage else "ui_back")
@@ -1185,9 +1210,12 @@ var _goal_check := 0.0
 
 
 func _update_objective() -> void:
+	if player:
+		hud.player_world = player.global_position
 	_goal_check -= get_process_delta_time()
 	if _goal_check > 0.0:
 		return
+	_update_checklist()
 	_goal_check = 0.5  # goals change on events, not every frame
 	# The goal, and under it the quiet truth-route hint (Progression), if any.
 	var goal := current_goal().get_slice("\n", 0)
@@ -1195,6 +1223,22 @@ func _update_objective() -> void:
 	if goal + hint != _shown_goal and not hud.is_dialogue_open() and not hud.is_cinematic() and not hud.is_choosing():
 		_shown_goal = goal + hint
 		hud.show_objective(goal, hint)
+
+
+## The side checklist: the active mission's title and its steps, from the
+## save (Quests.steps). Optional identity leads appear as one more line once
+## they are open (Progression), never before.
+func _update_checklist() -> void:
+	if area == null or ending != "" or purged:
+		hud.set_checklist("", [])
+		return
+	var pointer: bool = flags.get("pointer", false)
+	var id := Quests.active(area.area_id, pointer)
+	var steps: Array = Quests.steps(area.area_id, pointer)
+	var lead := Progression.goal_hint()
+	if lead != "":
+		steps = steps + [["(optional) " + lead, false]]
+	hud.set_checklist(Quests.TITLES.get(id, ""), steps)
 
 
 func current_goal() -> String:
@@ -1537,6 +1581,11 @@ func _use_buffered_tap() -> void:
 	if _tap_buffered < 0:
 		return
 	if Time.get_ticks_msec() - _tap_buffered > TAP_BUFFER_MS or not can_act():
+		if can_act() and touch and touch.active:
+			# A tap that found nothing: say so on the button instead of
+			# looking broken (docs/INPUT_POLICY.md).
+			touch.notice("nothing in reach")
+		InputTrace.add("blocked", "E", "world", "tap found nothing in reach" if can_act() else "tap during a scene or passage")
 		_tap_buffered = -1
 		return
 	if _focused:
@@ -1546,13 +1595,18 @@ func _use_buffered_tap() -> void:
 
 ## A memory unlocked a new glitch: say so, big.
 func _learn_glitch(memories: int) -> void:
-	var id := Glitch.unlocked_by(memories)
-	if id == "":
-		return
-	var def: Dictionary = Glitch.DEFS[id]
-	hud.show_act("NEW GLITCH", def.name, str(def.how).replace("[E]", "[%s]" % Settings.glyph("interact")))
-	hud.say("NEW GLITCH: %s" % def.name, "system")
-	Sfx.play("glitch_learn")
+	# One card per glitch, one after the other, so each is read on its own
+	# (Pacing staging opens up to three together after the third memory).
+	var ids := Pacing.glitches_opened_by(memories)
+	for i in ids.size():
+		if i > 0:
+			await get_tree().create_timer(3.2).timeout
+			if not is_inside_tree() or ending != "":
+				return
+		var def: Dictionary = Glitch.DEFS[ids[i]]
+		hud.show_act("NEW GLITCH", def.name, str(def.how).replace("[E]", "[%s]" % Settings.glyph("interact")))
+		hud.say("NEW GLITCH: %s" % def.name, "system")
+		Sfx.play("glitch_learn")
 
 
 ## DECOY: leave a stale frame of yourself here.
@@ -1811,8 +1865,30 @@ static func object_name(node: Node) -> String:
 	return ""
 
 
+## First meetings get a short introduction card (Story.INTRODUCTIONS).
+## Tests switch it off so they reach the conversation itself at once.
+static var introductions := true
+
+
 func _interact(node: Node2D) -> void:
+	if introductions and node is Npc and Story.INTRODUCTIONS.has(node.npc_id) \
+			and not OwnerMemory.has_met(node.npc_id) and not _cutscene and ending == "":
+		var intro: Array = Story.INTRODUCTIONS[node.npc_id]
+		_cutscene = true
+		player.frozen = true
+		await hud.cinematic(intro[0], intro[1], Hud.SELF_COLOR, 0.45, "intro." + node.npc_id, CharacterArt.for_npc(node))
+		if not is_inside_tree() or ending != "" or not is_instance_valid(node):
+			return
+		player.frozen = false
+		_cutscene = false
 	var result: Variant = node.interact()
+	if result is Dictionary and result.get("shock", false) and node is Npc:
+		# Wren sees it: a sting, she flinches back, and Rue notices after.
+		Sfx.play("spotted", -6.0, 0.8)
+		(node as Npc).emote("!", 2.0)
+		var after: Array = result.get("after", []).duplicate()
+		after.append(func() -> void: hud.say(Story.WREN_SEES_AFTER, "self"))
+		result["after"] = after
 	if result is Dictionary:
 		var face: CharacterArt.Portrait = CharacterArt.for_npc(node) if node is Npc else null
 		hud.show_dialogue(result.speaker, result.color, result.lines, dialogue_voice_prefix(node, result), face, expressions_for(node, result.lines),
@@ -1987,13 +2063,14 @@ func kill(cause: String, reason := "") -> void:
 	if not is_inside_tree():
 		return  # F9 may have reloaded the scene in the meantime
 	hud.show_retry()
+	PressGate.claim("retry card")  # a press held through the death doesn't retry
 	while is_inside_tree():
 		await get_tree().process_frame
 		if not is_inside_tree():
 			return  # the scene changed while the card waited
 		if get_tree().paused:
 			continue  # the pause menu has the input
-		if Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("confirm"):
+		if PressGate.take("retry"):
 			break
 	if is_inside_tree():
 		get_tree().reload_current_scene()

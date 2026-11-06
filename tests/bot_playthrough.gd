@@ -39,6 +39,21 @@ func test_full_game_message() -> void:
 	await _playthrough("message", 0)
 
 
+## The real first-time rules (Pacing staging: glitches open by memory,
+## Tobben quiet in Act 1). The other bot routes keep the flat rules the
+## suite tests with; these two prove the staged game can still be finished.
+func test_full_game_escape_staged() -> void:
+	Pacing.staged = true
+	await _playthrough("escape", 0)
+	Pacing.staged = false
+
+
+func test_full_game_message_staged() -> void:
+	Pacing.staged = true
+	await _playthrough("message", 0)
+	Pacing.staged = false
+
+
 func test_full_game_escape_purge_3() -> void:
 	await _playthrough("escape", 3)
 
@@ -118,6 +133,8 @@ var _one_playthrough := false
 
 
 func _playthrough(ending: String, purge: int, square_deaths: Array = []) -> void:
+	if OS.get_environment("BOT_STAGED") != "":
+		Pacing.staged = true  # every route under the first-time rules
 	var asked := ending
 	if ending == "rue_one":
 		_one_playthrough = true
@@ -160,6 +177,10 @@ func _playthrough(ending: String, purge: int, square_deaths: Array = []) -> void
 		_reckless = false
 		_deaths.append(_death_note(w))
 		_say("DIED: %s" % _deaths[-1])
+		for line in _trace:
+			_say("   trace " + line)
+		_trace.clear()
+		_say_map(w)
 		w = await wait_for_new_session(w)
 	var summary := "BOT SUMMARY %s purge %d: %s after %d session(s), %.0f s of game time · memories %d/5 · pip %s · deaths %d %s · glitches %d · reloads %d · stalls %d" % [
 		ending, purge, result, _session, _now() - _t0, memory().fragments.size(), memory().found_pip,
@@ -646,9 +667,14 @@ func _edge(w: Node, ending: String) -> String:
 	if ending == "message":
 		await frames(4)
 		await _read_press()
+	# Read up to the end card, and stop there: the card takes E too (touch
+	# players), so one more press would leave for the title.
 	for i in 120:
-		if w._win_card_shown:
+		if not is_instance_valid(w) or not w.is_inside_tree() or w._win_card_shown:
 			break
+		if w.ending != "" and not (w.hud.is_dialogue_open() or w.hud.is_cinematic() or w.hud.is_choosing()):
+			await wait(0.25)
+			continue
 		await _read_press()
 		await wait(0.25)
 	return "ending:" + memory().last_ending  # exactly as recorded: escape and rue are different endings
@@ -713,6 +739,7 @@ func _go(w: Node, points: Array, timeout := STEP_TIMEOUT) -> bool:
 					side = -side
 				n = (n + side).normalized()
 			_steer(w, n)
+			_trace_step(w, n)
 			if _should_glitch(w):
 				await _glitch(w)
 			_track_rewinds(w)
@@ -819,6 +846,12 @@ func _avoid(w: Node, n: Vector2) -> Vector2:
 			var side := to_arin.orthogonal().normalized()
 			if side.dot(n) < 0.0:
 				side = -side
+			# Never sidestep into a wall: on the square's north road the bot
+			# pinned itself against the top edge until Arin walked into it
+			# (purge 5, "arin in square"). Step to the open side instead.
+			var body: CharacterBody2D = w.player
+			if body.test_move(body.global_transform, side * 8.0) and not body.test_move(body.global_transform, -side * 8.0):
+				side = -side
 			n = (side * 1.2 - to_arin.normalized() * 0.3).normalized()
 	for pair in [["arin", 44.0], ["cursor", 56.0]]:
 		var h: Variant = w.area.get(pair[0])
@@ -900,9 +933,63 @@ func _be_reckless(w: Node) -> void:
 	_step(w, "reckless: %s (glitches %d, awareness %.0f, tries %s)" % [w.is_reckless_run(), memory().session_glitches, w.director.awareness, str(why)])
 
 
+## The last 1.5 s of walking, printed when the bot dies, so a CI death
+## says where the static was and which way the bot was going.
+var _trace: Array[String] = []
+
+
+## The area's static as text, 16 px a character: # settled, + young,
+## R Rue, A Arin. Printed on a death by the static.
+func _say_map(w: Node) -> void:
+	var e: Variant = w.area.get("erasure")
+	if not (e is Erasure):
+		return
+	var er: Erasure = e
+	var arin: Variant = w.area.get("arin")
+	var rp: Vector2 = w.player.global_position
+	for y in range(int(er.bounds.position.y), int(er.bounds.end.y), 16):
+		var row := ""
+		for x in range(int(er.bounds.position.x), int(er.bounds.end.x), 16):
+			var q := Vector2(x + 8, y + 8)
+			if q.distance_to(rp) < 9.0:
+				row += "R"
+			elif arin is Node2D and q.distance_to(arin.global_position) < 9.0:
+				row += "A"
+			elif er.is_void(q):
+				row += "#"
+			elif er.nearest_cell(q, 6.0) != Vector2.INF:
+				row += "+"
+			else:
+				row += "."
+		_say("   map %4d %s" % [y, row])
+
+
+func _trace_step(w: Node, n: Vector2) -> void:
+	var p: Vector2 = w.player.global_position
+	var e: Variant = w.area.get("erasure")
+	var near := "-"
+	if e is Erasure and e.active:
+		var c: Vector2 = e.nearest_cell(p, 48.0)
+		if c != Vector2.INF:
+			near = "%s at %.0f px (void %s)" % [c.round(), c.distance_to(p), e.is_void(c)]
+	_trace.append("%.2fs %s pos %s dir %s static %s%s" % [_now(), w.area.area_id, p.round(), (n * 10.0).round() / 10.0, near, " REWIND" if w.owner_moves.rewinding else ""])
+	if _trace.size() > 45:
+		_trace.pop_front()
+
+
 func _glitch(w: Node) -> void:
+	var need: float = GlitchController.hold_need(w.glitch.target) if not w.glitch.target.is_empty() else 0.5
 	_act("interact", true)
-	await wait(0.8)
+	# Let go when it fires, as a player does (the cooldown starts then), or
+	# after the hold plus a margin if it never does. Holding a fixed margin
+	# past the fire cost purge 5 its run: each glitch held 0.13 s longer
+	# than before the tap window grew, the owner's awareness crossed SILENCE
+	# 0.1 earlier and could no longer cool under it.
+	# _now() is game time: under the movie writer a wall-clock hold let go
+	# before PHASE could fire.
+	var until := _now() + GlitchController.HOLD_START + need + 0.3
+	while _now() < until and w.glitch._cooldown <= 0.0:
+		await frames(1)
 	_act("interact", false)
 	await frames(2)
 	_glitches += 1
@@ -1059,8 +1146,21 @@ func _read_press() -> void:
 	await press("interact")
 
 
+## The bot's clock: game time, summed from each frame's (scaled) delta.
+## It used to be the wall clock times time_scale, which is only game time
+## when the game keeps up with real time: under the movie writer
+## (tools/record_film.sh, a third of real time) or --fixed-fps it drifted, and
+## holds and timeouts ended at the wrong moment.
+static var _clock := 0.0
+static var _clock_on := false
+
+
 func _now() -> float:
-	return Time.get_ticks_msec() / 1000.0 * Engine.time_scale
+	if not _clock_on:
+		_clock_on = true
+		var t := tree
+		t.process_frame.connect(func() -> void: _clock += t.root.get_process_delta_time())
+	return _clock
 
 
 func _step(w: Node, what: String) -> void:

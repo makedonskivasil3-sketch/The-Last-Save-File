@@ -2,7 +2,41 @@
 
 **The top section ("Current") is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current: comprehension, identity payoff, visual credibility and fairness (2026-11-04)
+## Current: a slower first act (2026-11-06, author-approved)
+
+Detail: [`production/SLOWER_ACT_ONE.md`](production/SLOWER_ACT_ONE.md). Nothing added or removed; what a first-time player learns is spread out.
+- **Glitches open by memory.** Only PHASE in Arin's room (before, four were open there, and FREEZE was offered on Mira). FREEZE comes with the first memory, then one to three per memory, each with its own card.
+- **Tobben doesn't report Rue in Act 1.**
+- **Verified:** every ending is reached by the bots under these rules (two are new CI tests).
+- **Not verified:** whether players are less lost. That needs the comprehension playtest.
+
+## History: phone input reliability (2026-11-06)
+
+Detail: [`production/PHONE_INPUT_PASS_2026-11-06.md`](production/PHONE_INPUT_PASS_2026-11-06.md). Policy: [`INPUT_POLICY.md`](INPUT_POLICY.md). Register: PI-1 to PI-12.
+
+**Which builds players had:**
+- GitHub Pages serves **`adf2710`** (30 Oct): `main` `8112117` failed CI and never deployed.
+- The Claude artifact copy is **`e551c6c`** (30 Oct), hosted separately.
+
+**What was reproduced (all fixed on this branch; 12 of 17 new tests fail on `8112117`):** both distributed builds and `main` carry all of these.
+- A fresh tap one frame after a line closed was discarded.
+- **The on-screen E could never hold `interact`, so no glitch could be charged by touch.**
+- Lifting one of two fingers on E released it.
+- Cancelled touches acted.
+- The festival skip chip read the emulated mouse.
+- The memory card had no touch interface.
+
+**Verified:**
+- Native touch tests: 19/19.
+- A touch-only exported-Web run in emulated Chromium (start, both skips, E reading, II, rotation). It is now a CI step.
+
+**Not verified:**
+- **No physical phone.** The device checklist is in the pass doc, §6.
+- No human comprehension playtest.
+
+**Mobile is not a launch platform.** These fixes make the public browser build usable by touch; they are not a mobile release claim.
+
+## History: comprehension, identity payoff, visual credibility and fairness (2026-11-04)
 
 **Full report:** [`production/COMPREHENSION_AND_FAIRNESS_2026-11-04.md`](production/COMPREHENSION_AND_FAIRNESS_2026-11-04.md). It covers the risks, the concept map, the RUE route, fairness, the area matrix, the player protocol and the demo choice.
 

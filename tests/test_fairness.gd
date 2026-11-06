@@ -79,7 +79,7 @@ func test_first_room_teaches_phase() -> void:
 	w.player._sprite.facing = Vector2.UP
 	await frames(2)
 	check_eq(w.glitch.target.get("id", ""), "phase", "the crack can be phased through")
-	await hold("interact", 0.9)
+	await hold("interact", 1.1)
 	check(w.player.global_position.y < 116.0, "Rue slips through (%s)" % w.player.global_position)
 	# The memory brings the wall down so you're never shut in.
 	memory().add_fragment(wall.fragment_id)
@@ -93,7 +93,7 @@ func test_charging_shows_the_price() -> void:
 	await frames(2)
 	check(w.hud.glitch_prompt_text().contains("+%d" % int(Glitch.cost("falsify"))), "the prompt names the cost")
 	_act("interact", true)
-	await wait(0.3)
+	await wait(GlitchController.HOLD_START + 0.15)
 	check(w.hud.cost_preview() > 0.0, "while charging, the meter shows what it will cost")
 	check(w.touch.hold_label != "", "and the phone's E button says HOLD")
 	_act("interact", false)
@@ -155,3 +155,78 @@ func test_dying_elsewhere_keeps_the_edges_extra_patience() -> void:
 	check_eq(memory().edge_static_deaths, 1, "the square death keeps the count")
 	check_eq(TheEdge.grace_time(), after_edge, "so the static still waits longer at the Edge")
 	check(TheEdge.grace_time() <= TheEdge.MAX_GRACE, "and never past its cap")
+
+
+## The static can't take her during a reload's drag either (CI 41811987936,
+## purge 5: "the owner reloaded" at 85.3 s, "DIED: eraser in square" at
+## 85.4 s: the drag crossed static that had grown on her path).
+func test_the_static_cannot_take_her_while_she_is_dragged_back() -> void:
+	var w := await start_session()
+	await go_to(w, "square", "house")
+	w.area.arin.position = Vector2(860, 280)
+	w.area.arin.route = [Vector2(860, 280)] as Array[Vector2]
+	var m: OwnerMoves = w.owner_moves
+	var e: Erasure = w.area.erasure
+	var died := [false]
+	e.caught_player.connect(func() -> void: died[0] = true)
+	var a := Vector2(200, 262)
+	var b := Vector2(360, 262)
+	w.player.global_position = b
+	e.active = true
+	e.interval = 999.0  # no spreading: only the cells placed here
+	e.seed_at(Vector2(280, 262))  # on the path back, not where she lands
+	await wait(1.5)  # let the cell mature (young cells never catch)
+	m._history.clear()
+	m._clock = 20.0
+	m._history.append({"t": 18.0, "player": a})
+	m._history.append({"t": 19.0, "player": Vector2(280, 262)})
+	m._history.append({"t": 19.8, "player": b})
+	m.load_last_save(true)
+	var until := Time.get_ticks_msec() + int((OwnerMoves.REWIND_TIME + OwnerMoves.GRACE - 0.1) * 1000.0)
+	while Time.get_ticks_msec() < until:
+		await frames(1)
+	check(not died[0], "dragged through static, she is not erased while she has no control")
+
+
+## Nor a moment the static has grown up to since (bot trace, purge 5: the
+## reload landed her 2 px from a young cell, which settled under her).
+func test_reload_skips_moments_the_static_has_reached() -> void:
+	var w := await start_session()
+	await go_to(w, "square", "house")
+	var m: OwnerMoves = w.owner_moves
+	var e: Erasure = w.area.erasure
+	e.active = true
+	e.interval = 999.0
+	e.seed_at(Vector2(400, 200))
+	m._history.clear()
+	m._clock = 20.0
+	m._history.append({"t": 11.0, "player": Vector2(402, 200)})
+	m._history.append({"t": 13.0, "player": Vector2(300, 200)})
+	m._history.append({"t": 19.0, "player": Vector2(320, 200)})
+	check_eq(m._pick_snapshot(), 1, "the oldest moment clear of the static, not the one beside it")
+
+
+## A reload rewinds the static with her: what grew since the moment she is
+## loaded into is gone; what was there before stays.
+func test_a_reload_rewinds_the_static_too() -> void:
+	var w := await start_session()
+	await go_to(w, "square", "house")
+	w.area.arin.position = Vector2(860, 280)
+	w.area.arin.route = [Vector2(860, 280)] as Array[Vector2]
+	var m: OwnerMoves = w.owner_moves
+	var e: Erasure = w.area.erasure
+	e.active = true
+	e.interval = 999.0
+	e.seed_at(Vector2(160, 200))  # old static, far from her
+	await wait(3.0)
+	e.seed_at(Vector2(560, 200))  # new static, grown after the moment she's loaded into
+	await frames(2)
+	check(e.nearest_cell(Vector2(160, 200), 6.0) != Vector2.INF and e.nearest_cell(Vector2(560, 200), 6.0) != Vector2.INF, "both are there before the reload")
+	m._history.clear()
+	m._clock = 20.0
+	m._history.append({"t": 18.5, "player": Vector2(300, 262)})
+	m._history.append({"t": 19.8, "player": Vector2(320, 262)})
+	w.player.global_position = Vector2(320, 262)
+	m.load_last_save(true)
+	check(e.nearest_cell(Vector2(560, 200), 6.0) == Vector2.INF, "the static grown since that moment is gone")
+	check(e.nearest_cell(Vector2(160, 200), 6.0) != Vector2.INF, "the older static stays")

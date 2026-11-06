@@ -16,7 +16,10 @@ env:
 
 jobs:
   export:
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest moved to 26.04, where Playwright 1.56.1 can't
+    # install Chromium's dependencies (the audible-web-build check failed
+    # before any game check: "Cannot install dependencies for ubuntu26.04").
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -106,6 +109,15 @@ jobs:
           (cd "$GITHUB_WORKSPACE/build/web" && python3 -m http.server 8766 --bind 127.0.0.1 >/dev/null 2>&1 &)
           sleep 1
           NODE_PATH=/tmp/pw/node_modules node tests/web/web_check.cjs http://127.0.0.1:8766/index.html build/web_check
+
+      # Touch only (docs/INPUT_POLICY.md): no keyboard, no mouse. Start, the
+      # memory card's Skip, the festival chip held while a thumb is on the
+      # stick, the boot read by the on-screen E, II, rotation mid-press.
+      - name: Web touch-only run (headless Chromium)
+        run: |
+          (cd "$GITHUB_WORKSPACE/build/web" && python3 -m http.server 8767 --bind 127.0.0.1 >/dev/null 2>&1 &)
+          sleep 1
+          NODE_PATH=/tmp/pw/node_modules node tests/web/touch_input_check.cjs http://127.0.0.1:8767/index.html build/web_check/touch
 
       - name: Upload web check evidence (on failure)
         if: failure()

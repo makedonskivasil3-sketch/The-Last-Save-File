@@ -140,6 +140,61 @@ static func done(id: String) -> bool:
 	return false
 
 
+## The side checklist (2026-11-05: playtesters asked "what should we be
+## looking for?"): the active mission's steps, each ticked from what the
+## save says happened, never a separate flag that could disagree. Only
+## steps of the mission in front of her: nothing about places not found.
+## Returns [[text, done], ...].
+static func steps(area_id: String, pointer := false) -> Array:
+	var m := active(area_id, pointer)
+	var p := OwnerMemory.places
+	match m:
+		"fifth_lantern":
+			return [
+				["Look around Arin's room", OwnerMemory.has_fragment("controller")],
+				["Find a way out of the room", "square" in p],
+			]
+		"well_light":
+			return [
+				["Find the fifth lantern by the well", "oob" in p],
+				["Climb down into the well", "oob" in p],
+			]
+		"under_well":
+			return [
+				["Cross the floor while it's there", OwnerMemory.has_fragment("well")],
+				["Reach the far ledge", OwnerMemory.found_pip],
+				["Climb back up at the respawn point", "archive" in p or OwnerMemory.met_archivist],
+			]
+		"who_kept":
+			return [
+				["Take the road east to the Archive", "archive" in p],
+				["Talk to the Archivist at his desk", OwnerMemory.met_archivist],
+			]
+		"slot2":
+			return [
+				["Take the north road out of the square", "edge" in p],
+				["Find both memories at the Edge", OwnerMemory.has_fragment("argument") and OwnerMemory.has_fragment("delete")],
+				["Lead the cursor away, then stand in Slot 2", not OwnerMemory.endings_seen.is_empty()],
+			]
+		"service_light":
+			return [
+				["Find the spare wick on the west bench", Relationships.has(LanternRoute.SPOOL)],
+				["Repair the service lamp", LanternRoute.repaired()],
+				["(optional) Look at the fifth frame", LanternRoute.named()],
+			]
+		"what_she_left":
+			return [
+				["Look around the house", OwnerMemory.found_controller],
+				["When the door chimes, hide in a closet", OwnerMemory.found_controller],
+			]
+		"bring_back":
+			return [
+				["Hide in a system file's shadow during a sweep", not OwnerMemory.restored.is_empty()],
+				["Restore someone deleted", not OwnerMemory.restored.is_empty()],
+			]
+	return []
+
+
 ## The quest log (the journal's LEADS): the active mission first, then
 ## those done. Optional missions she hasn't started aren't listed (no
 ## spoilers of places she hasn't found).

@@ -124,7 +124,7 @@ func _ready() -> void:
 	_log_text = UiStyle.note(log_scroll, "", UiStyle.TEXT)
 	_log_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_log_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	UiStyle.button(_log_box, "Copy to clipboard", func() -> void: DisplayServer.clipboard_set("\n".join(PlaytestLog.lines)))
+	UiStyle.button(_log_box, "Copy to clipboard", func() -> void: DisplayServer.clipboard_set(_log_copy_text()))
 	_log_back = UiStyle.button(_log_box, "Back", _show_main, "ui_back")
 
 	_history_box = UiStyle.centered_panel(_root, 480)
@@ -186,6 +186,8 @@ func open() -> void:
 		return
 	visible = true
 	get_tree().paused = true
+	# The world stops publishing while paused: say so here (browser checks).
+	WebState.publish({"scene": "game", "playable": false, "menu": "pause"})
 	_goal_label.text = goal
 	_goal_label.visible = goal != ""
 	_suspend.disabled = suspend_blocked != ""
@@ -295,7 +297,7 @@ var last_report := ""
 
 
 func _show_playtest_log() -> void:
-	_log_text.text = "\n".join(PlaytestLog.lines) if not PlaytestLog.lines.is_empty() else "(nothing yet)"
+	_log_text.text = _log_copy_text() if not (PlaytestLog.lines.is_empty() and InputTrace.lines.is_empty()) else "(nothing yet)"
 	_show_only(_log_box)
 	_log_back.grab_focus()
 
@@ -391,3 +393,12 @@ func _panel_of(box: VBoxContainer) -> Control:
 	while not parent is CenterContainer:
 		parent = parent.get_parent()
 	return parent as Control
+
+
+## The playtest log, then the input trace (docs/INPUT_POLICY.md): one copy
+## for a friend to paste, with what happened and what each tap did.
+func _log_copy_text() -> String:
+	var out := "\n".join(PlaytestLog.lines)
+	if not InputTrace.lines.is_empty():
+		out += "\n\n--- input trace (last %d) ---\n%s" % [InputTrace.lines.size(), InputTrace.text()]
+	return out

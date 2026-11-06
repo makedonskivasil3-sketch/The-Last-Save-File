@@ -49,6 +49,7 @@ const MIRA_RESET_EVERY := 25.0
 ## Arin were this close, and gives you a beat to react afterwards.
 const SAFE_FROM_CURSOR := 64.0
 const SAFE_FROM_ARIN := 44.0
+const SAFE_FROM_STATIC := 24.0
 const GRACE := 0.8
 ## ...and never lands on a doorway (or this close to one): dragged back onto
 ## an exit, Rue would leave the area.
@@ -220,6 +221,9 @@ func load_last_save(force := false) -> void:
 	for i in range(_history.size() - 1, target - 1, -1):
 		path.append(_history[i].player)
 	var snap: Dictionary = _history[target]
+	# The save she's loaded into is from before the static grew this far.
+	if world.area.erasure and world.area.erasure.active:
+		world.area.erasure.rewind(_clock - float(snap.t))
 	world.director.warn(["no. loading autosave.", "let's try that again.", "rewind."].pick_random())
 	world.hud.set_banner("◀◀  LOADING AUTOSAVE  ·  00:%02d AGO" % int(_clock - float(snap.t)))
 	Sfx.play("unload", -2.0, 1.6)
@@ -263,6 +267,9 @@ func _hold_threats(seconds: float) -> void:
 	var cursor: Variant = world.area.get("cursor")
 	if cursor is OwnerCursor:
 		cursor.blind(seconds)
+	var e: Erasure = world.area.erasure
+	if e != null:
+		e.held = maxf(e.held, seconds)  # the drag can cross static (CI 41811987936)
 
 
 func _end_rewind() -> void:
@@ -285,7 +292,7 @@ func _pick_snapshot() -> int:
 			break
 		if _near_exit(s.player):
 			break  # never drag her back through a doorway
-		if _is_void(s.player):
+		if _is_void(s.player) or _near_static(s.player):
 			continue
 		var gap := threat_gap(s)
 		if gap > best_gap:
@@ -379,6 +386,15 @@ func _undo_glitches() -> void:
 func _is_void(p: Vector2) -> bool:
 	var e := world.area.erasure
 	return e != null and e.is_void(p)
+
+
+## Static that has grown since that moment counts as well: landing beside a
+## young cell left the beat after the drag to see it settle under her
+## (bot trace, purge 5: dragged back to the Archive door, static 2 px away,
+## erased as the hold ran out). Young or settled, it is judged as it is now.
+func _near_static(p: Vector2) -> bool:
+	var e := world.area.erasure
+	return e != null and e.active and e.nearest_cell(p, SAFE_FROM_STATIC) != Vector2.INF
 
 
 # --- SAVING OVER YOU ----------------------------------------------------------------
