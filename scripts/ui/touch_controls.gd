@@ -72,7 +72,7 @@ func _notification(what: int) -> void:
 func _input(event: InputEvent) -> void:
 	# A key or a pad press: the player switched device (UI-2, UX C12). The
 	# controls hide until the screen is touched again.
-	if active and (event is InputEventKey or event is InputEventJoypadButton) and event.is_pressed() and _held.is_empty() and _stick_finger == -1:
+	if active and not portrait_active() and (event is InputEventKey or event is InputEventJoypadButton) and event.is_pressed() and _held.is_empty() and _stick_finger == -1:
 		active = false
 		return
 	if event is InputEventScreenTouch:

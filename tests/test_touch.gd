@@ -129,4 +129,11 @@ func test_rotating_to_portrait_cancels_and_blocks_virtual_movement() -> void:
 	check_eq(w.touch._stick_finger, -1, "rotation cancels the existing drag")
 	w.touch._touch_down(0, Vector2(120, 250))
 	check_eq(w.touch._stick_finger, -1, "the portrait notice blocks new virtual movement")
+	var escape := InputEventKey.new()
+	escape.keycode = KEY_ESCAPE
+	escape.pressed = true
+	w.touch._input(escape)
+	check(w.touch.portrait_active(), "a keyboard/pad event cannot dismiss the portrait safety hold")
+	w._pause_menu.close()
+	check(tree.paused, "Resume remains blocked until landscape")
 	win.size = original
