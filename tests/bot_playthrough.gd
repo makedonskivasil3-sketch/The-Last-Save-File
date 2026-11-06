@@ -667,9 +667,14 @@ func _edge(w: Node, ending: String) -> String:
 	if ending == "message":
 		await frames(4)
 		await _read_press()
+	# Read up to the end card, and stop there: the card takes E too (touch
+	# players), so one more press would leave for the title.
 	for i in 120:
-		if w._win_card_shown:
+		if not is_instance_valid(w) or not w.is_inside_tree() or w._win_card_shown:
 			break
+		if w.ending != "" and not (w.hud.is_dialogue_open() or w.hud.is_cinematic() or w.hud.is_choosing()):
+			await wait(0.25)
+			continue
 		await _read_press()
 		await wait(0.25)
 	return "ending:" + memory().last_ending  # exactly as recorded: escape and rue are different endings
@@ -974,6 +979,8 @@ func _glitch(w: Node) -> void:
 	# past the fire cost purge 5 its run: each glitch held 0.13 s longer
 	# than before the tap window grew, the owner's awareness crossed SILENCE
 	# 0.1 earlier and could no longer cool under it.
+	# _now() is game time: under the movie writer a wall-clock hold let go
+	# before PHASE could fire.
 	var until := _now() + GlitchController.HOLD_START + need + 0.3
 	while _now() < until and w.glitch._cooldown <= 0.0:
 		await frames(1)
@@ -1133,8 +1140,21 @@ func _read_press() -> void:
 	await press("interact")
 
 
+## The bot's clock: game time, summed from each frame's (scaled) delta.
+## It used to be the wall clock times time_scale, which is only game time
+## when the game keeps up with real time: under the movie writer
+## (tools/record_film.sh, a third of real time) or --fixed-fps it drifted, and
+## holds and timeouts ended at the wrong moment.
+static var _clock := 0.0
+static var _clock_on := false
+
+
 func _now() -> float:
-	return Time.get_ticks_msec() / 1000.0 * Engine.time_scale
+	if not _clock_on:
+		_clock_on = true
+		var t := tree
+		t.process_frame.connect(func() -> void: _clock += t.root.get_process_delta_time())
+	return _clock
 
 
 func _step(w: Node, what: String) -> void:
