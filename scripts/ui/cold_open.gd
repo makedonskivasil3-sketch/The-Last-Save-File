@@ -43,6 +43,8 @@ var _done := false
 var _art: Control
 var _t := 0.0
 var _focused := true
+var _continue: StoryTouchControl
+var _skip: StoryTouchControl
 
 
 func _ready() -> void:
@@ -80,6 +82,17 @@ func _ready() -> void:
 	UiStyle.sized(_hint, 8)
 	_hint.add_theme_color_override("font_color", Color(0.75, 0.77, 0.8, 0.8))
 	add_child(_hint)
+	_continue = StoryTouchControl.new()
+	_continue.position = Vector2(96, 276)
+	_continue.size = Vector2(210, 32)
+	_continue.tapped.connect(_request_continue)
+	add_child(_continue)
+	_skip = StoryTouchControl.new()
+	_skip.position = Vector2(330, 276)
+	_skip.size = Vector2(214, 32)
+	_skip.text = "Hold to skip card"
+	_skip.hold_only = true
+	add_child(_skip)
 
 
 ## Every line, for the journal (and tests).
@@ -95,6 +108,10 @@ func _notification(what: int) -> void:
 		_focused = false
 		_armed = false
 		_skip_t = 0.0
+		if _skip:
+			_skip.cancel()
+		if _continue:
+			_continue.cancel()
 	elif what == NOTIFICATION_APPLICATION_FOCUS_IN:
 		_focused = true
 
@@ -106,17 +123,20 @@ func _process(delta: float) -> void:
 	_art.queue_redraw()
 	if _done:
 		return
+	_continue.text = "Show line" if _labels[_line].visible_characters < _labels[_line].text.length() else "Continue"
+	_continue.enabled = _continue.text == "Show line" or (_armed and _held >= 0.25)
 	# Skip: a held Esc, never a tap (so nobody skips it by accident).
-	if Input.is_action_pressed("ui_cancel") or Input.is_action_pressed("pause"):
+	if Input.is_action_pressed("ui_cancel") or Input.is_action_pressed("pause") or _skip.is_held():
 		_skip_t += delta
+		_skip.progress = _skip_t / SKIP_HOLD
 		if _skip_t >= SKIP_HOLD:
 			PlaytestLog.mark("cold open skipped", "line %d" % _line)
 			_finish()
 			return
 	else:
 		_skip_t = 0.0
-	var pressing := Input.is_action_pressed("interact") or Input.is_action_pressed("confirm") \
-		or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+		_skip.progress = 0.0
+	var pressing := Input.is_action_pressed("interact") or Input.is_action_pressed("confirm")
 	if not pressing:
 		_armed = true
 	var l := _labels[_line]
@@ -137,14 +157,32 @@ func _process(delta: float) -> void:
 		_hint.text = ""
 		return
 	_held += delta
-	_hint.text = "[%s] continue   ·   hold Esc to skip" % Settings.glyph("interact") if _held > 0.6 else ""
+	_hint.text = "Continue below  ·  [%s] also continues  ·  hold Skip or Esc" % Settings.glyph("interact") if _held > 0.6 else ""
 	var read_on := (autoplay and _held >= 0.4) or (_armed and _held >= 0.25 and pressing)
 	if read_on:
+		_advance_line()
+
+
+func _request_continue() -> void:
+	if not _focused or _done:
+		return
+	var l := _labels[_line]
+	if l.visible_characters < l.text.length():
+		_typed = float(l.text.length())
+		l.visible_characters = l.text.length()
+		_held = 0.0
 		_armed = false
-		_line += 1
-		_typed = 0.0
-		if _line >= _labels.size():
-			_finish()
+	elif _armed and _held >= 0.25:
+		_advance_line()
+
+
+func _advance_line() -> void:
+	_armed = false
+	_line += 1
+	_typed = 0.0
+	_held = 0.0
+	if _line >= _labels.size():
+		_finish()
 
 
 ## Where the cursor sits now: after the typed part of the current line.
@@ -217,6 +255,8 @@ func _finish() -> void:
 	if _done:
 		return
 	_done = true
+	_continue.enabled = false
+	_skip.enabled = false
 	OwnerMemory.record_read("festival:cold_open", "note", "The memory card", "festival", journal_lines())
 	finished.emit()
 	var tw := create_tween()

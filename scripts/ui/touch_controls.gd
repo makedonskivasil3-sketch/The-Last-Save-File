@@ -20,6 +20,10 @@ const BUTTONS := {
 	"pause": {"center": Vector2(612, 90), "radius": 15.0, "label": "II", "actions": ["pause"]},
 }
 const CYAN := Color("8cf2ff")
+## Identity of a virtual gesture, independent of render-frame timing.
+static var interact_serial := 0
+static var canceled_interact_serial := -1
+static var interact_held := false
 
 var active := false
 ## Set by the glitch controller: what holding E would do ("" for nothing),
@@ -40,6 +44,7 @@ var _stick := Vector2.ZERO
 var _held: Dictionary = {}
 var _draw_node: Control
 var _portrait := false
+var _owned_interact_serial := -1
 
 
 func portrait_active() -> bool:
@@ -75,7 +80,7 @@ func _input(event: InputEvent) -> void:
 		if not buttons_enabled:
 			return
 		if event.canceled:
-			_touch_up(event.index)
+			_touch_up(event.index, true)
 		elif event.pressed:
 			_touch_down(event.index, event.position)
 		else:
@@ -85,6 +90,8 @@ func _input(event: InputEvent) -> void:
 
 
 func _touch_down(finger: int, pos: Vector2) -> void:
+	if _held.has(finger) or finger == _stick_finger:
+		return
 	if get_window().size.y > get_window().size.x:
 		return
 	for name: String in BUTTONS:
@@ -92,9 +99,15 @@ func _touch_down(finger: int, pos: Vector2) -> void:
 		if pos.distance_to(b.center) <= b.radius + 6.0:
 			if get_tree().paused and name != "pause":
 				return  # menus take taps themselves
+			var already_held: bool = name in _held.values()
 			_held[finger] = name
-			for action in b.actions:
-				_send(action, true)
+			if not already_held:
+				if name == "interact":
+					interact_serial += 1
+					_owned_interact_serial = interact_serial
+					interact_held = true
+				for action in b.actions:
+					_send(action, true)
 			get_viewport().set_input_as_handled()
 			return
 	if get_tree().paused:
@@ -105,11 +118,19 @@ func _touch_down(finger: int, pos: Vector2) -> void:
 		_stick_knob = pos
 
 
-func _touch_up(finger: int) -> void:
+func _touch_up(finger: int, canceled := false) -> void:
 	if _held.has(finger):
-		for action in BUTTONS[_held[finger]].actions:
-			_send(action, false)
+		var name: String = _held[finger]
 		_held.erase(finger)
+		if name not in _held.values():
+			if name == "interact" and _owned_interact_serial != interact_serial:
+				return  # an old scene cannot release the new scene's gesture
+			if name == "interact":
+				interact_held = false
+			if canceled and name == "interact":
+				canceled_interact_serial = interact_serial
+			for action in BUTTONS[name].actions:
+				_send(action, false)
 	if finger == _stick_finger:
 		_stick_finger = -1
 		_stick = Vector2.ZERO
@@ -166,6 +187,11 @@ func _process(_delta: float) -> void:
 		cancel_touches()
 	if _stick_finger != -1:
 		_set_move(_stick)
+	# Godot can recompute parsed action state on unrelated pointer events.
+	# Keep the logical hold alive; consumers use its serial for press edges.
+	if _owned_interact_serial == interact_serial and "interact" in _held.values():
+		Input.action_press("interact")
+		Input.action_press("confirm")
 	_draw_node.visible = active
 	if active:
 		_draw_node.queue_redraw()
@@ -178,7 +204,7 @@ func _exit_tree() -> void:
 ## A story panel takes over without leaving a virtual stick or E held.
 func cancel_touches() -> void:
 	for finger in _held.keys():
-		_touch_up(finger)
+		_touch_up(finger, true)
 	_stick_finger = -1
 	_stick = Vector2.ZERO
 	_set_move(Vector2.ZERO)

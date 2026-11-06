@@ -32,6 +32,8 @@ var target: Dictionary = {}
 var preview: Dictionary = {}
 
 var _pressing := false
+var _seen_touch_serial := TouchControls.interact_serial
+var _press_touch_serial := -1
 var _held := 0.0
 var _charge := 0.0
 var _cooldown := 0.0
@@ -72,6 +74,15 @@ func is_charging() -> bool:
 
 
 func _process(delta: float) -> void:
+	var new_touch := TouchControls.interact_serial > _seen_touch_serial
+	_seen_touch_serial = TouchControls.interact_serial
+	if (new_touch and TouchControls.canceled_interact_serial == _seen_touch_serial) \
+			or (_press_touch_serial >= 0 and TouchControls.canceled_interact_serial >= _press_touch_serial):
+		_cancel()
+		_press_touch_serial = -1
+		_update_prompt()
+		queue_redraw()
+		return
 	_t += delta
 	var cooldown_before := _cooldown
 	_cooldown = maxf(0.0, _cooldown - delta)
@@ -82,14 +93,18 @@ func _process(delta: float) -> void:
 		queue_redraw()
 		return
 	# A press the HUD just used (closing a chat, picking a choice) isn't ours.
-	if Input.is_action_just_pressed("interact") and Engine.get_process_frames() - world.hud.interact_used_frame > 1:
+	var fresh_touch := new_touch and _seen_touch_serial > world.hud.interact_used_touch_serial
+	var keyboard_press := Input.is_action_just_pressed("interact") and not new_touch \
+		and not TouchControls.interact_held and Engine.get_process_frames() - world.hud.interact_used_frame > 1
+	if not _pressing and (fresh_touch or keyboard_press):
 		_pressing = true
+		_press_touch_serial = _seen_touch_serial if new_touch else -1
 		_held = 0.0
 		_charge = 0.0
 	if not _pressing:
 		_retarget(delta)
 	if _pressing:
-		if Input.is_action_pressed("interact"):
+		if Input.is_action_pressed("interact") or (_press_touch_serial >= 0 and TouchControls.interact_held):
 			var held_before := _held
 			_held += delta
 			if _held >= HOLD_START and _cooldown <= 0.0:
@@ -176,6 +191,7 @@ func _charge_up(delta: float) -> void:
 
 func _cancel() -> void:
 	_pressing = false
+	_press_touch_serial = -1
 	_held = 0.0
 	_charge = 0.0
 	if _charge_label:

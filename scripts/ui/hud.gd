@@ -90,6 +90,7 @@ var dialogue_finished := false
 ## dialogue, picking a choice): that press must not also count as a tap on
 ## the world, or closing a chat would reopen it.
 var interact_used_frame := -10
+var interact_used_touch_serial := TouchControls.interact_serial
 var _finishing := false
 var _hint: Label
 ## "hold [E]  FREEZE +6": what holding interact would do right now.
@@ -527,6 +528,7 @@ func set_portrait(portrait: CharacterArt.Portrait) -> void:
 ## `replay`: the frame a recording plays in ("REPLAY · P2 · 41:07:12"),
 ## shown even with speaker labels off: it says whose memory this is.
 func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: float = 0.55, voice_prefix := "", portrait: CharacterArt.Portrait = null, replay := "") -> void:
+	interact_used_touch_serial = TouchControls.interact_serial
 	# A scene owns the screen: an open dialogue box is hidden and holds its
 	# place (it is NOT closed: closing would end the conversation and run its
 	# side effects mid-scene), and the act card clears.
@@ -707,7 +709,7 @@ func _cinematic_line(line: String, vid: String, title: String, base_color: Color
 ## began during this scene counts (not one carried in from a glitch).
 func _update_skip(delta: float) -> bool:
 	var held := Input.is_action_pressed("interact") or Input.is_action_pressed("confirm")
-	if _advance_pressed():
+	if _advance_pressed(false):
 		_skip_armed = true
 	if held and _skip_armed:
 		_skip_hold += delta
@@ -730,8 +732,16 @@ func _fit_cinematic() -> void:
 	_cine_backing.size = _cine_text.size + Vector2(16, 12)
 
 
-func _advance_pressed() -> bool:
-	return Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("confirm")
+func _advance_pressed(consume := true) -> bool:
+	var pressed := Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("confirm")
+	if Settings.using_touch and TouchControls.interact_serial > 0:
+		var fresh := TouchControls.interact_serial > interact_used_touch_serial \
+			and TouchControls.canceled_interact_serial != TouchControls.interact_serial
+		if fresh and consume:
+			interact_used_touch_serial = TouchControls.interact_serial
+			interact_used_frame = Engine.get_process_frames()
+		return fresh
+	return pressed
 
 
 ## Opens the dialogue box. lines: Array of Strings, advanced with interact
@@ -742,6 +752,7 @@ func _advance_pressed() -> bool:
 ## silent: the speaker can't speak (mute, or answering in writing): no
 ## system speech and no mouth movement, while the text still types.
 func show_dialogue(speaker: String, color: Color, lines: Array, voice_prefix := "", portrait: CharacterArt.Portrait = null, expressions: Array = [], silent := false) -> void:
+	interact_used_touch_serial = TouchControls.interact_serial
 	if lines.is_empty():
 		return
 	dialogue_silent = silent or speaker == Story.TOBBEN_WRITTEN
@@ -797,6 +808,7 @@ func cancel_choice() -> void:
 
 
 func choose(question: String, options: Array, focus := 0) -> int:
+	interact_used_touch_serial = TouchControls.interact_serial
 	_choice_question.text = question
 	for c in _choice_list.get_children():
 		c.queue_free()
@@ -847,10 +859,11 @@ func _update_choice() -> void:
 		if n > 0:
 			var i := focused.get_index() if focused is Button and focused.get_parent() == _choice_list else 0
 			(_choice_list.get_child((i + step + n) % n) as Button).grab_focus()
-	if Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("confirm"):
+	if _advance_pressed():
 		var focused := get_viewport().gui_get_focus_owner()
 		if focused is Button and focused.get_parent() == _choice_list:
 			interact_used_frame = Engine.get_process_frames()
+			interact_used_touch_serial = TouchControls.interact_serial
 			_chosen.emit(focused.get_index())
 
 
@@ -1169,6 +1182,7 @@ func _update_dialogue(delta: float) -> void:
 	if frame != _dialogue_opened_frame and _advance_pressed():
 		# The press that opened the box doesn't also advance it.
 		interact_used_frame = frame
+		interact_used_touch_serial = TouchControls.interact_serial
 		if _pacer.press(frame) == "reveal":
 			_dialogue_text.visible_characters = -1  # first press: the whole line, nothing more
 			_page_revealed()
