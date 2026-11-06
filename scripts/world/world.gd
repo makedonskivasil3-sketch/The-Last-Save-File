@@ -1595,13 +1595,18 @@ func _use_buffered_tap() -> void:
 
 ## A memory unlocked a new glitch: say so, big.
 func _learn_glitch(memories: int) -> void:
-	var id := Glitch.unlocked_by(memories)
-	if id == "":
-		return
-	var def: Dictionary = Glitch.DEFS[id]
-	hud.show_act("NEW GLITCH", def.name, str(def.how).replace("[E]", "[%s]" % Settings.glyph("interact")))
-	hud.say("NEW GLITCH: %s" % def.name, "system")
-	Sfx.play("glitch_learn")
+	# One card per glitch, one after the other, so each is read on its own
+	# (Pacing staging opens up to three together after the third memory).
+	var ids := Pacing.glitches_opened_by(memories)
+	for i in ids.size():
+		if i > 0:
+			await get_tree().create_timer(3.2).timeout
+			if not is_inside_tree() or ending != "":
+				return
+		var def: Dictionary = Glitch.DEFS[ids[i]]
+		hud.show_act("NEW GLITCH", def.name, str(def.how).replace("[E]", "[%s]" % Settings.glyph("interact")))
+		hud.say("NEW GLITCH: %s" % def.name, "system")
+		Sfx.play("glitch_learn")
 
 
 ## DECOY: leave a stale frame of yourself here.

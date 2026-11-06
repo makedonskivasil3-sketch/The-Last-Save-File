@@ -1016,6 +1016,10 @@ var _tobben_errand := ""
 ## conversation. He can't while his voice is Rue's (written). After the
 ## guest book he still does, but leaves out what she asked.
 func _tobben_reports() -> void:
+	# Act 1 (Pacing): meeting him costs nothing yet. He reports from the
+	# well's memory on, once a first-time player knows who is watching.
+	if Pacing.act_one():
+		return
 	if _report_pending or tobben.mute or not _report_cooled() or _tobben_errand != "":
 		return
 	_report_pending = true

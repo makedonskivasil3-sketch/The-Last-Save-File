@@ -2,7 +2,15 @@
 
 **The top section ("Current") is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current: phone input reliability (2026-11-06)
+## Current: a slower first act (2026-11-06, author-approved)
+
+Detail: [`production/SLOWER_ACT_ONE.md`](production/SLOWER_ACT_ONE.md). Nothing added or removed; what a first-time player learns is spread out.
+- **Glitches open by memory.** Only PHASE in Arin's room (before, four were open there, and FREEZE was offered on Mira). FREEZE comes with the first memory, then one to three per memory, each with its own card.
+- **Tobben doesn't report Rue in Act 1.**
+- **Verified:** every ending is reached by the bots under these rules (two are new CI tests).
+- **Not verified:** whether players are less lost. That needs the comprehension playtest.
+
+## History: phone input reliability (2026-11-06)
 
 Detail: [`production/PHONE_INPUT_PASS_2026-11-06.md`](production/PHONE_INPUT_PASS_2026-11-06.md). Policy: [`INPUT_POLICY.md`](INPUT_POLICY.md). Register: PI-1 to PI-12.
 

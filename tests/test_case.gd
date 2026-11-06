@@ -63,6 +63,7 @@ func before_each() -> void:
 	s.speaker_labels = true
 	s.pause_on_focus_loss = true
 	World.introductions = false  # test_introductions turns them on
+	Pacing.staged = false  # every glitch from the start; test_slower_act_one turns it on
 	VoiceOver.clear_registered()
 	VoiceOver.stop()
 	tree.paused = false

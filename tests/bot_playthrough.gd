@@ -39,6 +39,21 @@ func test_full_game_message() -> void:
 	await _playthrough("message", 0)
 
 
+## The real first-time rules (Pacing staging: glitches open by memory,
+## Tobben quiet in Act 1). The other bot routes keep the flat rules the
+## suite tests with; these two prove the staged game can still be finished.
+func test_full_game_escape_staged() -> void:
+	Pacing.staged = true
+	await _playthrough("escape", 0)
+	Pacing.staged = false
+
+
+func test_full_game_message_staged() -> void:
+	Pacing.staged = true
+	await _playthrough("message", 0)
+	Pacing.staged = false
+
+
 func test_full_game_escape_purge_3() -> void:
 	await _playthrough("escape", 3)
 
@@ -118,6 +133,8 @@ var _one_playthrough := false
 
 
 func _playthrough(ending: String, purge: int, square_deaths: Array = []) -> void:
+	if OS.get_environment("BOT_STAGED") != "":
+		Pacing.staged = true  # every route under the first-time rules
 	var asked := ending
 	if ending == "rue_one":
 		_one_playthrough = true
