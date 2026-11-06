@@ -1,0 +1,5 @@
+PASS: read-card reaches the festival through touch controls
+PASS: festival hold Skip reaches the game using touch
+PASS: skip-card reaches the festival through touch controls
+PASS: festival hold Skip reaches the game using touch
+PASS: both opening routes, no page errors; physical phones unverified

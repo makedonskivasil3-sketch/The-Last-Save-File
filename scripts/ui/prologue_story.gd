@@ -13,7 +13,7 @@ var _age := 0.0
 var _armed := false
 var _speaker: Label
 var _body: Label
-var _next: Button
+var _next: StoryTouchControl
 
 
 func _ready() -> void:
@@ -48,7 +48,10 @@ func _ready() -> void:
 	_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	UiStyle.sized(_body, 12)
 	column.add_child(_body)
-	_next = UiStyle.button(column, "Continue", advance)
+	_next = StoryTouchControl.new()
+	_next.text = "Continue"
+	_next.tapped.connect(advance)
+	column.add_child(_next)
 	_next.custom_minimum_size.y = 26
 	_next.focus_mode = Control.FOCUS_NONE  # one input path for keys/pad; GUI for taps
 	visible = false

@@ -1,0 +1,17 @@
+PASS: the title screen loads
+PASS: a first launch opens on the memory card  {"fps":4,"frames":18,"paused":false,"playable":false,"scene":"cold_open"}
+PASS: a first launch plays the festival  {"fps":9,"frames":100,"paused":false,"playable":true,"scene":"prologue"}
+PASS: holding Esc skips into the run
+TIMING {"marks":{"title":6.1,"opening":21.1,"game_scene":32.7,"playable":38.7},"fps":{"title":1,"opening":9,"game_scene":7,"playable":1},"holds":{"cutscene":5},"slowest_ms":150,"presses":0,"game_ms":1716,"wall_ms":6495,"clock_ratio":3.8}
+PASS: the run becomes playable (Rue under the player's control)  {"area":"room","awake":true,"fps":1,"frames":197,"game_ms":1716,"hold":"","last_exit":"active","paused":false,"persistent":true,"playable":true,"reading":false,"safe_marks":0,"save_ok":true,"scene":"game","sfx_busy":false,"slowest_ms":150,"stop":"not in the middle of a conversation.","unsafe_marks":0,"wall_ms":6495,"x":320,"y":270}
+PASS: startup takes under 30 s of game time, whatever the runner's speed  {"game_ms":1716,"wall_ms":6495}
+PASS: Rue moves on real keyboard input  {"before":{"area":"room","awake":true,"fps":1,"frames":197,"game_ms":1716,"hold":"","last_exit":"active","paused":false,"persistent":true,"playable":true,"reading":false,"safe_marks":0,"save_ok":true,"scene":"game","sfx_busy":false,"slowest_ms":150,"stop":"not in the middle of a conversation.","unsafe_marks":0,"wall_ms":6495,"x":320,"y":270},"after":{"area":"room","awake":true,"fps":2,"frames":201,"game_ms":2235,"hold":"","last_exit":"active","paused":false,"persistent":true,"playable":true,"reading":false,"safe_marks":0,"save_ok":true,"scene":"game","sfx_busy":false,"slowest_ms":133,"stop":"not in the middle of a conversation.","unsafe_marks":0,"wall_ms":8082,"x":332,"y":270},"moved":12}
+PASS: the open run is saved (session 1, no quits)  {"sessions":1,"deaths":0,"quits":0,"purge":0,"last_exit":"active"}
+PASS: the game marks a calm moment (in memory, written to user://)  {"wall_ms":740,"game_ms":539,"last_exit":"safe","stop":"","safe_marks":1,"unsafe_marks":0,"save_ok":true,"fps":2}
+CALM {"decided_wall_ms":740,"decided_game_ms":539,"stored_wall_ms":7690,"safe_marks":1,"unsafe_marks":0,"fps":3}
+PASS: the browser stores the calm moment (IndexedDB last_exit safe)  {"save":{"sessions":1,"deaths":0,"quits":0,"purge":0,"last_exit":"safe"},"stop":"","in_memory":"safe","safe_marks":1,"unsafe_marks":0,"persistent":true,"area":"room","bound_ms":60000}
+PASS: no leave prompt at a calm moment (window.__tlsfRunning false)
+PASS: a tab closed at a calm moment resumes free (quits 0, purge 0, last_exit suspend)  {"sessions":1,"deaths":0,"quits":0,"purge":0,"last_exit":"suspend"}
+PASS: no page or runtime errors  []
+screenshots: /tmp/touch-final-web-check
+ALL WEB CHECKS PASSED

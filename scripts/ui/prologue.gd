@@ -198,7 +198,7 @@ var _skip_label: Label
 var _diag: Label
 var _owner_line: Label
 var _years: Label
-var _chip: Label
+var _chip: StoryTouchControl
 var story: PrologueStory
 var _touch: TouchControls
 var _story_seen := {}
@@ -235,6 +235,7 @@ func _ready() -> void:
 	# (hidden until the screen is touched).
 	_touch = TouchControls.new()
 	add_child(_touch)
+	_touch.orientation_changed.connect(_on_touch_orientation)
 	var story_layer := CanvasLayer.new()
 	story_layer.layer = 20
 	add_child(story_layer)
@@ -301,19 +302,15 @@ func _build_hud() -> void:
 	_diag.add_theme_color_override("font_color", SYSTEM_COLOR)
 	_hud.add_child(_diag)
 	_owner_line = _label(Vector2(0, 300), 11, OWNER_COLOR)
-	_chip = Label.new()
+	_chip = StoryTouchControl.new()
 	_chip.position = SKIP_CHIP.position
 	_chip.size = SKIP_CHIP.size
-	_chip.text = "skip ▸▸"
-	_chip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_chip.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	UiStyle.sized(_chip, 9)
-	var chip_bg := StyleBoxFlat.new()
-	chip_bg.bg_color = Color(0, 0, 0, 0.5)
-	chip_bg.set_corner_radius_all(4)
-	_chip.add_theme_stylebox_override("normal", chip_bg)
-	_chip.visible = false
-	_hud.add_child(_chip)
+	_chip.text = "Hold Skip"
+	_chip.hold_only = true
+	var skip_layer := CanvasLayer.new()
+	skip_layer.layer = 25  # above story panels, below the portrait notice
+	add_child(skip_layer)
+	skip_layer.add_child(_chip)
 	_years = _label(Vector2(0, 160), 20, Color(0.95, 0.95, 0.95))
 
 
@@ -341,11 +338,18 @@ func _notification(what: int) -> void:
 
 
 func held() -> bool:
-	return _focus_lost or _pad_lost
+	return _focus_lost or _pad_lost or (_touch != null and _touch.portrait_active())
+
+
+func _on_touch_orientation(_portrait: bool) -> void:
+	_touch.cancel_touches()
+	_update_hold()
 
 
 func _update_hold() -> void:
 	if held():
+		if _chip:
+			_chip.cancel()
 		_skip_t = 0.0
 		_armed = false
 		if story:
@@ -391,9 +395,7 @@ func _input(event: InputEvent) -> void:
 func _skip_held() -> bool:
 	if Input.is_action_pressed("ui_cancel") or Input.is_action_pressed("pause"):
 		return true
-	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
-		return SKIP_CHIP.has_point(get_viewport().get_mouse_position())
-	return false
+	return _chip != null and _chip.is_held()
 
 
 func _mark_input() -> void:
@@ -406,6 +408,8 @@ func _mark_input() -> void:
 # --- the loop -----------------------------------------------------------------------
 
 func _process(delta: float) -> void:
+	_chip.enabled = not held() and not _done
+	_chip.visible = not _done and (beat < Beat.LOAD or (story != null and story.visible))
 	if _done:
 		if not _skip_held() and not Input.is_action_pressed("interact") and not _handed_off:
 			_handed_off = true
@@ -628,6 +632,7 @@ func _update_skip(delta: float) -> void:
 			_to_beat(Beat.LOAD)
 	else:
 		_skip_t = maxf(0.0, _skip_t - delta * 2.0)
+	_chip.progress = _skip_t / SKIP_HOLD
 
 
 ## The player's stick, keys, a tap's destination, or (autoplay, or a long
@@ -1348,7 +1353,7 @@ func _update_hud(delta: float) -> void:
 	var how := "hold the skip chip" if Settings.using_touch else "hold Esc"
 	_skip_label.text = ("%s to skip  %s" % [how, "▮".repeat(int(_skip_t / SKIP_HOLD * 6.0))]) if beat < Beat.LOAD else ""
 	_skip_label.modulate.a = 0.75 if (lit_n >= 1 or elapsed > 8.0 or _skip_t > 0.0) else 0.0
-	_chip.visible = Settings.using_touch and beat < Beat.LOAD
+	_chip.visible = not _done and (beat < Beat.LOAD or story.visible)
 	# The present: a short, diegetic boot, and the owner's first words.
 	var lines: Array[String] = []
 	if beat == Beat.LOAD:

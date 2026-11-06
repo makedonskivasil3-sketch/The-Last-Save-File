@@ -2,7 +2,31 @@
 
 **The top section ("Current") is the single authoritative statement of the project's current status.** Other docs (audits, pass notes) are history; where they disagree, this wins.
 
-## Current: comprehension, identity payoff, visual credibility and fairness (2026-11-04)
+## Current: touch interaction and opening reliability (2026-11-06)
+
+**Runtime candidate:** `0ad88b3`, based on main `8112117`.
+**Report and raw evidence:** [November 6 review](review/nov6-touch/IMPLEMENTATION.md).
+**Next production prompt:** [gameplay, characters, story and commercial milestone](prompts/GAMEPLAY_STORY_COMMERCIAL_NEXT_NOV6.md).
+
+- Implemented: owned virtual E gestures, multi-touch holds, synchronous focus-loss
+  release, raw-touch opening Continue/hold Skip, and portrait Resume protection.
+- Final normal-speed native run: **867/867**, four independent source/XDG shards,
+  every expected test exactly once, strict engine-error gate on. New regressions: 14.
+- Final candidate: all three exports succeeded; Linux headless smoke, Web opening
+  touch routes and portrait recovery passed. Reader/lifecycle passed on `9c99122`
+  before the final portrait-only change. Physical devices remain unverified.
+- Two earlier headless processes crashed during shared-tree verification. The final
+  isolated run did not reproduce them; cause remains unconfirmed (QA-3). Logs retained.
+- The gameplay/story/art improvements below are preserved. Full-ending bot results
+  below belong to the earlier baseline and were not rerun locally in this pass.
+
+**Commercial status:** developed playable prototype; commercial readiness is not
+established. Friends' qualitative feedback informed this pass. A documented
+unfamiliar-player round, Windows/controller hardware, human pacing/listening,
+final art approval, permanent-loss policy and storefront eligibility remain open.
+Remote CI/build/deployment is separate from local verification.
+
+## History: comprehension, identity payoff, visual credibility and fairness (2026-11-04)
 
 **Full report:** [`production/COMPREHENSION_AND_FAIRNESS_2026-11-04.md`](production/COMPREHENSION_AND_FAIRNESS_2026-11-04.md). It covers the risks, the concept map, the RUE route, fairness, the area matrix, the player protocol and the demo choice.
 

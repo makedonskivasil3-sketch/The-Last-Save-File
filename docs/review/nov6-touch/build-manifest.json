@@ -1,0 +1,22 @@
+{
+  "runtime_commit": "0ad88b3",
+  "displayed_build_stamp": "dev (local export; CI stamps its own commit)",
+  "physical_windows_test": false,
+  "files": [
+    {
+      "name": "TheLastSaveFile-windows-0ad88b3.zip",
+      "bytes": 32816732,
+      "sha256": "e210a9b410791dca60096f9573caf603aaa739c0732aac36aad7e49d987a7edf"
+    },
+    {
+      "name": "TheLastSaveFile-linux-0ad88b3.zip",
+      "bytes": 26763126,
+      "sha256": "499f7a1d987124e90260030a1376459c3ce0c8e30e2933aa5b742889fddac976"
+    },
+    {
+      "name": "TheLastSaveFile-web-0ad88b3.zip",
+      "bytes": 10729867,
+      "sha256": "6590133c6894cdd8279fa00fff31d92e6b574216a8e7d8ea4a9ebb3dd832e410"
+    }
+  ]
+}

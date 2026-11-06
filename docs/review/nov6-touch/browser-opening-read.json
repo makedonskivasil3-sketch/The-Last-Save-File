@@ -1,0 +1,27 @@
+{
+  "mode": "read-card",
+  "state": {
+    "area": "room",
+    "awake": true,
+    "fps": 4,
+    "frames": 285,
+    "game_ms": 1743,
+    "hold": "",
+    "last_exit": "active",
+    "paused": false,
+    "persistent": true,
+    "playable": true,
+    "reading": false,
+    "safe_marks": 0,
+    "save_ok": true,
+    "scene": "game",
+    "sfx_busy": false,
+    "slowest_ms": 141,
+    "stop": "not in the middle of a conversation.",
+    "unsafe_marks": 0,
+    "wall_ms": 3615,
+    "x": 320,
+    "y": 270
+  },
+  "page_errors": []
+}

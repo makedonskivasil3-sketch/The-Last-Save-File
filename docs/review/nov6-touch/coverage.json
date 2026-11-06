@@ -1,0 +1,39 @@
+{
+  "runtime_commit": "0ad88b372d69b34712389e2e051bf18674b00146",
+  "engine": "4.3.stable.official.77dcf97d8",
+  "normal_speed": true,
+  "independent_source_and_XDG_per_shard": true,
+  "expected": 867,
+  "passed": 867,
+  "failed": 0,
+  "skipped": 0,
+  "missing": [],
+  "duplicates": [],
+  "inventory_sha256": "35a7785693256553042f4ff01b1a5f72e6e75671a9fa8c884b03436820379edd",
+  "shards": [
+    {
+      "shard": 1,
+      "passed": 217,
+      "seconds": 523.7,
+      "unexpected_engine_errors": []
+    },
+    {
+      "shard": 2,
+      "passed": 217,
+      "seconds": 436.4,
+      "unexpected_engine_errors": []
+    },
+    {
+      "shard": 3,
+      "passed": 217,
+      "seconds": 422.4,
+      "unexpected_engine_errors": []
+    },
+    {
+      "shard": 4,
+      "passed": 216,
+      "seconds": 385.5,
+      "unexpected_engine_errors": []
+    }
+  ]
+}

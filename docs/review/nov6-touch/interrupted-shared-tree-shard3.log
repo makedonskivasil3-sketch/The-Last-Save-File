@@ -1,0 +1,142 @@
+Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
+
+SHARD 3/4; isolate XDG directories for each process.
+  RUN   test_act_order.test_workshop_before_pip_is_a_place
+  PASS  test_act_order.test_workshop_before_pip_is_a_place
+  RUN   test_ambient_pacing.test_the_owner_waits_for_a_thought_but_not_for_a_counter
+  PASS  test_ambient_pacing.test_the_owner_waits_for_a_thought_but_not_for_a_counter
+  RUN   test_archive.test_facts_wait_for_the_line_that_tells_them
+  PASS  test_archive.test_facts_wait_for_the_line_that_tells_them
+  RUN   test_archive.test_nothing_important_is_dropped_silently
+  PASS  test_archive.test_nothing_important_is_dropped_silently
+  RUN   test_archivist_file.test_no_colour_remark_before_any_memory
+  PASS  test_archivist_file.test_no_colour_remark_before_any_memory
+  RUN   test_art.test_the_light_stutters_on_a_reload
+  PASS  test_art.test_the_light_stutters_on_a_reload
+  RUN   test_audio.test_accessibility_softens_harsh_sounds
+  PASS  test_audio.test_accessibility_softens_harsh_sounds
+  RUN   test_audio.test_the_theme_grows_with_memories
+  PASS  test_audio.test_the_theme_grows_with_memories
+  RUN   test_audio_routing.test_no_bus_is_added_one_at_a_time
+  PASS  test_audio_routing.test_no_bus_is_added_one_at_a_time
+  RUN   test_audio_routing.test_the_web_page_turns_sound_on_at_the_first_gesture
+  PASS  test_audio_routing.test_the_web_page_turns_sound_on_at_the_first_gesture
+  RUN   test_baked_audio.test_loading_is_far_cheaper_than_building
+BAKED hum: load 0.1 ms vs build 53.0 ms
+  PASS  test_baked_audio.test_loading_is_far_cheaper_than_building
+  RUN   test_bin.test_the_sweep_deletes_you_in_the_open
+  PASS  test_bin.test_the_sweep_deletes_you_in_the_open
+  RUN   test_bin.test_a_sweep_resets_an_unfinished_restore
+  PASS  test_bin.test_a_sweep_resets_an_unfinished_restore
+  RUN   test_canon.test_rue_is_what_she_left_running
+  PASS  test_canon.test_rue_is_what_she_left_running
+  RUN   test_captions.test_a_scene_carries_one_take_across_its_pages_too
+  PASS  test_captions.test_a_scene_carries_one_take_across_its_pages_too
+  RUN   test_character_pipeline.test_without_a_sheet_the_cast_is_the_procedural_figure
+  PASS  test_character_pipeline.test_without_a_sheet_the_cast_is_the_procedural_figure
+  RUN   test_character_pipeline.test_solid_is_a_silhouette
+  PASS  test_character_pipeline.test_solid_is_a_silhouette
+  RUN   test_character_presentation.test_talking_to_mira_shows_her_face_and_mood
+  PASS  test_character_presentation.test_talking_to_mira_shows_her_face_and_mood
+  RUN   test_character_states.test_mira_s_mouth_moves_only_while_her_line_is_spoken
+  PASS  test_character_states.test_mira_s_mouth_moves_only_while_her_line_is_spoken
+  RUN   test_character_states.test_the_book_is_never_drawn_on_a_back
+  PASS  test_character_states.test_the_book_is_never_drawn_on_a_back
+  RUN   test_character_tells.test_rue_reacts_while_targeted
+  PASS  test_character_tells.test_rue_reacts_while_targeted
+  RUN   test_characters_oct24.test_the_habit_is_two_taps_and_a_press
+  PASS  test_characters_oct24.test_the_habit_is_two_taps_and_a_press
+  RUN   test_characters_oct24.test_a_kept_promise_makes_her_shelter_wider
+  PASS  test_characters_oct24.test_a_kept_promise_makes_her_shelter_wider
+  RUN   test_characters_oct24.test_pip_greets_her_when_she_comes_back
+  PASS  test_characters_oct24.test_pip_greets_her_when_she_comes_back
+  RUN   test_cohesion_fairness.test_holds_pause_the_edge_countdown
+  PASS  test_cohesion_fairness.test_holds_pause_the_edge_countdown
+  RUN   test_cohesion_story.test_restricted_mira_still_remembers
+  PASS  test_cohesion_story.test_restricted_mira_still_remembers
+  RUN   test_cohesion_story.test_a_run_after_another_ending_has_no_truce
+  PASS  test_cohesion_story.test_a_run_after_another_ending_has_no_truce
+  RUN   test_cold_open.test_a_replay_from_the_menu_skips_it
+  PASS  test_cold_open.test_a_replay_from_the_menu_skips_it
+  RUN   test_confrontation.test_the_owner_grabs_the_slot_halfway
+  PASS  test_confrontation.test_the_owner_grabs_the_slot_halfway
+  RUN   test_consistency_oct24.test_a_fact_is_learned_once_the_line_is_revealed
+  PASS  test_consistency_oct24.test_a_fact_is_learned_once_the_line_is_revealed
+  RUN   test_consistency_oct24.test_coming_back_from_the_archive_does_not_see_someone_off_screen
+  PASS  test_consistency_oct24.test_coming_back_from_the_archive_does_not_see_someone_off_screen
+  RUN   test_consistency_oct24.test_a_report_waits_for_a_story_scene
+  PASS  test_consistency_oct24.test_a_report_waits_for_a_story_scene
+  RUN   test_consistency_oct24.test_unbroken_text_pages_at_the_given_limit
+  PASS  test_consistency_oct24.test_unbroken_text_pages_at_the_given_limit
+  RUN   test_continuity.test_first_meeting_versus_reunion
+  PASS  test_continuity.test_first_meeting_versus_reunion
+  RUN   test_continuity.test_a_promise_and_a_restoration_are_remembered
+  PASS  test_continuity.test_a_promise_and_a_restoration_are_remembered
+  RUN   test_controls_feel.test_a_long_wall_stays_a_wall
+  PASS  test_controls_feel.test_a_long_wall_stays_a_wall
+  RUN   test_controls_feel.test_a_press_never_carries_into_the_next_place
+  PASS  test_controls_feel.test_a_press_never_carries_into_the_next_place
+  RUN   test_dark_truth.test_pip_shows_the_first_shape
+  PASS  test_dark_truth.test_pip_shows_the_first_shape
+  RUN   test_death_seeds.test_a_death_spot_glows_before_its_static_starts
+  PASS  test_death_seeds.test_a_death_spot_glows_before_its_static_starts
+  RUN   test_demo.test_the_workshop_candidate_ends_after_wren_sees_the_light
+  PASS  test_demo.test_the_workshop_candidate_ends_after_wren_sees_the_light
+  RUN   test_demo.test_a_demo_keeps_its_own_save
+  PASS  test_demo.test_a_demo_keeps_its_own_save
+  RUN   test_edge.test_no_traps_where_you_died
+  PASS  test_edge.test_no_traps_where_you_died
+  RUN   test_edge_confrontation.test_the_countdown_waits_for_the_act_card
+  PASS  test_edge_confrontation.test_the_countdown_waits_for_the_act_card
+  RUN   test_edge_confrontation.test_menu_pause_freezes_the_whole_confrontation
+  PASS  test_edge_confrontation.test_menu_pause_freezes_the_whole_confrontation
+  RUN   test_effects.test_reduce_flashing_scales_flashes_down
+  PASS  test_effects.test_reduce_flashing_scales_flashes_down
+  RUN   test_endings.test_message_ending_reconciles
+  PASS  test_endings.test_message_ending_reconciles
+  RUN   test_endings.test_every_ending_has_its_own_exchange_and_aftermath
+  PASS  test_endings.test_every_ending_has_its_own_exchange_and_aftermath
+  RUN   test_endings.test_an_escape_points_at_the_next_run_without_the_truth
+  PASS  test_endings.test_an_escape_points_at_the_next_run_without_the_truth
+  RUN   test_expansion.test_anchors_hold_and_chunks_stream
+  PASS  test_expansion.test_anchors_hold_and_chunks_stream
+  RUN   test_expansion.test_focus_brackets_follow_what_you_can_use
+  PASS  test_expansion.test_focus_brackets_follow_what_you_can_use
+  RUN   test_experience_fixes.test_a_refused_seam_stays_open
+  PASS  test_experience_fixes.test_a_refused_seam_stays_open
+  RUN   test_experience_fixes.test_wren_stays_in_the_square_while_mira_walks_with_you
+  PASS  test_experience_fixes.test_wren_stays_in_the_square_while_mira_walks_with_you
+  RUN   test_experience_fixes.test_hidden_costs_say_why
+  PASS  test_experience_fixes.test_hidden_costs_say_why
+  RUN   test_experience_fixes.test_ws_move_through_choices
+  PASS  test_experience_fixes.test_ws_move_through_choices
+  RUN   test_fairness.test_no_save_over_while_writing_slot_two
+  PASS  test_fairness.test_no_save_over_while_writing_slot_two
+  RUN   test_fairness.test_charging_shows_the_price
+  PASS  test_fairness.test_charging_shows_the_price
+  RUN   test_final_pass.test_the_complete_theme_is_held_back
+  PASS  test_final_pass.test_the_complete_theme_is_held_back
+  RUN   test_first_minutes.test_facing_the_nook_wall_does_not_freeze_mira
+ERROR: Caller thread can't call this function in this node (/root). Use call_deferred() or call_thread_group() instead.
+   at: propagate_notification (scene/main/node.cpp:2422)
+
+================================================================
+handle_crash: Program crashed with signal 11
+Engine version: Godot Engine v4.3.stable.official (77dcf97d82cbfe4e4615475fa52ca03da645dbd8)
+Dumping the backtrace. Please include this when reporting the bug to the project developer.
+[1] /lib/x86_64-linux-gnu/libc.so.6(+0x3fd70) [0x7f6996221d70] (??:0)
+[2] /workspace/.tools/godot-4.3/Godot_v4.3-stable_linux.x86_64() [0x43784c8] (??:0)
+[3] /workspace/.tools/godot-4.3/Godot_v4.3-stable_linux.x86_64() [0x3327000] (??:0)
+[4] /workspace/.tools/godot-4.3/Godot_v4.3-stable_linux.x86_64() [0x4751551] (??:0)
+[5] /workspace/.tools/godot-4.3/Godot_v4.3-stable_linux.x86_64() [0x35a4d07] (??:0)
+[6] /workspace/.tools/godot-4.3/Godot_v4.3-stable_linux.x86_64() [0x3e474d5] (??:0)
+[7] /workspace/.tools/godot-4.3/Godot_v4.3-stable_linux.x86_64() [0x4ae7b23] (??:0)
+[8] /lib/x86_64-linux-gnu/libc.so.6(+0x928bb) [0x7f69962748bb] (??:0)
+[9] /lib/x86_64-linux-gnu/libc.so.6(+0x110538) [0x7f69962f2538] (??:0)
+-- END OF BACKTRACE --
+================================================================
+tests/run.sh: line 25: 341171 Aborted                 "$GODOT" --headless --path . -s res://tests/run_tests.gd -- --test-mode "$@" 2>&1
+     341172 Done                    | tee "$LOG"
+
+FAILED: unexpected engine errors (tests/allowed_engine_errors.txt lists the deliberate ones):
+test_first_minutes.test_facing_the_nook_wall_does_not_freeze_mira: ERROR: Caller thread can't call this function in this node (/root). Use call_deferred() or call_thread_group() instead.
