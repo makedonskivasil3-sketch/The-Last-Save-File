@@ -1,0 +1,92 @@
+Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
+
+  RUN   test_prologue_story.test_large_text_reflows_and_touch_is_suspended
+  PASS  test_prologue_story.test_large_text_reflows_and_touch_is_suspended
+  RUN   test_sound_check.test_restoring_defaults_touches_only_sound
+  PASS  test_sound_check.test_restoring_defaults_touches_only_sound
+  RUN   test_touch.test_dragging_moves_rue
+  PASS  test_touch.test_dragging_moves_rue
+  RUN   test_touch.test_pressing_e_while_running_keeps_you_running
+  PASS  test_touch.test_pressing_e_while_running_keeps_you_running
+  RUN   test_touch.test_e_button_talks
+  PASS  test_touch.test_e_button_talks
+  RUN   test_touch.test_pause_button
+  PASS  test_touch.test_pause_button
+  RUN   test_touch.test_focus_loss_releases_virtual_stick_and_buttons
+  PASS  test_touch.test_focus_loss_releases_virtual_stick_and_buttons
+  RUN   test_touch.test_canceled_touch_releases_the_stick
+  PASS  test_touch.test_canceled_touch_releases_the_stick
+  RUN   test_touch.test_rotating_to_portrait_cancels_and_blocks_virtual_movement
+  PASS  test_touch.test_rotating_to_portrait_cancels_and_blocks_virtual_movement
+  RUN   test_touch_fixes.test_portrait_pauses_play
+  PASS  test_touch_fixes.test_portrait_pauses_play
+  RUN   test_touch_fixes.test_a_key_hides_the_touch_controls
+  PASS  test_touch_fixes.test_a_key_hides_the_touch_controls
+  RUN   test_touch_fixes.test_dialogue_clears_the_e_button
+  PASS  test_touch_fixes.test_dialogue_clears_the_e_button
+  RUN   test_touch_reliability.test_standard_e_tap_baseline
+  PASS  test_touch_reliability.test_standard_e_tap_baseline
+  RUN   test_touch_reliability.test_touch_press_and_release_between_frames
+  PASS  test_touch_reliability.test_touch_press_and_release_between_frames
+  RUN   test_touch_reliability.test_two_fingers_on_e_releasing_one_keeps_other_hold
+  PASS  test_touch_reliability.test_two_fingers_on_e_releasing_one_keeps_other_hold
+  RUN   test_touch_reliability.test_festival_touch_skip_without_mouse_emulation
+  PASS  test_touch_reliability.test_festival_touch_skip_without_mouse_emulation
+  RUN   test_touch_reliability.test_cold_open_has_touch_skip_control
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+  PASS  test_touch_reliability.test_cold_open_has_touch_skip_control
+  RUN   test_touch_reliability.test_fresh_touch_after_closing_dialogue_is_not_discarded
+  PASS  test_touch_reliability.test_fresh_touch_after_closing_dialogue_is_not_discarded
+  RUN   test_touch_reliability.test_card_touch_reveals_then_separately_advances_without_mouse
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+  PASS  test_touch_reliability.test_card_touch_reveals_then_separately_advances_without_mouse
+  RUN   test_touch_reliability.test_card_touch_skip_reaches_festival_without_an_input_leak
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+  PASS  test_touch_reliability.test_card_touch_skip_reaches_festival_without_an_input_leak
+  RUN   test_touch_reliability.test_festival_story_touch_continue_and_final_skip_without_mouse
+  PASS  test_touch_reliability.test_festival_story_touch_continue_and_final_skip_without_mouse
+  RUN   test_touch_reliability.test_a_canceled_e_gesture_never_talks
+  PASS  test_touch_reliability.test_a_canceled_e_gesture_never_talks
+  RUN   test_touch_reliability.test_held_dialogue_close_never_reopens_the_world
+  PASS  test_touch_reliability.test_held_dialogue_close_never_reopens_the_world
+  RUN   test_touch_reliability.test_dragging_out_of_skip_cancels_the_hold
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+  PASS  test_touch_reliability.test_dragging_out_of_skip_cancels_the_hold
+  RUN   test_touch_reliability.test_virtual_cinematic_tap_advances_one_page_without_auto_repetition
+  PASS  test_touch_reliability.test_virtual_cinematic_tap_advances_one_page_without_auto_repetition
+  RUN   test_touch_reliability.test_old_controls_cannot_cancel_a_new_scenes_gesture
+  PASS  test_touch_reliability.test_old_controls_cannot_cancel_a_new_scenes_gesture
+
+==== 26 passed, 0 failed (30.5s) ====

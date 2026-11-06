@@ -107,6 +107,10 @@ jobs:
           sleep 1
           NODE_PATH=/tmp/pw/node_modules node tests/web/web_check.cjs http://127.0.0.1:8766/index.html build/web_check
 
+      - name: Web opening touch controls (headless Chromium)
+        timeout-minutes: 5
+        run: NODE_PATH=/tmp/pw/node_modules node tests/web/touch_opening_check.cjs http://127.0.0.1:8766/index.html build/web_check/touch_opening
+
       - name: Upload web check evidence (on failure)
         if: failure()
         uses: actions/upload-artifact@v4

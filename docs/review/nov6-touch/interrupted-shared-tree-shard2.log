@@ -1,0 +1,141 @@
+Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
+
+SHARD 2/4; isolate XDG directories for each process.
+  RUN   test_act_order.test_well_before_archive
+  PASS  test_act_order.test_well_before_archive
+  RUN   test_ambient_pacing.test_a_long_story_line_keeps_its_whole_reading_time
+  PASS  test_ambient_pacing.test_a_long_story_line_keeps_its_whole_reading_time
+  RUN   test_archive.test_people_appear_only_once_met_and_without_spoilers
+  PASS  test_archive.test_people_appear_only_once_met_and_without_spoilers
+  RUN   test_archive.test_places_survive_a_retry
+  PASS  test_archive.test_places_survive_a_retry
+  RUN   test_archivist_file.test_he_names_the_colours_once_while_she_is_partly_coloured
+  PASS  test_archivist_file.test_he_names_the_colours_once_while_she_is_partly_coloured
+  RUN   test_art.test_the_light_follows_awareness
+  PASS  test_art.test_the_light_follows_awareness
+  RUN   test_audio.test_buses_exist_and_follow_settings
+  PASS  test_audio.test_buses_exist_and_follow_settings
+  RUN   test_audio.test_gameplay_events_make_sounds
+  PASS  test_audio.test_gameplay_events_make_sounds
+  RUN   test_audio_routing.test_buses_are_in_order_and_reach_master
+  PASS  test_audio_routing.test_buses_are_in_order_and_reach_master
+  RUN   test_audio_routing.test_speech_ducks_the_music_by_bus_volume
+  PASS  test_audio_routing.test_speech_ducks_the_music_by_bus_volume
+  RUN   test_baked_audio.test_the_title_theme_is_ready_at_once
+  PASS  test_baked_audio.test_the_title_theme_is_ready_at_once
+  RUN   test_bin.test_stepping_away_pauses_a_restore
+  PASS  test_bin.test_stepping_away_pauses_a_restore
+  RUN   test_bin.test_the_guest_book_page
+  PASS  test_bin.test_the_guest_book_page
+  RUN   test_canon.test_slot_two_is_the_deleted_slots_ghost
+  PASS  test_canon.test_slot_two_is_the_deleted_slots_ghost
+  RUN   test_captions.test_the_box_fits_the_screen_at_every_text_size
+  PASS  test_captions.test_the_box_fits_the_screen_at_every_text_size
+  RUN   test_character.test_rue_startles_when_the_owner_reacts
+  PASS  test_character.test_rue_startles_when_the_owner_reacts
+  RUN   test_character_pipeline.test_the_world_draws_the_new_cast
+  PASS  test_character_pipeline.test_the_world_draws_the_new_cast
+  RUN   test_character_presentation.test_every_expression_and_frame_reads_differently
+  PASS  test_character_presentation.test_every_expression_and_frame_reads_differently
+  RUN   test_character_presentation.test_talking_to_wren_shows_her_face
+  PASS  test_character_presentation.test_talking_to_wren_shows_her_face
+  RUN   test_character_states.test_restricted_characters_stand_still
+  PASS  test_character_states.test_restricted_characters_stand_still
+  RUN   test_character_tells.test_the_real_arin_never_moves_its_mouth
+  PASS  test_character_tells.test_the_real_arin_never_moves_its_mouth
+  RUN   test_characters_oct24.test_rue_presses_the_save_point_once_her_own_way
+  PASS  test_characters_oct24.test_rue_presses_the_save_point_once_her_own_way
+  RUN   test_characters_oct24.test_wren_waves_rue_over_before_she_explains
+  PASS  test_characters_oct24.test_wren_waves_rue_over_before_she_explains
+  RUN   test_characters_oct24.test_walking_off_a_topic_keeps_it
+  PASS  test_characters_oct24.test_walking_off_a_topic_keeps_it
+  RUN   test_cohesion_fairness.test_freeze_means_arin_not_the_friend_beside_you
+  PASS  test_cohesion_fairness.test_freeze_means_arin_not_the_friend_beside_you
+  RUN   test_cohesion_story.test_saying_not_now_doesnt_hide_who_mira_is
+  PASS  test_cohesion_story.test_saying_not_now_doesnt_hide_who_mira_is
+  RUN   test_cohesion_story.test_after_the_rue_ending_the_owner_keeps_their_word
+  PASS  test_cohesion_story.test_after_the_rue_ending_the_owner_keeps_their_word
+  RUN   test_cold_open.test_held_esc_skips_it_and_the_journal_still_has_it
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+  PASS  test_cold_open.test_held_esc_skips_it_and_the_journal_still_has_it
+  RUN   test_cold_open.test_focus_loss_freezes_typing_and_clears_skip_hold
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1448)
+  PASS  test_cold_open.test_focus_loss_freezes_typing_and_clears_skip_hold
+  RUN   test_consistency_oct24.test_a_fact_is_not_learned_when_its_page_opens
+  PASS  test_consistency_oct24.test_a_fact_is_not_learned_when_its_page_opens
+  RUN   test_consistency_oct24.test_milestones_come_in_order_and_once
+  PASS  test_consistency_oct24.test_milestones_come_in_order_and_once
+  RUN   test_consistency_oct24.test_rapid_conversations_make_one_report
+  PASS  test_consistency_oct24.test_rapid_conversations_make_one_report
+  RUN   test_consistency_oct24.test_after_the_guest_book_he_tells_less
+  PASS  test_consistency_oct24.test_after_the_guest_book_he_tells_less
+  RUN   test_consistency_oct24.test_the_present_is_dated
+  PASS  test_consistency_oct24.test_the_present_is_dated
+  RUN   test_continuity.test_characters_acknowledge_only_what_they_saw
+  PASS  test_continuity.test_characters_acknowledge_only_what_they_saw
+  RUN   test_controls_feel.test_a_corner_she_walks_squarely_into_stays_solid
+  PASS  test_controls_feel.test_a_corner_she_walks_squarely_into_stays_solid
+  RUN   test_controls_feel.test_a_press_with_nothing_near_expires
+  PASS  test_controls_feel.test_a_press_with_nothing_near_expires
+  RUN   test_dark_truth.test_the_character_file_opens_in_three_steps
+  PASS  test_dark_truth.test_the_character_file_opens_in_three_steps
+  RUN   test_dark_truth.test_the_message_tells_the_real_girl
+  PASS  test_dark_truth.test_the_message_tells_the_real_girl
+  RUN   test_demo.test_nothing_past_the_arch_is_reachable
+  PASS  test_demo.test_nothing_past_the_arch_is_reachable
+  RUN   test_demo.test_the_full_game_has_no_ladder_before_the_repair
+  PASS  test_demo.test_the_full_game_has_no_ladder_before_the_repair
+  RUN   test_edge.test_the_static_is_gentler_here
+  PASS  test_edge.test_the_static_is_gentler_here
+  RUN   test_edge.test_the_forgiven_death_says_so
+  PASS  test_edge.test_the_forgiven_death_says_so
+  RUN   test_edge_confrontation.test_every_place_the_slot_can_be_is_reachable_from_the_road
+  PASS  test_edge_confrontation.test_every_place_the_slot_can_be_is_reachable_from_the_road
+  RUN   test_effects.test_win_sequence
+  PASS  test_effects.test_win_sequence
+  RUN   test_endings.test_wren_ending
+  PASS  test_endings.test_wren_ending
+  RUN   test_endings.test_rue_is_the_only_complete_theme
+  PASS  test_endings.test_rue_is_the_only_complete_theme
+  RUN   test_endings.test_arin_at_the_edge_counts_as_being_seen
+  PASS  test_endings.test_arin_at_the_edge_counts_as_being_seen
+  RUN   test_expansion.test_stepping_into_the_void_drops_you_back
+ERROR: Caller thread can't call this function in this node (/root). Use call_deferred() or call_thread_group() instead.
+   at: propagate_notification (scene/main/node.cpp:2422)
+
+================================================================
+handle_crash: Program crashed with signal 11
+Engine version: Godot Engine v4.3.stable.official (77dcf97d82cbfe4e4615475fa52ca03da645dbd8)
+Dumping the backtrace. Please include this when reporting the bug to the project developer.
+[1] /lib/x86_64-linux-gnu/libc.so.6(+0x3fd70) [0x7f534a90ed70] (??:0)
+[2] /workspace/.tools/godot-4.3/Godot_v4.3-stable_linux.x86_64() [0x43784c8] (??:0)
+[3] /workspace/.tools/godot-4.3/Godot_v4.3-stable_linux.x86_64() [0x3327000] (??:0)
+[4] /workspace/.tools/godot-4.3/Godot_v4.3-stable_linux.x86_64() [0x4751551] (??:0)
+[5] /workspace/.tools/godot-4.3/Godot_v4.3-stable_linux.x86_64() [0x35a4d07] (??:0)
+[6] /workspace/.tools/godot-4.3/Godot_v4.3-stable_linux.x86_64() [0x3e474d5] (??:0)
+[7] /workspace/.tools/godot-4.3/Godot_v4.3-stable_linux.x86_64() [0x4ae7b23] (??:0)
+[8] /lib/x86_64-linux-gnu/libc.so.6(+0x928bb) [0x7f534a9618bb] (??:0)
+[9] /lib/x86_64-linux-gnu/libc.so.6(+0x110538) [0x7f534a9df538] (??:0)
+-- END OF BACKTRACE --
+================================================================
+tests/run.sh: line 25: 341185 Aborted                 "$GODOT" --headless --path . -s res://tests/run_tests.gd -- --test-mode "$@" 2>&1
+     341186 Done                    | tee "$LOG"
+
+FAILED: unexpected engine errors (tests/allowed_engine_errors.txt lists the deliberate ones):
+test_expansion.test_stepping_into_the_void_drops_you_back: ERROR: Caller thread can't call this function in this node (/root). Use call_deferred() or call_thread_group() instead.

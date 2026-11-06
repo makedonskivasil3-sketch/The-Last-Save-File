@@ -1,0 +1,21 @@
+{
+  "entry": {
+    "area": "festival",
+    "id": "festival:first_light",
+    "kind": "note",
+    "lines": [
+      "PLAYER 2 · beside the television: You always let me do the first one.",
+      "PLAYER 1 · beside the television: You always check whether I will."
+    ],
+    "title": "Festival · first light"
+  },
+  "timings": {
+    "key_ack_ms": 87,
+    "key_store_ms": 2323,
+    "click_ack_ms": 117,
+    "click_store_ms": 603
+  },
+  "sessions": 0,
+  "purge": 0,
+  "page_errors": []
+}

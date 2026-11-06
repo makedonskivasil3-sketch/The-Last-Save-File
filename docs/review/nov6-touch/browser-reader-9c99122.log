@@ -1,0 +1,4 @@
+PASS: keyboard acknowledges exactly one story page (reader 87 ms, stored 2323 ms)
+PASS: real Continue click acknowledges the second page (reader 117 ms, stored 603 ms)
+PASS: reading and journal writes cost no session or purge
+PASS: no browser page errors

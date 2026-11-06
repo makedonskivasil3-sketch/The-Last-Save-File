@@ -1,0 +1,27 @@
+{
+  "mode": "skip-card",
+  "state": {
+    "area": "room",
+    "awake": false,
+    "fps": 4,
+    "frames": 175,
+    "game_ms": 1276,
+    "hold": "cutscene",
+    "last_exit": "starting",
+    "paused": false,
+    "persistent": true,
+    "playable": false,
+    "reading": false,
+    "safe_marks": 0,
+    "save_ok": true,
+    "scene": "game",
+    "sfx_busy": false,
+    "slowest_ms": 136,
+    "stop": "not right now.",
+    "unsafe_marks": 0,
+    "wall_ms": 2381,
+    "x": 320,
+    "y": 270
+  },
+  "page_errors": []
+}

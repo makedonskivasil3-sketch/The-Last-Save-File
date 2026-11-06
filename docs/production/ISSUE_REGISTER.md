@@ -1,6 +1,22 @@
 # Issue register
 
-## Register of 2026-10-31 (current)
+## Current update — 2026-11-06
+
+See [the implementation and evidence](../review/nov6-touch/IMPLEMENTATION.md) for
+baseline `8112117` and touch fixes `ac3786d` / `9c99122`.
+
+| ID | Class | Sev | Problem | Status / evidence | Remaining verification |
+|---|---|---|---|---|---|
+| IN-6 | D | S2 | Fresh virtual E after dialogue could be rejected; multiple fingers could lose a hold | Implemented: gesture identity and shared ownership; `test_touch_reliability` | Physical phones |
+| IN-7 | D | S2 | Opening Skip depended on mouse emulation; memory card lacked dedicated touch controls | Implemented: owned raw-touch Continue and hold Skip; native and exported-browser checks | Physical phones, device switching |
+| IN-8 | D | S2 | Focus loss did not synchronously clear the reasserted interaction action | Caught by full suite; corrected in `9c99122`; all 26 touch checks pass | Final full-suite result in implementation report |
+| QA-3 | R | S3 | Two headless Godot 4.3 processes crashed with thread-access errors during shared-tree verification | Preserved raw logs in the November 6 review; isolated-source full rerun recorded there. Cause not established; do not suppress the error | Reproduce independently; distinguish test/import environment from exported gameplay |
+| DS-1 | H | S3 | Can unfamiliar players discover RUE naturally? | November 4 proves one continuous playthrough, 3/3 automated routes. The older two-run claim below is superseded | Human discovery, not another mechanic to force a replay |
+
+The older register is retained as history; current readiness and the November 4
+comprehension/fairness report supersede its obsolete diagnoses and baseline.
+
+## Register of 2026-10-31 (history)
 
 **Baseline:** `main` @ `adf2710` (runtime `2f03453`; test fixture `335a5f3`), all three verified to exist. Reconciled into `claude/last-save-file-prototype-ljwuq4` by merge `b5db36a`: where this branch and `main` disagreed on doorways, `main` won.
 
