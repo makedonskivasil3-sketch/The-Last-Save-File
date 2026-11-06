@@ -846,6 +846,12 @@ func _avoid(w: Node, n: Vector2) -> Vector2:
 			var side := to_arin.orthogonal().normalized()
 			if side.dot(n) < 0.0:
 				side = -side
+			# Never sidestep into a wall: on the square's north road the bot
+			# pinned itself against the top edge until Arin walked into it
+			# (purge 5, "arin in square"). Step to the open side instead.
+			var body: CharacterBody2D = w.player
+			if body.test_move(body.global_transform, side * 8.0) and not body.test_move(body.global_transform, -side * 8.0):
+				side = -side
 			n = (side * 1.2 - to_arin.normalized() * 0.3).normalized()
 	for pair in [["arin", 44.0], ["cursor", 56.0]]:
 		var h: Variant = w.area.get(pair[0])
