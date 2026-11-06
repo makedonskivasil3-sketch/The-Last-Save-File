@@ -40,6 +40,8 @@ var preview: Dictionary = {}
 var _pressing := false
 var _held := 0.0
 var _charge := 0.0
+## The PressGate press this hold belongs to.
+var _press_id := 0
 var _cooldown := 0.0
 var _loop: AudioStreamPlayer
 var _reacted: Dictionary = {}
@@ -87,17 +89,28 @@ func _process(delta: float) -> void:
 		_update_prompt()
 		queue_redraw()
 		return
-	# A press the HUD just used (closing a chat, picking a choice) isn't ours.
-	if Input.is_action_just_pressed("interact") and Engine.get_process_frames() - world.hud.interact_used_frame > 1:
+	# A new press of E that nobody else used (closing a chat, picking a
+	# choice): ours. PressGate gives each press one owner, so the press that
+	# closed a line never also talks, and a new tap right after it is never
+	# mistaken for that old press (docs/INPUT_POLICY.md).
+	if not _pressing and PressGate.take("world", "interact"):
 		_pressing = true
+		_press_id = PressGate.current()
 		_held = 0.0
 		_charge = 0.0
 	if not _pressing:
 		_retarget(delta)
 	if _pressing:
-		if Input.is_action_pressed("interact"):
+		if PressGate.was_canceled(_press_id):
+			# Cancelled (the OS took the touch, the finger slid off E, focus
+			# or rotation changed): nothing happens on its release.
+			InputTrace.add("blocked", "E", "world", "cancelled press #%d: no action" % _press_id)
+			_cancel()
+		elif Input.is_action_pressed("interact"):
 			var held_before := _held
 			_held += delta
+			if _held >= HOLD_START and _cooldown <= 0.0 and held_before < HOLD_START and not target.is_empty():
+				InputTrace.add("hold", "E", "world", "charging %s after %d ms" % [target.get("id", "?"), int(_held * 1000.0)])
 			if _held >= HOLD_START and _cooldown <= 0.0:
 				# Only the part of this frame after BOTH gates contributes.
 				# Counting the whole crossing frame made low FPS charge faster.

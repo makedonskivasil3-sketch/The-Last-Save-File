@@ -287,7 +287,7 @@ func glyph(action: String) -> String:
 		"interact":
 			return pad_label("interact") if using_gamepad else key_label("interact")
 		"confirm":
-			return "A" if using_gamepad else "ENTER"
+			return "E" if using_touch else ("A" if using_gamepad else "ENTER")
 		"pause":
 			return "II" if using_touch else ((pad_label("pause") if pad_for("pause") == JOY_BUTTON_START else pad_label("pause") + " / START") if using_gamepad else ("ESC" if key_for("pause") == KEY_ESCAPE else key_label("pause") + " / ESC"))
 		"move":

@@ -589,6 +589,8 @@ func _publish_web_state(delta: float) -> void:
 
 func _process(delta: float) -> void:
 	update_camera(delta)
+	if touch and touch.active:
+		touch.context_label = touch_action_label()
 	_observe_t -= delta
 	if _observe_t <= 0.0:
 		_observe_t = OBSERVE_EVERY
@@ -654,6 +656,27 @@ func _process(delta: float) -> void:
 	# [E] itself is read by the GlitchController: a tap comes back as tap_interact().
 
 
+## What the on-screen E does right now, in one word (docs/INPUT_POLICY.md):
+## the button says it instead of a bare "E" (the small E above it still
+## teaches the key). "" while a glitch hold is offered: the HOLD ring says it.
+func touch_action_label() -> String:
+	if get_tree().paused:
+		return ""
+	if hud.is_choosing():
+		return "OK"
+	if hud.is_cinematic() or hud.is_dialogue_open():
+		return "NEXT"
+	if not can_act():
+		return ""
+	if _focused is Npc:
+		return "TALK"
+	if _focused is Note or _focused is Readable or _focused is MemoryFragment or _focused is BinFile:
+		return "READ"
+	if _focused != null:
+		return "USE"
+	return ""
+
+
 ## Open the pause menu with what it shows (goal, map, debug).
 func open_pause() -> void:
 	_pause_menu.debug_available = debug_enabled()
@@ -664,12 +687,13 @@ func open_pause() -> void:
 	_pause_menu.visited_areas = map.visited
 	_pause_menu.discovered_areas = map.discovered
 	_pause_menu.closed_areas = map.closed
+	PressGate.cancel("paused")  # a held E does nothing when play resumes
 	_pause_menu.open()
 
 
 func _orientation_changed(portrait: bool) -> void:
 	if portrait and not get_tree().paused:
-		touch.cancel_touches()
+		touch.cancel_touches("rotated to portrait")
 		open_pause()
 	# Landscape only removes the notice. The player explicitly resumes;
 	# an existing menu/focus/controller hold is never cleared by rotation.
@@ -867,10 +891,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		"win":
 			if not _win_card_shown:
 				return  # the epilogue is still playing
-			if event.is_action_pressed("confirm") or event.is_action_pressed("pause"):
+			if event.is_action_pressed("confirm") or event.is_action_pressed("interact") or event.is_action_pressed("pause"):
 				get_tree().change_scene_to_file(TITLE_SCENE)
 		"demo":
-			if event.is_action_pressed("confirm") or event.is_action_pressed("pause"):
+			if event.is_action_pressed("confirm") or event.is_action_pressed("interact") or event.is_action_pressed("pause"):
 				get_tree().change_scene_to_file(TITLE_SCENE)
 
 
@@ -934,11 +958,12 @@ func change_area(id: String, arrival: String) -> void:
 			hud.say("wait for %s." % escort.npc_id, "self")
 		return
 	_transitioning = true
+	PressGate.claim("passage")  # a press held through a doorway doesn't act on the other side
 	_tap_buffered = -1  # a press never carries into the next place
 	player.frozen = true
 	player.velocity = Vector2.ZERO
 	if touch._stick_finger != -1 or not touch._held.is_empty():
-		touch.cancel_touches()
+		touch.cancel_touches("passage")
 	_update_reading_hold()
 	var passage := area.area_id == "oob" or id == "oob"
 	Sfx.play("transition" if passage else "ui_back")
@@ -1556,6 +1581,11 @@ func _use_buffered_tap() -> void:
 	if _tap_buffered < 0:
 		return
 	if Time.get_ticks_msec() - _tap_buffered > TAP_BUFFER_MS or not can_act():
+		if can_act() and touch and touch.active:
+			# A tap that found nothing: say so on the button instead of
+			# looking broken (docs/INPUT_POLICY.md).
+			touch.notice("nothing in reach")
+		InputTrace.add("blocked", "E", "world", "tap found nothing in reach" if can_act() else "tap during a scene or passage")
 		_tap_buffered = -1
 		return
 	if _focused:
@@ -2028,13 +2058,14 @@ func kill(cause: String, reason := "") -> void:
 	if not is_inside_tree():
 		return  # F9 may have reloaded the scene in the meantime
 	hud.show_retry()
+	PressGate.claim("retry card")  # a press held through the death doesn't retry
 	while is_inside_tree():
 		await get_tree().process_frame
 		if not is_inside_tree():
 			return  # the scene changed while the card waited
 		if get_tree().paused:
 			continue  # the pause menu has the input
-		if Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("confirm"):
+		if PressGate.take("retry"):
 			break
 	if is_inside_tree():
 		get_tree().reload_current_scene()

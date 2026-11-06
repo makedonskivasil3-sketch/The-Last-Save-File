@@ -548,6 +548,7 @@ func cinematic(title: String, lines: Array, color: Color = SELF_COLOR, dim: floa
 		narrator.stop()
 	_clear_title()
 	_cinematic = true
+	PressGate.claim("cinematic opened")
 	_skip_requested = false
 	_skip_armed = false
 	_skip_hold = 0.0
@@ -736,8 +737,20 @@ func _fit_cinematic() -> void:
 	_cine_backing.size = _cine_text.size + Vector2(16, 12)
 
 
+## The HUD's press this frame (dialogue reveal/advance, cinematics, choices):
+## taken from PressGate once per frame, so asking twice in one frame (skip
+## arming, then the line) gives the same answer, and a press the world
+## already used (the one that opened this box) is never the HUD's too.
+var _adv_frame := -1
+var _adv_took := false
+
+
 func _advance_pressed() -> bool:
-	return Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("confirm")
+	var f := Engine.get_process_frames()
+	if f != _adv_frame:
+		_adv_frame = f
+		_adv_took = PressGate.take("hud")
+	return _adv_took
 
 
 ## Opens the dialogue box. lines: Array of Strings, advanced with interact
@@ -768,6 +781,7 @@ func show_dialogue(speaker: String, color: Color, lines: Array, voice_prefix := 
 	_dialogue_index = 0
 	_dialogue_typed = 0.0
 	_dialogue_opened_frame = Engine.get_process_frames()
+	PressGate.claim("dialogue opened")  # a press still held from play doesn't advance it
 	_dialogue_speaker.text = speaker
 	_dialogue_speaker.add_theme_color_override("font_color", color)
 	_dialogue.visible = true
@@ -814,7 +828,7 @@ func choose(question: String, options: Array, focus := 0) -> int:
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.pressed.connect(func() -> void:
 			if Time.get_ticks_msec() >= _choice_ready_ms:  # not the press that ended the dialogue
-				_chosen.emit(i))
+				_pick(i))
 		b.focus_entered.connect(func() -> void: Sfx.ui("ui_move"))
 		_choice_list.add_child(b)
 		if first == null or i == focus:
@@ -823,6 +837,8 @@ func choose(question: String, options: Array, focus := 0) -> int:
 	_choice_ready_ms = Time.get_ticks_msec() + CHOICE_GRACE_MS
 	_choice.move_to_front()  # above an end card's dimming overlay, if one is up
 	_choice_frame = Engine.get_process_frames()
+	_choice_picked = false
+	PressGate.claim("choice opened")
 	_console_box.visible = false
 	_prompt.visible = false
 	first.grab_focus()
@@ -853,11 +869,26 @@ func _update_choice() -> void:
 		if n > 0:
 			var i := focused.get_index() if focused is Button and focused.get_parent() == _choice_list else 0
 			(_choice_list.get_child((i + step + n) % n) as Button).grab_focus()
-	if Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("confirm"):
+	if _advance_pressed():
 		var focused := get_viewport().gui_get_focus_owner()
 		if focused is Button and focused.get_parent() == _choice_list:
 			interact_used_frame = Engine.get_process_frames()
-			_chosen.emit(focused.get_index())
+			_pick(focused.get_index())
+
+
+## One answer per question: Enter is both ui_accept (the focused button
+## presses itself) and confirm (_update_choice), and a tap can arrive as a
+## touch and an emulated click. Only the first counts.
+var _choice_picked := false
+
+
+func _pick(i: int) -> void:
+	if _choice_picked or not _choice.visible:
+		InputTrace.add("refused", "choice", "hud", "answer %d: already answered" % i, false)
+		return
+	_choice_picked = true
+	InputTrace.add("taken", "choice", "hud", "answer %d" % i, true)
+	_chosen.emit(i)
 
 
 func is_dialogue_open() -> bool:

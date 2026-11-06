@@ -199,6 +199,7 @@ var _diag: Label
 var _owner_line: Label
 var _years: Label
 var _chip: Label
+var _chip_fill: ColorRect
 var story: PrologueStory
 var _touch: TouchControls
 var _story_seen := {}
@@ -304,7 +305,7 @@ func _build_hud() -> void:
 	_chip = Label.new()
 	_chip.position = SKIP_CHIP.position
 	_chip.size = SKIP_CHIP.size
-	_chip.text = "skip ▸▸"
+	_chip.text = "hold: skip ▸▸"
 	_chip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_chip.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	UiStyle.sized(_chip, 9)
@@ -313,7 +314,20 @@ func _build_hud() -> void:
 	chip_bg.set_corner_radius_all(4)
 	_chip.add_theme_stylebox_override("normal", chip_bg)
 	_chip.visible = false
-	_hud.add_child(_chip)
+	# Above the story panel (layer 20): skipping stays possible while a page
+	# is up. The fill shows how far the hold has got.
+	var chip_layer := CanvasLayer.new()
+	chip_layer.layer = 21
+	add_child(chip_layer)
+	chip_layer.add_child(_chip)
+	_chip_fill = ColorRect.new()
+	_chip_fill.color = Color(1.0, 0.8, 0.45, 0.45)
+	_chip_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_chip_fill.position = Vector2(0, SKIP_CHIP.size.y - 3)
+	_chip_fill.size = Vector2(0, 3)
+	_chip.add_child(_chip_fill)
+	# The chip belongs to the finger that lands on it (a TouchControls zone,
+	# set in _update_chip), never to wherever the emulated mouse happens to be.
 	_years = _label(Vector2(0, 160), 20, Color(0.95, 0.95, 0.95))
 
 
@@ -334,6 +348,7 @@ func _label(pos: Vector2, size: int, color: Color) -> Label:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
 		_focus_lost = true
+		_skip_t = 0.0  # time away never counts toward a skip
 		_update_hold()
 	elif what == NOTIFICATION_APPLICATION_FOCUS_IN:
 		_focus_lost = false
@@ -391,7 +406,12 @@ func _input(event: InputEvent) -> void:
 func _skip_held() -> bool:
 	if Input.is_action_pressed("ui_cancel") or Input.is_action_pressed("pause"):
 		return true
-	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+	# A finger on the chip (whichever finger: the stick may be finger 0).
+	if _touch and _touch.zone_held("skip"):
+		return true
+	# A real mouse held on the chip (desktop). Touch-generated clicks are
+	# left to the zone above, so a thumb elsewhere never counts.
+	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and not (_touch and _touch.active):
 		return SKIP_CHIP.has_point(get_viewport().get_mouse_position())
 	return false
 
@@ -418,6 +438,7 @@ func _process(delta: float) -> void:
 	# Skip is still available, but never commits an unread page.
 	if story.visible:
 		_update_skip(delta)
+		_update_chip()
 		if story.visible:
 			story.tick(delta, autoplay)
 		if not story.visible:
@@ -613,13 +634,29 @@ func _update_camera(delta: float) -> void:
 	position = -tl * z
 
 
+## The touch skip chip: shown on touch screens before the present, filled
+## as the hold grows. Its zone exists only while it does: after the skip, a
+## tap there is a tap like any other.
+func _update_chip() -> void:
+	if _touch == null or _chip == null:
+		return
+	_chip.visible = (Settings.using_touch or _touch.active) and beat < Beat.LOAD
+	_chip_fill.size.x = SKIP_CHIP.size.x * clampf(_skip_t / SKIP_HOLD, 0.0, 1.0)
+	if beat < Beat.LOAD:
+		_touch.zones["skip"] = SKIP_CHIP
+	else:
+		_touch.zones.erase("skip")
+
+
 func _update_skip(delta: float) -> void:
 	var holding := _skip_held()
 	if not _armed:
 		_armed = not holding
 		holding = false
 	if holding and (beat < Beat.LOAD or story.visible):
-		_skip_t += delta
+		# Capped per frame: a frame that spans time in the background (or
+		# a hitch at 8 FPS) can't complete the hold by itself.
+		_skip_t += minf(delta, 0.1)
 		if _skip_t >= SKIP_HOLD:
 			acted["skipped"] = elapsed
 			PlaytestLog.mark("prologue skipped", Beat.keys()[beat])
@@ -1182,7 +1219,7 @@ func _story_break(id: String, pages: Array) -> void:
 	_walk_to = Vector2.INF
 	_act_queued = false
 	_hold_down = false
-	_touch.cancel_touches()
+	_touch.cancel_touches("story panel opened", true)  # a thumb on skip keeps skipping
 	_touch.buttons_enabled = false
 	story.open(id, pages)
 	PlaytestLog.mark("prologue: story", id)
@@ -1348,7 +1385,7 @@ func _update_hud(delta: float) -> void:
 	var how := "hold the skip chip" if Settings.using_touch else "hold Esc"
 	_skip_label.text = ("%s to skip  %s" % [how, "▮".repeat(int(_skip_t / SKIP_HOLD * 6.0))]) if beat < Beat.LOAD else ""
 	_skip_label.modulate.a = 0.75 if (lit_n >= 1 or elapsed > 8.0 or _skip_t > 0.0) else 0.0
-	_chip.visible = Settings.using_touch and beat < Beat.LOAD
+	_update_chip()
 	# The present: a short, diegetic boot, and the owner's first words.
 	var lines: Array[String] = []
 	if beat == Beat.LOAD:

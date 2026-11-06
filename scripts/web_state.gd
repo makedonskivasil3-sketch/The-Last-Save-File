@@ -14,4 +14,8 @@ static func publish(state: Dictionary) -> void:
 	state["frames"] = Engine.get_process_frames()
 	var tree := Engine.get_main_loop() as SceneTree
 	state["paused"] = tree != null and tree.paused
+	# The playtest input trace's last lines (InputTrace), so a browser check
+	# can say why a tap did or didn't act. Only with the playtest flag.
+	if InputTrace.enabled():
+		state["trace"] = InputTrace.lines.slice(maxi(0, InputTrace.lines.size() - 40))
 	JavaScriptBridge.eval("window.__lsf = %s;" % JSON.stringify(state), true)
